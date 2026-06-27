@@ -1,84 +1,156 @@
 'use client'
 
+import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod/v4'
-import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
-import { createBrowserClient } from '@supabase/ssr'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-
-const schema = z.object({
-  fullName: z.string().min(2, 'Enter your full name'),
-  email: z.email('Enter a valid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
-type FormValues = z.infer<typeof schema>
+import { createClient } from '@/lib/supabase/client'
 
 export function SignupForm() {
   const router = useRouter()
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-  })
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  async function onSubmit(values: FormValues) {
+    const supabase = createClient()
     const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: { full_name: values.fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      email,
+      password,
+      options: { data: { full_name: fullName } },
     })
+
     if (error) {
-      toast.error(error.message)
+      setError(error.message)
+      setLoading(false)
       return
     }
-    toast.success('Check your email to confirm your account.')
-    router.push('/login?from=signup')
+
+    router.push('/onboarding')
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="fullName">Full name</Label>
-        <Input id="fullName" type="text" placeholder="Jane Wanjiru" {...register('fullName')} />
-        {errors.fullName && <p className="text-xs text-destructive">{errors.fullName.message}</p>}
+    <form onSubmit={handleSubmit} className="w-full max-w-[360px] space-y-2">
+      <div className="ios-group">
+        <div className="ios-group-row">
+          <label
+            htmlFor="fullName"
+            className="text-ios-subhead w-[88px] shrink-0"
+            style={{ color: 'var(--system-label)' }}
+          >
+            Full Name
+          </label>
+          <input
+            id="fullName"
+            type="text"
+            autoComplete="name"
+            required
+            value={fullName}
+            onChange={e => setFullName(e.target.value)}
+            placeholder="Jane Wanjiku"
+            className="flex-1 bg-transparent py-3 text-ios-body outline-none"
+            style={{ color: 'var(--system-label)', caretColor: 'var(--brand-navy)' }}
+          />
+        </div>
+        <div className="ios-group-row">
+          <label
+            htmlFor="email"
+            className="text-ios-subhead w-[88px] shrink-0"
+            style={{ color: 'var(--system-label)' }}
+          >
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="flex-1 bg-transparent py-3 text-ios-body outline-none"
+            style={{ color: 'var(--system-label)', caretColor: 'var(--brand-navy)' }}
+          />
+        </div>
+        <div className="ios-group-row" style={{ borderBottom: 'none' }}>
+          <label
+            htmlFor="password"
+            className="text-ios-subhead w-[88px] shrink-0"
+            style={{ color: 'var(--system-label)' }}
+          >
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="8+ characters"
+            className="flex-1 bg-transparent py-3 text-ios-body outline-none"
+            style={{ color: 'var(--system-label)', caretColor: 'var(--brand-navy)' }}
+          />
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="email">Work email</Label>
-        <Input id="email" type="email" placeholder="you@company.com" {...register('email')} />
-        {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-      </div>
+      {error && (
+        <p className="text-ios-footnote px-4" style={{ color: 'var(--destructive)' }}>
+          {error}
+        </p>
+      )}
 
-      <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" placeholder="Min. 8 characters" {...register('password')} />
-        {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-      </div>
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-2xl py-4 text-ios-headline font-semibold transition-opacity active:opacity-70 disabled:opacity-40"
+        style={{
+          background: 'var(--brand-navy)',
+          color: '#ffffff',
+          minHeight: '50px',
+        }}
+      >
+        {loading ? 'Creating account…' : 'Create Account'}
+      </button>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-        Create account
-      </Button>
-
-      <p className="text-xs text-center text-muted-foreground">
-        By signing up you agree to our{' '}
-        <a href="#" className="underline underline-offset-2">Terms of Service</a>
-        {' '}and{' '}
-        <a href="#" className="underline underline-offset-2">Privacy Policy</a>.
+      <p
+        className="text-ios-footnote text-center px-4 pt-1 leading-relaxed"
+        style={{ color: 'var(--system-label-2)' }}
+      >
+        By continuing you agree to our{' '}
+        <span style={{ color: 'var(--brand-navy)' }}>Terms</span> and{' '}
+        <span style={{ color: 'var(--brand-navy)' }}>Privacy Policy</span>.
       </p>
+
+      <div className="flex items-center gap-3 py-2">
+        <div className="flex-1 hairline border-t" />
+        <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+          or
+        </span>
+        <div className="flex-1 hairline border-t" />
+      </div>
+
+      <Link href="/login" className="block">
+        <button
+          type="button"
+          className="w-full rounded-2xl py-4 text-ios-headline font-semibold transition-opacity active:opacity-70"
+          style={{
+            background: 'var(--system-fill-3)',
+            color: 'var(--brand-navy)',
+            minHeight: '50px',
+          }}
+        >
+          Sign In Instead
+        </button>
+      </Link>
     </form>
   )
 }

@@ -1,0 +1,147 @@
+---
+import Button from "@/components/fundations/buttons/Button.astro";
+import Text from "@/components/fundations/typography/Text.astro";
+import Kicker from "@/components/fundations/typography/Kicker.astro";
+const data = [
+  { src: "/integrations/1.svg", alt: "integration 1" },
+  { src: "/integrations/2.svg", alt: "integration 2" },
+  { src: "/integrations/3.svg", alt: "integration 3" },
+  { src: "/integrations/4.svg", alt: "integration 4" },
+  { src: "/integrations/5.svg", alt: "integration 5" },
+  { src: "/integrations/6.svg", alt: "integration 6" },
+  { src: "/integrations/7.svg", alt: "integration 7" },
+  { src: "/integrations/8.svg", alt: "integration 8" },
+  { src: "/integrations/9.svg", alt: "integration 9" },
+  { src: "/integrations/10.svg", alt: "integration 10" },
+  { src: "/integrations/11.svg", alt: "integration 11" },
+  { src: "/integrations/12.svg", alt: "integration 12" },
+  { src: "/integrations/13.svg", alt: "integration 13" },
+  { src: "/integrations/14.svg", alt: "integration 14" },
+  { src: "/integrations/15.svg", alt: "integration 15" },
+  { src: "/integrations/16.svg", alt: "integration 16" },
+  { src: "/integrations/17.svg", alt: "integration 17" },
+  { src: "/integrations/18.svg", alt: "integration 18" },
+  { src: "/integrations/19.svg", alt: "integration 19" },
+  { src: "/integrations/20.svg", alt: "integration 20" },
+];
+---
+
+<section class="bg-white dark:bg-zinc-900">
+  <div class="px-8 py-24 mx-auto max-w-7xl md:px-12 lg:px-20">
+    <div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
+      <div class="h-full grid grid-cols-1 gap-2 lg:grid-cols-2">
+        <div
+          class="h-full grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1"
+        >
+          <div
+            class="p-8 shadow bg-linear-180 outline outline-zinc-100 dark:outline-zinc-800 from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 rounded-xl"
+          >
+            <Kicker> Integration </Kicker>
+            <Text
+              tag="h3"
+              variant="textBase"
+              class="mt-4 font-medium text-zinc-900 dark:text-white"
+            >
+              Easy Integration
+            </Text>
+            <Text
+              tag="p"
+              variant="textSM"
+              class="mt-2 font-medium text-zinc-500 dark:text-zinc-400"
+            >
+              Integrating with existing systems is smooth and hassle-free,
+              thanks to our incredible flexible approach.
+            </Text>
+          </div>
+          <div
+            class="items-center p-8 overflow-hidden shadow bg-linear-180 outline outline-zinc-100 dark:outline-zinc-800 from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 rounded-xl"
+          >
+            <div
+              class="[-webkit-mask-image:radial-gradient(56.81%_53.42%_at_50%_46.58%,_rgba(217,217,217,0.9)_24.36%,rgba(217,217,217,0)_100%)]"
+            >
+              <div class="flex flex-wrap justify-evenly gap-2">
+                {
+                  data.map((item) => (
+                    <img class="w-auto h-auto" alt={item.alt} src={item.src} />
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="relative flex flex-col items-center justify-center">
+          <img
+            class="relative object-cover h-full rounded-xl"
+            src="/bgs/3.jpeg"
+            alt=""
+          />
+          <div class="absolute bottom-0 w-full p-4">
+            <Button size="sm" variant="outline" class="w-full">
+              See our integrations
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div class="h-full grid grid-cols-1 gap-2 lg:grid-cols-2">
+        <div
+          class="relative flex flex-col justify-between h-full overflow-hidden shadow bg-linear-180 outline outline-zinc-100 dark:outline-zinc-800 from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 rounded-xl"
+        >
+          <div class="relative p-8 mt-auto">
+            <Kicker> Features </Kicker>
+            <Text
+              tag="h3"
+              variant="textBase"
+              class="mt-4 font-medium text-zinc-900 dark:text-white"
+            >
+              Functionality
+            </Text>
+            <Text
+              tag="p"
+              variant="textSM"
+              class="mt-2 font-medium text-zinc-500 dark:text-zinc-400"
+            >
+              Equipped with advanced features and tools, our solution
+              effortlessly manages complex tasks and workflows.
+            </Text>
+          </div>
+          <div class="ml-8 -mb-4 lg:absolute -top-2 -right-8">
+            <img
+              class="w-full h-full shadow rounded-l-xl"
+              src="/widgets/sliders.svg"
+              alt=""
+            />
+          </div>
+        </div>
+        <div
+          class="relative flex flex-col justify-between h-full overflow-hidden shadow bg-linear-180 outline outline-blue-100 dark:outline-blue-800 from-blue-50 to-blue-100 dark:from-blue-800 dark:to-blue-900 rounded-xl"
+        >
+          <div class="relative p-8">
+            <Kicker> Planning </Kicker>
+            <Text
+              tag="h3"
+              variant="textBase"
+              class="mt-4 font-medium text-zinc-900 dark:text-white"
+            >
+              Plan smarter, not harder
+            </Text>
+            <Text
+              tag="p"
+              variant="textSM"
+              class="mt-2 font-medium text-zinc-500 dark:text-zinc-400"
+            >
+              Organize your schedule with intelligent automation and never miss
+              a beat, no matter how busy your day gets.
+            </Text>
+          </div>
+          <div class="ml-8 -mb-4 lg:absolute -bottom-4 -right-8">
+            <img
+              class="h-full shadow rounded-l-xl"
+              src="/widgets/calendar.svg"
+              alt=""
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -45,3 +45,12 @@ supabase/.temp/
 
 # Generated reports (open in browser → print to PDF)
 reports/
+
+# OAuth / API credentials — never commit
+resources/client_secret*.json
+
+# Local Claude Code tooling
+.claude/settings.local.json
+.claude/skills/
+.claude/apple-design-context.md
+.claude/scheduled_tasks.lock

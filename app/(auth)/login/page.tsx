@@ -1,28 +1,22 @@
 import type { Metadata } from 'next'
 import { LoginForm } from '@/components/auth/login-form'
 
-export const metadata: Metadata = { title: 'Sign in' }
+export const metadata: Metadata = {
+  title: 'Sign In — LexReg Africa',
+}
 
 export default function LoginPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--brand-navy)' }}>
+    <>
+      <div className="mb-6 text-center">
+        <h1 className="text-ios-title1" style={{ color: 'var(--system-label)' }}>
           Welcome back
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-ios-subhead mt-1" style={{ color: 'var(--system-label-2)' }}>
           Sign in to your LexReg account
         </p>
       </div>
-
       <LoginForm />
-
-      <p className="text-center text-sm text-muted-foreground">
-        No account?{' '}
-        <a href="/signup" className="font-medium underline underline-offset-2" style={{ color: 'var(--brand-navy)' }}>
-          Create one
-        </a>
-      </p>
-    </div>
+    </>
   )
 }

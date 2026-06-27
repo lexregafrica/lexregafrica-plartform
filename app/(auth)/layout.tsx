@@ -1,53 +1,35 @@
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+import type { ReactNode } from 'react'
+
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen flex">
-      {/* Left brand panel — hidden on mobile */}
-      <div
-        className="hidden lg:flex lg:w-[420px] xl:w-[480px] flex-col justify-between p-12 shrink-0"
-        style={{ background: 'var(--brand-navy)' }}
-      >
-        <div className="flex items-center gap-3">
-          <LogoMark />
-          <span className="text-white font-semibold text-lg tracking-tight">LexReg Africa</span>
-        </div>
-
-        <div>
-          <blockquote className="text-white/80 text-lg leading-relaxed mb-6">
-            "Compliance is not a burden — it&apos;s the foundation every sustainable Kenyan business builds on."
-          </blockquote>
-          <p className="text-white/40 text-sm">Charles M. — Legal Partner</p>
-        </div>
-
-        <p className="text-white/30 text-xs">
-          Governance, Compliance & Organisational Readiness OS
-        </p>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-white">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <LogoMark />
-            <span className="font-semibold text-base tracking-tight" style={{ color: 'var(--brand-navy)' }}>
-              LexReg Africa
+    <div className="ios-bg min-h-[100dvh] flex flex-col items-center justify-center px-4 py-12">
+      {/* LexReg wordmark */}
+      <div className="mb-8 flex flex-col items-center gap-1">
+        <div className="flex items-center gap-2">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-[10px]"
+            style={{ background: 'var(--brand-navy)' }}
+          >
+            <span
+              className="text-ios-headline font-bold tracking-tight"
+              style={{ color: 'var(--brand-gold)', letterSpacing: '-0.5px' }}
+            >
+              LR
             </span>
           </div>
-          {children}
+          <span
+            className="text-ios-title2"
+            style={{ color: 'var(--brand-navy)', letterSpacing: '-0.5px' }}
+          >
+            LexReg
+          </span>
         </div>
+        <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          Africa
+        </span>
       </div>
-    </div>
-  )
-}
 
-function LogoMark() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="32" height="32" rx="8" fill="var(--brand-gold, #c9a227)" />
-      <path
-        d="M8 8h4v12h8v4H8V8zM18 8h6l-4 8 4 8h-6l-4-8 4-8z"
-        fill="var(--brand-navy, #1a1a2e)"
-      />
-    </svg>
+      {children}
+    </div>
   )
 }
