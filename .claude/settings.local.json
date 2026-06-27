@@ -105,7 +105,13 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
       "Bash(git -C /Users/ianlove/workspaces/Lexreg status --short)",
       "Bash(git -C /Users/ianlove/workspaces/Lexreg log --oneline -3)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg rm --cached .claude/settings.local.json)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg commit -m ' *)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg diff --stat HEAD)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg add components/forgeui/cloudscape.tsx .gitignore)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg diff HEAD -- .claude/settings.local.json)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg add .claude/settings.local.json)"
     ]
   }
 }
