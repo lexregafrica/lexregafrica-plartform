@@ -5,14 +5,11 @@ import {
   IconBuilding,
   IconFileText,
   IconShieldCheck,
+  IconFolder,
+  IconLock,
   IconCheck,
-  IconChevronDown,
 } from '@tabler/icons-react'
-import {
-  Expandable,
-  ExpandableTrigger,
-  ExpandableContent,
-} from '@/components/ui/expandable'
+import { ContainerScroll, CardSticky } from '@/components/ui/card-sticky'
 
 const GOLD = '#C9A227'
 const NAVY = '#1A1A2E'
@@ -25,7 +22,7 @@ const SERVICES = [
     title: 'Entity Formation & Registration',
     tagline: 'From idea to incorporated company.',
     description:
-      'We handle the complete company formation journey — from BRS name search to certificate issuance. Document OCR extracts your data automatically, a lawyer verifies everything, and we guide the manual BRS filing step-by-step.',
+      'We handle the complete formation journey — OCR extracts data from your documents automatically, a lawyer verifies everything, and we guide every BRS filing step by step.',
     features: [
       'OCR with 60% confidence threshold',
       'Google Document AI + Gemini fallback',
@@ -34,6 +31,8 @@ const SERVICES = [
       'Certificate upload and storage',
     ],
     accentColor: GOLD,
+    accentBg: 'rgba(201,162,39,0.07)',
+    accentBorder: 'rgba(201,162,39,0.18)',
   },
   {
     icon: IconFileText,
@@ -41,7 +40,7 @@ const SERVICES = [
     title: 'Corporate Services',
     tagline: 'Board resolutions and AGM notices in minutes.',
     description:
-      'LexReg Diligence™ auto-generates the corporate documents your company needs to stay in good standing — board resolutions, AGM notices, share transfer forms, director circulars — all legally accurate and ready to sign.',
+      'LexReg Diligence™ auto-generates every corporate document your company needs to stay in good standing — all legally accurate and ready to sign.',
     features: [
       'Board resolutions',
       'AGM and EGM notices',
@@ -50,6 +49,8 @@ const SERVICES = [
       'Dividend declaration documents',
     ],
     accentColor: '#2563eb',
+    accentBg: 'rgba(37,99,235,0.06)',
+    accentBorder: 'rgba(37,99,235,0.16)',
   },
   {
     icon: IconShieldCheck,
@@ -57,7 +58,7 @@ const SERVICES = [
     title: 'Legal Audit & Risk Review',
     tagline: 'Know your exposure before it costs you.',
     description:
-      "A comprehensive legal health check across all statutory, contractual, and regulatory obligations. Delivered as a written report within 5 working days — covering gaps most Kenyan SMEs don't know exist until it is too late.",
+      'A comprehensive health check across all statutory, contractual, and regulatory obligations. Delivered as a written report within 5 working days.',
     features: [
       'Statutory compliance audit',
       'Tax obligations (KRA)',
@@ -66,126 +67,57 @@ const SERVICES = [
       'IP, contracts & agreements',
     ],
     accentColor: '#059669',
+    accentBg: 'rgba(5,150,105,0.06)',
+    accentBorder: 'rgba(5,150,105,0.16)',
+  },
+  {
+    icon: IconFolder,
+    eyebrow: 'Document Vault',
+    title: 'Secure Document Storage',
+    tagline: 'Every company document, one secure place.',
+    description:
+      'Store, organise, and share your incorporation certificates, board minutes, and legal agreements — with role-based access so lawyers only see what they need.',
+    features: [
+      'Encrypted cloud storage',
+      'Categorised by document type',
+      'Share securely with assigned lawyers',
+      'Full download and audit trail',
+      'Kenya DPA 2019 compliant retention',
+    ],
+    accentColor: '#7c3aed',
+    accentBg: 'rgba(124,58,237,0.06)',
+    accentBorder: 'rgba(124,58,237,0.16)',
+  },
+  {
+    icon: IconLock,
+    eyebrow: 'Access Control',
+    title: 'Secure Login & Role Management',
+    tagline: 'Right access for the right people.',
+    description:
+      'Business owners, lawyers, and admins each have a scoped view. Lawyers receive magic-link invites and can only see their assigned entity and service request.',
+    features: [
+      'Magic-link lawyer invites',
+      'Role-based access (owner / lawyer / admin)',
+      'Full audit log of every action',
+      'No shared passwords',
+      'Supabase Auth — EU-Central data residency',
+    ],
+    accentColor: '#334155',
+    accentBg: 'rgba(51,65,85,0.06)',
+    accentBorder: 'rgba(51,65,85,0.16)',
   },
 ]
 
-function ServiceCard({ service }: { service: (typeof SERVICES)[number] }) {
-  const Icon = service.icon
-
-  return (
-    <Expandable transitionDuration={0.36} easeType={ease} className="w-full">
-      {({ isExpanded }) => (
-        <div
-          className="w-full overflow-hidden rounded-3xl bg-white transition-shadow duration-300"
-          style={{
-            border: '1px solid rgba(0,0,0,0.08)',
-            boxShadow: isExpanded
-              ? '0 8px 32px rgba(0,0,0,0.08)'
-              : '0 1px 4px rgba(0,0,0,0.04)',
-          }}
-        >
-          {/* Only the header is the trigger */}
-          <ExpandableTrigger className="w-full">
-            <div className="flex items-start justify-between gap-4 p-7 pb-6">
-              <div className="flex flex-col gap-3.5">
-                {/* Bare icon — no background */}
-                <Icon size={22} stroke={1.7} style={{ color: service.accentColor }} />
-
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-[0.14em]"
-                  style={{
-                    color: service.accentColor,
-                    fontFamily: 'SF Pro Text, system-ui, sans-serif',
-                  }}
-                >
-                  {service.eyebrow}
-                </p>
-
-                <h3
-                  style={{
-                    fontFamily: 'SF Pro Display, system-ui, sans-serif',
-                    fontSize: 'clamp(17px, 1.8vw, 20px)',
-                    fontWeight: 700,
-                    color: NAVY,
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {service.title}
-                </h3>
-
-                <p
-                  style={{
-                    color: '#737373',
-                    fontSize: '13px',
-                    fontFamily: 'SF Pro Text, system-ui, sans-serif',
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {service.tagline}
-                </p>
-              </div>
-
-              <motion.div
-                animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ duration: 0.3, ease }}
-                className="mt-1 shrink-0"
-              >
-                <IconChevronDown
-                  size={16}
-                  stroke={2}
-                  style={{ color: isExpanded ? service.accentColor : '#9CA3AF' }}
-                />
-              </motion.div>
-            </div>
-          </ExpandableTrigger>
-
-          {/* Expandable content — outside the trigger */}
-          <ExpandableContent preset="slide-up">
-            <div className="px-7 pb-7">
-              <div className="mb-5 h-px w-full" style={{ background: 'rgba(0,0,0,0.06)' }} />
-
-              <p
-                className="mb-5"
-                style={{
-                  color: '#4B5563',
-                  fontSize: '13px',
-                  fontFamily: 'SF Pro Text, system-ui, sans-serif',
-                  lineHeight: 1.75,
-                }}
-              >
-                {service.description}
-              </p>
-
-              <ul className="flex flex-col gap-2.5">
-                {service.features.map((f) => (
-                  <li key={f} className="flex items-center gap-3">
-                    <IconCheck size={13} stroke={2.5} style={{ color: service.accentColor, flexShrink: 0 }} />
-                    <span
-                      style={{
-                        color: NAVY,
-                        fontSize: '12px',
-                        fontFamily: 'SF Pro Text, system-ui, sans-serif',
-                      }}
-                    >
-                      {f}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </ExpandableContent>
-        </div>
-      )}
-    </Expandable>
-  )
-}
+// How far each card peeks below the previous when stacked
+const INCREMENT_Y = 72
 
 export function ServicesSection() {
   return (
     <section id="services" className="relative px-4 py-20 md:py-28">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-14 text-center">
+      <div className="mx-auto max-w-4xl">
+
+        {/* Section header */}
+        <div className="mb-16 text-center">
           <motion.p
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -225,24 +157,142 @@ export function ServicesSection() {
               fontSize: 'clamp(14px, 1.5vw, 16px)',
               lineHeight: 1.6,
               fontFamily: 'SF Pro Text, system-ui, sans-serif',
-              maxWidth: '420px',
+              maxWidth: '440px',
             }}
           >
-            Three paid pillars. One platform. Built for Kenyan businesses from formation through governance.
+            Three paid pillars plus document vault and access control — one platform,
+            built for Kenyan businesses from formation through governance.
           </motion.p>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.65, ease, delay: 0.08 }}
-          className="grid grid-cols-1 gap-4 md:grid-cols-3"
-        >
-          {SERVICES.map((service) => (
-            <ServiceCard key={service.title} service={service} />
-          ))}
-        </motion.div>
+        {/* Sticky scroll stack */}
+        <ContainerScroll>
+          {SERVICES.map((service, i) => {
+            const Icon = service.icon
+            return (
+              <CardSticky
+                key={service.title}
+                index={i}
+                incrementY={INCREMENT_Y}
+                incrementZ={6}
+                className="mb-4"
+              >
+                <div
+                  className="w-full overflow-hidden rounded-3xl bg-white"
+                  style={{
+                    border: `1px solid ${service.accentBorder}`,
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  {/* Accent top bar */}
+                  <div
+                    className="h-1 w-full"
+                    style={{ background: service.accentColor }}
+                  />
+
+                  <div className="grid grid-cols-1 gap-0 md:grid-cols-2">
+                    {/* Left — text */}
+                    <div className="flex flex-col gap-4 p-7 md:p-8">
+                      {/* Icon + eyebrow */}
+                      <div className="flex items-center gap-3">
+                        <Icon size={20} stroke={1.7} style={{ color: service.accentColor }} />
+                        <span
+                          className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+                          style={{
+                            color: service.accentColor,
+                            fontFamily: 'SF Pro Text, system-ui, sans-serif',
+                          }}
+                        >
+                          {service.eyebrow}
+                        </span>
+                      </div>
+
+                      {/* Title */}
+                      <h3
+                        style={{
+                          fontFamily: 'SF Pro Display, system-ui, sans-serif',
+                          fontSize: 'clamp(18px, 2vw, 22px)',
+                          fontWeight: 700,
+                          color: NAVY,
+                          letterSpacing: '-0.025em',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {service.title}
+                      </h3>
+
+                      {/* Tagline */}
+                      <p
+                        style={{
+                          color: service.accentColor,
+                          fontSize: '13px',
+                          fontFamily: 'SF Pro Text, system-ui, sans-serif',
+                          fontWeight: 500,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {service.tagline}
+                      </p>
+
+                      {/* Description */}
+                      <p
+                        style={{
+                          color: '#4B5563',
+                          fontSize: '13px',
+                          fontFamily: 'SF Pro Text, system-ui, sans-serif',
+                          lineHeight: 1.75,
+                        }}
+                      >
+                        {service.description}
+                      </p>
+                    </div>
+
+                    {/* Right — features */}
+                    <div
+                      className="flex flex-col justify-center gap-3 px-7 pb-7 md:px-8 md:py-8"
+                      style={{ background: service.accentBg }}
+                    >
+                      <p
+                        className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
+                        style={{
+                          color: service.accentColor,
+                          fontFamily: 'SF Pro Text, system-ui, sans-serif',
+                        }}
+                      >
+                        What's included
+                      </p>
+                      <ul className="flex flex-col gap-2.5">
+                        {service.features.map((f) => (
+                          <li key={f} className="flex items-start gap-3">
+                            <IconCheck
+                              size={13}
+                              stroke={2.5}
+                              className="mt-0.5 shrink-0"
+                              style={{ color: service.accentColor }}
+                            />
+                            <span
+                              style={{
+                                color: NAVY,
+                                fontSize: '12.5px',
+                                fontFamily: 'SF Pro Text, system-ui, sans-serif',
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {f}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </CardSticky>
+            )
+          })}
+        </ContainerScroll>
+
+        {/* Bottom spacer so last card clears the stack before next section */}
+        <div style={{ height: INCREMENT_Y * (SERVICES.length - 1) }} />
       </div>
     </section>
   )
