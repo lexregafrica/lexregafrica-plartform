@@ -119,7 +119,20 @@
       "Bash(ssh -T git@github.com)",
       "Bash(ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>&1 && ssh -T git@github.com 2>&1)",
       "Bash(ssh-keyscan -t ed25519 github.com)",
-      "Bash(git -C /Users/ianlove/workspaces/Lexreg stash)"
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg stash)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg log --oneline -5)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg fetch origin)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg log --oneline origin/main -5)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg branch --set-upstream-to=origin/main main)",
+      "Bash(npx vercel@latest whoami)",
+      "Bash(npx vercel@latest ls)",
+      "Bash(gh run *)",
+      "Bash(npx vercel@latest project ls)",
+      "Bash(npx vercel@latest inspect prj_VYnrxv5KithgO2zG3715SiL8TO3K)",
+      "Bash(npx vercel@latest env ls --yes)",
+      "Bash(npx vercel@latest git connect)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg commit -m 'chore: link Vercel project to GitHub for auto-deploy *)",
+      "Bash(git -C /Users/ianlove/workspaces/Lexreg push)"
     ]
   }
 }
