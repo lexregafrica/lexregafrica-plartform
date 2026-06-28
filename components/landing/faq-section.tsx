@@ -121,7 +121,7 @@ export function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   return (
-    <section className="relative px-4 py-20 md:py-28">
+    <section id="faq" className="relative px-4 py-20 md:py-28">
       <div className="mx-auto max-w-3xl">
         {/* Header */}
         <div className="mb-12 text-center">

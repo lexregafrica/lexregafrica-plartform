@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
-import { IconLayoutGrid, IconBriefcase, IconCurrencyDollar } from '@tabler/icons-react'
+import { IconLayoutGrid, IconBriefcase, IconHelp } from '@tabler/icons-react'
 import Cloudscape from '@/components/forgeui/cloudscape'
 import { KineticText } from '@/components/ui/kinetic-text'
 import { ShinyButton } from '@/components/ui/shiny-button'
@@ -14,7 +14,7 @@ const ease: [number, number, number, number] = [0.16, 1, 0.3, 1]
 const navItems = [
   { name: 'How it works', link: '#how-it-works', icon: <IconLayoutGrid className="h-4 w-4" /> },
   { name: 'Services',     link: '#services',     icon: <IconBriefcase className="h-4 w-4" /> },
-  { name: 'Pricing',      link: '#pricing',      icon: <IconCurrencyDollar className="h-4 w-4" /> },
+  { name: 'FAQs',         link: '#faq',           icon: <IconHelp className="h-4 w-4" /> },
 ]
 
 export function HeroSection() {

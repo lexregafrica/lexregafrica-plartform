@@ -99,7 +99,7 @@ export function CTASection() {
 
               {/* Secondary */}
               <Link
-                href="mailto:hello@lexreg.africa"
+                href="mailto:lexregafrica@gmail.com"
                 className="group flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-medium transition-all duration-200 hover:bg-white/10"
                 style={{
                   color: 'rgba(255,255,255,0.72)',
