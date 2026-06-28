@@ -10,7 +10,7 @@ import { ShimmerButton } from "@/components/ui/shimmer-button"
 const NAV_LEFT = [
   { label: "How it works", href: "#how-it-works" },
   { label: "Services",     href: "#services"     },
-  { label: "Pricing",      href: "#pricing"      },
+  { label: "FAQs",         href: "#faq"          },
 ]
 
 // Shared background + blur applied to every surface of the notch
@@ -66,10 +66,10 @@ export function NotchNavbar({ className }: { className?: string }) {
             </div>
 
             {/* Content */}
-            <div className="relative flex h-full w-full items-end justify-between pb-2 px-5 md:px-8">
+            <div className="relative flex h-full w-full items-center justify-between px-5 md:px-8">
 
               {/* Desktop left nav */}
-              <nav className="mb-1 hidden items-center gap-6 md:flex">
+              <nav className="hidden items-center gap-6 md:flex">
                 {NAV_LEFT.map((item) => (
                   <a
                     key={item.label}
@@ -94,7 +94,7 @@ export function NotchNavbar({ className }: { className?: string }) {
 
               {/* Mobile hamburger */}
               <button
-                className="mb-1 md:hidden p-1 transition-colors"
+                className="md:hidden p-1 transition-colors"
                 style={{ color: "#737373" }}
                 onClick={() => setMenuOpen((o) => !o)}
                 aria-label="Toggle menu"
@@ -106,7 +106,7 @@ export function NotchNavbar({ className }: { className?: string }) {
               </button>
 
               {/* Desktop right CTAs */}
-              <div className="mb-1 hidden items-center gap-1 md:flex">
+              <div className="hidden items-center gap-1 md:flex">
                 <Link
                   href="/login"
                   className="rounded-full px-3 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-60"
@@ -132,7 +132,7 @@ export function NotchNavbar({ className }: { className?: string }) {
               </div>
 
               {/* Mobile: just Get started */}
-              <div className="mb-1 flex items-center md:hidden">
+              <div className="flex items-center md:hidden">
                 <Link href="/signup">
                   <ShimmerButton
                     background="#1A1A2E"
