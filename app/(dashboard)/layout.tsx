@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
+import { SessionGuard } from '@/components/auth/session-guard'
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="ios-bg min-h-[100dvh]">
-      {children}
-    </div>
+    <SessionGuard>
+      <div className="ios-bg min-h-[100dvh]">
+        {children}
+      </div>
+    </SessionGuard>
   )
 }
