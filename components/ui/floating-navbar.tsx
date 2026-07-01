@@ -57,22 +57,11 @@ export const FloatingNav = ({
             href="/"
             className="flex select-none items-center gap-1.5 rounded-full px-3 py-1.5 transition-opacity hover:opacity-70"
           >
-            <div
-              className="flex h-[22px] w-[22px] items-center justify-center rounded-[5px]"
-              style={{ backgroundColor: "#1A1A2E" }}
-            >
-              <span
-                style={{
-                  color: "#C9A227",
-                  fontSize: "9px",
-                  fontWeight: 700,
-                  letterSpacing: "-0.3px",
-                  lineHeight: 1,
-                }}
-              >
-                LR
-              </span>
-            </div>
+            <img
+              src="/images/logo.png"
+              alt="LexReg Africa"
+              className="h-6 w-6 object-contain"
+            />
             <span
               className="hidden sm:block"
               style={{

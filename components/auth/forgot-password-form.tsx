@@ -52,9 +52,7 @@ export function ForgotPasswordForm() {
       <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-sm p-8 flex flex-col items-center">
 
         <Link href="/" className="flex flex-col items-center gap-2 mb-7 hover:opacity-75 transition-opacity">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: '#1A1A2E' }}>
-            <span className="text-xs font-bold tracking-tight" style={{ color: '#C9A227' }}>LR</span>
-          </div>
+          <img src="/images/logo.png" alt="LexReg Africa" className="h-14 w-14 object-contain" />
           <div className="text-center">
             <p className="text-sm font-semibold text-gray-900 leading-tight">LexReg Africa</p>
             <p className="text-[11px] text-gray-400 leading-tight mt-0.5">Governance &amp; Compliance Portal</p>
