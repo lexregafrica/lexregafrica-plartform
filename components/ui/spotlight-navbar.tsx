@@ -104,7 +104,7 @@ export function SpotlightNavbar({
         href="/"
         className="flex select-none items-center gap-2 shrink-0 transition-opacity hover:opacity-70"
       >
-        <LexRegLogoMark size={30} africaColor="#1A1A2E" swooshColor="#C9A227" />
+        <LexRegLogoMark size={30} />
         <span
           className="hidden sm:block"
           style={{

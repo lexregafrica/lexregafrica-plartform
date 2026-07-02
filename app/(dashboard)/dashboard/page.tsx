@@ -1,28 +1,60 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { DashboardComingSoon } from '@/components/dashboard/coming-soon'
+import type { Database } from '@/types/database.types'
 
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+type OnboardingPath = Database['public']['Enums']['onboarding_path']
 
-export default function DashboardPage() {
-  const router = useRouter()
+const PATH_SEGMENT: Record<OnboardingPath, string> = {
+  existing_entity: 'existing',
+  new_entity: 'new',
+  informal_business: 'informal',
+}
 
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.replace('/')
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  // Check if user belongs to an organisation yet
+  const { data: membership } = await supabase
+    .from('organisation_members')
+    .select('organisation_id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!membership) redirect('/onboarding')
+
+  // Check for an active entity in their org
+  const { data: entities } = await supabase
+    .from('entities')
+    .select('id, status')
+    .eq('organisation_id', membership.organisation_id)
+    .is('deleted_at', null)
+
+  const hasActiveEntity = entities?.some(e => e.status === 'active')
+
+  if (!hasActiveEntity) {
+    // Resume in-progress onboarding if it exists
+    const { data: progress } = await supabase
+      .from('onboarding_progress')
+      .select('onboarding_path, step')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (progress) {
+      const segment = PATH_SEGMENT[progress.onboarding_path]
+      const stepSuffix = progress.onboarding_path !== 'informal_business'
+        ? `/${progress.step ?? 1}`
+        : ''
+      redirect(`/onboarding/${segment}${stepSuffix}`)
+    }
+
+    redirect('/onboarding')
   }
 
-  return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6">
-      <p className="text-ios-body" style={{ color: 'var(--system-label-2)' }}>
-        Dashboard coming soon
-      </p>
-      <button
-        onClick={handleSignOut}
-        className="rounded-xl border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-      >
-        Sign out
-      </button>
-    </div>
-  )
+  return <DashboardComingSoon />
 }
