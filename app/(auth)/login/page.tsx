@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { GlassLogin } from '@/components/auth/glass-login'
 
 export const metadata: Metadata = {
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 }
 
 export default function LoginPage() {
-  return <GlassLogin />
+  return (
+    <Suspense fallback={null}>
+      <GlassLogin />
+    </Suspense>
+  )
 }
