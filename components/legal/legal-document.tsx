@@ -153,15 +153,6 @@ export function LegalDocument({ data, backHref }: { data: LegalDocumentData; bac
             </section>
           ))}
         </div>
-
-        <div className="mt-16 rounded-xl border p-5" style={{ borderColor: 'rgba(0,0,0,0.08)', background: '#fff' }}>
-          <p
-            className="leading-relaxed"
-            style={{ fontFamily: 'SF Pro Text, system-ui, sans-serif', fontSize: '14px', color: '#6b7280' }}
-          >
-            {data.closing}
-          </p>
-        </div>
       </main>
     </div>
   )
