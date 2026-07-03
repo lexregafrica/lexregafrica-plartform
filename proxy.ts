@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  const PUBLIC_PREFIXES = ['/insights', '/studio']
+  const PUBLIC_PREFIXES = ['/insights', '/studio', '/legal']
 
   // Protect all non-public routes — redirect unauthenticated users to login
   if (!user && !PUBLIC_ROUTES.some(r => path === r || path.startsWith('/invite')) && !PUBLIC_PREFIXES.some(p => path.startsWith(p))) {
