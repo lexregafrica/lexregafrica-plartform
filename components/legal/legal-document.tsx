@@ -4,7 +4,6 @@ import { NotchNavbar } from '@/components/ui/notch-navbar'
 import type { LegalBlock, LegalDocumentData } from '@/lib/legal/types'
 
 const NAVY = '#1A1A2E'
-const GOLD = '#C9A227'
 
 function Block({ block }: { block: LegalBlock }) {
   if (block.type === 'paragraph') {
@@ -87,13 +86,6 @@ export function LegalDocument({ data, backHref }: { data: LegalDocumentData; bac
         </Link>
 
         <header className="mb-12">
-          <span
-            className="mb-4 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]"
-            style={{ background: `${GOLD}18`, color: GOLD }}
-          >
-            {data.status}
-          </span>
-
           <h1
             className="mb-3 leading-tight"
             style={{
@@ -115,27 +107,9 @@ export function LegalDocument({ data, backHref }: { data: LegalDocumentData; bac
             {data.subtitle}
           </p>
 
-          <dl
-            className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-xl border p-4 text-[13px] sm:grid-cols-4"
-            style={{ borderColor: 'rgba(0,0,0,0.08)', fontFamily: 'SF Pro Text, system-ui, sans-serif' }}
-          >
-            <div>
-              <dt className="text-[11px] uppercase tracking-wide text-gray-400">Prepared for</dt>
-              <dd className="text-gray-700">{data.preparedFor}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-wide text-gray-400">Prepared by</dt>
-              <dd className="text-gray-700">{data.preparedBy}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-wide text-gray-400">Date</dt>
-              <dd className="text-gray-700">{data.date}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-wide text-gray-400">Status</dt>
-              <dd className="text-gray-700">{data.status}</dd>
-            </div>
-          </dl>
+          <p className="text-[13px]" style={{ fontFamily: 'SF Pro Text, system-ui, sans-serif', color: '#9ca3af' }}>
+            Last updated: {data.date}
+          </p>
 
           <div className="mt-8 h-px w-full" style={{ background: 'linear-gradient(to right, rgba(201,162,39,0.3), transparent)' }} />
         </header>
