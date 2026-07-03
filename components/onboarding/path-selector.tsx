@@ -115,8 +115,8 @@ export function PathSelector() {
       </div>
 
       {/* Path cards — horizontal scroll strip on mobile, vertical stack on desktop */}
-      <div className="w-full max-w-[420px] md:max-w-[600px] -mx-4 px-4 md:mx-0 md:px-0">
-        <div className="flex flex-row md:flex-col gap-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none pb-3 md:pb-0 items-start">
+      <div className="w-full max-w-[420px] md:max-w-4xl">
+        <div className="flex flex-col md:flex-row gap-3 items-start">
           {paths.map(path => {
             const isExpanded = expanded === path.id
             const isLoading = loading === path.id
@@ -124,7 +124,7 @@ export function PathSelector() {
             return (
               <div
                 key={path.id}
-                className="ios-surface rounded-2xl shrink-0 w-[82vw] max-w-[320px] md:w-full md:max-w-none snap-center overflow-hidden transition-shadow"
+                className="ios-surface rounded-2xl w-full md:flex-1 md:min-w-0 overflow-hidden transition-shadow"
                 style={isExpanded ? { boxShadow: '0 4px 20px rgba(0,0,0,0.06)' } : undefined}
               >
                 <button
