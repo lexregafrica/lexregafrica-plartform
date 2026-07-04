@@ -36,6 +36,11 @@ export async function proxy(request: NextRequest) {
 
   // Protect all non-public routes — redirect unauthenticated users to login
   if (!user && !PUBLIC_ROUTES.some(r => path === r || path.startsWith('/invite')) && !PUBLIC_PREFIXES.some(p => path.startsWith(p))) {
+    // API routes: return 401 JSON instead of redirecting to the login page,
+    // since a fetch() call expects JSON, not an HTML page.
+    if (path.startsWith('/api/')) {
+      return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+    }
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
