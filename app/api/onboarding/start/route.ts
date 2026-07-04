@@ -46,18 +46,22 @@ export async function POST(request: Request) {
       : 'My Workspace'
     const slug = `org-${crypto.randomUUID().slice(0, 8)}`
 
-    const { data: org, error: orgError } = await supabase
-      .from('organisations')
-      .insert({ name: orgName, slug })
-      .select('id')
-      .single()
+    // Generate the id ourselves and skip .select() after insert — an
+    // insert().select() triggers an INSERT ... RETURNING under the hood,
+    // which requires the new row to also satisfy the table's SELECT RLS
+    // policy. At this exact moment the user isn't a member of the org
+    // yet (that row is inserted next), so the RETURNING would fail RLS
+    // even with a fully permissive INSERT check.
+    orgId = crypto.randomUUID()
 
-    if (orgError || !org) {
+    const { error: orgError } = await supabase
+      .from('organisations')
+      .insert({ id: orgId, name: orgName, slug })
+
+    if (orgError) {
       console.error('org create error', orgError)
       return NextResponse.json({ error: 'failed to create org' }, { status: 500 })
     }
-
-    orgId = org.id
 
     const { error: memberError } = await supabase
       .from('organisation_members')
