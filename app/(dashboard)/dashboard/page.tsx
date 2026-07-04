@@ -1,15 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardComingSoon } from '@/components/dashboard/coming-soon'
-import type { Database } from '@/types/database.types'
-
-type OnboardingPath = Database['public']['Enums']['onboarding_path']
-
-const PATH_SEGMENT: Record<OnboardingPath, string> = {
-  existing_entity: 'existing',
-  new_entity: 'new',
-  informal_business: 'informal',
-}
+import { DraftResumeShell } from '@/components/dashboard/draft-resume-shell'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -36,21 +28,27 @@ export default async function DashboardPage() {
   const hasActiveEntity = entities?.some(e => e.status === 'active')
 
   if (!hasActiveEntity) {
-    // Resume in-progress onboarding if it exists
+    // Show a draft-resume preview instead of dropping the user straight back
+    // into the onboarding flow — they land on the real dashboard shell first
+    // and choose to continue.
     const { data: progress } = await supabase
       .from('onboarding_progress')
-      .select('onboarding_path, step')
+      .select('onboarding_path, step, data')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
     if (progress) {
-      const segment = PATH_SEGMENT[progress.onboarding_path]
-      const stepSuffix = progress.onboarding_path !== 'informal_business'
-        ? `/${progress.step ?? 1}`
-        : ''
-      redirect(`/onboarding/${segment}${stepSuffix}`)
+      const progressData = progress.data as { completed?: boolean; result?: { score?: number } } | null
+      return (
+        <DraftResumeShell
+          path={progress.onboarding_path}
+          step={progress.step ?? 1}
+          completed={progressData?.completed}
+          score={progressData?.result?.score}
+        />
+      )
     }
 
     redirect('/onboarding')
