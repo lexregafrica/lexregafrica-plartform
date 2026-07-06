@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       audit_logs: {
@@ -870,7 +845,18 @@ export type Database = {
         Args: { org_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      is_org_member: { Args: { org_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      log_audit: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_organisation_id: string
+          p_resource_id?: string
+          p_resource_type?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       applicant_relationship:
@@ -902,6 +888,7 @@ export type Database = {
         | "company_limited_by_guarantee"
         | "foreign_branch"
         | "cooperative"
+        | "trust"
       onboarding_path: "existing_entity" | "new_entity" | "informal_business"
       shareholder_type: "individual" | "company"
       user_role: "super_admin" | "business_owner" | "lawyer"
@@ -1030,9 +1017,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       applicant_relationship: [
@@ -1067,6 +1051,7 @@ export const Constants = {
         "company_limited_by_guarantee",
         "foreign_branch",
         "cooperative",
+        "trust",
       ],
       onboarding_path: ["existing_entity", "new_entity", "informal_business"],
       shareholder_type: ["individual", "company"],

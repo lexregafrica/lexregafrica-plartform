@@ -1,0 +1,461 @@
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import type { Database, Json } from '@/types/database.types'
+import {
+  isStepVisible,
+  TOTAL_STEPS,
+  type EntityType,
+  type WizardData,
+} from '@/lib/onboarding/new-entity'
+
+type SupabaseServer = Awaited<ReturnType<typeof createClient>>
+
+type ProgressRow = {
+  id: string
+  organisation_id: string | null
+  step: number
+  entity_type: EntityType
+  data: Json
+}
+
+type ProgressData = {
+  entityId?: string
+  wizard?: WizardData
+  submitted?: boolean
+}
+
+async function getContext(supabase: SupabaseServer) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { user: null, progress: null }
+
+  const { data: progress } = await supabase
+    .from('onboarding_progress')
+    .select('id, organisation_id, step, entity_type, data')
+    .eq('user_id', user.id)
+    .eq('onboarding_path', 'new_entity')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return { user, progress: (progress as ProgressRow | null) }
+}
+
+export async function GET() {
+  const supabase = await createClient()
+  const { user, progress } = await getContext(supabase)
+  if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  if (!progress) return NextResponse.json({ error: 'no onboarding session' }, { status: 404 })
+
+  const progressData = (progress.data ?? {}) as ProgressData
+  const entityId = progressData.entityId
+
+  let directors: unknown[] = []
+  let shareholders: unknown[] = []
+  let documents: unknown[] = []
+
+  if (entityId) {
+    const [d, s, docs] = await Promise.all([
+      supabase.from('directors').select('*').eq('entity_id', entityId).order('created_at'),
+      supabase.from('shareholders').select('*').eq('entity_id', entityId).order('created_at'),
+      supabase.from('documents').select('id, name, document_type, file_path, file_size, mime_type, created_at').eq('entity_id', entityId).is('deleted_at', null).order('created_at'),
+    ])
+    directors = d.data ?? []
+    shareholders = s.data ?? []
+    documents = docs.data ?? []
+  }
+
+  return NextResponse.json({
+    step: progress.step,
+    entityType: progress.entity_type,
+    entityId: entityId ?? null,
+    orgId: progress.organisation_id,
+    wizard: progressData.wizard ?? {},
+    submitted: progressData.submitted ?? false,
+    directors,
+    shareholders,
+    documents,
+  })
+}
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({}))
+  const { action } = body as { action: string }
+
+  const supabase = await createClient()
+  const { user, progress } = await getContext(supabase)
+  if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  if (!progress) return NextResponse.json({ error: 'no onboarding session' }, { status: 400 })
+  if (!progress.organisation_id) return NextResponse.json({ error: 'no organisation' }, { status: 400 })
+
+  const orgId = progress.organisation_id
+  const progressData = (progress.data ?? {}) as ProgressData
+
+  // ----------------------------------------------------------
+  // init — create the draft entity row once the type is chosen
+  // ----------------------------------------------------------
+  if (action === 'init') {
+    const { entityType, wizard } = body as { entityType: EntityType; wizard: WizardData }
+    if (!entityType) return NextResponse.json({ error: 'entityType required' }, { status: 400 })
+
+    let entityId = progressData.entityId
+
+    if (!entityId) {
+      entityId = crypto.randomUUID()
+      const { error: entityError } = await supabase.from('entities').insert({
+        id: entityId,
+        organisation_id: orgId,
+        entity_type: entityType,
+        onboarding_path: 'new_entity',
+        status: 'draft',
+        registration_status: 'draft',
+        onboarding_step: 1,
+        nature_of_business: wizard?.primaryActivity ?? null,
+        onboarding_data: { wizard: (wizard ?? {}) as Json } as Json,
+      })
+      if (entityError) {
+        console.error('entity create error', entityError)
+        return NextResponse.json({ error: 'failed to create entity' }, { status: 500 })
+      }
+    } else {
+      // Entity type changed on step 1 of an existing draft
+      const { error: updateError } = await supabase
+        .from('entities')
+        .update({ entity_type: entityType })
+        .eq('id', entityId)
+      if (updateError) {
+        console.error('entity type update error', updateError)
+        return NextResponse.json({ error: 'failed to update entity' }, { status: 500 })
+      }
+    }
+
+    const newData: ProgressData = { ...progressData, entityId, wizard: { ...progressData.wizard, ...wizard } }
+    const { error: progressError } = await supabase
+      .from('onboarding_progress')
+      .update({ entity_type: entityType, step: 2, data: newData as Json })
+      .eq('id', progress.id)
+
+    if (progressError) {
+      console.error('progress update error', progressError)
+      return NextResponse.json({ error: 'failed to save progress' }, { status: 500 })
+    }
+
+    await supabase.rpc('log_audit', {
+      p_organisation_id: orgId,
+      p_action: 'onboarding.new_entity.initialised',
+      p_resource_type: 'entity',
+      p_resource_id: entityId,
+      p_metadata: { entity_type: entityType },
+    })
+
+    return NextResponse.json({ ok: true, entityId })
+  }
+
+  // Everything below requires an initialised entity
+  const entityId = progressData.entityId
+  if (!entityId) return NextResponse.json({ error: 'entity not initialised — complete step 1 first' }, { status: 400 })
+
+  // ----------------------------------------------------------
+  // save_step — persist wizard data for a step + advance
+  // ----------------------------------------------------------
+  if (action === 'save_step') {
+    const { step, wizard, advanceTo } = body as { step: number; wizard: WizardData; advanceTo?: number }
+    if (!step || step < 1 || step > TOTAL_STEPS) {
+      return NextResponse.json({ error: 'invalid step' }, { status: 400 })
+    }
+
+    const mergedWizard = { ...progressData.wizard, ...wizard }
+    const newData: ProgressData = { ...progressData, wizard: mergedWizard }
+    const nextStep = advanceTo ?? step
+
+    // Mirror key fields onto the entity row as they're collected
+    const entityUpdate: Database['public']['Tables']['entities']['Update'] = {
+      onboarding_step: nextStep,
+      onboarding_data: newData as Json,
+    }
+    if (wizard.proposedNames) entityUpdate.proposed_names = wizard.proposedNames as Json
+    if (wizard.primaryActivity !== undefined) entityUpdate.nature_of_business = wizard.primaryActivity
+    if (wizard.addressLine1) {
+      entityUpdate.registered_address = {
+        line1: mergedWizard.addressLine1,
+        line2: mergedWizard.addressLine2 ?? null,
+        city: mergedWizard.city,
+        county: mergedWizard.county,
+        postcode: mergedWizard.postalCode,
+        country: mergedWizard.country ?? 'Kenya',
+      } as Json
+    }
+    if (wizard.nominalValuePerShare !== undefined || wizard.authorisedShareCapital !== undefined) {
+      entityUpdate.nominal_capital = mergedWizard.authorisedShareCapital ?? null
+      entityUpdate.share_class = mergedWizard.shareClasses === 'ordinary_preference' ? 'ordinary+preference' : 'ordinary'
+    }
+
+    const [{ error: entityError }, { error: progressError }] = await Promise.all([
+      supabase.from('entities').update(entityUpdate).eq('id', entityId),
+      supabase.from('onboarding_progress').update({ step: nextStep, data: newData as Json }).eq('id', progress.id),
+    ])
+
+    if (entityError || progressError) {
+      console.error('save_step error', entityError, progressError)
+      return NextResponse.json({ error: 'failed to save progress' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
+  // upsert_director / delete_director
+  // ----------------------------------------------------------
+  if (action === 'upsert_director') {
+    const { director } = body as {
+      director: {
+        id?: string
+        fullName: string
+        idNumber: string
+        kraPin?: string
+        dateOfBirth?: string
+        nationality?: string
+        phone?: string
+        email?: string
+        sameAddress?: boolean
+        address?: string
+        role?: string
+        appointmentDate?: string
+      }
+    }
+    if (!director?.fullName || !director?.idNumber) {
+      return NextResponse.json({ error: 'fullName and idNumber required' }, { status: 400 })
+    }
+
+    const row: Database['public']['Tables']['directors']['Insert'] = {
+      id: director.id ?? crypto.randomUUID(),
+      entity_id: entityId,
+      organisation_id: orgId,
+      full_name: director.fullName,
+      id_number: director.idNumber,
+      kra_pin: director.kraPin ?? null,
+      phone: director.phone ?? null,
+      email: director.email ?? null,
+      nationality: director.nationality ?? 'Kenyan',
+      appointment_date: director.appointmentDate ?? null,
+      residential_address: {
+        sameAsRegisteredOffice: director.sameAddress ?? true,
+        line1: director.address ?? null,
+        dateOfBirth: director.dateOfBirth ?? null,
+        role: director.role ?? 'director',
+      } as Json,
+    }
+
+    const { error } = await supabase.from('directors').upsert(row)
+    if (error) {
+      console.error('director upsert error', error)
+      return NextResponse.json({ error: 'failed to save director' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, id: row.id })
+  }
+
+  if (action === 'delete_director') {
+    const { id } = body as { id: string }
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    const { error } = await supabase.from('directors').delete().eq('id', id).eq('entity_id', entityId)
+    if (error) {
+      console.error('director delete error', error)
+      return NextResponse.json({ error: 'failed to delete director' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
+  // upsert_shareholder / delete_shareholder
+  // ----------------------------------------------------------
+  if (action === 'upsert_shareholder') {
+    const { shareholder } = body as {
+      shareholder: {
+        id?: string
+        legalName: string
+        idNumber?: string
+        kraPin?: string
+        sharesHeld: number
+        isNominee?: boolean
+      }
+    }
+    if (!shareholder?.legalName || !shareholder?.sharesHeld) {
+      return NextResponse.json({ error: 'legalName and sharesHeld required' }, { status: 400 })
+    }
+
+    const row: Database['public']['Tables']['shareholders']['Insert'] = {
+      id: shareholder.id ?? crypto.randomUUID(),
+      entity_id: entityId,
+      organisation_id: orgId,
+      legal_name: shareholder.legalName,
+      id_or_reg_number: shareholder.idNumber ?? null,
+      kra_pin: shareholder.kraPin ?? null,
+      shares_held: shareholder.sharesHeld,
+      corporate_details: shareholder.isNominee ? ({ nominee: true } as Json) : null,
+    }
+
+    const { error } = await supabase.from('shareholders').upsert(row)
+    if (error) {
+      console.error('shareholder upsert error', error)
+      return NextResponse.json({ error: 'failed to save shareholder' }, { status: 500 })
+    }
+
+    // Recompute ownership percentages across all shareholders
+    const { data: all } = await supabase.from('shareholders').select('id, shares_held').eq('entity_id', entityId)
+    if (all && all.length > 0) {
+      const total = all.reduce((sum, s) => sum + (s.shares_held ?? 0), 0)
+      if (total > 0) {
+        await Promise.all(
+          all.map((s) =>
+            supabase
+              .from('shareholders')
+              .update({ share_percentage: Math.round(((s.shares_held ?? 0) / total) * 10000) / 100 })
+              .eq('id', s.id)
+          )
+        )
+      }
+      await supabase.from('entities').update({ total_shares: total }).eq('id', entityId)
+    }
+
+    return NextResponse.json({ ok: true, id: row.id })
+  }
+
+  if (action === 'delete_shareholder') {
+    const { id } = body as { id: string }
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    const { error } = await supabase.from('shareholders').delete().eq('id', id).eq('entity_id', entityId)
+    if (error) {
+      console.error('shareholder delete error', error)
+      return NextResponse.json({ error: 'failed to delete shareholder' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
+  // register_document — record an uploaded file (upload itself goes
+  // straight to Supabase Storage from the client)
+  // ----------------------------------------------------------
+  if (action === 'register_document') {
+    const { document } = body as {
+      document: { name: string; filePath: string; fileSize?: number; mimeType?: string; documentType?: string }
+    }
+    if (!document?.name || !document?.filePath) {
+      return NextResponse.json({ error: 'name and filePath required' }, { status: 400 })
+    }
+    // Only allow registering files inside this org's own storage folder
+    if (!document.filePath.startsWith(`${orgId}/`)) {
+      return NextResponse.json({ error: 'invalid file path' }, { status: 400 })
+    }
+
+    const { data: doc, error } = await supabase
+      .from('documents')
+      .insert({
+        entity_id: entityId,
+        organisation_id: orgId,
+        name: document.name,
+        document_type: document.documentType ?? 'other',
+        category: 'legal',
+        file_path: document.filePath,
+        file_size: document.fileSize ?? null,
+        mime_type: document.mimeType ?? null,
+        ocr_status: 'pending', // OCR pipeline lands in a later phase — status stays pending
+        uploaded_by: user.id,
+        metadata: { uploaded_from: 'onboarding' } as Json,
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      console.error('document register error', error)
+      return NextResponse.json({ error: 'failed to register document' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, id: doc?.id })
+  }
+
+  if (action === 'delete_document') {
+    const { id } = body as { id: string }
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    // Soft delete per Kenya DPA retention rules
+    const { error } = await supabase
+      .from('documents')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('entity_id', entityId)
+    if (error) {
+      console.error('document delete error', error)
+      return NextResponse.json({ error: 'failed to delete document' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
+  // submit — finalise the application
+  // ----------------------------------------------------------
+  if (action === 'submit') {
+    const wizard = progressData.wizard ?? {}
+    if (!wizard.declared || !wizard.consented || !wizard.agreedTerms) {
+      return NextResponse.json({ error: 'declaration incomplete' }, { status: 400 })
+    }
+
+    const entityType = progress.entity_type
+
+    // Server-side minimum-director validation (PLC needs 2, partnership needs 2)
+    if (isStepVisible(5, entityType, wizard)) {
+      const { count } = await supabase
+        .from('directors')
+        .select('id', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+      const minimum = entityType === 'public_limited_company' || entityType === 'partnership' ? 2 : 1
+      if ((count ?? 0) < minimum) {
+        return NextResponse.json({ error: `at least ${minimum} director(s)/partner(s) required` }, { status: 400 })
+      }
+    }
+
+    if (isStepVisible(6, entityType, wizard)) {
+      const { count } = await supabase
+        .from('shareholders')
+        .select('id', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+      if ((count ?? 0) < 1) {
+        return NextResponse.json({ error: 'at least one shareholder/member required' }, { status: 400 })
+      }
+    }
+
+    const newData: ProgressData = { ...progressData, submitted: true }
+
+    const [{ error: entityError }, { error: progressError }] = await Promise.all([
+      supabase
+        .from('entities')
+        .update({
+          status: 'pending_registration',
+          registration_status: 'awaiting_signature',
+          onboarding_step: TOTAL_STEPS,
+          onboarding_data: newData as Json,
+          applicant_name: wizard.signature ?? null,
+          applicant_email: user.email ?? null,
+          applicant_relationship: wizard.applicantRelationship ?? 'promoter',
+        })
+        .eq('id', entityId),
+      supabase
+        .from('onboarding_progress')
+        .update({ step: TOTAL_STEPS, data: newData as Json })
+        .eq('id', progress.id),
+    ])
+
+    if (entityError || progressError) {
+      console.error('submit error', entityError, progressError)
+      return NextResponse.json({ error: 'failed to submit' }, { status: 500 })
+    }
+
+    await supabase.rpc('log_audit', {
+      p_organisation_id: orgId,
+      p_action: 'onboarding.new_entity.submitted',
+      p_resource_type: 'entity',
+      p_resource_id: entityId,
+      p_metadata: { entity_type: entityType },
+    })
+
+    return NextResponse.json({ ok: true })
+  }
+
+  return NextResponse.json({ error: 'unknown action' }, { status: 400 })
+}

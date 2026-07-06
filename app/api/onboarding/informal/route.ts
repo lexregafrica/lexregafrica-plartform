@@ -57,9 +57,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'failed to save progress' }, { status: 500 })
   }
 
-  if (complete) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.rpc as any)('log_audit', {
+  if (complete && progressRow.organisation_id) {
+    await supabase.rpc('log_audit', {
       p_organisation_id: progressRow.organisation_id,
       p_action: 'onboarding.informal.completed',
       p_resource_type: 'onboarding_progress',
