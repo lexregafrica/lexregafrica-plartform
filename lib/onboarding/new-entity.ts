@@ -108,17 +108,19 @@ export type WizardData = {
   declarationDate?: string
 }
 
+// OCR-first ordering: documents are uploaded at step 2 so extraction can
+// pre-fill everything that follows — the user confirms instead of typing.
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
-    case 5: // Directors/Partners/Trustees
+    case 6: // Directors/Partners/Trustees
       return DIRECTOR_TYPES.includes(entityType)
-    case 6: // Shareholders/Members
+    case 7: // Shareholders/Members
       return SHAREHOLDER_TYPES.includes(entityType)
-    case 7: // Share Capital
+    case 8: // Share Capital
       return SHARE_CAPITAL_TYPES.includes(entityType)
-    case 8: // Company Secretary
+    case 9: // Company Secretary
       return SECRETARY_TYPES.includes(entityType)
-    case 9: // Employee Info
+    case 10: // Employee Info
       return data.hasEmployees === true
     default:
       return true
@@ -139,15 +141,15 @@ export function prevVisibleStep(current: number, entityType: EntityType, data: W
 
 export const STEP_LABELS: Record<number, string> = {
   1: 'Entity Type',
-  2: 'Business Names',
-  3: 'Registered Office',
-  4: 'Business Activities',
-  5: 'Directors & Partners',
-  6: 'Shareholders & Members',
-  7: 'Share Capital',
-  8: 'Company Secretary',
-  9: 'Employee Information',
-  10: 'Document Upload',
+  2: 'Upload Documents',
+  3: 'Business Names',
+  4: 'Registered Office',
+  5: 'Business Activities',
+  6: 'Directors & Partners',
+  7: 'Shareholders & Members',
+  8: 'Share Capital',
+  9: 'Company Secretary',
+  10: 'Employee Information',
   11: 'Declaration & Consent',
   12: 'Review & Submit',
 }

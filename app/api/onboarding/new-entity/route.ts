@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
+import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import {
   isStepVisible,
   TOTAL_STEPS,
@@ -388,6 +389,77 @@ export async function POST(request: Request) {
   }
 
   // ----------------------------------------------------------
+  // ocr_extract — run the extraction pipeline on an uploaded document
+  // and pre-fill wizard fields / directors / shareholders from it
+  // ----------------------------------------------------------
+  if (action === 'ocr_extract') {
+    const { documentId, section } = body as {
+      documentId: string
+      section: 'director' | 'shareholder' | 'address' | 'other'
+    }
+    if (!documentId) return NextResponse.json({ error: 'documentId required' }, { status: 400 })
+
+    const { data: doc } = await supabase
+      .from('documents')
+      .select('id, file_path, mime_type')
+      .eq('id', documentId)
+      .eq('entity_id', entityId)
+      .maybeSingle()
+
+    if (!doc?.file_path) return NextResponse.json({ error: 'document not found' }, { status: 404 })
+
+    await supabase.from('documents').update({ ocr_status: 'processing' }).eq('id', doc.id)
+
+    const { data: blob, error: downloadError } = await supabase.storage
+      .from('documents')
+      .download(doc.file_path)
+
+    if (downloadError || !blob) {
+      await supabase.from('documents').update({ ocr_status: 'failed' }).eq('id', doc.id)
+      return NextResponse.json({ ok: false, ocrStatus: 'failed', reason: 'download_failed' })
+    }
+
+    const bytes = new Uint8Array(await blob.arrayBuffer())
+    const result = await extractFromDocument(bytes, doc.mime_type ?? 'application/pdf')
+
+    if (!result.ok) {
+      await supabase
+        .from('documents')
+        .update({ ocr_status: 'failed', ocr_data: { reason: result.reason } as Json })
+        .eq('id', doc.id)
+      // quota_exhausted surfaces distinctly so the UI can say "try again later"
+      // vs. a generic "enter manually" for unreadable documents
+      return NextResponse.json({ ok: false, ocrStatus: 'failed', reason: result.reason })
+    }
+
+    const fields = result.fields
+    await supabase
+      .from('documents')
+      .update({ ocr_status: 'complete', ocr_data: fields as unknown as Json })
+      .eq('id', doc.id)
+
+    // ---- merge extraction into the application -----------------
+    const merged = await mergeExtraction(supabase, {
+      fields,
+      section,
+      entityId,
+      orgId,
+      progressId: progress.id,
+      progressData,
+    })
+
+    await supabase.rpc('log_audit', {
+      p_organisation_id: orgId,
+      p_action: 'onboarding.new_entity.ocr_extracted',
+      p_resource_type: 'document',
+      p_resource_id: doc.id,
+      p_metadata: { document_kind: fields.document_kind, confidence: fields.confidence, section },
+    })
+
+    return NextResponse.json({ ok: true, ocrStatus: 'complete', fields, ...merged })
+  }
+
+  // ----------------------------------------------------------
   // submit — finalise the application
   // ----------------------------------------------------------
   if (action === 'submit') {
@@ -458,4 +530,120 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
+}
+
+// ------------------------------------------------------------------
+// Merge OCR-extracted fields into wizard data + directors/shareholders.
+// Only fills gaps — never overwrites something the user already entered
+// or a previous extraction already filled.
+// ------------------------------------------------------------------
+async function mergeExtraction(
+  supabase: SupabaseServer,
+  ctx: {
+    fields: ExtractedFields
+    section: 'director' | 'shareholder' | 'address' | 'other'
+    entityId: string
+    orgId: string
+    progressId: string
+    progressData: ProgressData
+  }
+) {
+  const { fields, section, entityId, orgId, progressId, progressData } = ctx
+  const created: { directors: number; shareholders: number } = { directors: 0, shareholders: 0 }
+
+  // Person documents → directors / shareholders
+  if (section === 'director' || section === 'shareholder') {
+    const table = section === 'director' ? 'directors' : 'shareholders'
+
+    if (fields.id_number || fields.full_name) {
+      if (section === 'director') {
+        const { data: existing } = await supabase
+          .from('directors')
+          .select('id, full_name, id_number, kra_pin')
+          .eq('entity_id', entityId)
+
+        const match = (existing ?? []).find(
+          (d) =>
+            (fields.id_number && d.id_number === fields.id_number) ||
+            (fields.full_name && d.full_name.toLowerCase() === fields.full_name.toLowerCase())
+        )
+
+        if (match) {
+          const update: Database['public']['Tables']['directors']['Update'] = {}
+          if (!match.kra_pin && fields.kra_pin) update.kra_pin = fields.kra_pin
+          if (Object.keys(update).length > 0) {
+            await supabase.from('directors').update(update).eq('id', match.id)
+          }
+        } else if (fields.full_name && fields.id_number) {
+          await supabase.from('directors').insert({
+            id: crypto.randomUUID(),
+            entity_id: entityId,
+            organisation_id: orgId,
+            full_name: fields.full_name,
+            id_number: fields.id_number,
+            kra_pin: fields.kra_pin,
+            residential_address: { dateOfBirth: fields.date_of_birth, source: 'ocr' } as Json,
+          })
+          created.directors += 1
+        }
+      } else {
+        const { data: existing } = await supabase
+          .from('shareholders')
+          .select('id, legal_name, id_or_reg_number, kra_pin')
+          .eq('entity_id', entityId)
+
+        const match = (existing ?? []).find(
+          (s) =>
+            (fields.id_number && s.id_or_reg_number === fields.id_number) ||
+            (fields.full_name && s.legal_name.toLowerCase() === fields.full_name.toLowerCase())
+        )
+
+        if (match) {
+          const update: Database['public']['Tables']['shareholders']['Update'] = {}
+          if (!match.kra_pin && fields.kra_pin) update.kra_pin = fields.kra_pin
+          if (Object.keys(update).length > 0) {
+            await supabase.from('shareholders').update(update).eq('id', match.id)
+          }
+        } else if (fields.full_name) {
+          await supabase.from('shareholders').insert({
+            id: crypto.randomUUID(),
+            entity_id: entityId,
+            organisation_id: orgId,
+            legal_name: fields.full_name,
+            id_or_reg_number: fields.id_number,
+            kra_pin: fields.kra_pin,
+            shares_held: 0, // user sets shares in the shareholders step
+            corporate_details: { source: 'ocr' } as Json,
+          })
+          created.shareholders += 1
+        }
+      }
+    }
+    void table
+  }
+
+  // Address documents → wizard address fields (gap-fill only)
+  const wizard = { ...(progressData.wizard ?? {}) }
+  let wizardChanged = false
+  if (section === 'address' || fields.document_kind === 'proof_of_address') {
+    if (!wizard.addressLine1 && fields.address_line1) { wizard.addressLine1 = fields.address_line1; wizardChanged = true }
+    if (!wizard.city && fields.city) { wizard.city = fields.city; wizardChanged = true }
+    if (!wizard.county && fields.county) { wizard.county = fields.county; wizardChanged = true }
+    if (!wizard.postalCode && fields.postal_code) { wizard.postalCode = fields.postal_code; wizardChanged = true }
+  }
+  // Business registration docs → first proposed-name slot if still empty
+  if (fields.document_kind === 'business_registration' && fields.business_name) {
+    const names = wizard.proposedNames ?? []
+    if (!names.some((n) => n.trim())) {
+      wizard.proposedNames = [fields.business_name, '', '', '', '', '']
+      wizardChanged = true
+    }
+  }
+
+  if (wizardChanged) {
+    const newData: ProgressData = { ...progressData, wizard }
+    await supabase.from('onboarding_progress').update({ data: newData as Json }).eq('id', progressId)
+  }
+
+  return { created, wizardChanged }
 }

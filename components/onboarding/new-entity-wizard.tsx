@@ -173,6 +173,22 @@ export function NewEntityWizard() {
     setWizard((prev) => ({ ...prev, ...partial }))
   }, [])
 
+  // Re-pull server state after an OCR extraction so pre-filled directors,
+  // shareholders, and wizard fields land in local state without a reload.
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch('/api/onboarding/new-entity')
+      if (!res.ok) return
+      const data = await res.json()
+      setWizard(data.wizard ?? {})
+      setDirectors(data.directors ?? [])
+      setShareholders(data.shareholders ?? [])
+      setDocuments(data.documents ?? [])
+    } catch {
+      // non-fatal — extraction already persisted server-side
+    }
+  }, [])
+
   const api = useCallback(async (payload: Record<string, unknown>) => {
     const res = await fetch('/api/onboarding/new-entity', {
       method: 'POST',
@@ -194,31 +210,33 @@ export function NewEntityWizard() {
         if (!wizard.industry) return 'Choose an industry.'
         if (!wizard.employeeSegment) return 'Choose your team size.'
         return null
-      case 2: {
+      case 2:
+        return null // uploads optional — everything can still be entered manually
+      case 3: {
         const names = (wizard.proposedNames ?? []).map((n) => n.trim()).filter(Boolean)
         if (names.length < 3) return 'Enter at least 3 proposed business names.'
         return null
       }
-      case 3:
+      case 4:
         if (!wizard.addressLine1?.trim()) return 'Address line 1 is required.'
         if (!wizard.city?.trim()) return 'City/Town is required.'
         if (!wizard.county) return 'Choose a county.'
         if (!wizard.postalCode?.trim()) return 'Postal code is required.'
         return null
-      case 4:
+      case 5:
         if (!wizard.primaryActivity?.trim()) return 'Describe your primary business activity.'
         if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
         if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
         return null
-      case 5: {
+      case 6: {
         const minimum = entityType === 'public_limited_company' || entityType === 'partnership' ? 2 : 1
         if (directors.length < minimum) return `Add at least ${minimum} ${minimum > 1 ? 'people' : 'person'}.`
         return null
       }
-      case 6:
+      case 7:
         if (shareholders.length < 1) return 'Add at least one shareholder/member.'
         return null
-      case 7: {
+      case 8: {
         const issued = shareholders.reduce((s, x) => s + x.shares_held, 0)
         const nominal = wizard.nominalValuePerShare ?? 100
         const authorised = wizard.authorisedShareCapital ?? 0
@@ -227,19 +245,17 @@ export function NewEntityWizard() {
         }
         return null
       }
-      case 8:
+      case 9:
         if (entityType === 'public_limited_company' && wizard.hasCompanySecretary !== true) {
           return 'A company secretary is required for a Public Limited Company.'
         }
         if (wizard.hasCompanySecretary === undefined) return 'Choose whether you will appoint a company secretary.'
         if (wizard.hasCompanySecretary && !wizard.secretary?.fullName?.trim()) return 'Enter the secretary’s details.'
         return null
-      case 9:
+      case 10:
         if (wizard.nssfNhifStatus === undefined) return 'Tell us about NSSF/NHIF registration.'
         if (!wizard.payrollFrequency) return 'Choose a payroll frequency.'
         return null
-      case 10:
-        return null // uploads optional at this stage — reviewed before BRS filing
       case 11:
         if (!wizard.declared || !wizard.consented || !wizard.agreedTerms) return 'All three declarations are required.'
         if (!wizard.signature?.trim()) return 'Type your full name as a signature.'
@@ -350,10 +366,22 @@ export function NewEntityWizard() {
         {step === 1 && (
           <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} />
         )}
-        {step === 2 && <StepNames wizard={wizard} patch={patch} />}
-        {step === 3 && <StepAddress wizard={wizard} patch={patch} />}
-        {step === 4 && <StepActivities wizard={wizard} patch={patch} />}
-        {step === 5 && (
+        {step === 2 && (
+          <StepDocuments
+            entityType={entityType}
+            orgId={orgId}
+            entityId={entityId}
+            documents={documents}
+            setDocuments={setDocuments}
+            api={api}
+            setError={setError}
+            onExtracted={refresh}
+          />
+        )}
+        {step === 3 && <StepNames wizard={wizard} patch={patch} />}
+        {step === 4 && <StepAddress wizard={wizard} patch={patch} />}
+        {step === 5 && <StepActivities wizard={wizard} patch={patch} />}
+        {step === 6 && (
           <StepDirectors
             entityType={entityType}
             directors={directors}
@@ -362,22 +390,12 @@ export function NewEntityWizard() {
             setError={setError}
           />
         )}
-        {step === 6 && (
+        {step === 7 && (
           <StepShareholders shareholders={shareholders} setShareholders={setShareholders} api={api} setError={setError} />
         )}
-        {step === 7 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
-        {step === 8 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
-        {step === 9 && <StepEmployees wizard={wizard} patch={patch} />}
-        {step === 10 && (
-          <StepDocuments
-            orgId={orgId}
-            entityId={entityId}
-            documents={documents}
-            setDocuments={setDocuments}
-            api={api}
-            setError={setError}
-          />
-        )}
+        {step === 8 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
+        {step === 9 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
+        {step === 10 && <StepEmployees wizard={wizard} patch={patch} />}
         {step === 11 && <StepDeclaration wizard={wizard} patch={patch} />}
         {step === 12 && (
           <StepReview
@@ -1204,115 +1222,212 @@ function StepEmployees({ wizard, patch }: { wizard: WizardData; patch: (p: Parti
 }
 
 // ------------------------------------------------------------------
-// Step 10 — Documents
+// Step 2 — Documents first (OCR pre-fill)
+// Labeled sections tell the extractor who each document belongs to, so
+// directors/shareholders/address fields are pre-filled before the user
+// reaches those steps — they confirm instead of typing.
 // ------------------------------------------------------------------
-function StepDocuments({ orgId, entityId, documents, setDocuments, api, setError }: {
+type UploadSection = {
+  key: 'director' | 'shareholder' | 'address' | 'other'
+  title: string
+  hint: string
+  documentType: string
+  visible: (entityType: EntityType) => boolean
+}
+
+const UPLOAD_SECTIONS: UploadSection[] = [
+  {
+    key: 'director',
+    title: 'Director / partner documents',
+    hint: 'National IDs or passports, and KRA PIN certificates — one file per document, any order.',
+    documentType: 'id_copy',
+    visible: (t) => t !== 'sole_proprietorship',
+  },
+  {
+    key: 'director',
+    title: 'Owner documents',
+    hint: 'Your national ID or passport, and KRA PIN certificate.',
+    documentType: 'id_copy',
+    visible: (t) => t === 'sole_proprietorship',
+  },
+  {
+    key: 'shareholder',
+    title: 'Shareholder / member documents',
+    hint: 'IDs and KRA PIN certificates for each shareholder or member.',
+    documentType: 'id_copy',
+    visible: (t) =>
+      t === 'limited_company' || t === 'public_limited_company' || t === 'cooperative' || t === 'limited_liability_partnership',
+  },
+  {
+    key: 'address',
+    title: 'Proof of registered office',
+    hint: 'Lease agreement, utility bill, or ownership document.',
+    documentType: 'proof_of_address',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Other supporting documents',
+    hint: 'Partnership deeds, trust deeds, by-laws, draft employment contracts — anything else relevant.',
+    documentType: 'other',
+    visible: () => true,
+  },
+]
+
+type FileStatus = { name: string; state: 'uploading' | 'extracting' | 'done' | 'ocr_failed' | 'upload_failed'; summary?: string }
+
+function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, api, setError, onExtracted }: {
+  entityType: EntityType
   orgId: string | null
   entityId: string | null
   documents: DocumentRow[]
   setDocuments: (d: DocumentRow[]) => void
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown>; reason?: string }>
   setError: (e: string) => void
+  onExtracted: () => Promise<void>
 }) {
-  const [docType, setDocType] = useState('id_copy')
-  const [uploading, setUploading] = useState(false)
+  const [statuses, setStatuses] = useState<Record<string, FileStatus>>({})
 
-  const handleFiles = async (files: FileList | null) => {
+  const setStatus = (id: string, s: FileStatus) => setStatuses((prev) => ({ ...prev, [id]: s }))
+
+  const handleFiles = async (section: UploadSection, files: FileList | null) => {
     if (!files || files.length === 0 || !orgId || !entityId) return
     setError('')
-    setUploading(true)
     const supabase = createClient()
-    try {
-      const added: DocumentRow[] = []
-      for (const file of Array.from(files)) {
-        if (file.size > 10 * 1024 * 1024) {
-          setError(`${file.name} is over 10MB — please compress it.`)
-          continue
-        }
-        const safeName = file.name.replace(/[^\w.\-]+/g, '_')
-        const path = `${orgId}/${entityId}/${crypto.randomUUID()}-${safeName}`
-        const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
-        if (uploadError) {
-          console.error('upload error', uploadError)
-          setError(`Failed to upload ${file.name}.`)
-          continue
-        }
-        const result = await api({
-          action: 'register_document',
-          document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: docType },
-        })
-        added.push({ id: result.id!, name: file.name, document_type: docType, file_path: path, file_size: file.size })
+
+    for (const file of Array.from(files)) {
+      const tempId = crypto.randomUUID()
+      if (file.size > 10 * 1024 * 1024) {
+        setStatus(tempId, { name: file.name, state: 'upload_failed', summary: 'Over 10MB — please compress' })
+        continue
       }
-      if (added.length > 0) setDocuments([...documents, ...added])
-    } finally {
-      setUploading(false)
+      setStatus(tempId, { name: file.name, state: 'uploading' })
+
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_')
+      const path = `${orgId}/${entityId}/${crypto.randomUUID()}-${safeName}`
+      const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
+      if (uploadError) {
+        console.error('upload error', uploadError)
+        setStatus(tempId, { name: file.name, state: 'upload_failed', summary: 'Upload failed — try again' })
+        continue
+      }
+
+      let documentId: string
+      try {
+        const registered = await api({
+          action: 'register_document',
+          document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: section.documentType },
+        })
+        documentId = registered.id!
+      } catch {
+        setStatus(tempId, { name: file.name, state: 'upload_failed', summary: 'Upload failed — try again' })
+        continue
+      }
+
+      setDocuments([...documents, { id: documentId, name: file.name, document_type: section.documentType, file_path: path, file_size: file.size }])
+      setStatus(tempId, { name: file.name, state: 'extracting' })
+
+      // Run OCR extraction — failures fall back to manual entry, never block
+      try {
+        const result = await api({ action: 'ocr_extract', documentId, section: section.key })
+        if (result.ok && result.fields) {
+          const f = result.fields as { full_name?: string; kra_pin?: string; address_line1?: string; document_kind?: string }
+          const summary = f.full_name ?? f.address_line1 ?? f.kra_pin ?? 'Details extracted'
+          setStatus(tempId, { name: file.name, state: 'done', summary: `Extracted: ${summary}` })
+        } else {
+          const summary =
+            result.reason === 'quota_exhausted'
+              ? 'Extraction unavailable right now — details can be entered manually'
+              : 'Couldn’t read this document — details can be entered manually'
+          setStatus(tempId, { name: file.name, state: 'ocr_failed', summary })
+        }
+      } catch {
+        setStatus(tempId, { name: file.name, state: 'ocr_failed', summary: 'Extraction failed — details can be entered manually' })
+      }
+
+      await onExtracted()
     }
   }
 
-  const remove = async (id: string) => {
-    try {
-      await api({ action: 'delete_document', id })
-      setDocuments(documents.filter((d) => d.id !== id))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to remove document.')
-    }
-  }
-
-  const typeLabel = (t: string | null) => DOCUMENT_TYPES.find((d) => d.value === t)?.label ?? 'Document'
+  const busy = Object.values(statuses).some((s) => s.state === 'uploading' || s.state === 'extracting')
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Upload documents
+        Upload your documents
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        Upload ID scans and passport photos for each person, proof of your registered office address, and any
-        deeds or contracts. You can also add these later from your dashboard before filing.
+        We read your documents automatically and pre-fill the application — you’ll just confirm the details in
+        the next steps. You can also skip this and enter everything manually.
       </p>
 
-      <Field label="Document type">
-        <select className={inputCls} style={inputStyle} value={docType} onChange={(e) => setDocType(e.target.value)}>
-          {DOCUMENT_TYPES.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-        </select>
-      </Field>
-
-      <label
-        className="block w-full rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer"
-        style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}
-      >
-        <input
-          type="file"
-          multiple
-          accept=".pdf,.jpg,.jpeg,.png,.webp"
-          className="hidden"
-          disabled={uploading}
-          onChange={(e) => { handleFiles(e.target.files); e.target.value = '' }}
-        />
-        <span className="text-ios-subhead font-medium block" style={{ color: 'var(--brand-navy)' }}>
-          {uploading ? 'Uploading…' : 'Tap to choose files'}
-        </span>
-        <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-          PDF, JPG, or PNG — max 10MB each
-        </span>
-      </label>
-
-      {documents.map((d) => (
-        <div key={d.id} className="ios-surface rounded-2xl p-4 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-ios-subhead font-medium truncate" style={{ color: 'var(--system-label)' }}>{d.name}</p>
+      {UPLOAD_SECTIONS.filter((s) => s.visible(entityType)).map((section) => (
+        <div key={section.title} className="ios-surface rounded-2xl p-4 space-y-3">
+          <div>
+            <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>
+              {section.title}
+            </p>
             <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-              {typeLabel(d.document_type)}{d.file_size ? ` · ${Math.round(d.file_size / 1024)} KB` : ''}
+              {section.hint}
             </p>
           </div>
-          <button type="button" className="text-ios-footnote font-medium text-red-500 shrink-0" onClick={() => remove(d.id)}>
-            Remove
-          </button>
+          <label
+            className="block w-full rounded-xl border-2 border-dashed p-5 text-center cursor-pointer"
+            style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}
+          >
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              className="hidden"
+              disabled={busy}
+              onChange={(e) => { handleFiles(section, e.target.files); e.target.value = '' }}
+            />
+            <span className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
+              {busy ? 'Working…' : 'Tap to choose files'}
+            </span>
+          </label>
         </div>
       ))}
 
-      <p className="text-ios-caption1 ios-surface rounded-2xl p-4" style={{ color: 'var(--system-label-3)' }}>
-        Automatic data extraction (OCR) from your documents is coming soon — for now our team reviews uploads
-        manually before filing.
+      {Object.entries(statuses).map(([id, s]) => (
+        <div key={id} className="ios-surface rounded-2xl px-4 py-3 flex items-center gap-3">
+          {(s.state === 'uploading' || s.state === 'extracting') && (
+            <svg className="animate-spin w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--brand-navy)' }}>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+          {s.state === 'done' && (
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+          {(s.state === 'ocr_failed' || s.state === 'upload_failed') && (
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          )}
+          <div className="min-w-0">
+            <p className="text-ios-footnote font-medium truncate" style={{ color: 'var(--system-label)' }}>{s.name}</p>
+            {s.summary && (
+              <p className="text-ios-caption1" style={{ color: s.state === 'done' ? '#16a34a' : 'var(--system-label-3)' }}>
+                {s.state === 'uploading' ? 'Uploading…' : s.state === 'extracting' ? 'Reading document…' : s.summary}
+              </p>
+            )}
+            {!s.summary && (s.state === 'uploading' || s.state === 'extracting') && (
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                {s.state === 'uploading' ? 'Uploading…' : 'Reading document…'}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+        {documents.length > 0
+          ? `${documents.length} document${documents.length === 1 ? '' : 's'} on file.`
+          : 'No documents uploaded yet — you can continue and add them later.'}
       </p>
     </div>
   )

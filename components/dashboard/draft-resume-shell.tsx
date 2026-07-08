@@ -8,7 +8,7 @@ type PathId = 'existing_entity' | 'new_entity' | 'informal_business'
 
 const PATH_META: Record<PathId, { label: string; sublabel: string; totalSteps: number }> = {
   existing_entity: { label: 'Existing Business', sublabel: 'Document verification', totalSteps: 5 },
-  new_entity: { label: 'Register New Entity', sublabel: 'Entity registration', totalSteps: 9 },
+  new_entity: { label: 'Register New Entity', sublabel: 'Entity registration', totalSteps: 12 },
   informal_business: { label: 'Informal Business', sublabel: 'Readiness assessment', totalSteps: 15 },
 }
 
