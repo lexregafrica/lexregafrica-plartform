@@ -61,8 +61,8 @@ const ARCS = [
 
 export function GlobeSection() {
   return (
-    <section className="relative overflow-hidden py-24">
-      <div className="relative mx-auto max-w-5xl px-4">
+    <section className="relative overflow-hidden px-4 py-24">
+      <div className="relative mx-auto max-w-6xl">
         {/* Heading */}
         <div className="text-center">
           <motion.p
@@ -70,10 +70,10 @@ export function GlobeSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-4 text-xs font-semibold uppercase tracking-[0.15em]"
-            style={{ color: GOLD, fontFamily: "SF Pro Text, system-ui, sans-serif" }}
+            className="mb-3 text-[13px] font-bold uppercase tracking-[0.15em]"
+            style={{ color: "#800020" }}
           >
-            Global standards, local expertise
+            Reach
           </motion.p>
 
           <TextAnimate
@@ -85,15 +85,14 @@ export function GlobeSection() {
             startOnView
             className="mx-auto max-w-2xl"
             style={{
-              fontFamily: "SF Pro Display, system-ui, sans-serif",
-              fontSize: "clamp(28px, 4vw, 44px)",
+              fontSize: "clamp(30px, 4vw, 44px)",
               fontWeight: 700,
-              color: "#800020",
+              color: "#1C1C1E",
               lineHeight: 1.15,
               letterSpacing: "-0.03em",
             }}
           >
-            Compliance trusted beyond Kenya&apos;s borders
+            Built in Kenya. Ready for Africa.
           </TextAnimate>
 
           <motion.p
@@ -101,23 +100,27 @@ export function GlobeSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
-            className="mx-auto mt-4 max-w-lg"
-            style={{
-              color: "#737373",
-              fontSize: "15px",
-              lineHeight: 1.65,
-              fontFamily: "SF Pro Text, system-ui, sans-serif",
-            }}
+            className="mx-auto mt-4 max-w-lg text-[16px]"
+            style={{ color: "rgba(60,60,67,0.75)", lineHeight: 1.6 }}
           >
             LexReg connects Kenyan businesses to the regulatory frameworks that
             global partners, investors, and institutions expect.
           </motion.p>
         </div>
 
-        {/* Globe — no background, floats freely */}
-        <div className="relative mt-6 h-[420px] md:h-[540px]">
-          <World data={ARCS} globeConfig={globeConfig} />
-        </div>
+        {/* Globe — dark rounded card so the white arcs pop */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+          className="relative mt-12 overflow-hidden rounded-[28px]"
+          style={{ background: "#1C1C1E" }}
+        >
+          <div className="relative h-[420px] md:h-[560px]">
+            <World data={ARCS} globeConfig={globeConfig} />
+          </div>
+        </motion.div>
       </div>
     </section>
   );
