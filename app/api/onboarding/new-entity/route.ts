@@ -540,8 +540,10 @@ export async function POST(request: Request) {
       p_metadata: { entity_type: entityType },
     })
 
-    // Best-effort — the client re-fetches GET for a signed download link
-    await generateAndStoreIdp(supabase, { entityId, orgId, entityType, wizard })
+    // Fire-and-forget IDP generation in background — client polls GET for idpUrl
+    generateAndStoreIdp(supabase, { entityId, orgId, entityType, wizard }).catch((e) =>
+      console.error('background idp generation failed', e)
+    )
 
     return NextResponse.json({ ok: true })
   }
