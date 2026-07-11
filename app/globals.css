@@ -147,70 +147,70 @@
    Letter-spacing values come from Apple's Human Interface Guidelines.
    ────────────────────────────────────────────────────────────────────── */
 .text-ios-display {
-  font-size: 34px;
-  line-height: 41px;
+  font-size: 39px;
+  line-height: 47px;
   letter-spacing: -0.4px;
   font-weight: 700;
 }
 .text-ios-title1 {
-  font-size: 28px;
-  line-height: 34px;
+  font-size: 32px;
+  line-height: 39px;
   letter-spacing: -0.15px;
   font-weight: 700;
 }
 .text-ios-title2 {
-  font-size: 22px;
-  line-height: 28px;
+  font-size: 25px;
+  line-height: 32px;
   letter-spacing: -0.35px;
   font-weight: 700;
 }
 .text-ios-title3 {
-  font-size: 20px;
-  line-height: 25px;
+  font-size: 23px;
+  line-height: 29px;
   letter-spacing: -0.45px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .text-ios-headline {
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 19px;
+  line-height: 25px;
   letter-spacing: -0.41px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .text-ios-body {
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 19px;
+  line-height: 25px;
   letter-spacing: -0.41px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .text-ios-callout {
-  font-size: 16px;
-  line-height: 21px;
+  font-size: 18px;
+  line-height: 24px;
   letter-spacing: -0.32px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .text-ios-subhead {
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 17px;
+  line-height: 23px;
   letter-spacing: -0.23px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .text-ios-footnote {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 15px;
+  line-height: 20px;
   letter-spacing: -0.08px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .text-ios-caption1 {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 14px;
+  line-height: 18px;
   letter-spacing: 0px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .text-ios-caption2 {
-  font-size: 11px;
-  line-height: 13px;
+  font-size: 13px;
+  line-height: 16px;
   letter-spacing: 0.066px;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 /* ─── Grouped Section (iOS settings-style card group) ────────────────────── */
