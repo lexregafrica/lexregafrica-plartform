@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import {
-  IconFilePencil,
-  IconFolderOpen,
-  IconScale,
-  IconSeedling,
-  IconArrowRight,
-  IconCheck,
-} from '@tabler/icons-react'
+  PenNewSquare,
+  FolderWithFiles,
+  CaseMinimalistic,
+  Magnifer,
+  Leaf,
+  ArrowRight,
+  CheckCircle,
+} from '@solar-icons/react'
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
@@ -54,12 +55,7 @@ export function IosServices() {
           >
             <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
               <div className="max-w-sm">
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl"
-                  style={{ background: '#800020' }}
-                >
-                  <IconFilePencil size={28} stroke={2} color="#FFFFFF" />
-                </div>
+                <PenNewSquare weight="BoldDuotone" size={44} color="#800020" />
                 <h3
                   className="mt-6 text-[26px] font-bold tracking-[-0.02em]"
                   style={{ color: '#1C1C1E' }}
@@ -75,7 +71,7 @@ export function IosServices() {
                   className="mt-6 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[14px] font-semibold transition-colors hover:bg-neutral-200"
                   style={{ background: '#F2F2F7', color: '#800020' }}
                 >
-                  Get started <IconArrowRight size={16} stroke={2.5} />
+                  Get started <ArrowRight weight="Linear" size={16} />
                 </Link>
               </div>
 
@@ -94,7 +90,7 @@ export function IosServices() {
                   className="flex items-center gap-1.5 rounded-xl px-4 py-3 text-[13px] font-bold text-white"
                   style={{ background: '#800020' }}
                 >
-                  <IconCheck size={15} stroke={3} /> IDP generated
+                  <CheckCircle weight="Bold" size={15} /> IDP generated
                 </div>
               </div>
             </div>
@@ -102,9 +98,7 @@ export function IosServices() {
 
           {/* Legal Audit — burgundy card */}
           <motion.div {...fadeUp(0.15)} className="rounded-3xl p-8 md:p-10" style={{ background: '#800020' }}>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white">
-              <IconScale size={28} stroke={2} color="#800020" />
-            </div>
+            <Magnifer weight="BoldDuotone" size={44} color="#FFFFFF" />
             <h3 className="mt-6 text-[24px] font-bold tracking-[-0.02em] text-white">Legal Audit</h3>
             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
               Full compliance review and risk report across statutory, tax,
@@ -121,31 +115,26 @@ export function IosServices() {
         <div className="mt-5 grid gap-5 md:grid-cols-3">
           {[
             {
-              icon: IconFolderOpen,
+              icon: FolderWithFiles,
               title: 'Existing Entity',
               body: 'Upload your documents. OCR fills in the rest.',
               cta: 'Upload & activate',
             },
             {
-              icon: IconScale,
+              icon: CaseMinimalistic,
               title: 'Corporate Services',
               body: 'Board minutes, AGM notices, resolutions — generated.',
               cta: 'Explore',
             },
             {
-              icon: IconSeedling,
+              icon: Leaf,
               title: 'Going Formal',
               body: 'Free 15-question readiness score for informal businesses.',
               cta: 'Take assessment',
             },
           ].map((card, i) => (
             <motion.div key={card.title} {...fadeUp(0.1 + i * 0.08)} className="rounded-3xl bg-white p-8">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ background: '#F2F2F7' }}
-              >
-                <card.icon size={24} stroke={2} color="#800020" />
-              </div>
+              <card.icon weight="BoldDuotone" size={38} color="#800020" />
               <h3 className="mt-5 text-[20px] font-bold tracking-[-0.02em]" style={{ color: '#1C1C1E' }}>
                 {card.title}
               </h3>
@@ -157,7 +146,7 @@ export function IosServices() {
                 className="mt-5 inline-flex items-center gap-1 text-[14px] font-semibold"
                 style={{ color: '#800020' }}
               >
-                {card.cta} <IconArrowRight size={15} stroke={2.5} />
+                {card.cta} <ArrowRight weight="Linear" size={15} />
               </Link>
             </motion.div>
           ))}
