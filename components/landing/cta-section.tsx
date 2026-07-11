@@ -5,7 +5,7 @@ import { motion } from 'motion/react'
 import { IconArrowRight, IconCalendar } from '@tabler/icons-react'
 import { ShimmerButton } from '@/components/ui/shimmer-button'
 
-const GOLD = '#C9A227'
+const GOLD = '#FFFFFF'
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 export function CTASection() {
@@ -19,7 +19,7 @@ export function CTASection() {
           transition={{ duration: 0.7, ease }}
           className="relative overflow-hidden rounded-3xl px-8 py-14 text-center md:px-16"
           style={{
-            background: '#1A1A2E',
+            background: '#800020',
             border: '1px solid rgba(201,162,39,0.14)',
             boxShadow: '0 8px 48px rgba(0,0,0,0.18)',
           }}

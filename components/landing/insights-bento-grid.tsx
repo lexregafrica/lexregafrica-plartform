@@ -14,8 +14,8 @@ import {
 import { TextAnimate } from '@/components/ui/text-animate'
 import type { Insight } from '@/lib/sanity/queries'
 
-const GOLD = '#C9A227'
-const NAVY = '#1A1A2E'
+const GOLD = '#FFFFFF'
+const NAVY = '#800020'
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   Registration: <IconBuilding size={20} stroke={1.5} />,

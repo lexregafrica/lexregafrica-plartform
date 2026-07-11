@@ -3,8 +3,8 @@
 import { motion } from 'motion/react'
 import { IconQuote } from '@tabler/icons-react'
 
-const GOLD = '#C9A227'
-const NAVY = '#1A1A2E'
+const GOLD = '#FFFFFF'
+const NAVY = '#800020'
 
 const TESTIMONIALS = [
   {
@@ -14,7 +14,7 @@ const TESTIMONIALS = [
     role: 'Co-Founder, Savanna Logistics Ltd',
     location: 'Nairobi',
     initials: 'AW',
-    accentColor: '#C9A227',
+    accentColor: '#FFFFFF',
   },
   {
     quote:

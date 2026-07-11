@@ -11,8 +11,8 @@
 
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from 'pdf-lib'
 
-const NAVY = rgb(0x1a / 255, 0x1a / 255, 0x2e / 255)
-const GOLD = rgb(0xc9 / 255, 0xa2 / 255, 0x27 / 255)
+const BURGUNDY = rgb(0x80 / 255, 0x00 / 255, 0x20 / 255)
+const WHITE = rgb(1, 1, 1)
 const GRAY = rgb(0.4, 0.4, 0.42)
 const PAGE_WIDTH = 595.28 // A4
 const PAGE_HEIGHT = 841.89
@@ -131,7 +131,7 @@ class PageBuilder {
 
   title(text: string) {
     this.ensureRoom(30)
-    this.page.drawText(text, { x: MARGIN, y: this.y, size: 22, font: this.bold, color: NAVY })
+    this.page.drawText(text, { x: MARGIN, y: this.y, size: 22, font: this.bold, color: BURGUNDY })
     this.y -= 30
   }
 
@@ -145,7 +145,7 @@ class PageBuilder {
     this.ensureRoom(16)
     this.page.drawLine({
       start: { x: MARGIN, y: this.y }, end: { x: PAGE_WIDTH - MARGIN, y: this.y },
-      thickness: 1.5, color: GOLD,
+      thickness: 1.5, color: WHITE,
     })
     this.y -= 20
   }
@@ -162,7 +162,7 @@ class PageBuilder {
 
   section(text: string) {
     this.ensureRoom(28)
-    this.page.drawText(text.toUpperCase(), { x: MARGIN, y: this.y, size: 11, font: this.bold, color: NAVY })
+    this.page.drawText(text.toUpperCase(), { x: MARGIN, y: this.y, size: 11, font: this.bold, color: BURGUNDY })
     this.y -= 6
     this.page.drawLine({
       start: { x: MARGIN, y: this.y }, end: { x: PAGE_WIDTH - MARGIN, y: this.y },
@@ -174,13 +174,13 @@ class PageBuilder {
   field(label: string, value: string) {
     this.ensureRoom(16)
     this.page.drawText(label, { x: MARGIN, y: this.y, size: 9.5, font: this.font, color: GRAY })
-    this.page.drawText(value, { x: MARGIN + 160, y: this.y, size: 9.5, font: this.bold, color: NAVY })
+    this.page.drawText(value, { x: MARGIN + 160, y: this.y, size: 9.5, font: this.bold, color: BURGUNDY })
     this.y -= 16
   }
 
   personRow(name: string, detail: string) {
     this.ensureRoom(16)
-    this.page.drawText(name, { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: NAVY })
+    this.page.drawText(name, { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: BURGUNDY })
     this.page.drawText(detail, { x: MARGIN + 200, y: this.y, size: 9, font: this.font, color: GRAY })
     this.y -= 15
   }
@@ -188,9 +188,9 @@ class PageBuilder {
   bullet(text: string) {
     const lines = wrapText(text, this.font, 9.5, PAGE_WIDTH - MARGIN * 2 - 14)
     this.ensureRoom(lines.length * 13 + 4)
-    this.page.drawText('•', { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: GOLD })
+    this.page.drawText('•', { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: WHITE })
     for (const [i, line] of lines.entries()) {
-      this.page.drawText(line, { x: MARGIN + 14, y: this.y - i * 13, size: 9.5, font: this.font, color: NAVY })
+      this.page.drawText(line, { x: MARGIN + 14, y: this.y - i * 13, size: 9.5, font: this.font, color: BURGUNDY })
     }
     this.y -= lines.length * 13 + 4
   }

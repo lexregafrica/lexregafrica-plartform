@@ -49,7 +49,7 @@ function FeatCard({ title, description, children, className = "", delay = 0 }: F
       <div className="z-10 flex flex-col gap-1.5">
         <h3
           className="font-semibold text-sm tracking-tight"
-          style={{ color: "#1A1A2E", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
+          style={{ color: "#800020", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
         >
           {title}
         </h3>
@@ -97,9 +97,9 @@ const PIPELINE_NODES: PipelineNode[] = [
 ]
 
 const NODE_STYLES: Record<string, { activeGrad: string; activeBorder: string; activeText: string }> = {
-  UPLOAD: { activeGrad: "linear-gradient(to bottom, #C9A227, #a88520)", activeBorder: "#a88520", activeText: "#fff" },
+  UPLOAD: { activeGrad: "linear-gradient(to bottom, #FFFFFF, #a88520)", activeBorder: "#a88520", activeText: "#fff" },
   OCR:    { activeGrad: "linear-gradient(to bottom, #d97706, #b45309)", activeBorder: "#b45309", activeText: "#fff" },
-  VERIFY: { activeGrad: "linear-gradient(to bottom, #1A1A2E, #0d0d1a)", activeBorder: "#0d0d1a", activeText: "#fff" },
+  VERIFY: { activeGrad: "linear-gradient(to bottom, #800020, #0d0d1a)", activeBorder: "#0d0d1a", activeText: "#fff" },
   BRS:    { activeGrad: "linear-gradient(to bottom, #34d399, #059669)", activeBorder: "#047857", activeText: "#fff" },
   CERT:   { activeGrad: "linear-gradient(to bottom, #38bdf8, #0284c7)", activeBorder: "#0369a1", activeText: "#fff" },
 }
@@ -112,12 +112,12 @@ interface FlowPath {
 }
 
 const FLOW_PATHS: FlowPath[] = [
-  { id: "upload-ocr",    d: "M 78 120 L 113 120",              activeSteps: ["upload"],          color: "#C9A227" },
-  { id: "ocr-verify",   d: "M 137 120 L 172 120",             activeSteps: ["ocr", "review"],   color: "#1A1A2E" },
+  { id: "upload-ocr",    d: "M 78 120 L 113 120",              activeSteps: ["upload"],          color: "#FFFFFF" },
+  { id: "ocr-verify",   d: "M 137 120 L 172 120",             activeSteps: ["ocr", "review"],   color: "#800020" },
   { id: "verify-brs",   d: "M 200 92 L 200 58 L 252 58",      activeSteps: ["brs"],             color: "#10b981" },
   { id: "verify-cert",  d: "M 200 148 L 200 182 L 252 182",   activeSteps: ["cert"],            color: "#0ea5e9" },
-  { id: "resp-ocr",     d: "M 172 120 L 137 120",             activeSteps: ["complete"],        color: "#C9A227" },
-  { id: "resp-upload",  d: "M 113 120 L 78 120",              activeSteps: ["complete"],        color: "#C9A227" },
+  { id: "resp-ocr",     d: "M 172 120 L 137 120",             activeSteps: ["complete"],        color: "#FFFFFF" },
+  { id: "resp-upload",  d: "M 113 120 L 78 120",              activeSteps: ["complete"],        color: "#FFFFFF" },
 ]
 
 function nodeIsActive(nodeId: string, step: PipelineStep): boolean {
@@ -233,13 +233,13 @@ function Card1() {
                     className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
                     style={{
                       background: active ? "rgba(201,162,39,0.12)" : "rgba(255,255,255,0.9)",
-                      borderColor: active ? "#C9A227" : "rgba(0,0,0,0.14)",
+                      borderColor: active ? "#FFFFFF" : "rgba(0,0,0,0.14)",
                       transition: "all 0.3s ease",
                     }}
                   >
                     <motion.div
                       className="w-2.5 h-2.5 rounded-full border border-dashed"
-                      style={{ borderColor: active ? "#C9A227" : "rgba(0,0,0,0.2)" }}
+                      style={{ borderColor: active ? "#FFFFFF" : "rgba(0,0,0,0.2)" }}
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 3.5, ease: "linear" }}
                     />
@@ -304,7 +304,7 @@ function Card2() {
                   <span className="text-[8px] uppercase tracking-widest font-mono leading-none" style={{ color: "#9ca3af" }}>
                     {s.label}
                   </span>
-                  <span className="text-base font-bold font-mono leading-none mt-1.5 tracking-tight" style={{ color: "#1A1A2E" }}>
+                  <span className="text-base font-bold font-mono leading-none mt-1.5 tracking-tight" style={{ color: "#800020" }}>
                     {s.value}
                   </span>
                   <div className="flex items-center gap-1.5 mt-2">
@@ -358,7 +358,7 @@ function Card2() {
             <motion.div
               className="absolute bottom-0 left-0 right-0 rounded-t-[6px] border-t border-x"
               style={{
-                background: "linear-gradient(to bottom, #C9A227, #a88520)",
+                background: "linear-gradient(to bottom, #FFFFFF, #a88520)",
                 borderColor: "rgba(168,133,32,0.6)",
               }}
               initial={{ height: "0%" }}
@@ -481,7 +481,7 @@ function Card3() {
                 <div className="flex items-center gap-1.5">
                   <span
                     className={`font-semibold leading-none ${isActive ? "text-[10px]" : "text-[9px]"}`}
-                    style={{ color: "#1A1A2E", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
+                    style={{ color: "#800020", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
                   >
                     {task.task}
                   </span>
@@ -512,7 +512,7 @@ function Card3() {
           <motion.div
             key={i}
             className="rounded-full"
-            style={{ background: "#1A1A2E", height: 3 }}
+            style={{ background: "#800020", height: 3 }}
             animate={{ width: i === activeIdx ? 14 : 4, opacity: i === activeIdx ? 0.45 : 0.12 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           />
@@ -537,10 +537,10 @@ const DOC_NS_CONFIG: Record<string, {
 }> = {
   Registration: {
     Icon: IconBuildingBank,
-    barClass: "from-[#C9A227] to-[#a88520]",
-    dotClass: "bg-[#C9A227]",
+    barClass: "from-[#FFFFFF] to-[#a88520]",
+    dotClass: "bg-[#FFFFFF]",
     badgeClass: "bg-amber-500/15 text-amber-700",
-    activeGrad: "linear-gradient(to bottom, #C9A227, #a88520)",
+    activeGrad: "linear-gradient(to bottom, #FFFFFF, #a88520)",
     activeBorder: "#a88520",
   },
   Tax: {
@@ -548,7 +548,7 @@ const DOC_NS_CONFIG: Record<string, {
     barClass: "from-slate-600 to-slate-800",
     dotClass: "bg-slate-600",
     badgeClass: "bg-slate-500/15 text-slate-700",
-    activeGrad: "linear-gradient(to bottom, #1A1A2E, #0d0d1a)",
+    activeGrad: "linear-gradient(to bottom, #800020, #0d0d1a)",
     activeBorder: "#0d0d1a",
   },
   Corporate: {
@@ -631,7 +631,7 @@ function Card4() {
                 {/* Name */}
                 <span
                   className="text-[9.5px] font-mono w-16 shrink-0 transition-colors duration-300"
-                  style={{ color: isActive ? "#1A1A2E" : "#9ca3af", fontWeight: isActive ? 600 : 400 }}
+                  style={{ color: isActive ? "#800020" : "#9ca3af", fontWeight: isActive ? 600 : 400 }}
                 >
                   {ns.name}
                 </span>
@@ -656,7 +656,7 @@ function Card4() {
 
                 {/* Count */}
                 <div className={`flex items-center gap-1 w-7 justify-end transition-all duration-500 ${isActive ? "opacity-100" : "opacity-40"}`}>
-                  <span className="text-[9px] font-mono font-medium" style={{ color: isActive ? "#1A1A2E" : "#9ca3af" }}>
+                  <span className="text-[9px] font-mono font-medium" style={{ color: isActive ? "#800020" : "#9ca3af" }}>
                     {ns.hits}
                   </span>
                   {isActive && (
@@ -737,7 +737,7 @@ function Card4() {
    ───────────────────────────────────────────── */
 
 const SERVICES = [
-  { name: "Entity Formation",   count: 89, label: "registrations", Icon: IconBuildingBank, grad: "from-[#C9A227] to-[#a88520]",       border: "border-[#a88520]" },
+  { name: "Entity Formation",   count: 89, label: "registrations", Icon: IconBuildingBank, grad: "from-[#FFFFFF] to-[#a88520]",       border: "border-[#a88520]" },
   { name: "Corporate Services", count: 64, label: "active",        Icon: IconBriefcase,    grad: "from-slate-600 to-slate-800",        border: "border-slate-800" },
   { name: "Legal Audit",        count: 31, label: "completed",     Icon: IconGavel,        grad: "from-emerald-400 to-emerald-600",    border: "border-emerald-600" },
   { name: "Annual Returns",     count: 45, label: "filed",         Icon: IconFileText,     grad: "from-violet-400 to-violet-600",      border: "border-violet-600" },
@@ -775,7 +775,7 @@ function Card5() {
                 <s.Icon size={13} stroke={1.5} />
               </div>
               <div className="flex flex-col items-end gap-0.5 mt-0.5">
-                <span className="text-[12px] font-mono font-bold leading-none" style={{ color: "#1A1A2E" }}>
+                <span className="text-[12px] font-mono font-bold leading-none" style={{ color: "#800020" }}>
                   {s.count}
                 </span>
                 <span className="text-[6.5px] font-mono uppercase tracking-widest leading-none" style={{ color: "#9ca3af" }}>
@@ -786,7 +786,7 @@ function Card5() {
 
             {/* Name + bar */}
             <div className="mt-2 flex flex-col gap-1.5">
-              <span className="text-[8.5px] font-medium leading-tight" style={{ color: "#1A1A2E", fontFamily: "SF Pro Text, system-ui, sans-serif" }}>
+              <span className="text-[8.5px] font-medium leading-tight" style={{ color: "#800020", fontFamily: "SF Pro Text, system-ui, sans-serif" }}>
                 {s.name}
               </span>
               <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.06)" }}>
@@ -860,7 +860,7 @@ export function HowItWorksSection() {
       <div className="px-4 pt-20 pb-0 text-center">
         <p
           className="text-xs font-semibold uppercase tracking-[0.15em]"
-          style={{ color: "#C9A227", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
+          style={{ color: "#FFFFFF", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
         >
           How it works
         </p>

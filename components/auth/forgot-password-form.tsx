@@ -30,7 +30,7 @@ export function ForgotPasswordForm() {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F4F6F8] px-4">
         <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-sm p-8 flex flex-col items-center text-center">
-          <CheckCircle2 className="w-12 h-12 mb-4" style={{ color: '#C9A227' }} />
+          <CheckCircle2 className="w-12 h-12 mb-4" style={{ color: '#FFFFFF' }} />
           <h2 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h2>
           <p className="text-sm text-gray-500 mb-6">
             We sent a password reset link to{' '}
@@ -71,7 +71,7 @@ export function ForgotPasswordForm() {
             value={email}
             autoComplete="email"
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/30 focus:border-[#1A1A2E]"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#800020]/30 focus:border-[#800020]"
           />
 
           {error && <p className="text-xs text-red-500">{error}</p>}
@@ -80,7 +80,7 @@ export function ForgotPasswordForm() {
             type="submit"
             disabled={loading}
             className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mt-1"
-            style={{ background: '#1A1A2E' }}
+            style={{ background: '#800020' }}
           >
             {loading ? 'Sending…' : 'Send reset link'}
           </button>

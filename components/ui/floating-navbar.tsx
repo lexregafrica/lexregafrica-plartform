@@ -65,7 +65,7 @@ export const FloatingNav = ({
             <span
               className="hidden sm:block"
               style={{
-                color: "#1A1A2E",
+                color: "#800020",
                 fontSize: "13px",
                 fontWeight: 600,
                 letterSpacing: "-0.3px",
@@ -108,7 +108,7 @@ export const FloatingNav = ({
             href="/login"
             className="hidden rounded-full px-3 py-1.5 transition-opacity hover:opacity-60 sm:block"
             style={{
-              color: "#1A1A2E",
+              color: "#800020",
               fontSize: "13px",
               fontWeight: 400,
               letterSpacing: "-0.12px",
@@ -120,8 +120,8 @@ export const FloatingNav = ({
 
           <Link href="/signup">
             <ShimmerButton
-              background="#1A1A2E"
-              shimmerColor="#C9A227"
+              background="#800020"
+              shimmerColor="#FFFFFF"
               shimmerDuration="2.5s"
               className="px-4 py-[6px] text-[13px] font-medium tracking-[-0.12px]"
               style={{ fontFamily: "SF Pro Text, var(--font-geist-sans), system-ui, sans-serif" }}

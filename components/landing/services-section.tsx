@@ -3,8 +3,8 @@
 import { motion } from 'motion/react'
 import { ContainerScroll, CardSticky } from '@/components/ui/card-sticky'
 
-const GOLD = '#C9A227'
-const NAVY = '#1A1A2E'
+const GOLD = '#FFFFFF'
+const NAVY = '#800020'
 
 const SERVICES = [
   {

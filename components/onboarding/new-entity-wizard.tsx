@@ -29,7 +29,7 @@ import {
 // Shared styles
 // ------------------------------------------------------------------
 const inputCls =
-  'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/30'
+  'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
 const inputStyle = {
   borderColor: 'var(--system-fill-3)',
   background: 'var(--system-bg)',
@@ -1588,7 +1588,7 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, a
       <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-[420px] text-center">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(201,162,39,0.15)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -1616,7 +1616,7 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, a
       <div className="w-full max-w-[440px]">
         <div className="text-center mb-6">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(201,162,39,0.15)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -1731,7 +1731,7 @@ function CertificateUpload({ orgId, entityId, api, onActivated }: {
         placeholder="Registration number (optional)"
         value={registrationNumber}
         onChange={(e) => setRegistrationNumber(e.target.value)}
-        className="w-full px-4 py-2.5 mb-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/30"
+        className="w-full px-4 py-2.5 mb-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30"
         style={{ borderColor: 'var(--system-fill-3)', background: 'var(--system-bg)', color: 'var(--system-label)' }}
       />
       <label

@@ -13,7 +13,7 @@ function RegulatorMark({ abbr, name }: Regulator) {
         className="font-bold leading-none"
         style={{
           fontSize: "12px",
-          color: "#1A1A2E",
+          color: "#800020",
           fontFamily: "SF Pro Display, var(--font-geist-sans), system-ui, sans-serif",
           letterSpacing: "-0.4px",
         }}

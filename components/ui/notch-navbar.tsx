@@ -84,7 +84,7 @@ export function NotchNavbar({ className }: { className?: string }) {
                       fontFamily: "SF Pro Text, system-ui, sans-serif",
                       letterSpacing: "-0.12px",
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#1A1A2E")}
+                    onMouseEnter={e => (e.currentTarget.style.color = "#800020")}
                     onMouseLeave={e => (e.currentTarget.style.color = "#737373")}
                   >
                     {item.label}
@@ -111,7 +111,7 @@ export function NotchNavbar({ className }: { className?: string }) {
                   href="/login"
                   className="rounded-full px-3 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-60"
                   style={{
-                    color: "#1A1A2E",
+                    color: "#800020",
                     fontFamily: "SF Pro Text, system-ui, sans-serif",
                     letterSpacing: "-0.12px",
                   }}
@@ -120,8 +120,8 @@ export function NotchNavbar({ className }: { className?: string }) {
                 </Link>
                 <Link href="/signup">
                   <ShimmerButton
-                    background="#1A1A2E"
-                    shimmerColor="#C9A227"
+                    background="#800020"
+                    shimmerColor="#FFFFFF"
                     shimmerDuration="2.5s"
                     className="px-4 py-[6px] text-[13px] font-medium tracking-[-0.12px]"
                     style={{ fontFamily: "SF Pro Text, system-ui, sans-serif" }}
@@ -135,8 +135,8 @@ export function NotchNavbar({ className }: { className?: string }) {
               <div className="flex items-center md:hidden">
                 <Link href="/signup">
                   <ShimmerButton
-                    background="#1A1A2E"
-                    shimmerColor="#C9A227"
+                    background="#800020"
+                    shimmerColor="#FFFFFF"
                     shimmerDuration="2.5s"
                     className="px-3 py-[5px] text-[12px] font-medium tracking-[-0.12px]"
                     style={{ fontFamily: "SF Pro Text, system-ui, sans-serif" }}
@@ -209,7 +209,7 @@ export function NotchNavbar({ className }: { className?: string }) {
                       }, 120)
                     }}
                     className="flex items-center rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors"
-                    style={{ color: "#1A1A2E", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
+                    style={{ color: "#800020", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.04)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
@@ -229,7 +229,7 @@ export function NotchNavbar({ className }: { className?: string }) {
                   href="/signup"
                   onClick={() => setMenuOpen(false)}
                   className="mt-1 flex items-center justify-center rounded-xl px-3 py-3 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
-                  style={{ background: "#1A1A2E", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
+                  style={{ background: "#800020", fontFamily: "SF Pro Text, system-ui, sans-serif" }}
                 >
                   Get started
                 </Link>

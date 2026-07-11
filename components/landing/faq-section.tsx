@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { IconPlus, IconMinus } from '@tabler/icons-react'
 
-const GOLD = '#C9A227'
-const NAVY = '#1A1A2E'
+const GOLD = '#FFFFFF'
+const NAVY = '#800020'
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const FAQS = [

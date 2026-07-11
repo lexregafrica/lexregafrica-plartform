@@ -10,9 +10,9 @@ const World = dynamic(
   { ssr: false },
 );
 
-const GOLD = "#C9A227";
-const GOLD_LIGHT = "#E8C35A";
-const GOLD_PALE = "#F5DFA0";
+const GOLD = "#FFFFFF";
+const GOLD_LIGHT = "#F5F5F5";
+const GOLD_PALE = "#E8E8E8";
 
 const globeConfig: GlobeConfig = {
   globeColor: "#111827",
@@ -20,13 +20,13 @@ const globeConfig: GlobeConfig = {
   emissiveIntensity: 0.12,
   shininess: 0.7,
   showAtmosphere: true,
-  atmosphereColor: "#C9A227",
+  atmosphereColor: "#FFFFFF",
   atmosphereAltitude: 0.08,
   polygonColor: "rgba(255,255,255,0.18)",
   ambientLight: "#38bdf8",
   directionalLeftLight: "#ffffff",
   directionalTopLight: "#ffffff",
-  pointLight: "#C9A227",
+  pointLight: "#FFFFFF",
   arcTime: 1400,
   arcLength: 0.88,
   rings: 1,
@@ -88,7 +88,7 @@ export function GlobeSection() {
               fontFamily: "SF Pro Display, system-ui, sans-serif",
               fontSize: "clamp(28px, 4vw, 44px)",
               fontWeight: 700,
-              color: "#1A1A2E",
+              color: "#800020",
               lineHeight: 1.15,
               letterSpacing: "-0.03em",
             }}

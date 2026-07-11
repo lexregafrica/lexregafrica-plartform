@@ -76,7 +76,7 @@ export function FooterSection() {
                 <span
                   style={{
                     fontFamily: 'SF Pro Display, system-ui, sans-serif',
-                    color: '#1A1A2E',
+                    color: '#800020',
                     fontSize: '15px',
                     fontWeight: 600,
                     letterSpacing: '-0.3px',
@@ -96,7 +96,7 @@ export function FooterSection() {
                 <div key={col.title} className="flex flex-col gap-3">
                   <p
                     style={{
-                      color: '#1A1A2E',
+                      color: '#800020',
                       fontSize: '11px',
                       fontWeight: 600,
                       letterSpacing: '0.08em',
@@ -112,7 +112,7 @@ export function FooterSection() {
                       className="group flex items-center gap-2"
                     >
                       <span
-                        className="transition-colors duration-150 group-hover:text-[#1A1A2E]"
+                        className="transition-colors duration-150 group-hover:text-[#800020]"
                         style={{ color: '#737373', fontSize: '13px' }}
                       >
                         {link.label}
@@ -150,14 +150,14 @@ export function FooterSection() {
               <div className="flex items-center gap-4">
                 <Link
                   href="/legal/privacy"
-                  className="transition-colors duration-150 hover:text-[#1A1A2E]"
+                  className="transition-colors duration-150 hover:text-[#800020]"
                   style={{ color: '#B0B0B0', fontSize: '12px' }}
                 >
                   Privacy Policy
                 </Link>
                 <Link
                   href="/legal/terms"
-                  className="transition-colors duration-150 hover:text-[#1A1A2E]"
+                  className="transition-colors duration-150 hover:text-[#800020]"
                   style={{ color: '#B0B0B0', fontSize: '12px' }}
                 >
                   Terms of Service

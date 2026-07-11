@@ -108,7 +108,7 @@ export function SpotlightNavbar({
         <span
           className="hidden sm:block"
           style={{
-            color: "#1A1A2E",
+            color: "#800020",
             fontSize: "13px",
             fontWeight: 600,
             letterSpacing: "-0.3px",
@@ -147,8 +147,8 @@ export function SpotlightNavbar({
                   "px-4 py-1.5 text-[13px] font-medium rounded-full transition-colors duration-200",
                   "focus-visible:outline-none",
                   activeIndex === idx
-                    ? "text-[#1A1A2E]"
-                    : "text-neutral-400 hover:text-[#1A1A2E]"
+                    ? "text-[#800020]"
+                    : "text-neutral-400 hover:text-[#800020]"
                 )}
                 style={{
                   fontFamily: "SF Pro Text, var(--font-geist-sans), system-ui, sans-serif",
@@ -174,7 +174,7 @@ export function SpotlightNavbar({
         <div
           className="pointer-events-none absolute bottom-0 left-0 w-full h-[2px] z-[2]"
           style={{
-            background: `radial-gradient(50px circle at var(--ambience-x) 0%, #C9A227 0%, transparent 100%)`,
+            background: `radial-gradient(50px circle at var(--ambience-x) 0%, #FFFFFF 0%, transparent 100%)`,
           }}
         />
       </nav>
@@ -185,7 +185,7 @@ export function SpotlightNavbar({
           href="/login"
           className="hidden sm:block rounded-full px-3 py-1.5 transition-opacity hover:opacity-60"
           style={{
-            color: "#1A1A2E",
+            color: "#800020",
             fontSize: "13px",
             fontWeight: 400,
             letterSpacing: "-0.12px",
@@ -196,8 +196,8 @@ export function SpotlightNavbar({
         </Link>
         <Link href="/signup">
           <ShimmerButton
-            background="#1A1A2E"
-            shimmerColor="#C9A227"
+            background="#800020"
+            shimmerColor="#FFFFFF"
             shimmerDuration="2.5s"
             className="px-4 py-[6px] text-[13px] font-medium tracking-[-0.12px]"
             style={{ fontFamily: "SF Pro Text, var(--font-geist-sans), system-ui, sans-serif" }}

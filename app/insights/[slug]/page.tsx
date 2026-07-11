@@ -6,8 +6,8 @@ import { getInsightBySlug, getAllInsightSlugs, PLACEHOLDER_INSIGHTS } from '@/li
 import { NotchNavbar } from '@/components/ui/notch-navbar'
 import { CanvasFractalGrid } from '@/components/ui/canvas-fractal-grid'
 
-const GOLD = '#C9A227'
-const NAVY = '#1A1A2E'
+const GOLD = '#FFFFFF'
+const NAVY = '#800020'
 
 const CATEGORY_COLORS: Record<string, string> = {
   Registration: GOLD,
@@ -178,7 +178,7 @@ export default async function InsightPage({
           gradients={[
             {
               stops: [
-                { color: '#C9A227', position: 0 },
+                { color: '#FFFFFF', position: 0 },
                 { color: 'transparent', position: 60 },
               ],
               centerX: 15,

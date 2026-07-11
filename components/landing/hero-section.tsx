@@ -50,12 +50,12 @@ export function HeroSection() {
           >
             <ShinyButton
               className="rounded-full border-black/10 bg-white/75 px-4 py-[7px] [&>span:first-child]:normal-case [&>span:first-child]:tracking-[-0.12px] [&>span:first-child]:text-[13px]"
-              style={{ '--primary': '#C9A227' } as React.CSSProperties}
+              style={{ '--primary': '#FFFFFF' } as React.CSSProperties}
             >
               <span className="inline-flex items-center gap-2">
                 <span
                   className="inline-block h-[7px] w-[7px] shrink-0 rounded-full"
-                  style={{ backgroundColor: '#C9A227' }}
+                  style={{ backgroundColor: '#FFFFFF' }}
                 />
                 <span style={{ fontFamily: 'SF Pro Text, var(--font-geist-sans), system-ui, sans-serif' }}>
                   Governance OS for Kenyan businesses
@@ -75,7 +75,7 @@ export function HeroSection() {
               fontSize: 'clamp(42px, 7vw, 68px)',
               lineHeight: 1.05,
               letterSpacing: '-0.03em',
-              color: '#1A1A2E',
+              color: '#800020',
             }}
           >
             <KineticText
@@ -121,8 +121,8 @@ export function HeroSection() {
             {/* Primary — ShimmerButton: navy + gold shimmer */}
             <Link href="/signup">
               <ShimmerButton
-                background="#1A1A2E"
-                shimmerColor="#C9A227"
+                background="#800020"
+                shimmerColor="#FFFFFF"
                 shimmerDuration="2.5s"
                 className="px-6 py-[10px] text-[15px] font-medium tracking-[-0.224px]"
                 style={{ fontFamily: 'SF Pro Text, var(--font-geist-sans), system-ui, sans-serif' }}
@@ -140,7 +140,7 @@ export function HeroSection() {
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
                 border: '1px solid rgba(26, 26, 46, 0.18)',
-                color: '#1A1A2E',
+                color: '#800020',
                 fontSize: '15px',
                 fontWeight: 500,
                 letterSpacing: '-0.224px',

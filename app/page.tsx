@@ -35,7 +35,7 @@ export default function LandingPage() {
           gradients={[
             {
               stops: [
-                { color: '#C9A227', position: 0 },
+                { color: '#FFFFFF', position: 0 },
                 { color: '#b8891e', position: 25 },
                 { color: '#8a6415', position: 50 },
                 { color: 'transparent', position: 75 },
@@ -45,7 +45,7 @@ export default function LandingPage() {
             },
             {
               stops: [
-                { color: '#1A1A2E', position: 0 },
+                { color: '#800020', position: 0 },
                 { color: '#232340', position: 25 },
                 { color: '#2d2d52', position: 50 },
                 { color: 'transparent', position: 75 },
@@ -79,7 +79,7 @@ export default function LandingPage() {
               animationDuration={800}
               isView
             >
-              <span style={{ color: '#1A1A2E', fontWeight: 600 }}>
+              <span style={{ color: '#800020', fontWeight: 600 }}>
                 Kenya&apos;s regulatory framework
               </span>
             </Highlighter>

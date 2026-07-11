@@ -101,7 +101,7 @@ export function GlassLogin() {
             value={email}
             autoComplete="email"
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/30 focus:border-[#1A1A2E]"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#800020]/30 focus:border-[#800020]"
           />
           <div className="relative">
             <input
@@ -110,7 +110,7 @@ export function GlassLogin() {
               value={password}
               autoComplete="current-password"
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 pr-10 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/30 focus:border-[#1A1A2E]"
+              className="w-full px-4 py-2.5 pr-10 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#800020]/30 focus:border-[#800020]"
             />
             <button
               type="button"
@@ -154,7 +154,7 @@ export function GlassLogin() {
             type="submit"
             disabled={loading}
             className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mt-1"
-            style={{ background: '#1A1A2E' }}
+            style={{ background: '#800020' }}
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

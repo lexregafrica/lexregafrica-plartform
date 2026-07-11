@@ -3,7 +3,7 @@ import { IconArrowLeft } from '@tabler/icons-react'
 import { NotchNavbar } from '@/components/ui/notch-navbar'
 import type { LegalBlock, LegalDocumentData } from '@/lib/legal/types'
 
-const NAVY = '#1A1A2E'
+const NAVY = '#800020'
 
 function Block({ block }: { block: LegalBlock }) {
   if (block.type === 'paragraph') {
