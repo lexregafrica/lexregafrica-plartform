@@ -140,6 +140,8 @@ export function NewEntityWizard() {
   const [directors, setDirectors] = useState<DirectorRow[]>([])
   const [shareholders, setShareholders] = useState<ShareholderRow[]>([])
   const [documents, setDocuments] = useState<DocumentRow[]>([])
+  const [entityStatus, setEntityStatus] = useState<string | null>(null)
+  const [idpUrl, setIdpUrl] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -160,6 +162,8 @@ export function NewEntityWizard() {
         setDirectors(data.directors ?? [])
         setShareholders(data.shareholders ?? [])
         setDocuments(data.documents ?? [])
+        setEntityStatus(data.entityStatus ?? null)
+        setIdpUrl(data.idpUrl ?? null)
         setStep(Math.min(Math.max(data.step ?? 1, 1), TOTAL_STEPS))
         setLoadState(data.submitted ? 'submitted' : 'wizard')
       } catch {
@@ -184,6 +188,8 @@ export function NewEntityWizard() {
       setDirectors(data.directors ?? [])
       setShareholders(data.shareholders ?? [])
       setDocuments(data.documents ?? [])
+      setEntityStatus(data.entityStatus ?? null)
+      setIdpUrl(data.idpUrl ?? null)
     } catch {
       // non-fatal — extraction already persisted server-side
     }
@@ -303,6 +309,7 @@ export function NewEntityWizard() {
     try {
       await api({ action: 'save_step', step: TOTAL_STEPS, wizard })
       await api({ action: 'submit' })
+      await refresh()
       setLoadState('submitted')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
@@ -337,7 +344,17 @@ export function NewEntityWizard() {
   }
 
   if (loadState === 'submitted') {
-    return <SubmittedScreen onDashboard={() => router.push('/dashboard')} />
+    return (
+      <SubmittedScreen
+        onDashboard={() => router.push('/dashboard')}
+        orgId={orgId}
+        entityId={entityId}
+        entityStatus={entityStatus}
+        idpUrl={idpUrl}
+        api={api}
+        onActivated={() => setEntityStatus('active')}
+      />
+    )
   }
 
   return (
@@ -1555,34 +1572,184 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
 // ------------------------------------------------------------------
 // Submitted screen
 // ------------------------------------------------------------------
-function SubmittedScreen({ onDashboard }: { onDashboard: () => void }) {
-  return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-[420px] text-center">
-        <div
-          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{ background: 'rgba(201,162,39,0.15)' }}
-        >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, api, onActivated }: {
+  onDashboard: () => void
+  orgId: string | null
+  entityId: string | null
+  entityStatus: string | null
+  idpUrl: string | null
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean }>
+  onActivated: () => void
+}) {
+  const isActive = entityStatus === 'active'
+
+  if (isActive) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[420px] text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(201,162,39,0.15)' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h1 className="text-ios-title1 font-semibold mb-2" style={{ color: 'var(--system-label)' }}>
+            Your entity is active
+          </h1>
+          <p className="text-ios-body mb-8" style={{ color: 'var(--system-label-2)' }}>
+            Your certificate of incorporation is on file and your entity is live on LexReg Africa.
+          </p>
+          <button
+            type="button"
+            onClick={onDashboard}
+            className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: 'var(--brand-navy)' }}
+          >
+            Go to dashboard
+          </button>
         </div>
-        <h1 className="text-ios-title1 font-semibold mb-2" style={{ color: 'var(--system-label)' }}>
-          Application submitted
-        </h1>
-        <p className="text-ios-body mb-8" style={{ color: 'var(--system-label-2)' }}>
-          We’ve received your entity formation application. Next: our team prepares your BRS document package,
-          then you’ll be guided through registration on eCitizen. You’ll be notified at every stage.
-        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center px-4 py-12">
+      <div className="w-full max-w-[440px]">
+        <div className="text-center mb-6">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(201,162,39,0.15)' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h1 className="text-ios-title1 font-semibold mb-2" style={{ color: 'var(--system-label)' }}>
+            Application submitted
+          </h1>
+          <p className="text-ios-body" style={{ color: 'var(--system-label-2)' }}>
+            Here’s your information document package, and three ways to get registered.
+          </p>
+        </div>
+
+        <div className="ios-surface rounded-2xl p-4 mb-4">
+          <p className="text-ios-subhead font-semibold mb-1" style={{ color: 'var(--system-label)' }}>
+            Information document package
+          </p>
+          <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>
+            A summary of everything you provided — use it to file yourself, or hand it to your LexReg
+            representative.
+          </p>
+          {idpUrl ? (
+            <a
+              href={idpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-center py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: 'var(--brand-navy)' }}
+            >
+              Download PDF
+            </a>
+          ) : (
+            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+              Preparing your document package…
+            </p>
+          )}
+        </div>
+
+        <div className="ios-surface rounded-2xl p-4 mb-4">
+          <p className="text-ios-subhead font-semibold mb-2" style={{ color: 'var(--system-label)' }}>
+            Getting registered
+          </p>
+          <ol className="list-decimal pl-5 space-y-1.5 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            <li><strong>Self-service</strong> — file the package yourself on the BRS eCitizen portal.</li>
+            <li><strong>Assisted</strong> — request LexReg Africa to handle filing for you.</li>
+            <li><strong>Lawyer-assisted</strong> — a LexReg lawyer reviews and files on your behalf.</li>
+          </ol>
+        </div>
+
+        <CertificateUpload orgId={orgId} entityId={entityId} api={api} onActivated={onActivated} />
+
         <button
           type="button"
           onClick={onDashboard}
-          className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: 'var(--brand-navy)' }}
+          className="w-full py-2.5 rounded-full text-sm font-medium border mt-4"
+          style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}
         >
           Go to dashboard
         </button>
       </div>
+    </div>
+  )
+}
+
+function CertificateUpload({ orgId, entityId, api, onActivated }: {
+  orgId: string | null
+  entityId: string | null
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean }>
+  onActivated: () => void
+}) {
+  const [registrationNumber, setRegistrationNumber] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleFile = async (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file || !orgId || !entityId) return
+    if (file.size > 10 * 1024 * 1024) { setError('File is over 10MB — please compress it.'); return }
+    setError('')
+    setUploading(true)
+    try {
+      const supabase = createClient()
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_')
+      const path = `${orgId}/${entityId}/${crypto.randomUUID()}-${safeName}`
+      const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
+      if (uploadError) { setError('Upload failed — try again.'); return }
+
+      await api({
+        action: 'upload_certificate',
+        filePath: path,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        registrationNumber: registrationNumber.trim() || undefined,
+      })
+      onActivated()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="ios-surface rounded-2xl p-4">
+      <p className="text-ios-subhead font-semibold mb-1" style={{ color: 'var(--system-label)' }}>
+        Already have your certificate?
+      </p>
+      <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>
+        Upload your BRS certificate of incorporation to activate your entity right away.
+      </p>
+      <input
+        type="text"
+        placeholder="Registration number (optional)"
+        value={registrationNumber}
+        onChange={(e) => setRegistrationNumber(e.target.value)}
+        className="w-full px-4 py-2.5 mb-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/30"
+        style={{ borderColor: 'var(--system-fill-3)', background: 'var(--system-bg)', color: 'var(--system-label)' }}
+      />
+      <label
+        className="block w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer"
+        style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}
+      >
+        <input
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp"
+          className="hidden"
+          disabled={uploading}
+          onChange={(e) => { handleFile(e.target.files); e.target.value = '' }}
+        />
+        <span className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
+          {uploading ? 'Uploading…' : 'Tap to upload certificate'}
+        </span>
+      </label>
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
     </div>
   )
 }

@@ -2,7 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
+import { generateIdp } from '@/lib/documents/idp'
 import {
+  ENTITY_TYPES,
   isStepVisible,
   TOTAL_STEPS,
   type EntityType,
@@ -53,16 +55,26 @@ export async function GET() {
   let directors: unknown[] = []
   let shareholders: unknown[] = []
   let documents: unknown[] = []
+  let entityStatus: string | null = null
+  let idpUrl: string | null = null
 
   if (entityId) {
-    const [d, s, docs] = await Promise.all([
+    const [d, s, docs, entityRow, formRow] = await Promise.all([
       supabase.from('directors').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('shareholders').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('documents').select('id, name, document_type, file_path, file_size, mime_type, created_at').eq('entity_id', entityId).is('deleted_at', null).order('created_at'),
+      supabase.from('entities').select('status').eq('id', entityId).maybeSingle(),
+      supabase.from('company_forms').select('file_url').eq('entity_id', entityId).eq('form_type', 'information_document_package').order('generated_at', { ascending: false }).limit(1).maybeSingle(),
     ])
     directors = d.data ?? []
     shareholders = s.data ?? []
     documents = docs.data ?? []
+    entityStatus = entityRow.data?.status ?? null
+
+    if (formRow.data?.file_url) {
+      const { data: signed } = await supabase.storage.from('documents').createSignedUrl(formRow.data.file_url, 3600)
+      idpUrl = signed?.signedUrl ?? null
+    }
   }
 
   return NextResponse.json({
@@ -72,6 +84,8 @@ export async function GET() {
     orgId: progress.organisation_id,
     wizard: progressData.wizard ?? {},
     submitted: progressData.submitted ?? false,
+    entityStatus,
+    idpUrl,
     directors,
     shareholders,
     documents,
@@ -471,7 +485,7 @@ export async function POST(request: Request) {
     const entityType = progress.entity_type
 
     // Server-side minimum-director validation (PLC needs 2, partnership needs 2)
-    if (isStepVisible(5, entityType, wizard)) {
+    if (isStepVisible(6, entityType, wizard)) {
       const { count } = await supabase
         .from('directors')
         .select('id', { count: 'exact', head: true })
@@ -482,7 +496,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (isStepVisible(6, entityType, wizard)) {
+    if (isStepVisible(7, entityType, wizard)) {
       const { count } = await supabase
         .from('shareholders')
         .select('id', { count: 'exact', head: true })
@@ -526,10 +540,124 @@ export async function POST(request: Request) {
       p_metadata: { entity_type: entityType },
     })
 
+    // Best-effort — the client re-fetches GET for a signed download link
+    await generateAndStoreIdp(supabase, { entityId, orgId, entityType, wizard })
+
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
+  // upload_certificate — BRS issued the certificate; activate the entity
+  // ----------------------------------------------------------
+  if (action === 'upload_certificate') {
+    const { filePath, fileName, fileSize, mimeType, registrationNumber } = body as {
+      filePath: string; fileName: string; fileSize?: number; mimeType?: string; registrationNumber?: string
+    }
+    if (!filePath || !fileName) return NextResponse.json({ error: 'filePath and fileName required' }, { status: 400 })
+    if (!filePath.startsWith(`${orgId}/`)) return NextResponse.json({ error: 'invalid file path' }, { status: 400 })
+
+    const { error: docError } = await supabase.from('documents').insert({
+      entity_id: entityId,
+      organisation_id: orgId,
+      name: fileName,
+      document_type: 'certificate_of_incorporation',
+      category: 'legal',
+      file_path: filePath,
+      file_size: fileSize ?? null,
+      mime_type: mimeType ?? null,
+      uploaded_by: user.id,
+      metadata: { uploaded_from: 'post_submission_activation' } as Json,
+    })
+    if (docError) {
+      console.error('certificate upload error', docError)
+      return NextResponse.json({ error: 'failed to save certificate' }, { status: 500 })
+    }
+
+    const entityUpdate: Database['public']['Tables']['entities']['Update'] = {
+      status: 'active',
+      registration_status: 'certificate_issued',
+      date_incorporated: new Date().toISOString().slice(0, 10),
+    }
+    if (registrationNumber?.trim()) entityUpdate.registration_number = registrationNumber.trim()
+
+    const { error: entityError } = await supabase.from('entities').update(entityUpdate).eq('id', entityId)
+    if (entityError) {
+      console.error('entity activation error', entityError)
+      return NextResponse.json({ error: 'failed to activate entity' }, { status: 500 })
+    }
+
+    await supabase.rpc('log_audit', {
+      p_organisation_id: orgId,
+      p_action: 'onboarding.new_entity.certificate_uploaded',
+      p_resource_type: 'entity',
+      p_resource_id: entityId,
+    })
+
     return NextResponse.json({ ok: true })
   }
 
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
+}
+
+// ------------------------------------------------------------------
+// Build the IDP PDF from everything collected, store it, and record it
+// as a company_forms row. Best-effort — a failure here doesn't block
+// the submission itself (the entity is already pending_registration).
+// ------------------------------------------------------------------
+async function generateAndStoreIdp(
+  supabase: SupabaseServer,
+  ctx: { entityId: string; orgId: string; entityType: EntityType; wizard: WizardData }
+): Promise<string | null> {
+  try {
+    const [{ data: entity }, { data: directors }, { data: shareholders }, { data: org }] = await Promise.all([
+      supabase.from('entities').select('*').eq('id', ctx.entityId).single(),
+      supabase.from('directors').select('full_name, id_number, kra_pin').eq('entity_id', ctx.entityId),
+      supabase.from('shareholders').select('legal_name, shares_held, share_percentage').eq('entity_id', ctx.entityId),
+      supabase.from('organisations').select('name').eq('id', ctx.orgId).single(),
+    ])
+    if (!entity) return null
+
+    const address = entity.registered_address as { line1?: string; city?: string; county?: string; postcode?: string } | null
+
+    const pdfBytes = await generateIdp({
+      entityTypeLabel: ENTITY_TYPES.find((t) => t.value === ctx.entityType)?.label ?? ctx.entityType,
+      legalNameOptions: (entity.proposed_names as string[] | null) ?? [],
+      natureOfBusiness: entity.nature_of_business,
+      registeredAddress: address ? { line1: address.line1 ?? null, city: address.city ?? null, county: address.county ?? null, postcode: address.postcode ?? null } : null,
+      nominalCapital: entity.nominal_capital,
+      totalShares: entity.total_shares,
+      directors: (directors ?? []).map((d) => ({ fullName: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin })),
+      shareholders: (shareholders ?? []).map((s) => ({ legalName: s.legal_name, sharesHeld: s.shares_held, sharePercentage: s.share_percentage })),
+      applicantName: entity.applicant_name,
+      applicantEmail: entity.applicant_email,
+      applicantRelationship: entity.applicant_relationship,
+      organisationName: org?.name ?? 'Your organisation',
+      generatedAt: new Date(),
+    })
+
+    const path = `${ctx.orgId}/${ctx.entityId}/idp-${Date.now()}.pdf`
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(path, pdfBytes, { contentType: 'application/pdf' })
+    if (uploadError) {
+      console.error('idp upload error', uploadError)
+      return null
+    }
+
+    await supabase.from('company_forms').insert({
+      entity_id: ctx.entityId,
+      organisation_id: ctx.orgId,
+      form_type: 'information_document_package',
+      status: 'generated',
+      file_url: path,
+      generated_at: new Date().toISOString(),
+    })
+
+    return path
+  } catch (e) {
+    console.error('idp generation failed', e)
+    return null
+  }
 }
 
 // ------------------------------------------------------------------
