@@ -213,36 +213,46 @@ export function NewEntityWizard() {
     switch (step) {
       case 1:
         if (!entityType) return 'Choose an entity type.'
+        if (!wizard.primaryActivity?.trim()) return 'Describe what the business does.'
         if (!wizard.industry) return 'Choose an industry.'
         if (!wizard.employeeSegment) return 'Choose your team size.'
         return null
-      case 2:
-        return null // uploads optional — everything can still be entered manually
-      case 3: {
+      case 2: {
         const names = (wizard.proposedNames ?? []).map((n) => n.trim()).filter(Boolean)
         if (names.length < 3) return 'Enter at least 3 proposed business names.'
         return null
       }
-      case 4:
+      case 3:
         if (!wizard.addressLine1?.trim()) return 'Address line 1 is required.'
         if (!wizard.city?.trim()) return 'City/Town is required.'
         if (!wizard.county) return 'Choose a county.'
         if (!wizard.postalCode?.trim()) return 'Postal code is required.'
         return null
-      case 5:
+      case 4:
         if (!wizard.primaryActivity?.trim()) return 'Describe your primary business activity.'
         if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
         if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
         return null
-      case 6: {
+      case 5: {
         const minimum = entityType === 'public_limited_company' || entityType === 'partnership' ? 2 : 1
         if (directors.length < minimum) return `Add at least ${minimum} ${minimum > 1 ? 'people' : 'person'}.`
+        // Spec: KRA PIN, date of birth, phone, and email are required per person
+        for (const d of directors) {
+          if (!d.kra_pin) return `Add a KRA PIN for ${d.full_name}.`
+          if (!d.residential_address?.dateOfBirth) return `Add a date of birth for ${d.full_name}.`
+          if (!d.phone) return `Add a phone number for ${d.full_name}.`
+          if (!d.email) return `Add an email address for ${d.full_name}.`
+        }
         return null
       }
-      case 7:
+      case 6:
         if (shareholders.length < 1) return 'Add at least one shareholder/member.'
+        for (const s of shareholders) {
+          if (!s.id_or_reg_number) return `Add an ID/registration number for ${s.legal_name}.`
+          if (!s.kra_pin) return `Add a KRA PIN for ${s.legal_name}.`
+        }
         return null
-      case 8: {
+      case 7: {
         const issued = shareholders.reduce((s, x) => s + x.shares_held, 0)
         const nominal = wizard.nominalValuePerShare ?? 100
         const authorised = wizard.authorisedShareCapital ?? 0
@@ -251,17 +261,25 @@ export function NewEntityWizard() {
         }
         return null
       }
-      case 9:
+      case 8:
         if (entityType === 'public_limited_company' && wizard.hasCompanySecretary !== true) {
           return 'A company secretary is required for a Public Limited Company.'
         }
         if (wizard.hasCompanySecretary === undefined) return 'Choose whether you will appoint a company secretary.'
         if (wizard.hasCompanySecretary && !wizard.secretary?.fullName?.trim()) return 'Enter the secretary’s details.'
         return null
-      case 10:
+      case 9:
         if (wizard.nssfNhifStatus === undefined) return 'Tell us about NSSF/NHIF registration.'
         if (!wizard.payrollFrequency) return 'Choose a payroll frequency.'
         return null
+      case 10: {
+        // Spec: ID documents, passport photos, and proof of address are required
+        const types = new Set(documents.map((d) => d.document_type))
+        if (!types.has('id_copy')) return 'Upload at least one ID document scan.'
+        if (!types.has('passport_photo')) return 'Upload at least one passport photo.'
+        if (!types.has('proof_of_address')) return 'Upload proof of your registered office address.'
+        return null
+      }
       case 11:
         if (!wizard.declared || !wizard.consented || !wizard.agreedTerms) return 'All three declarations are required.'
         if (!wizard.signature?.trim()) return 'Type your full name as a signature.'
@@ -270,7 +288,7 @@ export function NewEntityWizard() {
       default:
         return null
     }
-  }, [step, entityType, wizard, directors, shareholders])
+  }, [step, entityType, wizard, directors, shareholders, documents])
 
   // ---- navigation -------------------------------------------------
   const handleContinue = async () => {
@@ -383,7 +401,25 @@ export function NewEntityWizard() {
         {step === 1 && (
           <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} />
         )}
-        {step === 2 && (
+        {step === 2 && <StepNames wizard={wizard} patch={patch} />}
+        {step === 3 && <StepAddress wizard={wizard} patch={patch} />}
+        {step === 4 && <StepActivities wizard={wizard} patch={patch} />}
+        {step === 5 && (
+          <StepDirectors
+            entityType={entityType}
+            directors={directors}
+            setDirectors={setDirectors}
+            api={api}
+            setError={setError}
+          />
+        )}
+        {step === 6 && (
+          <StepShareholders shareholders={shareholders} setShareholders={setShareholders} api={api} setError={setError} />
+        )}
+        {step === 7 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
+        {step === 8 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
+        {step === 9 && <StepEmployees wizard={wizard} patch={patch} />}
+        {step === 10 && (
           <StepDocuments
             entityType={entityType}
             orgId={orgId}
@@ -395,24 +431,6 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 3 && <StepNames wizard={wizard} patch={patch} />}
-        {step === 4 && <StepAddress wizard={wizard} patch={patch} />}
-        {step === 5 && <StepActivities wizard={wizard} patch={patch} />}
-        {step === 6 && (
-          <StepDirectors
-            entityType={entityType}
-            directors={directors}
-            setDirectors={setDirectors}
-            api={api}
-            setError={setError}
-          />
-        )}
-        {step === 7 && (
-          <StepShareholders shareholders={shareholders} setShareholders={setShareholders} api={api} setError={setError} />
-        )}
-        {step === 8 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
-        {step === 9 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
-        {step === 10 && <StepEmployees wizard={wizard} patch={patch} />}
         {step === 11 && <StepDeclaration wizard={wizard} patch={patch} />}
         {step === 12 && (
           <StepReview
@@ -495,6 +513,18 @@ function StepEntityType({ entityType, setEntityType, wizard, patch }: {
           )
         })}
       </div>
+
+      <Field label="What does the business do?" required>
+        <textarea
+          className={inputCls}
+          style={inputStyle}
+          rows={3}
+          maxLength={200}
+          placeholder="Briefly describe the business activity…"
+          value={wizard.primaryActivity ?? ''}
+          onChange={(e) => patch({ primaryActivity: e.target.value })}
+        />
+      </Field>
 
       <Field label="Industry" required>
         <select
@@ -705,11 +735,15 @@ function StepDirectors({ entityType, directors, setDirectors, api, setError }: {
 
   const validate = (f: DirectorForm): string | null => {
     if (!f.fullName.trim()) return 'Full name is required.'
-    if (!NATIONAL_ID_REGEX.test(f.idNumber) && f.nationality === 'Kenyan') return 'Kenyan national ID must be 7–8 digits.'
     if (!f.idNumber.trim()) return 'ID number is required.'
-    if (f.kraPin && !KRA_PIN_REGEX.test(f.kraPin.toUpperCase())) return 'KRA PIN format: A123456789B.'
-    if (f.phone && !KENYA_PHONE_REGEX.test(f.phone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
-    if (f.email && !EMAIL_REGEX.test(f.email)) return 'Enter a valid email address.'
+    if (!NATIONAL_ID_REGEX.test(f.idNumber) && f.nationality === 'Kenyan') return 'Kenyan national ID must be 7–8 digits.'
+    if (!f.kraPin.trim()) return 'KRA PIN is required.'
+    if (!KRA_PIN_REGEX.test(f.kraPin.toUpperCase())) return 'KRA PIN format: A123456789B.'
+    if (!f.dateOfBirth) return 'Date of birth is required.'
+    if (!f.phone.trim()) return 'Phone number is required.'
+    if (!KENYA_PHONE_REGEX.test(f.phone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
+    if (!f.email.trim()) return 'Email address is required.'
+    if (!EMAIL_REGEX.test(f.email)) return 'Enter a valid email address.'
     return null
   }
 
@@ -816,12 +850,12 @@ function StepDirectors({ entityType, directors, setDirectors, api, setError }: {
             <Field label="National ID number" required>
               <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
-            <Field label="KRA PIN">
+            <Field label="KRA PIN" required>
               <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Date of birth">
+            <Field label="Date of birth" required>
               <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
             </Field>
             <Field label="Nationality">
@@ -829,10 +863,10 @@ function StepDirectors({ entityType, directors, setDirectors, api, setError }: {
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Phone">
+            <Field label="Phone" required>
               <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
             </Field>
-            <Field label="Email">
+            <Field label="Email" required>
               <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
             </Field>
           </div>
@@ -882,9 +916,11 @@ function StepShareholders({ shareholders, setShareholders, api, setError }: {
   const save = async () => {
     if (!form) return
     if (!form.legalName.trim()) { setError('Name is required.'); return }
+    if (!form.idNumber.trim()) { setError('National ID / registration number is required.'); return }
+    if (!form.kraPin.trim()) { setError('KRA PIN is required.'); return }
+    if (!KRA_PIN_REGEX.test(form.kraPin.toUpperCase())) { setError('KRA PIN format: A123456789B.'); return }
     const shares = parseInt(form.sharesHeld, 10)
     if (!shares || shares < 1) { setError('Enter the number of shares/units held.'); return }
-    if (form.kraPin && !KRA_PIN_REGEX.test(form.kraPin.toUpperCase())) { setError('KRA PIN format: A123456789B.'); return }
     setError('')
     setBusy(true)
     try {
@@ -985,10 +1021,10 @@ function StepShareholders({ shareholders, setShareholders, api, setError }: {
             <input type="text" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="National ID / reg. number">
+            <Field label="National ID / reg. number" required>
               <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
-            <Field label="KRA PIN">
+            <Field label="KRA PIN" required>
               <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
             </Field>
           </div>
@@ -1239,7 +1275,7 @@ function StepEmployees({ wizard, patch }: { wizard: WizardData; patch: (p: Parti
 }
 
 // ------------------------------------------------------------------
-// Step 2 — Documents first (OCR pre-fill)
+// Step 10 — Document upload & review (OCR cross-check)
 // Labeled sections tell the extractor who each document belongs to, so
 // directors/shareholders/address fields are pre-filled before the user
 // reaches those steps — they confirm instead of typing.
@@ -1374,8 +1410,8 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
         Upload your documents
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        We read your documents automatically and pre-fill the application — you’ll just confirm the details in
-        the next steps. You can also skip this and enter everything manually.
+        Upload ID documents, passport photos, and proof of address. We read them automatically and
+        cross-check what you entered — anything missing gets filled in for your review.
       </p>
 
       {UPLOAD_SECTIONS.filter((s) => s.visible(entityType)).map((section) => (

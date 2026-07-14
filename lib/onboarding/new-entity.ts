@@ -108,19 +108,20 @@ export type WizardData = {
   declarationDate?: string
 }
 
-// OCR-first ordering: documents are uploaded at step 2 so extraction can
-// pre-fill everything that follows — the user confirms instead of typing.
+// Step order follows the Charles-approved New Entity Formation
+// Questionnaire v1.0: all data entry first, then Document Upload & Review
+// (step 10) where OCR gap-fills and the user verifies before declaring.
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
-    case 6: // Directors/Partners/Trustees
+    case 5: // Directors/Partners/Trustees
       return DIRECTOR_TYPES.includes(entityType)
-    case 7: // Shareholders/Members
+    case 6: // Shareholders/Members
       return SHAREHOLDER_TYPES.includes(entityType)
-    case 8: // Share Capital
+    case 7: // Share Capital
       return SHARE_CAPITAL_TYPES.includes(entityType)
-    case 9: // Company Secretary
+    case 8: // Company Secretary
       return SECRETARY_TYPES.includes(entityType)
-    case 10: // Employee Info
+    case 9: // Employee Info
       return data.hasEmployees === true
     default:
       return true
@@ -141,15 +142,15 @@ export function prevVisibleStep(current: number, entityType: EntityType, data: W
 
 export const STEP_LABELS: Record<number, string> = {
   1: 'Entity Type',
-  2: 'Upload Documents',
-  3: 'Business Names',
-  4: 'Registered Office',
-  5: 'Business Activities',
-  6: 'Directors & Partners',
-  7: 'Shareholders & Members',
-  8: 'Share Capital',
-  9: 'Company Secretary',
-  10: 'Employee Information',
+  2: 'Business Names',
+  3: 'Registered Office',
+  4: 'Business Activities',
+  5: 'Directors & Partners',
+  6: 'Shareholders & Members',
+  7: 'Share Capital',
+  8: 'Company Secretary',
+  9: 'Employee Information',
+  10: 'Documents & Review',
   11: 'Declaration & Consent',
   12: 'Review & Submit',
 }

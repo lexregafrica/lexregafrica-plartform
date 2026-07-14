@@ -485,7 +485,7 @@ export async function POST(request: Request) {
     const entityType = progress.entity_type
 
     // Server-side minimum-director validation (PLC needs 2, partnership needs 2)
-    if (isStepVisible(6, entityType, wizard)) {
+    if (isStepVisible(5, entityType, wizard)) {
       const { count } = await supabase
         .from('directors')
         .select('id', { count: 'exact', head: true })
@@ -496,7 +496,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (isStepVisible(7, entityType, wizard)) {
+    if (isStepVisible(6, entityType, wizard)) {
       const { count } = await supabase
         .from('shareholders')
         .select('id', { count: 'exact', head: true })
