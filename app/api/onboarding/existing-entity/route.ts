@@ -375,6 +375,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
 
+  // ----------------------------------------------------------
+  // request_help — user asked for manual help via WhatsApp;
+  // record it so Charles has a trail beyond the chat thread
+  // ----------------------------------------------------------
+  if (action === 'request_help') {
+    await supabase.rpc('log_audit', {
+      p_organisation_id: orgId,
+      p_action: 'onboarding.existing_entity.help_requested',
+      p_resource_type: 'entity',
+      p_resource_id: progressData.entityId ?? undefined,
+      p_metadata: { channel: 'whatsapp' },
+    })
+    return NextResponse.json({ ok: true })
+  }
+
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
 }
 

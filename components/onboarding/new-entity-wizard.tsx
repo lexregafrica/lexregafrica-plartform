@@ -24,6 +24,7 @@ import {
   type EntityType,
   type WizardData,
 } from '@/lib/onboarding/new-entity'
+import { HelpRequestSheet } from '@/components/onboarding/help-request-sheet'
 
 // ------------------------------------------------------------------
 // Shared styles
@@ -369,6 +370,7 @@ export function NewEntityWizard() {
         entityId={entityId}
         entityStatus={entityStatus}
         idpUrl={idpUrl}
+        businessName={wizard.proposedNames?.find((n) => n.trim()) ?? null}
         api={api}
         onActivated={() => setEntityStatus('active')}
       />
@@ -1608,23 +1610,25 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
 // ------------------------------------------------------------------
 // Submitted screen
 // ------------------------------------------------------------------
-function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, api, onActivated }: {
+function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, businessName, api, onActivated }: {
   onDashboard: () => void
   orgId: string | null
   entityId: string | null
   entityStatus: string | null
   idpUrl: string | null
+  businessName: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean }>
   onActivated: () => void
 }) {
   const isActive = entityStatus === 'active'
+  const [showHelp, setShowHelp] = useState(false)
 
   if (isActive) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-[420px] text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(201,162,39,0.15)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(128,0,32,0.10)' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#800020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -1651,8 +1655,8 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, a
     <div className="flex min-h-[100dvh] flex-col items-center px-4 py-12">
       <div className="w-full max-w-[440px]">
         <div className="text-center mb-6">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(201,162,39,0.15)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(128,0,32,0.10)' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#800020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -1698,6 +1702,14 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, a
             <li><strong>Assisted</strong> — request LexReg Africa to handle filing for you.</li>
             <li><strong>Lawyer-assisted</strong> — a LexReg lawyer reviews and files on your behalf.</li>
           </ol>
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="mt-3 w-full rounded-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: '#25D366' }}
+          >
+            Request assisted filing on WhatsApp
+          </button>
         </div>
 
         <CertificateUpload orgId={orgId} entityId={entityId} api={api} onActivated={onActivated} />
@@ -1711,6 +1723,14 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, a
           Go to dashboard
         </button>
       </div>
+
+      {showHelp && (
+        <HelpRequestSheet
+          context={{ source: 'New entity — assisted BRS filing request', businessName }}
+          onClose={() => setShowHelp(false)}
+          onSent={() => { api({ action: 'request_help' }).catch(() => {}) }}
+        />
+      )}
     </div>
   )
 }

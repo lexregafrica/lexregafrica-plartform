@@ -10,6 +10,7 @@ import {
   type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
 import { ENTITY_TYPES, KENYA_COUNTIES, KRA_PIN_REGEX, type EntityType } from '@/lib/onboarding/new-entity'
+import { HelpRequestSheet } from '@/components/onboarding/help-request-sheet'
 
 const inputCls =
   'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
@@ -77,6 +78,7 @@ export function ExistingEntityWizard() {
   const [statuses, setStatuses] = useState<Record<string, FileStatus>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showHelp, setShowHelp] = useState(false)
 
   const api = useCallback(async (payload: Record<string, unknown>) => {
     const res = await fetch('/api/onboarding/existing-entity', {
@@ -276,8 +278,8 @@ export function ExistingEntityWizard() {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-[420px] text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(201,162,39,0.15)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(128,0,32,0.10)' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#800020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -399,9 +401,17 @@ export function ExistingEntityWizard() {
               Confirm your company details
             </h1>
             {lowConfidence && (
-              <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
-                Some documents were hard to read — please double-check every field below.
-              </p>
+              <div className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
+                <p>Some documents were hard to read — please double-check every field below.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowHelp(true)}
+                  className="mt-2 font-semibold underline"
+                  style={{ color: '#92400e' }}
+                >
+                  Or request manual help from our team →
+                </button>
+              </div>
             )}
             <Field label="Legal name" required>
               <input type="text" className={inputCls} style={inputStyle} value={wizard.legalName ?? ''} onChange={(e) => patch({ legalName: e.target.value })} />
@@ -530,7 +540,27 @@ export function ExistingEntityWizard() {
         <Link href="/dashboard" className="mt-4 block text-center text-ios-footnote font-medium" style={{ color: 'var(--system-label-3)' }}>
           Save &amp; exit
         </Link>
+
+        <button
+          type="button"
+          onClick={() => setShowHelp(true)}
+          className="mt-3 block w-full text-center text-ios-footnote font-medium"
+          style={{ color: 'var(--brand-navy)' }}
+        >
+          Stuck? Request help from our team
+        </button>
       </div>
+
+      {showHelp && (
+        <HelpRequestSheet
+          context={{
+            source: `Existing entity onboarding — step ${step} (${EXISTING_STEP_LABELS[step]})`,
+            businessName: wizard.legalName,
+          }}
+          onClose={() => setShowHelp(false)}
+          onSent={() => { api({ action: 'request_help' }).catch(() => {}) }}
+        />
+      )}
     </div>
   )
 }
