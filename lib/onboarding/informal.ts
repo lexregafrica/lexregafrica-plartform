@@ -208,11 +208,40 @@ export type InformalGap = {
   score: number
 }
 
+export type InformalBand = 'significant_gaps' | 'moderate' | 'ready'
+
 export type InformalResult = {
   score: number
+  band: InformalBand
   categoryScores: Record<InformalCategory, number>
   gaps: InformalGap[]
   recommendedPath: 'new_entity' | 'keep_improving'
+}
+
+// Approved flowchart bands: 0-29 significant gaps, 30-59 moderate
+// readiness, 60-100 strong readiness (ready to formalise).
+export function scoreBand(score: number): InformalBand {
+  if (score < 30) return 'significant_gaps'
+  if (score < 60) return 'moderate'
+  return 'ready'
+}
+
+export const BAND_CONTENT: Record<InformalBand, { headline: string; message: string }> = {
+  significant_gaps: {
+    headline: 'Your business needs preparation',
+    message:
+      'You have significant gaps to close before formalising. Work through the priority areas below — our team can walk you through a personalised plan.',
+  },
+  moderate: {
+    headline: "You're on your way",
+    message:
+      'You have a workable foundation. Close the gaps below and you can start formalisation now — with guided support if you want it.',
+  },
+  ready: {
+    headline: "You're ready to formalise!",
+    message:
+      'Your business practices are strong. You can start the registration process right away — we recommend a Limited Company for most businesses like yours.',
+  },
 }
 
 const ALL_CATEGORIES: InformalCategory[] = ['registration', 'tax', 'governance', 'records', 'contracts']
@@ -258,8 +287,9 @@ export function computeInformalResult(answers: Record<string, number>): Informal
 
   return {
     score,
+    band: scoreBand(score),
     categoryScores,
     gaps,
-    recommendedPath: score < 70 ? 'keep_improving' : 'new_entity',
+    recommendedPath: score < 60 ? 'keep_improving' : 'new_entity',
   }
 }

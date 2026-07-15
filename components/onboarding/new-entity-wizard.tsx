@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -132,6 +132,10 @@ const DOCUMENT_TYPES = [
 // ------------------------------------------------------------------
 export function NewEntityWizard() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Set when arriving from a strong informal-assessment result (flowchart:
+  // 60-100 pre-populates Path 2 with the recommended entity type)
+  const recommendedType = (searchParams.get('recommended') as EntityType | null) ?? null
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [step, setStep] = useState(1)
   const [entityType, setEntityType] = useState<EntityType>('limited_company')
@@ -401,7 +405,7 @@ export function NewEntityWizard() {
 
         {/* ---- step bodies ---- */}
         {step === 1 && (
-          <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} />
+          <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} recommendedType={recommendedType} />
         )}
         {step === 2 && <StepNames wizard={wizard} patch={patch} />}
         {step === 3 && <StepAddress wizard={wizard} patch={patch} />}
@@ -479,11 +483,12 @@ export function NewEntityWizard() {
 // ------------------------------------------------------------------
 // Step 1 — Entity type
 // ------------------------------------------------------------------
-function StepEntityType({ entityType, setEntityType, wizard, patch }: {
+function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedType }: {
   entityType: EntityType
   setEntityType: (t: EntityType) => void
   wizard: WizardData
   patch: (p: Partial<WizardData>) => void
+  recommendedType?: EntityType | null
 }) {
   return (
     <div className="space-y-5">
@@ -491,9 +496,16 @@ function StepEntityType({ entityType, setEntityType, wizard, patch }: {
         What kind of entity are you forming?
       </h1>
 
+      {recommendedType && (
+        <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+          Based on your readiness assessment, we&apos;ve highlighted the entity type we recommend.
+        </p>
+      )}
+
       <div className="space-y-2">
         {ENTITY_TYPES.map((t) => {
           const selected = entityType === t.value
+          const recommended = recommendedType === t.value
           return (
             <button
               key={t.value}
@@ -501,12 +513,19 @@ function StepEntityType({ entityType, setEntityType, wizard, patch }: {
               onClick={() => setEntityType(t.value)}
               className="w-full text-left rounded-xl border p-4 transition-colors"
               style={{
-                borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                borderColor: selected || recommended ? 'var(--brand-navy)' : 'var(--system-fill-3)',
                 background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
               }}
             >
-              <span className="text-ios-subhead font-medium block" style={{ color: 'var(--system-label)' }}>
-                {t.label}
+              <span className="flex items-center gap-2">
+                <span className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>
+                  {t.label}
+                </span>
+                {recommended && (
+                  <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold text-white" style={{ background: 'var(--brand-navy)' }}>
+                    Recommended
+                  </span>
+                )}
               </span>
               <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
                 {t.description}
@@ -1738,18 +1757,20 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
 function CertificateUpload({ orgId, entityId, api, onActivated }: {
   orgId: string | null
   entityId: string | null
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean }>
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; flagged?: boolean; reason?: string }>
   onActivated: () => void
 }) {
   const [registrationNumber, setRegistrationNumber] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [flaggedReason, setFlaggedReason] = useState('')
 
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0]
     if (!file || !orgId || !entityId) return
     if (file.size > 10 * 1024 * 1024) { setError('File is over 10MB — please compress it.'); return }
     setError('')
+    setFlaggedReason('')
     setUploading(true)
     try {
       const supabase = createClient()
@@ -1758,7 +1779,7 @@ function CertificateUpload({ orgId, entityId, api, onActivated }: {
       const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
       if (uploadError) { setError('Upload failed — try again.'); return }
 
-      await api({
+      const result = await api({
         action: 'upload_certificate',
         filePath: path,
         fileName: file.name,
@@ -1766,12 +1787,41 @@ function CertificateUpload({ orgId, entityId, api, onActivated }: {
         mimeType: file.type,
         registrationNumber: registrationNumber.trim() || undefined,
       })
+      if (result.flagged) {
+        setFlaggedReason(result.reason ?? 'The certificate details don’t match your application.')
+        return
+      }
       onActivated()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
     } finally {
       setUploading(false)
     }
+  }
+
+  if (flaggedReason) {
+    return (
+      <div className="ios-surface rounded-2xl p-4">
+        <p className="text-ios-subhead font-semibold mb-1" style={{ color: '#C77700' }}>
+          Certificate flagged for review
+        </p>
+        <p className="text-ios-footnote mb-2" style={{ color: 'var(--system-label-2)' }}>
+          {flaggedReason}
+        </p>
+        <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>
+          Our team will review it shortly. If you uploaded the wrong file, upload the corrected
+          certificate below.
+        </p>
+        <button
+          type="button"
+          onClick={() => setFlaggedReason('')}
+          className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ background: 'var(--brand-navy)' }}
+        >
+          Upload corrected certificate
+        </button>
+      </div>
+    )
   }
 
   return (

@@ -575,6 +575,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'failed to save certificate' }, { status: 500 })
     }
 
+    // ---- flowchart: "Certificate details match entity record?" ----
+    // OCR the certificate and compare against what we know. A clear
+    // mismatch flags the entity for review instead of activating it.
+    // An unreadable certificate does NOT block activation — that's a
+    // manual-review concern, not a user error.
+    const mismatch = await checkCertificateMismatch(supabase, {
+      filePath,
+      mimeType: mimeType ?? 'application/pdf',
+      entityId,
+      typedRegistrationNumber: registrationNumber?.trim() || null,
+    })
+
+    if (mismatch) {
+      const { error: flagError } = await supabase
+        .from('entities')
+        .update({ registration_status: 'flagged_for_review' })
+        .eq('id', entityId)
+      if (flagError) console.error('flag for review error', flagError)
+
+      await supabase.rpc('log_audit', {
+        p_organisation_id: orgId,
+        p_action: 'onboarding.new_entity.certificate_mismatch',
+        p_resource_type: 'entity',
+        p_resource_id: entityId,
+        p_metadata: { reason: mismatch } as Json,
+      })
+
+      return NextResponse.json({ ok: true, flagged: true, reason: mismatch })
+    }
+
     const entityUpdate: Database['public']['Tables']['entities']['Update'] = {
       status: 'active',
       registration_status: 'certificate_issued',
@@ -614,6 +644,70 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
+}
+
+// ------------------------------------------------------------------
+// OCR the uploaded certificate and compare against the entity record.
+// Returns a human-readable mismatch reason, or null when the details
+// match — or when the certificate can't be read (never block on OCR).
+// ------------------------------------------------------------------
+function normalise(s: string): string {
+  return s.toLowerCase().replace(/\b(ltd|limited|llp|plc|company|co)\b\.?/g, '').replace(/[^a-z0-9]/g, '')
+}
+
+async function checkCertificateMismatch(
+  supabase: SupabaseServer,
+  ctx: { filePath: string; mimeType: string; entityId: string; typedRegistrationNumber: string | null }
+): Promise<string | null> {
+  try {
+    const { data: blob } = await supabase.storage.from('documents').download(ctx.filePath)
+    if (!blob) return null
+
+    const bytes = new Uint8Array(await blob.arrayBuffer())
+    const result = await extractFromDocument(bytes, ctx.mimeType)
+    if (!result.ok || result.fields.confidence < 60) return null
+
+    const fields = result.fields
+
+    // Registration number: compare against what the user typed
+    if (fields.registration_number && ctx.typedRegistrationNumber) {
+      const a = fields.registration_number.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+      const b = ctx.typedRegistrationNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+      if (a !== b) {
+        return `Certificate shows registration number ${fields.registration_number}, but ${ctx.typedRegistrationNumber} was entered.`
+      }
+    }
+
+    // Business name: must loosely match one of the proposed names
+    if (fields.business_name) {
+      const { data: entity } = await supabase
+        .from('entities')
+        .select('proposed_names, legal_name')
+        .eq('id', ctx.entityId)
+        .maybeSingle()
+
+      const candidates = [
+        ...(((entity?.proposed_names as string[] | null) ?? []).filter(Boolean)),
+        entity?.legal_name ?? '',
+      ].filter(Boolean)
+
+      if (candidates.length > 0) {
+        const certName = normalise(fields.business_name)
+        const matches = candidates.some((c) => {
+          const n = normalise(c)
+          return n === certName || n.includes(certName) || certName.includes(n)
+        })
+        if (!matches) {
+          return `Certificate is for “${fields.business_name}”, which doesn't match any of the proposed business names.`
+        }
+      }
+    }
+
+    return null
+  } catch (e) {
+    console.error('certificate match check failed', e)
+    return null // never block activation on a check failure
+  }
 }
 
 // ------------------------------------------------------------------

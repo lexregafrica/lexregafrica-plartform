@@ -7,8 +7,11 @@ import {
   INFORMAL_QUESTIONS,
   TOTAL_QUESTIONS,
   CATEGORY_LABELS,
+  BAND_CONTENT,
+  scoreBand,
   type InformalResult,
 } from '@/lib/onboarding/informal'
+import { HelpRequestSheet } from '@/components/onboarding/help-request-sheet'
 
 type LoadState = 'loading' | 'quiz' | 'results'
 
@@ -21,6 +24,7 @@ export function InformalAssessment() {
   const [error, setError] = useState('')
   const [result, setResult] = useState<InformalResult | null>(null)
   const [convertLoading, setConvertLoading] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -102,7 +106,8 @@ export function InformalAssessment() {
       setError('Something went wrong. Please try again.')
       return
     }
-    router.push('/onboarding/new/1')
+    // Strong readiness pre-populates Path 2 with the recommended entity type
+    router.push('/onboarding/new/1?recommended=limited_company')
   }
 
   if (loadState === 'loading') {
@@ -117,13 +122,15 @@ export function InformalAssessment() {
   }
 
   if (loadState === 'results' && result) {
+    const band = result.band ?? scoreBand(result.score)
+    const content = BAND_CONTENT[band]
     return (
       <div className="flex min-h-[100dvh] flex-col items-center px-4 py-12">
         <div className="w-full max-w-[440px]">
           <p className="text-ios-footnote mb-1 text-center" style={{ color: 'var(--system-label-3)' }}>
             Your readiness score
           </p>
-          <div className="flex items-baseline justify-center gap-1 mb-6">
+          <div className="flex items-baseline justify-center gap-1 mb-4">
             <span className="text-[56px] font-bold leading-none" style={{ color: 'var(--brand-navy)' }}>
               {result.score}
             </span>
@@ -131,6 +138,13 @@ export function InformalAssessment() {
               /100
             </span>
           </div>
+
+          <h1 className="text-ios-title2 mb-2 text-center" style={{ color: 'var(--system-label)' }}>
+            {content.headline}
+          </h1>
+          <p className="text-ios-subhead mb-6 text-center" style={{ color: 'var(--system-label-2)' }}>
+            {content.message}
+          </p>
 
           {/* Category breakdown */}
           <div className="ios-surface rounded-2xl p-5 mb-4">
@@ -182,15 +196,61 @@ export function InformalAssessment() {
 
           {error && <p className="text-xs text-red-500 mb-3 text-center">{error}</p>}
 
-          <button
-            type="button"
-            onClick={handleConvertToNewEntity}
-            disabled={convertLoading}
-            className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mb-3"
-            style={{ background: 'var(--brand-navy)' }}
-          >
-            {convertLoading ? 'Starting…' : 'Start registering my business'}
-          </button>
+          {band === 'ready' && (
+            <button
+              type="button"
+              onClick={handleConvertToNewEntity}
+              disabled={convertLoading}
+              className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mb-3"
+              style={{ background: 'var(--brand-navy)' }}
+            >
+              {convertLoading ? 'Starting…' : 'Start registering my business'}
+            </button>
+          )}
+
+          {band === 'moderate' && (
+            <>
+              <button
+                type="button"
+                onClick={handleConvertToNewEntity}
+                disabled={convertLoading}
+                className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mb-3"
+                style={{ background: 'var(--brand-navy)' }}
+              >
+                {convertLoading ? 'Starting…' : 'Start formalisation now'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowHelp(true)}
+                className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 mb-3"
+                style={{ background: '#25D366' }}
+              >
+                Get guided support on WhatsApp
+              </button>
+            </>
+          )}
+
+          {band === 'significant_gaps' && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowHelp(true)}
+                className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 mb-3"
+                style={{ background: '#25D366' }}
+              >
+                Get personalised advice on WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={handleConvertToNewEntity}
+                disabled={convertLoading}
+                className="w-full py-2.5 rounded-full text-sm font-medium border mb-3"
+                style={{ borderColor: 'var(--system-fill-3)', color: 'var(--brand-navy)' }}
+              >
+                {convertLoading ? 'Starting…' : 'Start formalisation anyway'}
+              </button>
+            </>
+          )}
 
           <Link
             href="/dashboard"
@@ -200,6 +260,15 @@ export function InformalAssessment() {
             Explore dashboard instead
           </Link>
         </div>
+
+        {showHelp && (
+          <HelpRequestSheet
+            context={{
+              source: `Informal business assessment — score ${result.score}/100 (${band.replace('_', ' ')})`,
+            }}
+            onClose={() => setShowHelp(false)}
+          />
+        )}
       </div>
     )
   }

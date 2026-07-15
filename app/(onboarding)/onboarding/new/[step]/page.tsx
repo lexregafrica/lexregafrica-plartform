@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { NewEntityWizard } from '@/components/onboarding/new-entity-wizard'
 
 export const metadata: Metadata = {
@@ -7,6 +8,11 @@ export const metadata: Metadata = {
 
 // The wizard resumes from the server-saved step, so the [step] URL param is
 // only an entry point — actual position always comes from onboarding_progress.
+// Suspense: the wizard reads ?recommended= via useSearchParams.
 export default function NewEntityStepPage() {
-  return <NewEntityWizard />
+  return (
+    <Suspense>
+      <NewEntityWizard />
+    </Suspense>
+  )
 }
