@@ -298,11 +298,11 @@ export function ExistingEntityWizard() {
           </p>
           <button
             type="button"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push(entityId ? `/dashboard/${entityId}` : '/dashboard')}
             className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ background: 'var(--brand-navy)' }}
           >
-            Go to dashboard
+            Go to my entity dashboard
           </button>
         </div>
       </div>

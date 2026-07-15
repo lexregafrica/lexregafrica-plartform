@@ -44,13 +44,20 @@ function StatusBadge({ status }: { status: DashboardEntity['status'] }) {
 }
 
 function EntityCard({ entity }: { entity: DashboardEntity }) {
-  return (
-    <div className="ios-surface flex flex-col rounded-2xl p-5">
+  const isActive = entity.status === 'active'
+
+  const card = (
+    <div
+      className={`ios-surface flex flex-col rounded-2xl p-5 ${isActive ? 'transition-opacity hover:opacity-80 active:opacity-60' : ''}`}
+    >
       <div className="mb-2 flex items-start justify-between gap-3">
         <h3 className="text-ios-headline min-w-0 break-words" style={{ color: 'var(--system-label)' }}>
           {entity.displayName}
         </h3>
-        <StatusBadge status={entity.status} />
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusBadge status={entity.status} />
+          {isActive && <span className="text-ios-subhead" style={{ color: 'var(--system-label-3)' }}>›</span>}
+        </div>
       </div>
 
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
@@ -97,20 +104,21 @@ function EntityCard({ entity }: { entity: DashboardEntity }) {
           </>
         )}
 
-        {entity.status === 'active' && entity.idpUrl && (
-          <a
-            href={entity.idpUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full border px-5 py-2 text-sm font-semibold"
-            style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
-          >
-            Download IDP
-          </a>
+        {entity.status === 'active' && (
+          <span className="text-ios-footnote font-semibold" style={{ color: 'var(--brand-navy)' }}>
+            Open dashboard →
+          </span>
         )}
       </div>
     </div>
   )
+
+  // Active entities open their workspace; drafts/pending keep button-only
+  // actions (resume wizard, IDP download, certificate upload)
+  if (isActive) {
+    return <Link href={`/dashboard/${entity.id}`}>{card}</Link>
+  }
+  return card
 }
 
 export function EntityDashboard({
