@@ -206,12 +206,15 @@ export function ExistingEntityWizard() {
   // ---- validation + nav -------------------------------------------
   const validateStep = (): string | null => {
     switch (step) {
-      case 2:
+      case 1:
+        if (!wizard.entityType) return 'Choose your entity type.'
+        return null
+      case 3:
         if (!wizard.legalName?.trim()) return 'Legal name is required.'
         if (!wizard.registrationNumber?.trim()) return 'Registration number is required.'
         if (wizard.kraPin && !KRA_PIN_REGEX.test(wizard.kraPin.toUpperCase())) return 'KRA PIN format: A123456789B.'
         return null
-      case 3:
+      case 4:
         if (directors.length < 1) return 'Add at least one director.'
         return null
       default:
@@ -236,10 +239,13 @@ export function ExistingEntityWizard() {
   }
 
   const handleActivate = async () => {
+    if (!wizard.declared) { setError('Please certify that the information is accurate.'); return }
+    if (!wizard.signature?.trim()) { setError('Type your full legal name as a signature.'); return }
     setError('')
     setSaving(true)
     try {
-      await api({ action: 'save_step', step: EXISTING_TOTAL_STEPS, wizard })
+      const signed = { ...wizard, declarationDate: new Date().toISOString().slice(0, 10) }
+      await api({ action: 'save_step', step: EXISTING_TOTAL_STEPS, wizard: signed })
       await api({ action: 'activate' })
       setLoadState('activated')
     } catch (e) {
@@ -323,8 +329,44 @@ export function ExistingEntityWizard() {
           Step {step} of {EXISTING_TOTAL_STEPS} — {EXISTING_STEP_LABELS[step]}
         </p>
 
-        {/* ---------------- Step 1: uploads ---------------- */}
+        {/* ---------------- Step 1: tell us about your business ---------------- */}
         {step === 1 && (
+          <div className="space-y-5">
+            <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+              Tell us about your business
+            </h1>
+            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+              What type of entity is registered? This tells us which documents to expect.
+            </p>
+            <div className="space-y-2">
+              {ENTITY_TYPES.map((t) => {
+                const selected = wizard.entityType === t.value
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => patch({ entityType: t.value })}
+                    className="w-full text-left rounded-xl border p-4 transition-colors"
+                    style={{
+                      borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                      background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    }}
+                  >
+                    <span className="text-ios-subhead font-medium block" style={{ color: 'var(--system-label)' }}>
+                      {t.label}
+                    </span>
+                    <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                      {t.description}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ---------------- Step 2: uploads ---------------- */}
+        {step === 2 && (
           <div className="space-y-5">
             <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
               Upload your company documents
@@ -394,8 +436,8 @@ export function ExistingEntityWizard() {
           </div>
         )}
 
-        {/* ---------------- Step 2: verify company ---------------- */}
-        {step === 2 && (
+        {/* ---------------- Step 3: verify company ---------------- */}
+        {step === 3 && (
           <div className="space-y-4">
             <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
               Confirm your company details
@@ -454,8 +496,8 @@ export function ExistingEntityWizard() {
           </div>
         )}
 
-        {/* ---------------- Step 3: people ---------------- */}
-        {step === 3 && (
+        {/* ---------------- Step 4: people ---------------- */}
+        {step === 4 && (
           <PeopleStep
             directors={directors}
             shareholders={shareholders}
@@ -466,11 +508,11 @@ export function ExistingEntityWizard() {
           />
         )}
 
-        {/* ---------------- Step 4: review ---------------- */}
-        {step === 4 && (
+        {/* ---------------- Step 5: declaration & activate ---------------- */}
+        {step === 5 && (
           <div className="space-y-4">
             <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-              Review &amp; activate
+              Declaration &amp; activate
             </h1>
             <div className="ios-surface rounded-2xl p-4">
               {[
@@ -490,9 +532,35 @@ export function ExistingEntityWizard() {
                 </div>
               ))}
             </div>
+            {/* Declaration & sign-off per flowchart */}
+            <div className="ios-surface rounded-2xl p-4 space-y-3">
+              <label className="flex items-start gap-3 text-ios-footnote" style={{ color: 'var(--system-label)' }}>
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={wizard.declared ?? false}
+                  onChange={(e) => patch({ declared: e.target.checked })}
+                />
+                I certify that the information above is true and accurate, and that I am authorised to
+                register this entity on LexReg Africa.
+              </label>
+              <Field label="Type your full legal name as a signature" required>
+                <input
+                  type="text"
+                  className={inputCls}
+                  style={inputStyle}
+                  value={wizard.signature ?? ''}
+                  onChange={(e) => patch({ signature: e.target.value })}
+                />
+              </Field>
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                Date: {new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })} (auto-filled)
+              </p>
+            </div>
+
             <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-              Activating creates your live entity profile and compliance dashboard. You can update any of these
-              details later.
+              Activating creates your live entity profile, seeds your compliance calendar, and files your
+              entity profile document in the vault. You can update any of these details later.
             </p>
           </div>
         )}

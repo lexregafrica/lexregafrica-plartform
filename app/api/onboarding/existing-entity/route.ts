@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import { EXISTING_TOTAL_STEPS, type ExistingWizardData } from '@/lib/onboarding/existing-entity'
-import type { EntityType } from '@/lib/onboarding/new-entity'
+import { ENTITY_TYPES, type EntityType } from '@/lib/onboarding/new-entity'
+import { generateIdp } from '@/lib/documents/idp'
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>
 
@@ -342,6 +343,9 @@ export async function POST(request: Request) {
     const wizard = progressData.wizard ?? {}
     if (!wizard.legalName?.trim()) return NextResponse.json({ error: 'legal name required' }, { status: 400 })
     if (!wizard.registrationNumber?.trim()) return NextResponse.json({ error: 'registration number required' }, { status: 400 })
+    if (!wizard.declared || !wizard.signature?.trim()) {
+      return NextResponse.json({ error: 'declaration and signature required' }, { status: 400 })
+    }
 
     const newData: ProgressData = { ...progressData, activated: true }
 
@@ -352,6 +356,8 @@ export async function POST(request: Request) {
           status: 'active',
           onboarding_step: EXISTING_TOTAL_STEPS,
           onboarding_data: newData as Json,
+          applicant_name: wizard.signature.trim(),
+          applicant_email: user.email ?? null,
         })
         .eq('id', entityId),
       supabase
@@ -364,6 +370,11 @@ export async function POST(request: Request) {
       console.error('activate error', entityError, progressError)
       return NextResponse.json({ error: 'failed to activate' }, { status: 500 })
     }
+
+    // Flowchart: create entity workspace — seed the compliance calendar
+    // and file an entity profile PDF in the vault. Both best-effort.
+    await seedComplianceCalendar(supabase, { entityId, orgId, dateIncorporated: wizard.dateIncorporated ?? null })
+    await generateAndStoreProfile(supabase, { entityId, orgId, wizard })
 
     await supabase.rpc('log_audit', {
       p_organisation_id: orgId,
@@ -391,6 +402,133 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
+}
+
+// ------------------------------------------------------------------
+// Seed the compliance calendar on activation (flowchart: "auto-populate
+// compliance calendar"). Idempotent-ish: skips if events already exist.
+// ------------------------------------------------------------------
+async function seedComplianceCalendar(
+  supabase: SupabaseServer,
+  ctx: { entityId: string; orgId: string; dateIncorporated: string | null }
+) {
+  try {
+    const { count } = await supabase
+      .from('compliance_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('entity_id', ctx.entityId)
+    if ((count ?? 0) > 0) return
+
+    const today = new Date()
+    const year = today.getFullYear()
+
+    // Annual return: next anniversary of incorporation (or one year out)
+    let annualReturn: Date
+    if (ctx.dateIncorporated) {
+      const inc = new Date(ctx.dateIncorporated)
+      annualReturn = new Date(year, inc.getMonth(), inc.getDate())
+      if (annualReturn <= today) annualReturn.setFullYear(year + 1)
+    } else {
+      annualReturn = new Date(year + 1, today.getMonth(), today.getDate())
+    }
+
+    // KRA income tax return: 30 June following the last fiscal year end
+    const kraReturn = new Date(year, 5, 30)
+    if (kraReturn <= today) kraReturn.setFullYear(year + 1)
+
+    // County single business permit renewal: 31 January
+    const permitRenewal = new Date(year, 0, 31)
+    if (permitRenewal <= today) permitRenewal.setFullYear(year + 1)
+
+    const iso = (d: Date) => d.toISOString().slice(0, 10)
+
+    const { error } = await supabase.from('compliance_events').insert([
+      {
+        entity_id: ctx.entityId,
+        organisation_id: ctx.orgId,
+        title: 'File annual return with BRS',
+        description: 'Companies must file an annual return with the Business Registration Service each year.',
+        category: 'statutory',
+        due_date: iso(annualReturn),
+      },
+      {
+        entity_id: ctx.entityId,
+        organisation_id: ctx.orgId,
+        title: 'File income tax return with KRA',
+        description: 'Corporate income tax return due by 30 June following the end of the accounting period.',
+        category: 'tax',
+        due_date: iso(kraReturn),
+      },
+      {
+        entity_id: ctx.entityId,
+        organisation_id: ctx.orgId,
+        title: 'Renew county single business permit',
+        description: 'Single business permits are renewed with your county government at the start of each year.',
+        category: 'county',
+        due_date: iso(permitRenewal),
+      },
+    ])
+    if (error) console.error('compliance seed error', error)
+  } catch (e) {
+    console.error('compliance seed failed', e)
+  }
+}
+
+// ------------------------------------------------------------------
+// Generate the signed entity profile PDF (flowchart: declaration step
+// "Generate PDF") and record it in company_forms. Best-effort.
+// ------------------------------------------------------------------
+async function generateAndStoreProfile(
+  supabase: SupabaseServer,
+  ctx: { entityId: string; orgId: string; wizard: ExistingWizardData }
+) {
+  try {
+    const [{ data: entity }, { data: directors }, { data: shareholders }, { data: org }] = await Promise.all([
+      supabase.from('entities').select('*').eq('id', ctx.entityId).single(),
+      supabase.from('directors').select('full_name, id_number, kra_pin').eq('entity_id', ctx.entityId),
+      supabase.from('shareholders').select('legal_name, shares_held, share_percentage').eq('entity_id', ctx.entityId),
+      supabase.from('organisations').select('name').eq('id', ctx.orgId).single(),
+    ])
+    if (!entity) return
+
+    const address = entity.registered_address as { line1?: string; city?: string; county?: string; postcode?: string } | null
+
+    const pdfBytes = await generateIdp({
+      entityTypeLabel: ENTITY_TYPES.find((t) => t.value === entity.entity_type)?.label ?? entity.entity_type,
+      legalNameOptions: [entity.legal_name ?? ''].filter(Boolean),
+      natureOfBusiness: entity.nature_of_business,
+      registeredAddress: address ? { line1: address.line1 ?? null, city: address.city ?? null, county: address.county ?? null, postcode: address.postcode ?? null } : null,
+      nominalCapital: entity.nominal_capital,
+      totalShares: entity.total_shares,
+      directors: (directors ?? []).map((d) => ({ fullName: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin })),
+      shareholders: (shareholders ?? []).map((s) => ({ legalName: s.legal_name, sharesHeld: s.shares_held, sharePercentage: s.share_percentage })),
+      applicantName: ctx.wizard.signature ?? null,
+      applicantEmail: entity.applicant_email,
+      applicantRelationship: null,
+      organisationName: org?.name ?? 'Your organisation',
+      generatedAt: new Date(),
+    })
+
+    const path = `${ctx.orgId}/${ctx.entityId}/entity-profile-${Date.now()}.pdf`
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(path, pdfBytes, { contentType: 'application/pdf' })
+    if (uploadError) {
+      console.error('profile upload error', uploadError)
+      return
+    }
+
+    await supabase.from('company_forms').insert({
+      entity_id: ctx.entityId,
+      organisation_id: ctx.orgId,
+      form_type: 'entity_profile',
+      status: 'generated',
+      file_url: path,
+      generated_at: new Date().toISOString(),
+    })
+  } catch (e) {
+    console.error('entity profile generation failed', e)
+  }
 }
 
 // ------------------------------------------------------------------

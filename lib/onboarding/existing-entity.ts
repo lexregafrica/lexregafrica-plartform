@@ -1,13 +1,14 @@
-// Existing Entity path — fastest onboarding: upload → OCR verify → active.
-// 4 steps, no conditional visibility (every registered entity goes through all).
+// Existing Entity path — per the approved flowchart: tell us about your
+// business → upload → OCR verify → people → declaration & activate.
 
-export const EXISTING_TOTAL_STEPS = 4
+export const EXISTING_TOTAL_STEPS = 5
 
 export const EXISTING_STEP_LABELS: Record<number, string> = {
-  1: 'Upload Documents',
-  2: 'Verify Company Details',
-  3: 'Directors & Shareholders',
-  4: 'Review & Activate',
+  1: 'Tell Us About Your Business',
+  2: 'Upload Documents',
+  3: 'Verify Company Details',
+  4: 'Directors & Shareholders',
+  5: 'Declaration & Activate',
 }
 
 import type { EntityType } from './new-entity'
@@ -26,4 +27,9 @@ export type ExistingWizardData = {
   // step shows a "double-check these details" banner (pipeline threshold
   // per the OCR decision doc)
   minConfidence?: number
+  // Declaration & sign-off (flowchart: certify accuracy, typed legal
+  // name as signature, date auto-filled)
+  declared?: boolean
+  signature?: string
+  declarationDate?: string
 }
