@@ -76,7 +76,7 @@ export default async function DashboardPage() {
 
   const entityIds = entities.map((e) => e.id)
 
-  const [{ data: docs }, { data: forms }] = await Promise.all([
+  const [{ data: docs }, { data: forms }, { data: events }] = await Promise.all([
     supabase
       .from('documents')
       .select('entity_id')
@@ -88,6 +88,13 @@ export default async function DashboardPage() {
       .in('entity_id', entityIds)
       .eq('form_type', 'information_document_package')
       .order('generated_at', { ascending: false }),
+    supabase
+      .from('compliance_events')
+      .select('id, title, due_date, entity_id')
+      .in('entity_id', entityIds)
+      .eq('status', 'pending')
+      .order('due_date')
+      .limit(5),
   ])
 
   const docCounts = new Map<string, number>()
@@ -122,10 +129,27 @@ export default async function DashboardPage() {
     idpUrl: idpUrls.get(e.id) ?? null,
   }))
 
+  const entityNames = new Map(dashboardEntities.map((e) => [e.id, e.displayName]))
+  const deadlines = (events ?? []).map((e) => ({
+    id: e.id,
+    title: e.title,
+    dueDate: e.due_date,
+    entityId: e.entity_id,
+    entityName: entityNames.get(e.entity_id) ?? '',
+  }))
+
+  const userName =
+    (user.user_metadata?.full_name as string | undefined) ??
+    user.email?.split('@')[0] ??
+    'Account'
+
   return (
     <EntityDashboard
+      userName={userName}
+      userEmail={user.email ?? ''}
       organisationName={org?.name ?? 'Your organisation'}
       entities={dashboardEntities}
+      deadlines={deadlines}
     />
   )
 }
