@@ -2,6 +2,26 @@ import type { Database } from '@/types/database.types'
 
 export type EntityType = Database['public']['Enums']['entity_type']
 
+export type ShareClass = {
+  id: string
+  name: string
+  type: 'ordinary' | 'preference' | 'non_voting' | 'redeemable' | 'other'
+  shares: number
+  nominalValue: number
+  votingRights: string
+  dividendRights: string
+  redemptionRights: string
+  liquidationPriority: string
+}
+
+export const SHARE_CLASS_TYPES: Array<{ value: ShareClass['type']; label: string }> = [
+  { value: 'ordinary', label: 'Ordinary' },
+  { value: 'preference', label: 'Preference' },
+  { value: 'non_voting', label: 'Non-voting / restricted-voting' },
+  { value: 'redeemable', label: 'Redeemable' },
+  { value: 'other', label: 'Other' },
+]
+
 export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description: string }> = [
   { value: 'sole_proprietorship', label: 'Sole Proprietorship', description: 'Single owner, unlimited liability, simplest structure' },
   { value: 'partnership', label: 'Partnership', description: 'Two or more partners, shared liability' },
@@ -79,6 +99,14 @@ export type WizardData = {
   county?: string
   postalCode?: string
   country?: string
+  // Entity contact details — Charles 2026-07-17: email, contact person,
+  // postal address, physical address all required on the LLC questionnaire
+  entityEmail?: string
+  entityPhone?: string
+  postalAddress?: string
+  contactPersonName?: string
+  contactPersonEmail?: string
+  contactPersonPhone?: string
   // Step 4
   primaryActivity?: string
   secondaryActivities?: string
@@ -90,6 +118,11 @@ export type WizardData = {
   authorisedShareCapital?: number
   shareClasses?: 'ordinary' | 'ordinary_preference'
   votingRights?: 'one_share_one_vote' | 'weighted'
+  // Multiple share classes — Charles 2026-07-17: "elaborate classes of
+  // shares section". Hidden by default behind useMultipleShareClasses;
+  // the simple ordinary-only fields above remain the default path.
+  useMultipleShareClasses?: boolean
+  shareClassList?: ShareClass[]
   // Step 8
   hasCompanySecretary?: boolean
   secretary?: { fullName: string; idNumber: string; kraPin: string; phone: string; email: string; address: string }
@@ -113,10 +146,11 @@ export type WizardData = {
 // (step 10) where OCR gap-fills and the user verifies before declaring.
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
-    case 5: // Directors/Partners/Trustees
-      return DIRECTOR_TYPES.includes(entityType)
-    case 6: // Shareholders/Members
+    case 5: // Shareholders/Members — captured before directors so a
+      // shareholder-who-is-also-a-director isn't typed twice (Charles, 2026-07-17)
       return SHAREHOLDER_TYPES.includes(entityType)
+    case 6: // Directors/Partners/Trustees
+      return DIRECTOR_TYPES.includes(entityType)
     case 7: // Share Capital
       return SHARE_CAPITAL_TYPES.includes(entityType)
     case 8: // Company Secretary
@@ -143,10 +177,10 @@ export function prevVisibleStep(current: number, entityType: EntityType, data: W
 export const STEP_LABELS: Record<number, string> = {
   1: 'Entity Type',
   2: 'Business Names',
-  3: 'Registered Office',
+  3: 'Contact & Office',
   4: 'Business Activities',
-  5: 'Directors & Partners',
-  6: 'Shareholders & Members',
+  5: 'Shareholders & Members',
+  6: 'Directors & Partners',
   7: 'Share Capital',
   8: 'Company Secretary',
   9: 'Employee Information',

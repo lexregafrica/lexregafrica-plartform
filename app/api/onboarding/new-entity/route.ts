@@ -189,6 +189,9 @@ export async function POST(request: Request) {
     }
     if (wizard.proposedNames) entityUpdate.proposed_names = wizard.proposedNames as Json
     if (wizard.primaryActivity !== undefined) entityUpdate.nature_of_business = wizard.primaryActivity
+    if (wizard.entityEmail !== undefined) entityUpdate.email = wizard.entityEmail
+    if (wizard.entityPhone !== undefined) entityUpdate.phone = wizard.entityPhone
+    if (wizard.postalAddress !== undefined) entityUpdate.postal_address = { address: wizard.postalAddress } as Json
     if (wizard.addressLine1) {
       entityUpdate.registered_address = {
         line1: mergedWizard.addressLine1,
@@ -199,9 +202,11 @@ export async function POST(request: Request) {
         country: mergedWizard.country ?? 'Kenya',
       } as Json
     }
-    if (wizard.nominalValuePerShare !== undefined || wizard.authorisedShareCapital !== undefined) {
+    if (wizard.nominalValuePerShare !== undefined || wizard.authorisedShareCapital !== undefined || wizard.shareClassList !== undefined) {
       entityUpdate.nominal_capital = mergedWizard.authorisedShareCapital ?? null
-      entityUpdate.share_class = mergedWizard.shareClasses === 'ordinary_preference' ? 'ordinary+preference' : 'ordinary'
+      entityUpdate.share_class = mergedWizard.useMultipleShareClasses
+        ? (mergedWizard.shareClassList ?? []).map((c) => c.name).filter(Boolean).join(', ') || 'multiple classes'
+        : mergedWizard.shareClasses === 'ordinary_preference' ? 'ordinary+preference' : 'ordinary'
     }
 
     const [{ error: entityError }, { error: progressError }] = await Promise.all([
@@ -235,6 +240,15 @@ export async function POST(request: Request) {
         address?: string
         role?: string
         appointmentDate?: string
+        isCorporate?: boolean
+        corporate?: {
+          registeredName: string
+          regNumber: string
+          countryOfIncorporation: string
+          repName: string
+          repEmail: string
+          repPhone: string
+        }
       }
     }
     if (!director?.fullName || !director?.idNumber) {
@@ -257,6 +271,8 @@ export async function POST(request: Request) {
         line1: director.address ?? null,
         dateOfBirth: director.dateOfBirth ?? null,
         role: director.role ?? 'director',
+        isCorporate: director.isCorporate ?? false,
+        corporate: director.isCorporate ? director.corporate : undefined,
       } as Json,
     }
 
@@ -291,6 +307,15 @@ export async function POST(request: Request) {
         kraPin?: string
         sharesHeld: number
         isNominee?: boolean
+        isCorporate?: boolean
+        corporate?: {
+          registeredName: string
+          regNumber: string
+          countryOfIncorporation: string
+          repName: string
+          repEmail: string
+          repPhone: string
+        }
       }
     }
     if (!shareholder?.legalName || !shareholder?.sharesHeld) {
@@ -305,7 +330,11 @@ export async function POST(request: Request) {
       id_or_reg_number: shareholder.idNumber ?? null,
       kra_pin: shareholder.kraPin ?? null,
       shares_held: shareholder.sharesHeld,
-      corporate_details: shareholder.isNominee ? ({ nominee: true } as Json) : null,
+      corporate_details: {
+        nominee: shareholder.isNominee || undefined,
+        isCorporate: shareholder.isCorporate ?? false,
+        corporate: shareholder.isCorporate ? shareholder.corporate : undefined,
+      } as Json,
     }
 
     const { error } = await supabase.from('shareholders').upsert(row)
@@ -485,7 +514,7 @@ export async function POST(request: Request) {
     const entityType = progress.entity_type
 
     // Server-side minimum-director validation (PLC needs 2, partnership needs 2)
-    if (isStepVisible(5, entityType, wizard)) {
+    if (isStepVisible(6, entityType, wizard)) {
       const { count } = await supabase
         .from('directors')
         .select('id', { count: 'exact', head: true })
@@ -496,7 +525,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (isStepVisible(6, entityType, wizard)) {
+    if (isStepVisible(5, entityType, wizard)) {
       const { count } = await supabase
         .from('shareholders')
         .select('id', { count: 'exact', head: true })
