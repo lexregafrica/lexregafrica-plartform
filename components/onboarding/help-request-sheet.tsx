@@ -19,23 +19,28 @@ export type HelpRequestContext = {
   source: string
   /** Business/entity name if known */
   businessName?: string | null
+  /** Signed download link for the IDP, if one exists for this entity yet */
+  idpUrl?: string | null
 }
 
 export function HelpRequestSheet({
   context,
   defaultName,
+  defaultPhone,
   onClose,
   onSent,
 }: {
   context: HelpRequestContext
   defaultName?: string | null
+  defaultPhone?: string | null
   onClose: () => void
   onSent?: () => void
 }) {
   const [name, setName] = useState(defaultName ?? '')
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState(defaultPhone ?? '')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [idpDownloaded, setIdpDownloaded] = useState(false)
 
   const handleSend = () => {
     if (!name.trim()) { setError('Enter your name.'); return }
@@ -49,6 +54,7 @@ export function HelpRequestSheet({
       `Phone: ${phone.trim()}`,
       context.businessName ? `Business: ${context.businessName}` : null,
       `Regarding: ${context.source}`,
+      context.idpUrl ? (idpDownloaded ? `IDP: downloaded — I'll attach it here.` : `IDP: not downloaded yet.`) : null,
       message.trim() ? `` : null,
       message.trim() ? `Message: ${message.trim()}` : null,
     ].filter((l): l is string => l !== null)
@@ -97,6 +103,48 @@ export function HelpRequestSheet({
             </label>
             <textarea rows={3} className={inputCls} style={inputStyle} value={message} onChange={(e) => setMessage(e.target.value)} />
           </div>
+
+          {context.idpUrl && (
+            <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
+              <p className="text-ios-footnote mb-2 font-medium" style={{ color: 'var(--system-label)' }}>
+                Have you downloaded your IDP document?
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {([true, false] as const).map((v) => (
+                  <button
+                    key={String(v)}
+                    type="button"
+                    onClick={() => setIdpDownloaded(v)}
+                    className="py-2 rounded-lg border text-sm font-medium"
+                    style={{
+                      borderColor: idpDownloaded === v ? '#800020' : 'var(--system-fill-3)',
+                      background: idpDownloaded === v ? 'rgba(128,0,32,0.08)' : 'var(--system-bg)',
+                      color: 'var(--system-label)',
+                    }}
+                  >
+                    {v ? 'Yes' : 'Not yet'}
+                  </button>
+                ))}
+              </div>
+              {!idpDownloaded && (
+                <a
+                  href={context.idpUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIdpDownloaded(true)}
+                  className="mt-2 block w-full rounded-lg py-2 text-center text-sm font-semibold text-white"
+                  style={{ background: '#800020' }}
+                >
+                  Download IDP now
+                </a>
+              )}
+              {idpDownloaded && (
+                <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>
+                  Great — attach it to the WhatsApp chat when asked.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {error && <p className="mt-3 text-xs text-red-500">{error}</p>}

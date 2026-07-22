@@ -453,6 +453,8 @@ export function NewEntityWizard() {
         entityStatus={entityStatus}
         idpUrl={idpUrl}
         businessName={wizard.proposedNames?.find((n) => n.trim()) ?? null}
+        applicantName={wizard.signature ?? wizard.contactPersonName ?? null}
+        applicantPhone={wizard.contactPersonPhone ?? wizard.entityPhone ?? null}
         api={api}
         onActivated={() => setEntityStatus('active')}
       />
@@ -2623,13 +2625,15 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
 // ------------------------------------------------------------------
 // Submitted screen
 // ------------------------------------------------------------------
-function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, businessName, api, onActivated }: {
+function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, businessName, applicantName, applicantPhone, api, onActivated }: {
   onDashboard: () => void
   orgId: string | null
   entityId: string | null
   entityStatus: string | null
   idpUrl: string | null
   businessName: string | null
+  applicantName: string | null
+  applicantPhone: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; idpUrl?: string | null }>
   onActivated: () => void
 }) {
@@ -2765,7 +2769,9 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
 
       {showHelp && (
         <HelpRequestSheet
-          context={{ source: 'New entity — assisted BRS filing request', businessName }}
+          context={{ source: 'New entity — assisted BRS filing request', businessName, idpUrl: localIdpUrl }}
+          defaultName={applicantName}
+          defaultPhone={applicantPhone}
           onClose={() => setShowHelp(false)}
           onSent={() => { api({ action: 'request_help' }).catch(() => {}) }}
         />
