@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   ENTITY_TYPES,
+  PHASE1_ENTITY_TYPES,
+  SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
   INDUSTRIES,
   EMPLOYEE_SEGMENTS,
@@ -106,11 +108,13 @@ type DirectorRow = {
   email: string | null
   nationality: string
   appointment_date: string | null
+  is_foreign?: boolean
   residential_address: {
     role?: string
     dateOfBirth?: string
     isCorporate?: boolean
     corporate?: CorporateParticipant
+    foreignAddress?: string
   } | null
 }
 
@@ -121,6 +125,7 @@ type ShareholderRow = {
   kra_pin: string | null
   shares_held: number
   share_percentage: number | null
+  address: { isForeign?: boolean; foreignAddress?: string } | null
   corporate_details: {
     nominee?: boolean
     isCorporate?: boolean
@@ -134,6 +139,24 @@ type DocumentRow = {
   document_type: string | null
   file_path: string | null
   file_size: number | null
+}
+
+type BeneficialOwnerRow = {
+  id: string
+  full_name: string
+  id_number: string | null
+  kra_pin: string | null
+  nationality: string
+  date_of_birth: string | null
+  postal_address: { text?: string } | null
+  business_address: { text?: string } | null
+  residential_address: { text?: string } | null
+  phone: string | null
+  email: string | null
+  occupation: string | null
+  nature_of_control: string | null
+  date_became_bo: string | null
+  share_percentage: number | null
 }
 
 type LoadState = 'loading' | 'wizard' | 'submitted' | 'error'
@@ -164,6 +187,7 @@ export function NewEntityWizard() {
   const [wizard, setWizard] = useState<WizardData>({})
   const [directors, setDirectors] = useState<DirectorRow[]>([])
   const [shareholders, setShareholders] = useState<ShareholderRow[]>([])
+  const [beneficialOwners, setBeneficialOwners] = useState<BeneficialOwnerRow[]>([])
   const [documents, setDocuments] = useState<DocumentRow[]>([])
   const [entityStatus, setEntityStatus] = useState<string | null>(null)
   const [idpUrl, setIdpUrl] = useState<string | null>(null)
@@ -186,6 +210,7 @@ export function NewEntityWizard() {
         setWizard(data.wizard ?? {})
         setDirectors(data.directors ?? [])
         setShareholders(data.shareholders ?? [])
+        setBeneficialOwners(data.beneficialOwners ?? [])
         setDocuments(data.documents ?? [])
         setEntityStatus(data.entityStatus ?? null)
         setIdpUrl(data.idpUrl ?? null)
@@ -212,6 +237,7 @@ export function NewEntityWizard() {
       setWizard(data.wizard ?? {})
       setDirectors(data.directors ?? [])
       setShareholders(data.shareholders ?? [])
+      setBeneficialOwners(data.beneficialOwners ?? [])
       setDocuments(data.documents ?? [])
       setEntityStatus(data.entityStatus ?? null)
       setIdpUrl(data.idpUrl ?? null)
@@ -285,7 +311,15 @@ export function NewEntityWizard() {
         }
         return null
       }
-      case 7: {
+      case 7:
+        // Spec: BO details required unless the user explicitly confirms
+        // no declarable beneficial owner presently exists (10%+ direct/
+        // indirect interest or significant control — Charles, LLC spec)
+        if (beneficialOwners.length === 0 && !wizard.noBeneficialOwners) {
+          return 'Add at least one beneficial owner, or confirm none currently apply.'
+        }
+        return null
+      case 8: {
         const authorised = wizard.authorisedShareCapital ?? 0
         if (wizard.useMultipleShareClasses) {
           const classes = wizard.shareClassList ?? []
@@ -307,24 +341,26 @@ export function NewEntityWizard() {
         }
         return null
       }
-      case 8:
-        if (entityType === 'public_limited_company' && wizard.hasCompanySecretary !== true) {
-          return 'A company secretary is required for a Public Limited Company.'
+      case 9: {
+        const secretaryMandatory = entityType === 'public_limited_company' || (wizard.authorisedShareCapital ?? 0) > SECRETARY_CAPITAL_THRESHOLD_KES
+        if (secretaryMandatory && wizard.hasCompanySecretary !== true) {
+          return 'A company secretary is required for this entity.'
         }
         if (wizard.hasCompanySecretary === undefined) return 'Choose whether you will appoint a company secretary.'
         if (wizard.hasCompanySecretary && !wizard.secretary?.fullName?.trim()) return 'Enter the secretary’s details.'
         return null
-      case 9:
+      }
+      case 10:
         if (wizard.nssfNhifStatus === undefined) return 'Tell us about NSSF/NHIF registration.'
         if (!wizard.payrollFrequency) return 'Choose a payroll frequency.'
         return null
-      case 10:
+      case 11:
         // v2.0: identity docs are captured per-person as directors/shareholders
         // are added, so nothing is mandatory here. Proof of address is
         // optional per Charles (2026-07-17) — not everyone has a utility
         // bill yet at registration time.
         return null
-      case 11:
+      case 12:
         if (!wizard.declared || !wizard.consented || !wizard.agreedTerms) return 'All three declarations are required.'
         if (!wizard.signature?.trim()) return 'Type your full name as a signature.'
         if (!wizard.applicantRelationship) return 'Choose your relationship to the business.'
@@ -332,7 +368,7 @@ export function NewEntityWizard() {
       default:
         return null
     }
-  }, [step, entityType, wizard, directors, shareholders, documents])
+  }, [step, entityType, wizard, directors, shareholders, documents, beneficialOwners])
 
   // ---- navigation -------------------------------------------------
   const handleContinue = async () => {
@@ -475,10 +511,21 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 7 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
-        {step === 8 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
-        {step === 9 && <StepEmployees wizard={wizard} patch={patch} />}
-        {step === 10 && (
+        {step === 7 && (
+          <StepBeneficialOwners
+            shareholders={shareholders}
+            beneficialOwners={beneficialOwners}
+            setBeneficialOwners={setBeneficialOwners}
+            wizard={wizard}
+            patch={patch}
+            api={api}
+            setError={setError}
+          />
+        )}
+        {step === 8 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
+        {step === 9 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
+        {step === 10 && <StepEmployees wizard={wizard} patch={patch} />}
+        {step === 11 && (
           <StepDocuments
             entityType={entityType}
             orgId={orgId}
@@ -490,8 +537,8 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 11 && <StepDeclaration wizard={wizard} patch={patch} />}
-        {step === 12 && (
+        {step === 12 && <StepDeclaration wizard={wizard} patch={patch} />}
+        {step === 13 && (
           <StepReview
             entityType={entityType}
             wizard={wizard}
@@ -559,15 +606,18 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
         {ENTITY_TYPES.map((t) => {
           const selected = entityType === t.value
           const recommended = recommendedType === t.value
+          const available = PHASE1_ENTITY_TYPES.includes(t.value)
           return (
             <button
               key={t.value}
               type="button"
-              onClick={() => setEntityType(t.value)}
-              className="w-full text-left rounded-xl border p-4 transition-colors"
+              disabled={!available}
+              onClick={() => available && setEntityType(t.value)}
+              className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
               style={{
                 borderColor: selected || recommended ? 'var(--brand-navy)' : 'var(--system-fill-3)',
                 background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                opacity: available ? 1 : 0.45,
               }}
             >
               <span className="flex items-center gap-2">
@@ -579,6 +629,11 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
                     Recommended
                   </span>
                 )}
+                {!available && (
+                  <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'var(--system-fill-3)', color: 'var(--system-label-3)' }}>
+                    Coming later
+                  </span>
+                )}
               </span>
               <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
                 {t.description}
@@ -587,6 +642,9 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
           )
         })}
       </div>
+      <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+        LexReg is currently focused on limited companies. Other entity types are on the roadmap.
+      </p>
 
       <Field label="What does the business do?" required>
         <textarea
@@ -820,6 +878,8 @@ type DirectorForm = {
   appointmentDate: string
   isCorporate: boolean
   corporate: CorporateParticipant
+  isForeign: boolean
+  foreignAddress: string
 }
 
 const emptyCorporate: CorporateParticipant = {
@@ -830,6 +890,7 @@ const emptyDirector: DirectorForm = {
   fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan',
   phone: '', email: '', appointmentDate: new Date().toISOString().slice(0, 10),
   isCorporate: false, corporate: { ...emptyCorporate },
+  isForeign: false, foreignAddress: '',
 }
 
 // Shared inline OCR uploader — used inside the director/shareholder "add
@@ -958,8 +1019,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       return null
     }
     if (!f.fullName.trim()) return 'Full name is required.'
-    if (!f.idNumber.trim()) return 'ID number is required.'
-    if (!NATIONAL_ID_REGEX.test(f.idNumber) && f.nationality === 'Kenyan') return 'Kenyan national ID must be 7–8 digits.'
+    if (!f.idNumber.trim()) return f.isForeign ? 'Passport number is required.' : 'ID number is required.'
+    if (!f.isForeign && !NATIONAL_ID_REGEX.test(f.idNumber)) return 'Kenyan national ID must be 7–8 digits.'
+    if (f.isForeign && !f.nationality.trim()) return 'Nationality is required for foreign directors.'
     if (!f.kraPin.trim()) return 'KRA PIN is required.'
     if (!KRA_PIN_REGEX.test(f.kraPin.toUpperCase())) return 'KRA PIN format: A123456789B.'
     if (!f.dateOfBirth) return 'Date of birth is required.'
@@ -993,6 +1055,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           appointmentDate: form.appointmentDate || undefined,
           isCorporate: form.isCorporate,
           corporate: form.isCorporate ? form.corporate : undefined,
+          isForeign: form.isForeign,
+          foreignAddress: form.isForeign ? form.foreignAddress : undefined,
         },
       })
       const updated: DirectorRow = {
@@ -1004,11 +1068,13 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
         email: (form.isCorporate ? form.corporate.repEmail : form.email) || null,
         nationality: form.isCorporate ? form.corporate.countryOfIncorporation : form.nationality,
         appointment_date: form.appointmentDate || null,
+        is_foreign: form.isForeign,
         residential_address: {
           role: roleLabel,
           dateOfBirth: form.dateOfBirth,
           isCorporate: form.isCorporate,
           corporate: form.isCorporate ? form.corporate : undefined,
+          foreignAddress: form.isForeign ? form.foreignAddress : undefined,
         },
       }
       setDirectors(form.id ? directors.map((d) => (d.id === form.id ? updated : d)) : [...directors, updated])
@@ -1085,6 +1151,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 appointmentDate: d.appointment_date ?? '',
                 isCorporate: !!d.residential_address?.isCorporate,
                 corporate: d.residential_address?.corporate ?? { ...emptyCorporate },
+                isForeign: !!d.is_foreign,
+                foreignAddress: d.residential_address?.foreignAddress ?? '',
               })}
             >
               Edit
@@ -1131,8 +1199,12 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               <Field label="Full name" required>
                 <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
               </Field>
+              <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                <input type="checkbox" checked={form.isForeign} onChange={(e) => set({ isForeign: e.target.checked, nationality: e.target.checked ? '' : 'Kenyan' })} />
+                This person is not resident in Kenya
+              </label>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="National ID number" required>
+                <Field label={form.isForeign ? 'Passport number' : 'National ID number'} required>
                   <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                 </Field>
                 <Field label="KRA PIN" required>
@@ -1143,10 +1215,15 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 <Field label="Date of birth" required>
                   <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
                 </Field>
-                <Field label="Nationality">
+                <Field label="Nationality" required={form.isForeign}>
                   <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
                 </Field>
               </div>
+              {form.isForeign && (
+                <Field label="Foreign residential address">
+                  <input type="text" className={inputCls} style={inputStyle} value={form.foreignAddress} onChange={(e) => set({ foreignAddress: e.target.value })} />
+                </Field>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Phone" required>
                   <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
@@ -1155,6 +1232,12 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                   <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
                 </Field>
               </div>
+              {form.isForeign && (
+                <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                  Foreign directors may need a work/immigration permit depending on their role — our team can
+                  advise on this during review. It isn&apos;t required to complete this step.
+                </p>
+              )}
             </>
           )}
 
@@ -1198,11 +1281,14 @@ type ShareholderForm = {
   isCorporate: boolean
   corporate: CorporateParticipant
   alsoDirector: boolean
+  isForeign: boolean
+  foreignAddress: string
 }
 
 const emptyShareholder: ShareholderForm = {
   legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', phone: '', email: '',
   sharesHeld: '', isNominee: false, isCorporate: false, corporate: { ...emptyCorporate }, alsoDirector: false,
+  isForeign: false, foreignAddress: '',
 }
 
 function StepShareholders({ entityType, shareholders, setShareholders, directors, setDirectors, orgId, entityId, api, setError, onExtracted }: {
@@ -1256,6 +1342,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           isNominee: form.isNominee,
           isCorporate: form.isCorporate,
           corporate: form.isCorporate ? form.corporate : undefined,
+          isForeign: form.isForeign,
+          foreignAddress: form.isForeign ? form.foreignAddress : undefined,
         },
       })
       const updated: ShareholderRow = {
@@ -1265,6 +1353,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
         kra_pin: form.kraPin.trim().toUpperCase() || null,
         shares_held: shares,
         share_percentage: null,
+        address: { isForeign: form.isForeign, foreignAddress: form.isForeign ? form.foreignAddress : undefined },
         corporate_details: {
           nominee: form.isNominee || undefined,
           isCorporate: form.isCorporate,
@@ -1375,6 +1464,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 isCorporate: !!s.corporate_details?.isCorporate,
                 corporate: s.corporate_details?.corporate ?? { ...emptyCorporate },
                 alsoDirector: false,
+                isForeign: !!s.address?.isForeign,
+                foreignAddress: s.address?.foreignAddress ?? '',
               })}
             >
               Edit
@@ -1427,14 +1518,23 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               <Field label="Full name" required>
                 <input type="text" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
               </Field>
+              <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                <input type="checkbox" checked={form.isForeign} onChange={(e) => set({ isForeign: e.target.checked })} />
+                This person is not resident in Kenya
+              </label>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="National ID number" required>
+                <Field label={form.isForeign ? 'Passport number' : 'National ID number'} required>
                   <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                 </Field>
                 <Field label="KRA PIN" required>
                   <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
                 </Field>
               </div>
+              {form.isForeign && (
+                <Field label="Foreign residential address">
+                  <input type="text" className={inputCls} style={inputStyle} value={form.foreignAddress} onChange={(e) => set({ foreignAddress: e.target.value })} />
+                </Field>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Phone">
                   <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
@@ -1443,6 +1543,12 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                   <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
                 </Field>
               </div>
+              {form.isForeign && (
+                <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                  Foreign shareholders may need additional documentation depending on structure — our team can
+                  advise during review.
+                </p>
+              )}
             </>
           )}
 
@@ -1479,7 +1585,291 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
 }
 
 // ------------------------------------------------------------------
-// Step 7 — Share capital
+// Step 7 — Beneficial ownership (LLC-Only Developer Implementation
+// Spec, screen 8). Separate compliance record from the shareholder
+// register — a shareholder can be marked as a BO to prefill, but the
+// two lists are independent per the spec.
+// ------------------------------------------------------------------
+type BeneficialOwnerForm = {
+  id?: string
+  fullName: string
+  idNumber: string
+  kraPin: string
+  nationality: string
+  dateOfBirth: string
+  postalAddress: string
+  businessAddress: string
+  residentialAddress: string
+  phone: string
+  email: string
+  occupation: string
+  natureOfControl: string
+  dateBecameBo: string
+  sharePercentage: string
+}
+
+function emptyBeneficialOwner(): BeneficialOwnerForm {
+  return {
+    fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan', dateOfBirth: '',
+    postalAddress: '', businessAddress: '', residentialAddress: '', phone: '', email: '',
+    occupation: '', natureOfControl: '', dateBecameBo: new Date().toISOString().slice(0, 10), sharePercentage: '',
+  }
+}
+
+function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, api, setError }: {
+  shareholders: ShareholderRow[]
+  beneficialOwners: BeneficialOwnerRow[]
+  setBeneficialOwners: (b: BeneficialOwnerRow[]) => void
+  wizard: WizardData
+  patch: (p: Partial<WizardData>) => void
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  setError: (e: string) => void
+}) {
+  const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  // Shareholders holding 10%+ who aren't already recorded as a BO —
+  // one-tap prefill per the spec's "permit the user to mark that a
+  // shareholder is also a beneficial owner" guidance
+  const recordedNames = new Set(beneficialOwners.map((b) => b.full_name.toLowerCase()))
+  const candidateShareholders = shareholders.filter(
+    (s) => (s.share_percentage ?? 0) >= 10 && !recordedNames.has(s.legal_name.toLowerCase())
+  )
+
+  const set = (partial: Partial<BeneficialOwnerForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
+
+  const prefillFrom = (s: ShareholderRow) => {
+    patch({ noBeneficialOwners: false })
+    setForm({
+      ...emptyBeneficialOwner(),
+      fullName: s.legal_name,
+      idNumber: s.id_or_reg_number ?? '',
+      kraPin: s.kra_pin ?? '',
+      sharePercentage: s.share_percentage != null ? String(s.share_percentage) : '',
+      natureOfControl: `Shareholding of ${s.share_percentage ?? '—'}%`,
+    })
+  }
+
+  const save = async () => {
+    if (!form) return
+    if (!form.fullName.trim()) { setError('Full name is required.'); return }
+    if (!form.natureOfControl.trim()) { setError('Describe the nature of ownership or control.'); return }
+    setError('')
+    setBusy(true)
+    try {
+      const result = await api({
+        action: 'upsert_beneficial_owner',
+        beneficialOwner: {
+          id: form.id,
+          fullName: form.fullName.trim(),
+          idNumber: form.idNumber.trim() || undefined,
+          kraPin: form.kraPin.trim().toUpperCase() || undefined,
+          nationality: form.nationality || undefined,
+          dateOfBirth: form.dateOfBirth || undefined,
+          postalAddress: form.postalAddress || undefined,
+          businessAddress: form.businessAddress || undefined,
+          residentialAddress: form.residentialAddress || undefined,
+          phone: form.phone || undefined,
+          email: form.email || undefined,
+          occupation: form.occupation || undefined,
+          natureOfControl: form.natureOfControl.trim(),
+          dateBecameBo: form.dateBecameBo || undefined,
+          sharePercentage: form.sharePercentage ? parseFloat(form.sharePercentage) : undefined,
+        },
+      })
+      const updated: BeneficialOwnerRow = {
+        id: result.id!,
+        full_name: form.fullName.trim(),
+        id_number: form.idNumber.trim() || null,
+        kra_pin: form.kraPin.trim().toUpperCase() || null,
+        nationality: form.nationality,
+        date_of_birth: form.dateOfBirth || null,
+        postal_address: form.postalAddress ? { text: form.postalAddress } : null,
+        business_address: form.businessAddress ? { text: form.businessAddress } : null,
+        residential_address: form.residentialAddress ? { text: form.residentialAddress } : null,
+        phone: form.phone || null,
+        email: form.email || null,
+        occupation: form.occupation || null,
+        nature_of_control: form.natureOfControl.trim(),
+        date_became_bo: form.dateBecameBo || null,
+        share_percentage: form.sharePercentage ? parseFloat(form.sharePercentage) : null,
+      }
+      setBeneficialOwners(form.id ? beneficialOwners.map((b) => (b.id === form.id ? updated : b)) : [...beneficialOwners, updated])
+      setForm(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (id: string) => {
+    setBusy(true)
+    try {
+      await api({ action: 'delete_beneficial_owner', id })
+      setBeneficialOwners(beneficialOwners.filter((b) => b.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Beneficial ownership
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        Anyone with 10% or more direct or indirect interest, or who otherwise exercises significant control,
+        must be declared separately from the shareholder register.
+      </p>
+
+      {candidateShareholders.length > 0 && !form && (
+        <div className="ios-surface rounded-2xl p-4 space-y-2">
+          <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>
+            These shareholders hold 10%+ — add them as beneficial owners?
+          </p>
+          {candidateShareholders.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => prefillFrom(s)}
+              className="w-full rounded-xl border p-3 text-left text-ios-footnote"
+              style={{ borderColor: 'var(--system-fill-3)' }}
+            >
+              <span className="font-medium" style={{ color: 'var(--system-label)' }}>{s.legal_name}</span>
+              <span style={{ color: 'var(--system-label-2)' }}> — {s.share_percentage}% shares</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {beneficialOwners.map((b) => (
+        <div key={b.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{b.full_name}</p>
+            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{b.nature_of_control}</p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <button
+              type="button"
+              className="text-ios-footnote font-medium"
+              style={{ color: 'var(--brand-navy)' }}
+              onClick={() => setForm({
+                id: b.id,
+                fullName: b.full_name,
+                idNumber: b.id_number ?? '',
+                kraPin: b.kra_pin ?? '',
+                nationality: b.nationality,
+                dateOfBirth: b.date_of_birth ?? '',
+                postalAddress: b.postal_address?.text ?? '',
+                businessAddress: b.business_address?.text ?? '',
+                residentialAddress: b.residential_address?.text ?? '',
+                phone: b.phone ?? '',
+                email: b.email ?? '',
+                occupation: b.occupation ?? '',
+                natureOfControl: b.nature_of_control ?? '',
+                dateBecameBo: b.date_became_bo ?? '',
+                sharePercentage: b.share_percentage != null ? String(b.share_percentage) : '',
+              })}
+            >
+              Edit
+            </button>
+            <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(b.id)} disabled={busy}>
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {form ? (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Full name" required>
+            <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="ID / passport number">
+              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+            </Field>
+            <Field label="KRA PIN">
+              <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nationality">
+              <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+            </Field>
+            <Field label="Date of birth">
+              <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Occupation / profession">
+            <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Phone">
+              <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+            </Field>
+            <Field label="Email">
+              <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Residential address">
+            <input type="text" className={inputCls} style={inputStyle} value={form.residentialAddress} onChange={(e) => set({ residentialAddress: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Postal address">
+              <input type="text" className={inputCls} style={inputStyle} value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+            </Field>
+            <Field label="Business address">
+              <input type="text" className={inputCls} style={inputStyle} value={form.businessAddress} onChange={(e) => set({ businessAddress: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Nature of ownership or control" required>
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 25% shareholding, or right to appoint directors" value={form.natureOfControl} onChange={(e) => set({ natureOfControl: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Share percentage (if applicable)">
+              <input type="number" min={0} max={100} className={inputCls} style={inputStyle} value={form.sharePercentage} onChange={(e) => set({ sharePercentage: e.target.value })} />
+            </Field>
+            <Field label="Date became beneficial owner">
+              <input type="date" className={inputCls} style={inputStyle} value={form.dateBecameBo} onChange={(e) => set({ dateBecameBo: e.target.value })} />
+            </Field>
+          </div>
+          <div className="flex gap-2">
+            <PrimaryButton onClick={save} disabled={busy}>{busy ? 'Saving…' : form.id ? 'Update' : 'Add beneficial owner'}</PrimaryButton>
+            <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => { patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()) }}
+            className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
+            style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+          >
+            + Add beneficial owner
+          </button>
+          {beneficialOwners.length === 0 && (
+            <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+              <input
+                type="checkbox"
+                checked={wizard.noBeneficialOwners ?? false}
+                onChange={(e) => patch({ noBeneficialOwners: e.target.checked })}
+              />
+              No declarable beneficial owner information is presently available
+            </label>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Step 8 — Share capital
 // ------------------------------------------------------------------
 function emptyShareClass(): ShareClass {
   return {
@@ -1683,6 +2073,8 @@ function StepSecretary({ entityType, wizard, patch }: {
   patch: (p: Partial<WizardData>) => void
 }) {
   const isPlc = entityType === 'public_limited_company'
+  const overThreshold = (wizard.authorisedShareCapital ?? 0) > SECRETARY_CAPITAL_THRESHOLD_KES
+  const mandatory = isPlc || overThreshold
   const secretary = wizard.secretary ?? { fullName: '', idNumber: '', kraPin: '', phone: '', email: '', address: '' }
   const setSec = (partial: Partial<typeof secretary>) => patch({ secretary: { ...secretary, ...partial } })
 
@@ -1691,12 +2083,18 @@ function StepSecretary({ entityType, wizard, patch }: {
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
         Company secretary
       </h1>
-      <Field label={isPlc ? 'A company secretary is required for a PLC' : 'Will you appoint a company secretary?'} required>
+      {overThreshold && !isPlc && (
+        <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+          Authorised share capital is above KES {SECRETARY_CAPITAL_THRESHOLD_KES.toLocaleString()}, so a company
+          secretary is required.
+        </p>
+      )}
+      <Field label={mandatory ? 'A company secretary is required' : 'Will you appoint a company secretary?'} required>
         <div className="grid grid-cols-2 gap-2">
           {[true, false].map((v) => (
             <button
               key={String(v)} type="button"
-              disabled={isPlc && !v}
+              disabled={mandatory && !v}
               onClick={() => patch({ hasCompanySecretary: v })}
               className="py-2.5 rounded-xl border text-sm font-medium disabled:opacity-40"
               style={{
@@ -1857,6 +2255,38 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'Utility bill, bank/mobile money statement, signed lease, landlord letter, or official correspondence showing the address — issued within the last 3 months where applicable. Upload later if you don’t have one yet.',
     documentType: 'proof_of_address',
     visible: () => true,
+  },
+  // Forms/package stage (LLC-Only Developer Implementation Spec upload
+  // timing matrix): these are generated from the data already entered,
+  // signed, then uploaded back — required at this stage, unlike the
+  // certificate of incorporation which doesn't exist until after approval.
+  {
+    key: 'other',
+    title: 'Signed CR1 (application for registration)',
+    hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
+    documentType: 'signed_cr1',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Signed CR2 (memorandum of registration)',
+    hint: 'For companies limited by shares.',
+    documentType: 'signed_cr2',
+    visible: (t) => t === 'limited_company' || t === 'public_limited_company',
+  },
+  {
+    key: 'other',
+    title: 'Signed CR8 (particulars of directors)',
+    hint: 'Lists all directors captured in this application.',
+    documentType: 'signed_cr8',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Statement of nominal capital',
+    hint: 'Matches the share capital entered in this application.',
+    documentType: 'statement_of_nominal_capital',
+    visible: (t) => t === 'limited_company' || t === 'public_limited_company',
   },
   {
     key: 'other',

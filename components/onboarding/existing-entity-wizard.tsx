@@ -9,7 +9,7 @@ import {
   EXISTING_STEP_LABELS,
   type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
-import { ENTITY_TYPES, KENYA_COUNTIES, KRA_PIN_REGEX, type EntityType } from '@/lib/onboarding/new-entity'
+import { ENTITY_TYPES, PHASE1_ENTITY_TYPES, KENYA_COUNTIES, KRA_PIN_REGEX, type EntityType } from '@/lib/onboarding/new-entity'
 import { HelpRequestSheet } from '@/components/onboarding/help-request-sheet'
 
 const inputCls =
@@ -341,19 +341,29 @@ export function ExistingEntityWizard() {
             <div className="space-y-2">
               {ENTITY_TYPES.map((t) => {
                 const selected = wizard.entityType === t.value
+                const available = PHASE1_ENTITY_TYPES.includes(t.value)
                 return (
                   <button
                     key={t.value}
                     type="button"
-                    onClick={() => patch({ entityType: t.value })}
-                    className="w-full text-left rounded-xl border p-4 transition-colors"
+                    disabled={!available}
+                    onClick={() => available && patch({ entityType: t.value })}
+                    className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
                     style={{
                       borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
                       background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                      opacity: available ? 1 : 0.45,
                     }}
                   >
-                    <span className="text-ios-subhead font-medium block" style={{ color: 'var(--system-label)' }}>
-                      {t.label}
+                    <span className="flex items-center gap-2">
+                      <span className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>
+                        {t.label}
+                      </span>
+                      {!available && (
+                        <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'var(--system-fill-3)', color: 'var(--system-label-3)' }}>
+                          Coming later
+                        </span>
+                      )}
                     </span>
                     <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
                       {t.description}
@@ -362,6 +372,9 @@ export function ExistingEntityWizard() {
                 )
               })}
             </div>
+            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+              LexReg is currently focused on limited companies. Other entity types are on the roadmap.
+            </p>
           </div>
         )}
 

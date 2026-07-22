@@ -54,20 +54,23 @@ export async function GET() {
 
   let directors: unknown[] = []
   let shareholders: unknown[] = []
+  let beneficialOwners: unknown[] = []
   let documents: unknown[] = []
   let entityStatus: string | null = null
   let idpUrl: string | null = null
 
   if (entityId) {
-    const [d, s, docs, entityRow, formRow] = await Promise.all([
+    const [d, s, bo, docs, entityRow, formRow] = await Promise.all([
       supabase.from('directors').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('shareholders').select('*').eq('entity_id', entityId).order('created_at'),
+      supabase.from('beneficial_owners').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('documents').select('id, name, document_type, file_path, file_size, mime_type, created_at').eq('entity_id', entityId).is('deleted_at', null).order('created_at'),
       supabase.from('entities').select('status').eq('id', entityId).maybeSingle(),
       supabase.from('company_forms').select('file_url').eq('entity_id', entityId).eq('form_type', 'information_document_package').order('generated_at', { ascending: false }).limit(1).maybeSingle(),
     ])
     directors = d.data ?? []
     shareholders = s.data ?? []
+    beneficialOwners = bo.data ?? []
     documents = docs.data ?? []
     entityStatus = entityRow.data?.status ?? null
 
@@ -88,6 +91,7 @@ export async function GET() {
     idpUrl,
     directors,
     shareholders,
+    beneficialOwners,
     documents,
   })
 }
@@ -249,6 +253,8 @@ export async function POST(request: Request) {
           repEmail: string
           repPhone: string
         }
+        isForeign?: boolean
+        foreignAddress?: string
       }
     }
     if (!director?.fullName || !director?.idNumber) {
@@ -266,11 +272,13 @@ export async function POST(request: Request) {
       email: director.email ?? null,
       nationality: director.nationality ?? 'Kenyan',
       appointment_date: director.appointmentDate ?? null,
+      is_foreign: director.isForeign ?? false,
       residential_address: {
         sameAsRegisteredOffice: director.sameAddress ?? true,
         line1: director.address ?? null,
         dateOfBirth: director.dateOfBirth ?? null,
         role: director.role ?? 'director',
+        foreignAddress: director.isForeign ? director.foreignAddress : undefined,
         isCorporate: director.isCorporate ?? false,
         corporate: director.isCorporate ? director.corporate : undefined,
       } as Json,
@@ -316,6 +324,8 @@ export async function POST(request: Request) {
           repEmail: string
           repPhone: string
         }
+        isForeign?: boolean
+        foreignAddress?: string
       }
     }
     if (!shareholder?.legalName || !shareholder?.sharesHeld) {
@@ -330,6 +340,10 @@ export async function POST(request: Request) {
       id_or_reg_number: shareholder.idNumber ?? null,
       kra_pin: shareholder.kraPin ?? null,
       shares_held: shareholder.sharesHeld,
+      address: {
+        isForeign: shareholder.isForeign ?? false,
+        foreignAddress: shareholder.isForeign ? shareholder.foreignAddress : undefined,
+      } as Json,
       corporate_details: {
         nominee: shareholder.isNominee || undefined,
         isCorporate: shareholder.isCorporate ?? false,
@@ -370,6 +384,72 @@ export async function POST(request: Request) {
     if (error) {
       console.error('shareholder delete error', error)
       return NextResponse.json({ error: 'failed to delete shareholder' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
+  // upsert_beneficial_owner / delete_beneficial_owner
+  // ----------------------------------------------------------
+  if (action === 'upsert_beneficial_owner') {
+    const { beneficialOwner } = body as {
+      beneficialOwner: {
+        id?: string
+        fullName: string
+        idNumber?: string
+        kraPin?: string
+        nationality?: string
+        dateOfBirth?: string
+        postalAddress?: string
+        businessAddress?: string
+        residentialAddress?: string
+        phone?: string
+        email?: string
+        occupation?: string
+        natureOfControl?: string
+        dateBecameBo?: string
+        sharePercentage?: number
+      }
+    }
+    if (!beneficialOwner?.fullName) {
+      return NextResponse.json({ error: 'fullName required' }, { status: 400 })
+    }
+
+    const row: Database['public']['Tables']['beneficial_owners']['Insert'] = {
+      id: beneficialOwner.id ?? crypto.randomUUID(),
+      entity_id: entityId,
+      organisation_id: orgId,
+      full_name: beneficialOwner.fullName,
+      id_number: beneficialOwner.idNumber ?? null,
+      kra_pin: beneficialOwner.kraPin ?? null,
+      nationality: beneficialOwner.nationality ?? 'Kenyan',
+      date_of_birth: beneficialOwner.dateOfBirth ?? null,
+      postal_address: beneficialOwner.postalAddress ? ({ text: beneficialOwner.postalAddress } as Json) : null,
+      business_address: beneficialOwner.businessAddress ? ({ text: beneficialOwner.businessAddress } as Json) : null,
+      residential_address: beneficialOwner.residentialAddress ? ({ text: beneficialOwner.residentialAddress } as Json) : null,
+      phone: beneficialOwner.phone ?? null,
+      email: beneficialOwner.email ?? null,
+      occupation: beneficialOwner.occupation ?? null,
+      nature_of_control: beneficialOwner.natureOfControl ?? null,
+      date_became_bo: beneficialOwner.dateBecameBo ?? null,
+      share_percentage: beneficialOwner.sharePercentage ?? null,
+    }
+
+    const { error } = await supabase.from('beneficial_owners').upsert(row)
+    if (error) {
+      console.error('beneficial owner upsert error', error)
+      return NextResponse.json({ error: 'failed to save beneficial owner' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, id: row.id })
+  }
+
+  if (action === 'delete_beneficial_owner') {
+    const { id } = body as { id: string }
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    const { error } = await supabase.from('beneficial_owners').delete().eq('id', id).eq('entity_id', entityId)
+    if (error) {
+      console.error('beneficial owner delete error', error)
+      return NextResponse.json({ error: 'failed to delete beneficial owner' }, { status: 500 })
     }
     return NextResponse.json({ ok: true })
   }
@@ -535,6 +615,18 @@ export async function POST(request: Request) {
       }
     }
 
+    // Beneficial ownership: required unless the user explicitly confirmed
+    // none currently apply (LLC-Only Developer Implementation Spec)
+    if (isStepVisible(7, entityType, wizard)) {
+      const { count } = await supabase
+        .from('beneficial_owners')
+        .select('id', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+      if ((count ?? 0) < 1 && !wizard.noBeneficialOwners) {
+        return NextResponse.json({ error: 'beneficial ownership details required, or confirm none currently apply' }, { status: 400 })
+      }
+    }
+
     const newData: ProgressData = { ...progressData, submitted: true }
 
     const [{ error: entityError }, { error: progressError }] = await Promise.all([
@@ -647,6 +739,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'failed to activate entity' }, { status: 500 })
     }
 
+    // LLC compliance calendar: activation creates the entity workspace —
+    // seed the same reminders the existing-entity path gets on activation
+    await seedComplianceCalendar(supabase, { entityId, orgId, dateIncorporated: entityUpdate.date_incorporated ?? null })
+
     await supabase.rpc('log_audit', {
       p_organisation_id: orgId,
       p_action: 'onboarding.new_entity.certificate_uploaded',
@@ -673,6 +769,86 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
+}
+
+// ------------------------------------------------------------------
+// Seed the compliance calendar on activation. Same reminders as the
+// existing-entity path, plus a beneficial-ownership register update
+// reminder per the LLC-Only Developer Implementation Spec compliance
+// list. Best-effort, skipped if events already exist for this entity.
+// ------------------------------------------------------------------
+async function seedComplianceCalendar(
+  supabase: SupabaseServer,
+  ctx: { entityId: string; orgId: string; dateIncorporated: string | null }
+) {
+  try {
+    const { count } = await supabase
+      .from('compliance_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('entity_id', ctx.entityId)
+    if ((count ?? 0) > 0) return
+
+    const today = new Date()
+    const year = today.getFullYear()
+
+    let annualReturn: Date
+    if (ctx.dateIncorporated) {
+      const inc = new Date(ctx.dateIncorporated)
+      annualReturn = new Date(year, inc.getMonth(), inc.getDate())
+      if (annualReturn <= today) annualReturn.setFullYear(year + 1)
+    } else {
+      annualReturn = new Date(year + 1, today.getMonth(), today.getDate())
+    }
+
+    const kraReturn = new Date(year, 5, 30)
+    if (kraReturn <= today) kraReturn.setFullYear(year + 1)
+
+    const permitRenewal = new Date(year, 0, 31)
+    if (permitRenewal <= today) permitRenewal.setFullYear(year + 1)
+
+    // BO register review: 6 months after incorporation, then annually
+    const boReview = new Date(year, today.getMonth() + 6, today.getDate())
+
+    const iso = (d: Date) => d.toISOString().slice(0, 10)
+
+    const { error } = await supabase.from('compliance_events').insert([
+      {
+        entity_id: ctx.entityId,
+        organisation_id: ctx.orgId,
+        title: 'File annual return with BRS',
+        description: 'Companies must file an annual return with the Business Registration Service each year.',
+        category: 'statutory',
+        due_date: iso(annualReturn),
+      },
+      {
+        entity_id: ctx.entityId,
+        organisation_id: ctx.orgId,
+        title: 'File income tax return with KRA',
+        description: 'Corporate income tax return due by 30 June following the end of the accounting period.',
+        category: 'tax',
+        due_date: iso(kraReturn),
+      },
+      {
+        entity_id: ctx.entityId,
+        organisation_id: ctx.orgId,
+        title: 'Renew county single business permit',
+        description: 'Single business permits are renewed with your county government at the start of each year.',
+        category: 'county',
+        due_date: iso(permitRenewal),
+      },
+      {
+        entity_id: ctx.entityId,
+        organisation_id: ctx.orgId,
+        title: 'Review beneficial ownership register',
+        description: 'Confirm beneficial ownership details are current and lodge any changes with BRS.',
+        category: 'statutory',
+        due_date: iso(boReview),
+      },
+    ])
+    if (error) console.error('compliance seed error', error)
+  } catch (e) {
+    console.error('compliance seed failed', e)
+  }
 }
 
 // ------------------------------------------------------------------

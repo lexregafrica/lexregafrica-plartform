@@ -22,10 +22,23 @@ export const SHARE_CLASS_TYPES: Array<{ value: ShareClass['type']; label: string
   { value: 'other', label: 'Other' },
 ]
 
+// Phase 1 is scoped to private limited companies only (Charles,
+// LLC-Only Developer Implementation Spec). Other entity types stay in
+// this list for future expansion but render as "coming later" —
+// disabled, not selectable — until the LLC flow is validated in
+// production and the rules engine is generalised.
+export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company']
+
+// Company secretary threshold — Charles, LLC-Only Developer
+// Implementation Spec: private companies above this nominal share
+// capital must appoint a secretary, same as PLCs. Below it, secretarial
+// service stays an optional upsell rather than a mandatory field.
+export const SECRETARY_CAPITAL_THRESHOLD_KES = 5_000_000
+
 export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description: string }> = [
+  { value: 'limited_company', label: 'Limited Company', description: 'Separate legal entity, limited liability, most common' },
   { value: 'sole_proprietorship', label: 'Sole Proprietorship', description: 'Single owner, unlimited liability, simplest structure' },
   { value: 'partnership', label: 'Partnership', description: 'Two or more partners, shared liability' },
-  { value: 'limited_company', label: 'Limited Company', description: 'Separate legal entity, limited liability, most common' },
   { value: 'public_limited_company', label: 'Public Limited Company', description: 'Can offer shares to public, complex governance' },
   { value: 'company_limited_by_guarantee', label: 'NGO / Non-Profit', description: 'Charitable or social purpose, no profit distribution' },
   { value: 'trust', label: 'Trust', description: 'Property held for beneficiaries, fiduciary arrangement' },
@@ -67,7 +80,7 @@ export const NATIONAL_ID_REGEX = /^[0-9]{7,8}$/
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const KENYA_PHONE_REGEX = /^(?:\+254|0)([17][0-9]{8})$/
 
-export const TOTAL_STEPS = 12
+export const TOTAL_STEPS = 13
 
 // Steps that require directors/partners/trustees — hidden for sole proprietorship
 const DIRECTOR_TYPES: EntityType[] = [
@@ -113,7 +126,10 @@ export type WizardData = {
   sectorCode?: string
   turnoverRange?: string
   hasEmployees?: boolean
-  // Step 7
+  // Step 7 — no declarable beneficial owner escape hatch (records
+  // themselves live in the beneficial_owners table, not the wizard)
+  noBeneficialOwners?: boolean
+  // Step 8
   nominalValuePerShare?: number
   authorisedShareCapital?: number
   shareClasses?: 'ordinary' | 'ordinary_preference'
@@ -123,16 +139,16 @@ export type WizardData = {
   // the simple ordinary-only fields above remain the default path.
   useMultipleShareClasses?: boolean
   shareClassList?: ShareClass[]
-  // Step 8
+  // Step 9
   hasCompanySecretary?: boolean
   secretary?: { fullName: string; idNumber: string; kraPin: string; phone: string; email: string; address: string }
-  // Step 9
+  // Step 10
   permanentEmployees?: number
   casualEmployees?: number
   hasDraftContracts?: boolean
   nssfNhifStatus?: 'yes' | 'no' | 'already_registered'
   payrollFrequency?: string
-  // Step 11
+  // Step 12
   declared?: boolean
   consented?: boolean
   agreedTerms?: boolean
@@ -142,8 +158,10 @@ export type WizardData = {
 }
 
 // Step order follows the Charles-approved New Entity Formation
-// Questionnaire v1.0: all data entry first, then Document Upload & Review
-// (step 10) where OCR gap-fills and the user verifies before declaring.
+// Questionnaire v1.0 plus the LLC-Only Developer Implementation Spec
+// (2026-07-17): shareholders/directors before capital, beneficial
+// ownership as its own step, Document Upload & Review (step 11) where
+// OCR gap-fills and the user verifies before declaring.
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
     case 5: // Shareholders/Members — captured before directors so a
@@ -151,11 +169,14 @@ export function isStepVisible(step: number, entityType: EntityType, data: Wizard
       return SHAREHOLDER_TYPES.includes(entityType)
     case 6: // Directors/Partners/Trustees
       return DIRECTOR_TYPES.includes(entityType)
-    case 7: // Share Capital
+    case 7: // Beneficial Ownership — same entities that need a shareholder
+      // register need a beneficial-ownership record (LLC spec, screen 8)
+      return SHAREHOLDER_TYPES.includes(entityType)
+    case 8: // Share Capital
       return SHARE_CAPITAL_TYPES.includes(entityType)
-    case 8: // Company Secretary
+    case 9: // Company Secretary
       return SECRETARY_TYPES.includes(entityType)
-    case 9: // Employee Info
+    case 10: // Employee Info
       return data.hasEmployees === true
     default:
       return true
@@ -181,10 +202,11 @@ export const STEP_LABELS: Record<number, string> = {
   4: 'Business Activities',
   5: 'Shareholders & Members',
   6: 'Directors & Partners',
-  7: 'Share Capital',
-  8: 'Company Secretary',
-  9: 'Employee Information',
-  10: 'Documents & Review',
-  11: 'Declaration & Consent',
-  12: 'Review & Submit',
+  7: 'Beneficial Ownership',
+  8: 'Share Capital',
+  9: 'Company Secretary',
+  10: 'Employee Information',
+  11: 'Documents & Review',
+  12: 'Declaration & Consent',
+  13: 'Review & Submit',
 }
