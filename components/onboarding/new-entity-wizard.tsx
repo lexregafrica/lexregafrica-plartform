@@ -483,7 +483,17 @@ export function NewEntityWizard() {
           <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} recommendedType={recommendedType} />
         )}
         {step === 2 && <StepNames wizard={wizard} patch={patch} />}
-        {step === 3 && <StepAddress wizard={wizard} patch={patch} />}
+        {step === 3 && (
+          <StepAddress
+            wizard={wizard}
+            patch={patch}
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            setError={setError}
+            onExtracted={refresh}
+          />
+        )}
         {step === 4 && <StepActivities wizard={wizard} patch={patch} />}
         {step === 5 && (
           <StepShareholders
@@ -732,7 +742,27 @@ function StepNames({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<W
 // ------------------------------------------------------------------
 // Step 3 — Registered office
 // ------------------------------------------------------------------
-function StepAddress({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+function StepAddress({ wizard, patch, orgId, entityId, api, setError, onExtracted }: {
+  wizard: WizardData
+  patch: (p: Partial<WizardData>) => void
+  orgId: string | null
+  entityId: string | null
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
+  setError: (e: string) => void
+  onExtracted: () => Promise<void>
+}) {
+  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
+    if (!fields) { onExtracted(); return }
+    const f = fields as { address_line1?: string; city?: string; county?: string; postal_code?: string }
+    patch({
+      addressLine1: wizard.addressLine1 || f.address_line1 || undefined,
+      city: wizard.city || f.city || undefined,
+      county: wizard.county || f.county || undefined,
+      postalCode: wizard.postalCode || f.postal_code || undefined,
+    })
+    onExtracted()
+  }
+
   return (
     <div className="space-y-5">
       <div className="space-y-4">
@@ -764,6 +794,16 @@ function StepAddress({ wizard, patch }: { wizard: WizardData; patch: (p: Partial
         <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
           Registered office address
         </h2>
+        <InlineOcrUpload
+          section="address"
+          documentType="proof_of_address"
+          label="Upload proof of address to auto-fill →"
+          orgId={orgId}
+          entityId={entityId}
+          api={api}
+          onExtracted={handleExtracted}
+          setError={setError}
+        />
         <Field label="Address line 1" required>
           <input type="text" className={inputCls} style={inputStyle} value={wizard.addressLine1 ?? ''} onChange={(e) => patch({ addressLine1: e.target.value })} />
         </Field>
@@ -791,8 +831,8 @@ function StepAddress({ wizard, patch }: { wizard: WizardData; patch: (p: Partial
           <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different from street address" value={wizard.postalAddress ?? ''} onChange={(e) => patch({ postalAddress: e.target.value })} />
         </Field>
         <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-          Proof of address is optional — you can upload a lease, utility bill, or similar document later if you
-          don’t have one yet.
+          Proof of address is optional — upload above to auto-fill the fields, type them yourself, or add the
+          document later from the review step if you don’t have one yet.
         </p>
       </div>
     </div>
@@ -899,8 +939,10 @@ const emptyDirector: DirectorForm = {
 // Upload + register + extract, then the caller re-syncs from the server
 // (mergeExtraction already dedupes/creates the person row) and opens that
 // row in edit mode so the rest of the form is just confirmation.
-function InlineOcrUpload({ section, orgId, entityId, api, onExtracted, setError }: {
-  section: 'director' | 'shareholder'
+function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError }: {
+  section: 'director' | 'shareholder' | 'address'
+  documentType?: string
+  label?: string
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; fields?: Record<string, unknown> }>
@@ -924,7 +966,7 @@ function InlineOcrUpload({ section, orgId, entityId, api, onExtracted, setError 
 
       const registered = await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'id_copy' },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType },
       }) as { id?: string }
 
       setState('extracting')
@@ -950,7 +992,7 @@ function InlineOcrUpload({ section, orgId, entityId, api, onExtracted, setError 
         onChange={(e) => { handleFile(e.target.files); e.target.value = '' }}
       />
       <span className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
-        {state === 'uploading' ? 'Uploading…' : state === 'extracting' ? 'Reading document…' : 'Upload ID or passport to auto-fill →'}
+        {state === 'uploading' ? 'Uploading…' : state === 'extracting' ? 'Reading document…' : (label ?? 'Upload ID or passport to auto-fill →')}
       </span>
     </label>
   )
