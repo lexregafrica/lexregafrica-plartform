@@ -406,9 +406,12 @@ export function NewEntityWizard() {
     setSaving(true)
     try {
       await api({ action: 'save_step', step: TOTAL_STEPS, wizard })
-      await api({ action: 'submit' })
-      await refresh()
+      const result = await api({ action: 'submit' }) as { idpUrl?: string | null }
+      setIdpUrl(result.idpUrl ?? null)
       setLoadState('submitted')
+      // Best-effort resync of entity status etc — idpUrl above is already
+      // the source of truth, this shouldn't clobber it with a stale null
+      refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
     } finally {
@@ -2627,9 +2630,26 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
   entityStatus: string | null
   idpUrl: string | null
   businessName: string | null
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean }>
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; idpUrl?: string | null }>
   onActivated: () => void
 }) {
+  const [localIdpUrl, setLocalIdpUrl] = useState(idpUrl)
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenerateError, setRegenerateError] = useState('')
+
+  const handleRegenerate = async () => {
+    setRegenerating(true)
+    setRegenerateError('')
+    try {
+      const result = await api({ action: 'regenerate_idp' })
+      setLocalIdpUrl(result.idpUrl ?? null)
+      if (!result.idpUrl) setRegenerateError('Still couldn’t generate it — please try again or request help.')
+    } catch {
+      setRegenerateError('Still couldn’t generate it — please try again or request help.')
+    } finally {
+      setRegenerating(false)
+    }
+  }
   const isActive = entityStatus === 'active'
   const [showHelp, setShowHelp] = useState(false)
 
@@ -2686,9 +2706,9 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
             A summary of everything you provided — use it to file yourself, or hand it to your LexReg
             representative.
           </p>
-          {idpUrl ? (
+          {localIdpUrl ? (
             <a
-              href={idpUrl}
+              href={localIdpUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full text-center py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
@@ -2697,9 +2717,18 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
               Download PDF
             </a>
           ) : (
-            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-              Preparing your document package…
-            </p>
+            <>
+              <button
+                type="button"
+                onClick={handleRegenerate}
+                disabled={regenerating}
+                className="block w-full text-center py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ background: 'var(--brand-navy)' }}
+              >
+                {regenerating ? 'Generating…' : 'Generate document package'}
+              </button>
+              {regenerateError && <p className="text-xs text-red-500 mt-2 text-center">{regenerateError}</p>}
+            </>
           )}
         </div>
 

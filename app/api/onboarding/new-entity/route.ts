@@ -661,12 +661,18 @@ export async function POST(request: Request) {
       p_metadata: { entity_type: entityType },
     })
 
-    // Fire-and-forget IDP generation in background — client polls GET for idpUrl
-    generateAndStoreIdp(supabase, { entityId, orgId, entityType, wizard }).catch((e) =>
-      console.error('background idp generation failed', e)
-    )
+    // generateIdp is pure pdf-lib — no network calls, sub-second — so this
+    // is awaited rather than fire-and-forget. A dangling un-awaited promise
+    // here would get killed when the serverless function returns, which is
+    // why generation used to silently never complete.
+    const idpPath = await generateAndStoreIdp(supabase, { entityId, orgId, entityType, wizard })
+    let idpUrl: string | null = null
+    if (idpPath) {
+      const { data: signed } = await supabase.storage.from('documents').createSignedUrl(idpPath, 3600)
+      idpUrl = signed?.signedUrl ?? null
+    }
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, idpUrl })
   }
 
   // ----------------------------------------------------------
@@ -766,6 +772,18 @@ export async function POST(request: Request) {
       p_metadata: { channel: 'whatsapp' },
     })
     return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
+  // regenerate_idp — retry path if generation failed at submit time
+  // (e.g. transient storage error). Awaited, same as submit.
+  // ----------------------------------------------------------
+  if (action === 'regenerate_idp') {
+    const wizard = progressData.wizard ?? {}
+    const idpPath = await generateAndStoreIdp(supabase, { entityId, orgId, entityType: progress.entity_type, wizard })
+    if (!idpPath) return NextResponse.json({ error: 'failed to generate document package' }, { status: 500 })
+    const { data: signed } = await supabase.storage.from('documents').createSignedUrl(idpPath, 3600)
+    return NextResponse.json({ ok: true, idpUrl: signed?.signedUrl ?? null })
   }
 
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
