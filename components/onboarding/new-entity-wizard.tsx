@@ -1236,6 +1236,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               {!form.id && (
                 <InlineOcrUpload
                   section="director"
+                  label="Upload ID/passport or KRA PIN certificate to auto-fill →"
                   orgId={orgId}
                   entityId={entityId}
                   api={api}
@@ -1555,6 +1556,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               {!form.id && (
                 <InlineOcrUpload
                   section="shareholder"
+                  label="Upload ID/passport or KRA PIN certificate to auto-fill →"
                   orgId={orgId}
                   entityId={entityId}
                   api={api}

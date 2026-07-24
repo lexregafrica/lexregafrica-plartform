@@ -1066,7 +1066,10 @@ async function mergeExtraction(
           if (Object.keys(update).length > 0) {
             await supabase.from('shareholders').update(update).eq('id', match.id)
           }
-        } else if (fields.full_name) {
+        } else if (fields.full_name && fields.id_number) {
+          // Require both name AND ID number (matches director creation
+          // below) — a shareholder row with no ID number can never pass
+          // step validation and had no clear fix path for the user.
           await supabase.from('shareholders').insert({
             id: crypto.randomUUID(),
             entity_id: entityId,
