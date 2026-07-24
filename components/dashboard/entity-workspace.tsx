@@ -10,7 +10,9 @@ import {
   IconChevronLeft,
   IconDownload,
   IconArrowUpRight,
+  IconCheck,
 } from '@tabler/icons-react'
+import { REGISTRATION_STAGES, registrationStageIndex } from '@/lib/onboarding/registration-status'
 
 type WorkspaceEntity = {
   id: string
@@ -95,6 +97,99 @@ function StatusPill({ active }: { active: boolean }) {
   )
 }
 
+// ------------------------------------------------------------------
+// Filing status board — 8 BRS stages (LLC-Only Developer Implementation
+// Spec, screen 12). Read-only for business owners; super_admin gets an
+// inline control since several stages (payment, BRS submission,
+// registrar queries) happen entirely outside the app.
+// ------------------------------------------------------------------
+export function StatusBoard({ entityId, registrationStatus, canManage }: {
+  entityId: string
+  registrationStatus: string | null
+  canManage: boolean
+}) {
+  const [current, setCurrent] = useState(registrationStatus ?? 'draft')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const currentIndex = registrationStageIndex(current)
+
+  const advance = async (status: string) => {
+    setError('')
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/entities/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityId, status }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to update')
+      setCurrent(status)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update status.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className={CARD}>
+      <h3 className="text-ios-subhead mb-4 font-bold" style={{ color: 'var(--system-label)' }}>Filing status</h3>
+      <div className="flex flex-col">
+        {REGISTRATION_STAGES.map((stage, i) => {
+          const done = i < currentIndex
+          const active = i === currentIndex
+          return (
+            <div key={stage.value} className="flex items-start gap-3 py-1.5">
+              <div className="flex flex-col items-center">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                  style={done || active
+                    ? { background: 'var(--brand-navy)' }
+                    : { background: 'var(--system-fill-4)' }}
+                >
+                  {done ? (
+                    <IconCheck size={14} stroke={3} color="#fff" />
+                  ) : (
+                    <span className="text-[11px] font-bold" style={{ color: active ? '#fff' : 'var(--system-label-3)' }}>{i + 1}</span>
+                  )}
+                </span>
+                {i < REGISTRATION_STAGES.length - 1 && (
+                  <span className="my-0.5 h-4 w-0.5" style={{ background: done ? 'var(--brand-navy)' : 'var(--system-fill-4)' }} />
+                )}
+              </div>
+              <div className="min-w-0 flex-1 pb-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p
+                    className="text-ios-footnote font-semibold"
+                    style={{ color: active ? 'var(--system-label)' : done ? 'var(--system-label-2)' : 'var(--system-label-3)' }}
+                  >
+                    {stage.label}
+                  </p>
+                  {canManage && !done && !active && (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => advance(stage.value)}
+                      className="text-ios-caption1 shrink-0 font-semibold disabled:opacity-50"
+                      style={{ color: 'var(--brand-navy)' }}
+                    >
+                      Mark reached
+                    </button>
+                  )}
+                </div>
+                {active && (
+                  <p className="text-ios-caption1 mt-0.5" style={{ color: 'var(--system-label-3)' }}>{stage.description}</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {error && <p className="text-ios-caption1 mt-2" style={{ color: '#D70015' }}>{error}</p>}
+    </div>
+  )
+}
+
 function EventBadge({ event }: { event: WorkspaceEvent }) {
   const overdue = isOverdue(event)
   const meta = overdue
@@ -114,12 +209,13 @@ const CARD = 'rounded-[24px] bg-white p-5'
 // ------------------------------------------------------------------
 // Overview — desktop mosaic, mobile stacked cards
 // ------------------------------------------------------------------
-function OverviewTab({ entity, events, documents, directors, shareholders, onNavigate }: {
+function OverviewTab({ entity, events, documents, directors, shareholders, canManageStatus, onNavigate }: {
   entity: WorkspaceEntity
   events: WorkspaceEvent[]
   documents: WorkspaceDocument[]
   directors: WorkspacePerson[]
   shareholders: WorkspaceShareholder[]
+  canManageStatus: boolean
   onNavigate: (tab: TabId) => void
 }) {
   const upcoming = events.filter((e) => e.status !== 'complete')
@@ -239,6 +335,10 @@ function OverviewTab({ entity, events, documents, directors, shareholders, onNav
 
       {/* Right rail */}
       <div className="grid content-start gap-4">
+        {entity.status !== 'active' && (
+          <StatusBoard entityId={entity.id} registrationStatus={entity.registrationStatus} canManage={canManageStatus} />
+        )}
+
         {/* Deadline list */}
         <div className={CARD}>
           <h3 className="text-ios-subhead mb-3 font-bold" style={{ color: 'var(--system-label)' }}>Upcoming deadlines</h3>
@@ -414,12 +514,14 @@ export function EntityWorkspace({
   documents,
   directors,
   shareholders,
+  canManageStatus,
 }: {
   entity: WorkspaceEntity
   events: WorkspaceEvent[]
   documents: WorkspaceDocument[]
   directors: WorkspacePerson[]
   shareholders: WorkspaceShareholder[]
+  canManageStatus: boolean
 }) {
   const [tab, setTab] = useState<TabId>('overview')
   const isActive = entity.status === 'active'
@@ -432,6 +534,7 @@ export function EntityWorkspace({
         documents={documents}
         directors={directors}
         shareholders={shareholders}
+        canManageStatus={canManageStatus}
         onNavigate={setTab}
       />
     ),

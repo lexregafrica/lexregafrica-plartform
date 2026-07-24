@@ -73,8 +73,20 @@ export async function POST(request: Request) {
     }
   }
 
-  // Reset progress for this user and start fresh on chosen path
-  await supabase.from('onboarding_progress').delete().eq('user_id', user.id)
+  // Clear only abandoned sessions on this same path — ones that never
+  // got far enough to create an entity. Never touch a row that already
+  // has an entityId: that's a real draft/submitted entity a user must
+  // still be able to resume later (e.g. "Continue setup" or "Upload
+  // certificate" on the dashboard for a different entity). Previously
+  // this deleted ALL of the user's progress on every path, across every
+  // entity, which silently orphaned every other in-progress or
+  // already-submitted entity's resume session.
+  await supabase
+    .from('onboarding_progress')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('onboarding_path', onboardingPath)
+    .is('data->>entityId', null)
 
   const { error: progressError } = await supabase.from('onboarding_progress').insert({
     user_id: user.id,

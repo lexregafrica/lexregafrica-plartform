@@ -9,6 +9,7 @@ import {
   IconBriefcase,
   IconSettings,
   IconLogout,
+  IconShieldLock,
 } from '@tabler/icons-react'
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 import { createClient } from '@/lib/supabase/client'
@@ -21,6 +22,8 @@ const NAV = [
   { label: 'Settings', href: '/dashboard/settings', icon: IconSettings, soon: true },
 ]
 
+const ADMIN_NAV_ITEM = { label: 'Admin', href: '/admin', icon: IconShieldLock, soon: false }
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -32,14 +35,17 @@ function initials(name: string) {
 export function DashboardShell({
   userName,
   userEmail,
+  isSuperAdmin,
   children,
 }: {
   userName: string
   userEmail: string
+  isSuperAdmin?: boolean
   children: React.ReactNode
 }) {
   const router = useRouter()
   const pathname = usePathname()
+  const nav = isSuperAdmin ? [...NAV, ADMIN_NAV_ITEM] : NAV
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -64,7 +70,7 @@ export function DashboardShell({
         </Link>
 
         <nav className="flex flex-col gap-1">
-          {NAV.map((item) => {
+          {nav.map((item) => {
             const active = item.href === '/dashboard'
               ? pathname === '/dashboard'
               : pathname.startsWith(item.href)

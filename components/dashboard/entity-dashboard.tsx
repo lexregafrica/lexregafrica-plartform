@@ -34,8 +34,12 @@ const STATUS_META: Record<DashboardEntity['status'], { label: string; bg: string
 }
 
 function resumeHref(entity: DashboardEntity): string {
-  if (entity.onboardingPath === 'existing_entity') return `/onboarding/existing/${entity.onboardingStep || 1}`
-  if (entity.onboardingPath === 'new_entity') return `/onboarding/new/${entity.onboardingStep || 1}`
+  // ?entity= tells the wizard exactly which onboarding_progress session
+  // to resume — a user can have several drafts/submissions in flight at
+  // once, so "just grab my most recent session" (the old behaviour)
+  // would silently resume the wrong entity.
+  if (entity.onboardingPath === 'existing_entity') return `/onboarding/existing/${entity.onboardingStep || 1}?entity=${entity.id}`
+  if (entity.onboardingPath === 'new_entity') return `/onboarding/new/${entity.onboardingStep || 1}?entity=${entity.id}`
   return '/onboarding/informal'
 }
 
@@ -142,12 +146,14 @@ export function EntityDashboard({
   organisationName,
   entities,
   deadlines,
+  isSuperAdmin,
 }: {
   userName: string
   userEmail: string
   organisationName: string
   entities: DashboardEntity[]
   deadlines: DashboardDeadline[]
+  isSuperAdmin?: boolean
 }) {
   const activeCount = entities.filter((e) => e.status === 'active').length
   const pendingCount = entities.filter((e) => e.status === 'pending_registration').length
@@ -155,7 +161,7 @@ export function EntityDashboard({
   const pendingCert = entities.filter((e) => e.status === 'pending_registration')
 
   return (
-    <DashboardShell userName={userName} userEmail={userEmail}>
+    <DashboardShell userName={userName} userEmail={userEmail} isSuperAdmin={isSuperAdmin}>
       <main className="px-4 py-6 md:px-8 md:py-7">
         {/* Stat tiles */}
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

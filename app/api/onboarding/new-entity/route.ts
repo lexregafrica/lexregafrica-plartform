@@ -11,6 +11,10 @@ import {
   type WizardData,
 } from '@/lib/onboarding/new-entity'
 
+// OCR extraction retries up to twice on 503/429 with growing backoff
+// (lib/ocr/gemini.ts) — default serverless timeout would kill that mid-retry.
+export const maxDuration = 30
+
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>
 
 type ProgressRow = {
@@ -27,25 +31,38 @@ type ProgressData = {
   submitted?: boolean
 }
 
-async function getContext(supabase: SupabaseServer) {
+// A user can have several new-entity drafts/submissions in flight at
+// once (dashboard shows "Continue setup" / "Upload certificate" per
+// entity), so there can be more than one onboarding_progress row for
+// this path. When entityId is known — passed by the client once it's
+// resuming a specific entity — filter to that entity's own row instead
+// of just grabbing the most recent one, which would silently resume the
+// wrong entity's session.
+async function getContext(supabase: SupabaseServer, requestedEntityId?: string | null) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { user: null, progress: null }
 
-  const { data: progress } = await supabase
+  let query = supabase
     .from('onboarding_progress')
     .select('id, organisation_id, step, entity_type, data')
     .eq('user_id', user.id)
     .eq('onboarding_path', 'new_entity')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+
+  if (requestedEntityId) {
+    query = query.filter('data->>entityId', 'eq', requestedEntityId)
+  } else {
+    query = query.order('created_at', { ascending: false }).limit(1)
+  }
+
+  const { data: progress } = await query.maybeSingle()
 
   return { user, progress: (progress as ProgressRow | null) }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const requestedEntityId = new URL(request.url).searchParams.get('entity')
   const supabase = await createClient()
-  const { user, progress } = await getContext(supabase)
+  const { user, progress } = await getContext(supabase, requestedEntityId)
   if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
   if (!progress) return NextResponse.json({ error: 'no onboarding session' }, { status: 404 })
 
@@ -98,10 +115,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
-  const { action } = body as { action: string }
+  const { action, entityId: requestedEntityId } = body as { action: string; entityId?: string }
 
   const supabase = await createClient()
-  const { user, progress } = await getContext(supabase)
+  const { user, progress } = await getContext(supabase, requestedEntityId)
   if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
   if (!progress) return NextResponse.json({ error: 'no onboarding session' }, { status: 400 })
   if (!progress.organisation_id) return NextResponse.json({ error: 'no organisation' }, { status: 400 })
@@ -1092,10 +1109,15 @@ async function mergeExtraction(
   let wizardChanged = false
   if (section === 'address' || fields.document_kind === 'proof_of_address') {
     if (!wizard.addressLine1 && fields.address_line1) { wizard.addressLine1 = fields.address_line1; wizardChanged = true }
-    if (!wizard.city && fields.city) { wizard.city = fields.city; wizardChanged = true }
+    // No dedicated district/locality UI fields yet — fall back into city
+    // so the value isn't silently lost ahead of the wizard-reorder phase.
+    const cityValue = fields.city ?? fields.locality ?? fields.district
+    if (!wizard.city && cityValue) { wizard.city = cityValue; wizardChanged = true }
     if (!wizard.county && fields.county) { wizard.county = fields.county; wizardChanged = true }
     if (!wizard.postalCode && fields.postal_code) { wizard.postalCode = fields.postal_code; wizardChanged = true }
   }
+  // Phone shown on any document → entity phone (gap-fill only)
+  if (!wizard.entityPhone && fields.phone) { wizard.entityPhone = fields.phone; wizardChanged = true }
   // Business registration docs → first proposed-name slot if still empty
   if (fields.document_kind === 'business_registration' && fields.business_name) {
     const names = wizard.proposedNames ?? []
@@ -1103,6 +1125,23 @@ async function mergeExtraction(
       wizard.proposedNames = [fields.business_name, '', '', '', '', '']
       wizardChanged = true
     }
+  }
+  // Share capital docs (CR2 / Statement of Nominal Capital) → step 8 fields
+  if (
+    (fields.document_kind === 'cr2' || fields.document_kind === 'statement_of_nominal_capital') &&
+    !wizard.authorisedShareCapital &&
+    fields.nominal_share_capital
+  ) {
+    wizard.authorisedShareCapital = fields.nominal_share_capital
+    wizardChanged = true
+  }
+  if (
+    (fields.document_kind === 'cr2' || fields.document_kind === 'statement_of_nominal_capital') &&
+    !wizard.nominalValuePerShare &&
+    fields.share_classes?.[0]?.nominal_value_each
+  ) {
+    wizard.nominalValuePerShare = fields.share_classes[0].nominal_value_each
+    wizardChanged = true
   }
 
   if (wizardChanged) {

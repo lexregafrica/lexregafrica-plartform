@@ -11,9 +11,12 @@
 
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from 'pdf-lib'
 
-const BURGUNDY = rgb(0x80 / 255, 0x00 / 255, 0x20 / 255)
-const WHITE = rgb(1, 1, 1)
+// Formal black/gray palette — this document sits alongside real BRS
+// filings (CR1/CR2/CR8), so it reads as a plain reference document, not
+// branded marketing collateral.
+const BLACK = rgb(0.06, 0.06, 0.08)
 const GRAY = rgb(0.4, 0.4, 0.42)
+const RULE_GRAY = rgb(0.75, 0.75, 0.75)
 const PAGE_WIDTH = 595.28 // A4
 const PAGE_HEIGHT = 841.89
 const MARGIN = 56
@@ -39,14 +42,14 @@ export type IdpInput = {
 
 export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
-  const font = await doc.embedFont(StandardFonts.Helvetica)
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const font = await doc.embedFont(StandardFonts.TimesRoman)
+  const bold = await doc.embedFont(StandardFonts.TimesRomanBold)
 
   const ctx = new PageBuilder(doc, font, bold)
 
-  ctx.title('Information Document Package')
-  ctx.subtitle(`Prepared for ${input.organisationName} — ${formatDate(input.generatedAt)}`)
-  ctx.rule()
+  ctx.title('INFORMATION DOCUMENT PACKAGE')
+  ctx.subtitle(`Prepared for ${input.organisationName}  ·  ${formatDate(input.generatedAt)}`)
+  ctx.rule(true)
 
   ctx.notice(
     'This document summarises the information you provided to LexReg Africa. It is not an official BRS ' +
@@ -131,30 +134,32 @@ class PageBuilder {
 
   title(text: string) {
     this.ensureRoom(30)
-    this.page.drawText(text, { x: MARGIN, y: this.y, size: 22, font: this.bold, color: BURGUNDY })
-    this.y -= 30
+    this.page.drawText(text, { x: MARGIN, y: this.y, size: 18, font: this.bold, color: BLACK })
+    this.y -= 26
   }
 
   subtitle(text: string) {
     this.ensureRoom(20)
-    this.page.drawText(text, { x: MARGIN, y: this.y, size: 11, font: this.font, color: GRAY })
-    this.y -= 24
+    this.page.drawText(text, { x: MARGIN, y: this.y, size: 10, font: this.font, color: GRAY })
+    this.y -= 20
   }
 
-  rule() {
+  // `emphasis` draws a heavier rule under the document header; section
+  // dividers use the lighter default.
+  rule(emphasis = false) {
     this.ensureRoom(16)
     this.page.drawLine({
       start: { x: MARGIN, y: this.y }, end: { x: PAGE_WIDTH - MARGIN, y: this.y },
-      thickness: 1.5, color: WHITE,
+      thickness: emphasis ? 1.2 : 0.6, color: emphasis ? BLACK : RULE_GRAY,
     })
     this.y -= 20
   }
 
   notice(text: string) {
-    const lines = wrapText(text, this.font, 9.5, PAGE_WIDTH - MARGIN * 2)
+    const lines = wrapText(text, this.font, 9, PAGE_WIDTH - MARGIN * 2)
     this.ensureRoom(lines.length * 13 + 14)
     for (const line of lines) {
-      this.page.drawText(line, { x: MARGIN, y: this.y, size: 9.5, font: this.font, color: GRAY })
+      this.page.drawText(line, { x: MARGIN, y: this.y, size: 9, font: this.font, color: GRAY })
       this.y -= 13
     }
     this.y -= 12
@@ -162,11 +167,11 @@ class PageBuilder {
 
   section(text: string) {
     this.ensureRoom(28)
-    this.page.drawText(text.toUpperCase(), { x: MARGIN, y: this.y, size: 11, font: this.bold, color: BURGUNDY })
+    this.page.drawText(text.toUpperCase(), { x: MARGIN, y: this.y, size: 10.5, font: this.bold, color: BLACK })
     this.y -= 6
     this.page.drawLine({
       start: { x: MARGIN, y: this.y }, end: { x: PAGE_WIDTH - MARGIN, y: this.y },
-      thickness: 0.5, color: rgb(0.85, 0.85, 0.85),
+      thickness: 0.6, color: RULE_GRAY,
     })
     this.y -= 16
   }
@@ -174,13 +179,13 @@ class PageBuilder {
   field(label: string, value: string) {
     this.ensureRoom(16)
     this.page.drawText(label, { x: MARGIN, y: this.y, size: 9.5, font: this.font, color: GRAY })
-    this.page.drawText(value, { x: MARGIN + 160, y: this.y, size: 9.5, font: this.bold, color: BURGUNDY })
+    this.page.drawText(value, { x: MARGIN + 160, y: this.y, size: 9.5, font: this.font, color: BLACK })
     this.y -= 16
   }
 
   personRow(name: string, detail: string) {
     this.ensureRoom(16)
-    this.page.drawText(name, { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: BURGUNDY })
+    this.page.drawText(name, { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: BLACK })
     this.page.drawText(detail, { x: MARGIN + 200, y: this.y, size: 9, font: this.font, color: GRAY })
     this.y -= 15
   }
@@ -188,9 +193,9 @@ class PageBuilder {
   bullet(text: string) {
     const lines = wrapText(text, this.font, 9.5, PAGE_WIDTH - MARGIN * 2 - 14)
     this.ensureRoom(lines.length * 13 + 4)
-    this.page.drawText('•', { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: WHITE })
+    this.page.drawText('•', { x: MARGIN, y: this.y, size: 9.5, font: this.bold, color: BLACK })
     for (const [i, line] of lines.entries()) {
-      this.page.drawText(line, { x: MARGIN + 14, y: this.y - i * 13, size: 9.5, font: this.font, color: BURGUNDY })
+      this.page.drawText(line, { x: MARGIN + 14, y: this.y - i * 13, size: 9.5, font: this.font, color: BLACK })
     }
     this.y -= lines.length * 13 + 4
   }

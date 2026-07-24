@@ -17,12 +17,18 @@ export default async function EntityWorkspacePage({
   // unknown id simply returns no row
   const { data: entity } = await supabase
     .from('entities')
-    .select('id, legal_name, trading_name, proposed_names, entity_type, status, registration_status, registration_number, kra_pin, date_incorporated, nature_of_business, registered_address')
+    .select('id, organisation_id, legal_name, trading_name, proposed_names, entity_type, status, registration_status, registration_number, kra_pin, date_incorporated, nature_of_business, registered_address')
     .eq('id', entityId)
     .is('deleted_at', null)
     .maybeSingle()
 
   if (!entity) notFound()
+
+  // super_admin is a platform-wide role, not scoped to any one org's
+  // membership row — a super_admin whose own row lives in a different
+  // org would wrongly fail an org-scoped check here.
+  const { data: isSuperAdmin } = await supabase.rpc('is_super_admin')
+  const canManageStatus = isSuperAdmin === true
 
   const [{ data: events }, { data: docs }, { data: directors }, { data: shareholders }, { data: forms }] =
     await Promise.all([
@@ -83,6 +89,7 @@ export default async function EntityWorkspacePage({
         address: address ? [address.line1, address.city, address.county, address.postcode].filter(Boolean).join(', ') : null,
         profileUrl,
       }}
+      canManageStatus={canManageStatus}
       events={(events ?? []).map((e) => ({
         id: e.id,
         title: e.title,

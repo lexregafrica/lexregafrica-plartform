@@ -80,7 +80,7 @@ export const NATIONAL_ID_REGEX = /^[0-9]{7,8}$/
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const KENYA_PHONE_REGEX = /^(?:\+254|0)([17][0-9]{8})$/
 
-export const TOTAL_STEPS = 13
+export const TOTAL_STEPS = 14
 
 // Steps that require directors/partners/trustees — hidden for sole proprietorship
 const DIRECTOR_TYPES: EntityType[] = [
@@ -89,7 +89,7 @@ const DIRECTOR_TYPES: EntityType[] = [
 ]
 
 // Steps that require shareholders/members — company/cooperative/LLP only
-const SHAREHOLDER_TYPES: EntityType[] = [
+export const SHAREHOLDER_TYPES: EntityType[] = [
   'limited_company', 'public_limited_company', 'cooperative', 'limited_liability_partnership',
 ]
 
@@ -100,14 +100,30 @@ const SHARE_CAPITAL_TYPES: EntityType[] = ['limited_company', 'public_limited_co
 const SECRETARY_TYPES: EntityType[] = ['limited_company', 'public_limited_company']
 
 export type WizardData = {
-  // Step 1
+  // Step 1 — legacy fields, no longer collected on the entity-type screen
+  // (LLC-Only spec screen map has no industry/employee-count field there;
+  // kept optional here so old saved progress doesn't break).
   industry?: string
   employeeSegment?: string
-  // Step 2
-  proposedNames?: string[]
+  // Step 2 — Applicant & primary contact (LLC spec screen 2). This is
+  // user-account/matter-contact data, distinct from the entity profile.
+  applicantFullName?: string
+  applicantEmail?: string
+  applicantPhone?: string
   // Step 3
+  proposedNames?: string[]
+  // Step 4 — Company basics
+  isNewCompany?: boolean
   addressLine1?: string
   addressLine2?: string
+  // Granular street/building fields — Charles, 2026-07-24 call: so once
+  // captured here, the client never has to be asked again for BRS/lease
+  // filings that want street, building name, floor, and door number
+  // individually, not just a single free-text line.
+  streetName?: string
+  buildingName?: string
+  floorNumber?: string
+  doorNumber?: string
   city?: string
   county?: string
   postalCode?: string
@@ -120,16 +136,12 @@ export type WizardData = {
   contactPersonName?: string
   contactPersonEmail?: string
   contactPersonPhone?: string
-  // Step 4
   primaryActivity?: string
   secondaryActivities?: string
   sectorCode?: string
   turnoverRange?: string
   hasEmployees?: boolean
-  // Step 7 — no declarable beneficial owner escape hatch (records
-  // themselves live in the beneficial_owners table, not the wizard)
-  noBeneficialOwners?: boolean
-  // Step 8
+  // Step 5 — Share structure
   nominalValuePerShare?: number
   authorisedShareCapital?: number
   shareClasses?: 'ordinary' | 'ordinary_preference'
@@ -139,16 +151,21 @@ export type WizardData = {
   // the simple ordinary-only fields above remain the default path.
   useMultipleShareClasses?: boolean
   shareClassList?: ShareClass[]
+  // Step 8 — no declarable beneficial owner escape hatch (records
+  // themselves live in the beneficial_owners table, not the wizard)
+  noBeneficialOwners?: boolean
   // Step 9
   hasCompanySecretary?: boolean
   secretary?: { fullName: string; idNumber: string; kraPin: string; phone: string; email: string; address: string }
-  // Step 10
+  // Step 10 — Constitutional documents (LLC spec screen 9)
+  articlesType?: 'standard' | 'custom'
+  // Step 12
   permanentEmployees?: number
   casualEmployees?: number
   hasDraftContracts?: boolean
   nssfNhifStatus?: 'yes' | 'no' | 'already_registered'
   payrollFrequency?: string
-  // Step 12
+  // Step 13
   declared?: boolean
   consented?: boolean
   agreedTerms?: boolean
@@ -157,26 +174,31 @@ export type WizardData = {
   declarationDate?: string
 }
 
-// Step order follows the Charles-approved New Entity Formation
-// Questionnaire v1.0 plus the LLC-Only Developer Implementation Spec
-// (2026-07-17): shareholders/directors before capital, beneficial
-// ownership as its own step, Document Upload & Review (step 11) where
-// OCR gap-fills and the user verifies before declaring.
+// Step order follows the LLC-Only Developer Implementation Spec screen
+// map (Charles, 2026-07-17), with one deliberate deviation confirmed by
+// Charles on a follow-up call: Shareholders are captured before
+// Directors (not after, as the doc's screen 6/7 order literally reads)
+// so a shareholder-who-is-also-a-director isn't typed twice.
+//  1 Entity Type · 2 Applicant & Contact · 3 Company Name Reservation ·
+//  4 Company Basics · 5 Share Structure · 6 Shareholders · 7 Directors ·
+//  8 Beneficial Ownership · 9 Company Secretary · 10 Constitutional
+//  Documents · 11 Uploads & Review · 12 Employee Information ·
+//  13 Declaration & Consent · 14 Review & Submit
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
-    case 5: // Shareholders/Members — captured before directors so a
+    case 5: // Share Structure
+      return SHARE_CAPITAL_TYPES.includes(entityType)
+    case 6: // Shareholders/Members — captured before directors so a
       // shareholder-who-is-also-a-director isn't typed twice (Charles, 2026-07-17)
       return SHAREHOLDER_TYPES.includes(entityType)
-    case 6: // Directors/Partners/Trustees
+    case 7: // Directors/Partners/Trustees
       return DIRECTOR_TYPES.includes(entityType)
-    case 7: // Beneficial Ownership — same entities that need a shareholder
+    case 8: // Beneficial Ownership — same entities that need a shareholder
       // register need a beneficial-ownership record (LLC spec, screen 8)
       return SHAREHOLDER_TYPES.includes(entityType)
-    case 8: // Share Capital
-      return SHARE_CAPITAL_TYPES.includes(entityType)
     case 9: // Company Secretary
       return SECRETARY_TYPES.includes(entityType)
-    case 10: // Employee Info
+    case 12: // Employee Info
       return data.hasEmployees === true
     default:
       return true
@@ -197,16 +219,17 @@ export function prevVisibleStep(current: number, entityType: EntityType, data: W
 
 export const STEP_LABELS: Record<number, string> = {
   1: 'Entity Type',
-  2: 'Business Names',
-  3: 'Contact & Office',
-  4: 'Business Activities',
-  5: 'Shareholders & Members',
-  6: 'Directors & Partners',
-  7: 'Beneficial Ownership',
-  8: 'Share Capital',
+  2: 'Applicant & Contact',
+  3: 'Company Name Reservation',
+  4: 'Company Basics',
+  5: 'Share Structure',
+  6: 'Shareholders & Members',
+  7: 'Directors & Partners',
+  8: 'Beneficial Ownership',
   9: 'Company Secretary',
-  10: 'Employee Information',
+  10: 'Constitutional Documents',
   11: 'Documents & Review',
-  12: 'Declaration & Consent',
-  13: 'Review & Submit',
+  12: 'Employee Information',
+  13: 'Declaration & Consent',
+  14: 'Review & Submit',
 }

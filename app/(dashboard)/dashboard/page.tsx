@@ -32,12 +32,13 @@ export default async function DashboardPage() {
 
   const { data: membership } = await supabase
     .from('organisation_members')
-    .select('organisation_id')
+    .select('organisation_id, role')
     .eq('user_id', user.id)
     .maybeSingle()
 
   if (!membership) redirect('/onboarding')
   const orgId = membership.organisation_id
+  const isSuperAdmin = membership.role === 'super_admin'
 
   const [{ data: org }, { data: entities }] = await Promise.all([
     supabase.from('organisations').select('name').eq('id', orgId).single(),
@@ -150,6 +151,7 @@ export default async function DashboardPage() {
       organisationName={org?.name ?? 'Your organisation'}
       entities={dashboardEntities}
       deadlines={deadlines}
+      isSuperAdmin={isSuperAdmin}
     />
   )
 }

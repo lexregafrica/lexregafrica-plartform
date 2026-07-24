@@ -6,6 +6,10 @@ import { EXISTING_TOTAL_STEPS, type ExistingWizardData } from '@/lib/onboarding/
 import { ENTITY_TYPES, type EntityType } from '@/lib/onboarding/new-entity'
 import { generateIdp } from '@/lib/documents/idp'
 
+// OCR extraction retries up to twice on 503/429 with growing backoff
+// (lib/ocr/gemini.ts) — default serverless timeout would kill that mid-retry.
+export const maxDuration = 30
+
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>
 
 type ProgressRow = {
@@ -22,25 +26,34 @@ type ProgressData = {
   activated?: boolean
 }
 
-async function getContext(supabase: SupabaseServer) {
+// See app/api/onboarding/new-entity/route.ts getContext for why
+// requestedEntityId matters — a user can have several existing-entity
+// sessions in flight, not just one.
+async function getContext(supabase: SupabaseServer, requestedEntityId?: string | null) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { user: null, progress: null }
 
-  const { data: progress } = await supabase
+  let query = supabase
     .from('onboarding_progress')
     .select('id, organisation_id, step, entity_type, data')
     .eq('user_id', user.id)
     .eq('onboarding_path', 'existing_entity')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+
+  if (requestedEntityId) {
+    query = query.filter('data->>entityId', 'eq', requestedEntityId)
+  } else {
+    query = query.order('created_at', { ascending: false }).limit(1)
+  }
+
+  const { data: progress } = await query.maybeSingle()
 
   return { user, progress: (progress as ProgressRow | null) }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const requestedEntityId = new URL(request.url).searchParams.get('entity')
   const supabase = await createClient()
-  const { user, progress } = await getContext(supabase)
+  const { user, progress } = await getContext(supabase, requestedEntityId)
   if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
   if (!progress) return NextResponse.json({ error: 'no onboarding session' }, { status: 404 })
 
@@ -50,16 +63,19 @@ export async function GET() {
   let directors: unknown[] = []
   let shareholders: unknown[] = []
   let documents: unknown[] = []
+  let beneficialOwners: unknown[] = []
 
   if (entityId) {
-    const [d, s, docs] = await Promise.all([
+    const [d, s, docs, bo] = await Promise.all([
       supabase.from('directors').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('shareholders').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('documents').select('id, name, document_type, file_path, file_size, mime_type, ocr_status, created_at').eq('entity_id', entityId).is('deleted_at', null).order('created_at'),
+      supabase.from('beneficial_owners').select('*').eq('entity_id', entityId).order('created_at'),
     ])
     directors = d.data ?? []
     shareholders = s.data ?? []
     documents = docs.data ?? []
+    beneficialOwners = bo.data ?? []
   }
 
   return NextResponse.json({
@@ -71,15 +87,16 @@ export async function GET() {
     directors,
     shareholders,
     documents,
+    beneficialOwners,
   })
 }
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
-  const { action } = body as { action: string }
+  const { action, entityId: requestedEntityId } = body as { action: string; entityId?: string }
 
   const supabase = await createClient()
-  const { user, progress } = await getContext(supabase)
+  const { user, progress } = await getContext(supabase, requestedEntityId)
   if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
   if (!progress) return NextResponse.json({ error: 'no onboarding session' }, { status: 400 })
   if (!progress.organisation_id) return NextResponse.json({ error: 'no organisation' }, { status: 400 })
@@ -337,6 +354,74 @@ export async function POST(request: Request) {
   }
 
   // ----------------------------------------------------------
+  // upsert_beneficial_owner / delete_beneficial_owner — same contract
+  // as the new-entity route (Kenyan BO obligations apply regardless of
+  // which onboarding path a company came through)
+  // ----------------------------------------------------------
+  if (action === 'upsert_beneficial_owner') {
+    const { beneficialOwner } = body as {
+      beneficialOwner: {
+        id?: string
+        fullName: string
+        idNumber?: string
+        kraPin?: string
+        nationality?: string
+        dateOfBirth?: string
+        postalAddress?: string
+        businessAddress?: string
+        residentialAddress?: string
+        phone?: string
+        email?: string
+        occupation?: string
+        natureOfControl?: string
+        dateBecameBo?: string
+        sharePercentage?: number
+      }
+    }
+    if (!beneficialOwner?.fullName) {
+      return NextResponse.json({ error: 'fullName required' }, { status: 400 })
+    }
+
+    const row: Database['public']['Tables']['beneficial_owners']['Insert'] = {
+      id: beneficialOwner.id ?? crypto.randomUUID(),
+      entity_id: entityId,
+      organisation_id: orgId,
+      full_name: beneficialOwner.fullName,
+      id_number: beneficialOwner.idNumber ?? null,
+      kra_pin: beneficialOwner.kraPin ?? null,
+      nationality: beneficialOwner.nationality ?? 'Kenyan',
+      date_of_birth: beneficialOwner.dateOfBirth ?? null,
+      postal_address: beneficialOwner.postalAddress ? ({ text: beneficialOwner.postalAddress } as Json) : null,
+      business_address: beneficialOwner.businessAddress ? ({ text: beneficialOwner.businessAddress } as Json) : null,
+      residential_address: beneficialOwner.residentialAddress ? ({ text: beneficialOwner.residentialAddress } as Json) : null,
+      phone: beneficialOwner.phone ?? null,
+      email: beneficialOwner.email ?? null,
+      occupation: beneficialOwner.occupation ?? null,
+      nature_of_control: beneficialOwner.natureOfControl ?? null,
+      date_became_bo: beneficialOwner.dateBecameBo ?? null,
+      share_percentage: beneficialOwner.sharePercentage ?? null,
+    }
+
+    const { error } = await supabase.from('beneficial_owners').upsert(row)
+    if (error) {
+      console.error('beneficial owner upsert error', error)
+      return NextResponse.json({ error: 'failed to save beneficial owner' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, id: row.id })
+  }
+
+  if (action === 'delete_beneficial_owner') {
+    const { id } = body as { id: string }
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    const { error } = await supabase.from('beneficial_owners').delete().eq('id', id).eq('entity_id', entityId)
+    if (error) {
+      console.error('beneficial owner delete error', error)
+      return NextResponse.json({ error: 'failed to delete beneficial owner' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
   // activate — verified details confirmed, entity goes live
   // ----------------------------------------------------------
   if (action === 'activate') {
@@ -553,7 +638,9 @@ async function mergeCompanyExtraction(
   if (!wizard.kraPin && fields.kra_pin) { wizard.kraPin = fields.kra_pin; changed = true }
   if (!wizard.dateIncorporated && fields.date_of_incorporation) { wizard.dateIncorporated = fields.date_of_incorporation; changed = true }
   if (!wizard.addressLine1 && fields.address_line1) { wizard.addressLine1 = fields.address_line1; changed = true }
-  if (!wizard.city && fields.city) { wizard.city = fields.city; changed = true }
+  // No dedicated district/locality UI fields yet — fall back into city.
+  const cityValue = fields.city ?? fields.locality ?? fields.district
+  if (!wizard.city && cityValue) { wizard.city = cityValue; changed = true }
   if (!wizard.county && fields.county) { wizard.county = fields.county; changed = true }
   if (!wizard.postalCode && fields.postal_code) { wizard.postalCode = fields.postal_code; changed = true }
 

@@ -9,8 +9,6 @@ import {
   PHASE1_ENTITY_TYPES,
   SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
-  INDUSTRIES,
-  EMPLOYEE_SEGMENTS,
   TURNOVER_RANGES,
   PAYROLL_FREQUENCIES,
   APPLICANT_RELATIONSHIPS,
@@ -24,6 +22,7 @@ import {
   nextVisibleStep,
   prevVisibleStep,
   SHARE_CLASS_TYPES,
+  SHAREHOLDER_TYPES,
   type EntityType,
   type WizardData,
   type ShareClass,
@@ -90,13 +89,40 @@ function SecondaryButton({ children, onClick }: { children: React.ReactNode; onC
 // ------------------------------------------------------------------
 // Types for related records
 // ------------------------------------------------------------------
+// Corporate party record — LLC corporate-shareholder-director field spec
+// (Charles, 2026-07-17), tables B (corporate party), E (authorised
+// representative). OCR may pre-fill name/reg number/rep identity but is
+// never relied on for ownership %, role, board authority, or BO
+// conclusions — those always stay user-confirmed.
 type CorporateParticipant = {
   registeredName: string
+  tradeName: string
+  corporateEntityType: 'private_company' | 'public_company' | 'llp' | 'foundation' | 'other' | ''
   regNumber: string
   countryOfIncorporation: string
+  isForeign: boolean
+  incorporationDate: string
+  goodStandingStatus: string
+  kraPin: string // the company's own KRA PIN, distinct from any person's
+  foreignTaxId: string
+  registeredOfficeAddress: string
+  postalAddress: string
+  corporateEmail: string
+  corporatePhone: string
+  // Authorised representative (natural person acting for this company)
   repName: string
+  repTitle: string
+  repNationality: string
+  repIdType: 'kenyan_id' | 'passport' | 'foreign_id' | 'other' | ''
+  repIdNumber: string
+  repKraPin: string
   repEmail: string
   repPhone: string
+  repAuthorityCapacity: string
+  // Director-specific — only meaningful when this corporate party is
+  // acting as a director (table D)
+  serviceAddressForNotices: string
+  basisOfAuthorityToAct: 'board_resolution' | 'power_of_attorney' | 'constitutional_document' | 'other' | ''
 }
 
 type DirectorRow = {
@@ -179,6 +205,12 @@ export function NewEntityWizard() {
   // Set when arriving from a strong informal-assessment result (flowchart:
   // 60-100 pre-populates Path 2 with the recommended entity type)
   const recommendedType = (searchParams.get('recommended') as EntityType | null) ?? null
+  // Which entity's session to resume — the dashboard links to a specific
+  // entity ("Continue setup" / "Upload certificate" per card), since a
+  // user can have several new-entity drafts/submissions at once. Falls
+  // back to whichever session is most recent when absent (a brand-new
+  // /onboarding/new/1 visit, before any entity exists yet).
+  const entityParam = searchParams.get('entity')
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [step, setStep] = useState(1)
   const [entityType, setEntityType] = useState<EntityType>('limited_company')
@@ -198,7 +230,7 @@ export function NewEntityWizard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/onboarding/new-entity')
+        const res = await fetch(`/api/onboarding/new-entity${entityParam ? `?entity=${entityParam}` : ''}`)
         if (!res.ok) {
           setLoadState('error')
           return
@@ -221,6 +253,7 @@ export function NewEntityWizard() {
       }
     }
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const patch = useCallback((partial: Partial<WizardData>) => {
@@ -229,12 +262,18 @@ export function NewEntityWizard() {
 
   // Re-pull server state after an OCR extraction so pre-filled directors,
   // shareholders, and wizard fields land in local state without a reload.
+  // Wizard fields are merged, not replaced — the server only has whatever
+  // was last saved on "Continue", so overwriting wholesale would wipe out
+  // anything the user had typed on the current screen but not saved yet.
+  // Local values always win; only fields the user hasn't touched locally
+  // get pulled in from the server (e.g. gap-fill from this extraction).
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/onboarding/new-entity')
+      const idForRefresh = entityId ?? entityParam
+      const res = await fetch(`/api/onboarding/new-entity${idForRefresh ? `?entity=${idForRefresh}` : ''}`)
       if (!res.ok) return
       const data = await res.json()
-      setWizard(data.wizard ?? {})
+      setWizard((prev) => ({ ...(data.wizard ?? {}), ...prev }))
       setDirectors(data.directors ?? [])
       setShareholders(data.shareholders ?? [])
       setBeneficialOwners(data.beneficialOwners ?? [])
@@ -244,38 +283,46 @@ export function NewEntityWizard() {
     } catch {
       // non-fatal — extraction already persisted server-side
     }
-  }, [])
+  }, [entityId, entityParam])
 
+  // Every write must target the same entity's onboarding_progress row —
+  // a user can have several new-entity sessions going at once, so the
+  // server can't just assume "the most recent one."
   const api = useCallback(async (payload: Record<string, unknown>) => {
     const res = await fetch('/api/onboarding/new-entity', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ entityId: entityId ?? entityParam ?? undefined, ...payload }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       throw new Error(data.error || 'Request failed')
     }
     return res.json()
-  }, [])
+  }, [entityId, entityParam])
 
   // ---- per-step validation --------------------------------------
   const validateStep = useCallback((): string | null => {
     switch (step) {
       case 1:
         if (!entityType) return 'Choose an entity type.'
-        if (!wizard.primaryActivity?.trim()) return 'Describe what the business does.'
-        if (!wizard.industry) return 'Choose an industry.'
-        if (!wizard.employeeSegment) return 'Choose your team size.'
         return null
-      case 2: {
+      case 2:
+        if (!wizard.applicantFullName?.trim()) return 'Enter the applicant’s full name.'
+        if (!wizard.applicantEmail?.trim() || !EMAIL_REGEX.test(wizard.applicantEmail)) return 'Enter a valid applicant email address.'
+        if (!wizard.applicantPhone?.trim() || !KENYA_PHONE_REGEX.test(wizard.applicantPhone)) return 'Applicant phone must be +2547XXXXXXXX or 07XXXXXXXX.'
+        if (!wizard.applicantRelationship) return 'Choose your relationship to the company.'
+        return null
+      case 3: {
         const names = (wizard.proposedNames ?? []).map((n) => n.trim()).filter(Boolean)
         if (names.length < 3) return 'Enter at least 3 proposed business names.'
         return null
       }
-      case 3:
-        if (!wizard.entityEmail?.trim()) return 'Entity email is required.'
-        if (!EMAIL_REGEX.test(wizard.entityEmail)) return 'Enter a valid entity email address.'
+      case 4:
+        if (!wizard.primaryActivity?.trim()) return 'Describe the business activity.'
+        if (wizard.isNewCompany === undefined) return 'Tell us whether the company is newly registering or already exists.'
+        if (!wizard.entityEmail?.trim()) return 'Company email is required.'
+        if (!EMAIL_REGEX.test(wizard.entityEmail)) return 'Enter a valid company email address.'
         if (!wizard.entityPhone?.trim()) return 'Entity phone is required.'
         if (!KENYA_PHONE_REGEX.test(wizard.entityPhone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
         if (!wizard.contactPersonName?.trim()) return 'Contact person is required.'
@@ -283,43 +330,11 @@ export function NewEntityWizard() {
         if (!wizard.city?.trim()) return 'City/Town is required.'
         if (!wizard.county) return 'Choose a county.'
         if (!wizard.postalCode?.trim()) return 'Postal code is required.'
-        return null
-      case 4:
-        if (!wizard.primaryActivity?.trim()) return 'Describe your primary business activity.'
+        if (!wizard.postalAddress?.trim()) return 'Postal address is required.'
         if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
         if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
         return null
-      case 5:
-        if (shareholders.length < 1) return 'Add at least one shareholder/member.'
-        for (const s of shareholders) {
-          if (!s.id_or_reg_number) return `Add an ID/registration number for ${s.legal_name}.`
-          if (!s.corporate_details?.isCorporate && !s.kra_pin) return `Add a KRA PIN for ${s.legal_name}.`
-        }
-        return null
-      case 6: {
-        const minimum = entityType === 'public_limited_company' || entityType === 'partnership' ? 2 : 1
-        if (directors.length < minimum) return `Add at least ${minimum} ${minimum > 1 ? 'people' : 'person'}.`
-        // Spec: KRA PIN, date of birth, phone, and email are required per
-        // natural-person director. Corporate directors carry rep contact
-        // details instead, captured on the corporate sub-form.
-        for (const d of directors) {
-          if (d.residential_address?.isCorporate) continue
-          if (!d.kra_pin) return `Add a KRA PIN for ${d.full_name}.`
-          if (!d.residential_address?.dateOfBirth) return `Add a date of birth for ${d.full_name}.`
-          if (!d.phone) return `Add a phone number for ${d.full_name}.`
-          if (!d.email) return `Add an email address for ${d.full_name}.`
-        }
-        return null
-      }
-      case 7:
-        // Spec: BO details required unless the user explicitly confirms
-        // no declarable beneficial owner presently exists (10%+ direct/
-        // indirect interest or significant control — Charles, LLC spec)
-        if (beneficialOwners.length === 0 && !wizard.noBeneficialOwners) {
-          return 'Add at least one beneficial owner, or confirm none currently apply.'
-        }
-        return null
-      case 8: {
+      case 5: {
         const authorised = wizard.authorisedShareCapital ?? 0
         if (wizard.useMultipleShareClasses) {
           const classes = wizard.shareClassList ?? []
@@ -341,6 +356,36 @@ export function NewEntityWizard() {
         }
         return null
       }
+      case 6:
+        if (shareholders.length < 1) return 'Add at least one shareholder/member.'
+        for (const s of shareholders) {
+          if (!s.id_or_reg_number) return `Add an ID/registration number for ${s.legal_name}.`
+          if (!s.corporate_details?.isCorporate && !s.kra_pin) return `Add a KRA PIN for ${s.legal_name}.`
+        }
+        return null
+      case 7: {
+        const minimum = entityType === 'public_limited_company' || entityType === 'partnership' ? 2 : 1
+        if (directors.length < minimum) return `Add at least ${minimum} ${minimum > 1 ? 'people' : 'person'}.`
+        // Spec: KRA PIN, date of birth, phone, and email are required per
+        // natural-person director. Corporate directors carry rep contact
+        // details instead, captured on the corporate sub-form.
+        for (const d of directors) {
+          if (d.residential_address?.isCorporate) continue
+          if (!d.kra_pin) return `Add a KRA PIN for ${d.full_name}.`
+          if (!d.residential_address?.dateOfBirth) return `Add a date of birth for ${d.full_name}.`
+          if (!d.phone) return `Add a phone number for ${d.full_name}.`
+          if (!d.email) return `Add an email address for ${d.full_name}.`
+        }
+        return null
+      }
+      case 8:
+        // Spec: BO details required unless the user explicitly confirms
+        // no declarable beneficial owner presently exists (10%+ direct/
+        // indirect interest or significant control — Charles, LLC spec)
+        if (beneficialOwners.length === 0 && !wizard.noBeneficialOwners) {
+          return 'Add at least one beneficial owner, or confirm none currently apply.'
+        }
+        return null
       case 9: {
         const secretaryMandatory = entityType === 'public_limited_company' || (wizard.authorisedShareCapital ?? 0) > SECRETARY_CAPITAL_THRESHOLD_KES
         if (secretaryMandatory && wizard.hasCompanySecretary !== true) {
@@ -351,8 +396,7 @@ export function NewEntityWizard() {
         return null
       }
       case 10:
-        if (wizard.nssfNhifStatus === undefined) return 'Tell us about NSSF/NHIF registration.'
-        if (!wizard.payrollFrequency) return 'Choose a payroll frequency.'
+        if (!wizard.articlesType) return 'Choose which articles of association the company will use.'
         return null
       case 11:
         // v2.0: identity docs are captured per-person as directors/shareholders
@@ -361,9 +405,12 @@ export function NewEntityWizard() {
         // bill yet at registration time.
         return null
       case 12:
+        if (wizard.nssfNhifStatus === undefined) return 'Tell us about NSSF/NHIF registration.'
+        if (!wizard.payrollFrequency) return 'Choose a payroll frequency.'
+        return null
+      case 13:
         if (!wizard.declared || !wizard.consented || !wizard.agreedTerms) return 'All three declarations are required.'
         if (!wizard.signature?.trim()) return 'Type your full name as a signature.'
-        if (!wizard.applicantRelationship) return 'Choose your relationship to the business.'
         return null
       default:
         return null
@@ -487,9 +534,11 @@ export function NewEntityWizard() {
         {step === 1 && (
           <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} recommendedType={recommendedType} />
         )}
-        {step === 2 && <StepNames wizard={wizard} patch={patch} />}
-        {step === 3 && (
-          <StepAddress
+        {step === 2 && <StepApplicant wizard={wizard} patch={patch} />}
+        {step === 3 && <StepNames wizard={wizard} patch={patch} />}
+        {step === 4 && (
+          <StepCompanyBasics
+            entityType={entityType}
             wizard={wizard}
             patch={patch}
             orgId={orgId}
@@ -499,8 +548,8 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 4 && <StepActivities wizard={wizard} patch={patch} />}
-        {step === 5 && (
+        {step === 5 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
+        {step === 6 && (
           <StepShareholders
             entityType={entityType}
             shareholders={shareholders}
@@ -514,7 +563,7 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 6 && (
+        {step === 7 && (
           <StepDirectors
             entityType={entityType}
             directors={directors}
@@ -526,7 +575,7 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 7 && (
+        {step === 8 && (
           <StepBeneficialOwners
             shareholders={shareholders}
             beneficialOwners={beneficialOwners}
@@ -537,9 +586,8 @@ export function NewEntityWizard() {
             setError={setError}
           />
         )}
-        {step === 8 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
         {step === 9 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
-        {step === 10 && <StepEmployees wizard={wizard} patch={patch} />}
+        {step === 10 && <StepConstitutional wizard={wizard} patch={patch} />}
         {step === 11 && (
           <StepDocuments
             entityType={entityType}
@@ -552,8 +600,9 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 12 && <StepDeclaration wizard={wizard} patch={patch} />}
-        {step === 13 && (
+        {step === 12 && <StepEmployees wizard={wizard} patch={patch} />}
+        {step === 13 && <StepDeclaration wizard={wizard} patch={patch} />}
+        {step === 14 && (
           <StepReview
             entityType={entityType}
             wizard={wizard}
@@ -660,56 +709,46 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
         LexReg is currently focused on limited companies. Other entity types are on the roadmap.
       </p>
+    </div>
+  )
+}
 
-      <Field label="What does the business do?" required>
-        <textarea
-          className={inputCls}
-          style={inputStyle}
-          rows={3}
-          maxLength={200}
-          placeholder="Briefly describe the business activity…"
-          value={wizard.primaryActivity ?? ''}
-          onChange={(e) => patch({ primaryActivity: e.target.value })}
-        />
+// ------------------------------------------------------------------
+// Step 2 — Applicant & primary contact (LLC spec screen 2). User-account
+// and matter-contact data, distinct from the entity profile below.
+// ------------------------------------------------------------------
+function StepApplicant({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Applicant & primary contact
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        Who is filing this application? We use this to reach you about your matter.
+      </p>
+      <Field label="Applicant full name" required>
+        <input type="text" className={inputCls} style={inputStyle} value={wizard.applicantFullName ?? ''} onChange={(e) => patch({ applicantFullName: e.target.value })} />
       </Field>
-
-      <Field label="Industry" required>
-        <select
-          className={inputCls}
-          style={inputStyle}
-          value={wizard.industry ?? ''}
-          onChange={(e) => patch({ industry: e.target.value })}
-        >
-          <option value="" disabled>Choose an industry…</option>
-          {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Email" required>
+          <input type="email" className={inputCls} style={inputStyle} value={wizard.applicantEmail ?? ''} onChange={(e) => patch({ applicantEmail: e.target.value })} />
+        </Field>
+        <Field label="Mobile number" required>
+          <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={wizard.applicantPhone ?? ''} onChange={(e) => patch({ applicantPhone: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Relationship to company" required>
+        <select className={inputCls} style={inputStyle} value={wizard.applicantRelationship ?? ''} onChange={(e) => patch({ applicantRelationship: e.target.value as WizardData['applicantRelationship'] })}>
+          <option value="" disabled>Choose…</option>
+          {APPLICANT_RELATIONSHIPS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
-      </Field>
-
-      <Field label="How many people work in the business?" required>
-        <div className="grid grid-cols-4 gap-2">
-          {EMPLOYEE_SEGMENTS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => patch({ employeeSegment: s })}
-              className="py-2 rounded-xl border text-xs font-medium"
-              style={{
-                borderColor: wizard.employeeSegment === s ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                background: wizard.employeeSegment === s ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                color: 'var(--system-label)',
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
       </Field>
     </div>
   )
 }
 
 // ------------------------------------------------------------------
-// Step 2 — Proposed names
+// Step 3 — Proposed names
 // ------------------------------------------------------------------
 function StepNames({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
   const names = wizard.proposedNames ?? ['', '', '', '', '', '']
@@ -747,7 +786,15 @@ function StepNames({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<W
 // ------------------------------------------------------------------
 // Step 3 — Registered office
 // ------------------------------------------------------------------
-function StepAddress({ wizard, patch, orgId, entityId, api, setError, onExtracted }: {
+// ------------------------------------------------------------------
+// Step 4 — Company basics (LLC spec screen 4: company type locked,
+// activity description, new-vs-existing, registered office, postal
+// address, company email). Entity contact-person fields folded in too —
+// not spec-required but the natural home for them now that step 1 no
+// longer captures activity/industry/employee-count.
+// ------------------------------------------------------------------
+function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, setError, onExtracted }: {
+  entityType: EntityType
   wizard: WizardData
   patch: (p: Partial<WizardData>) => void
   orgId: string | null
@@ -768,14 +815,59 @@ function StepAddress({ wizard, patch, orgId, entityId, api, setError, onExtracte
     onExtracted()
   }
 
+  const entityLabel = ENTITY_TYPES.find((t) => t.value === entityType)?.label ?? entityType
+
   return (
     <div className="space-y-5">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Company basics
+      </h1>
+
+      <Field label="Company type">
+        <input type="text" className={inputCls} style={{ ...inputStyle, opacity: 0.7 }} value={entityLabel} disabled readOnly />
+      </Field>
+
+      <Field label="Nature of business / business activity" required>
+        <textarea
+          className={inputCls}
+          style={inputStyle}
+          rows={3}
+          maxLength={200}
+          placeholder="Briefly describe the business activity…"
+          value={wizard.primaryActivity ?? ''}
+          onChange={(e) => patch({ primaryActivity: e.target.value })}
+        />
+        <p className="text-ios-caption1 mt-1 text-right" style={{ color: 'var(--system-label-3)' }}>
+          {(wizard.primaryActivity ?? '').length}/200
+        </p>
+      </Field>
+
+      <Field label="Is the company being newly registered, or does it already exist?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'New registration' }, { v: false, label: 'Already exists' }].map(({ v, label }) => (
+            <button
+              key={String(v)}
+              type="button"
+              onClick={() => patch({ isNewCompany: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.isNewCompany === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.isNewCompany === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Field>
+
       <div className="space-y-4">
-        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
           Entity contact details
-        </h1>
+        </h2>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Entity email" required>
+          <Field label="Company email" required>
             <input type="email" className={inputCls} style={inputStyle} value={wizard.entityEmail ?? ''} onChange={(e) => patch({ entityEmail: e.target.value })} />
           </Field>
           <Field label="Entity phone" required>
@@ -816,11 +908,30 @@ function StepAddress({ wizard, patch, orgId, entityId, api, setError, onExtracte
           <input type="text" className={inputCls} style={inputStyle} value={wizard.addressLine2 ?? ''} onChange={(e) => patch({ addressLine2: e.target.value })} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="City / Town" required>
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.city ?? ''} onChange={(e) => patch({ city: e.target.value })} />
+          <Field label="Street name">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.streetName ?? ''} onChange={(e) => patch({ streetName: e.target.value })} />
           </Field>
+          <Field label="Building name">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.buildingName ?? ''} onChange={(e) => patch({ buildingName: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Floor">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.floorNumber ?? ''} onChange={(e) => patch({ floorNumber: e.target.value })} />
+          </Field>
+          <Field label="Door / unit number">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.doorNumber ?? ''} onChange={(e) => patch({ doorNumber: e.target.value })} />
+          </Field>
+        </div>
+        <Field label="City / Town" required>
+          <input type="text" className={inputCls} style={inputStyle} value={wizard.city ?? ''} onChange={(e) => patch({ city: e.target.value })} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Postal code" required>
             <input type="text" className={inputCls} style={inputStyle} value={wizard.postalCode ?? ''} onChange={(e) => patch({ postalCode: e.target.value })} />
+          </Field>
+          <Field label="Postal address" required>
+            <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box" value={wizard.postalAddress ?? ''} onChange={(e) => patch({ postalAddress: e.target.value })} />
           </Field>
         </div>
         <Field label="County" required>
@@ -832,77 +943,48 @@ function StepAddress({ wizard, patch, orgId, entityId, api, setError, onExtracte
         <Field label="Country">
           <input type="text" className={inputCls} style={inputStyle} value={wizard.country ?? 'Kenya'} onChange={(e) => patch({ country: e.target.value })} />
         </Field>
-        <Field label="Postal address">
-          <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different from street address" value={wizard.postalAddress ?? ''} onChange={(e) => patch({ postalAddress: e.target.value })} />
-        </Field>
         <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
           Proof of address is optional — upload above to auto-fill the fields, type them yourself, or add the
           document later from the review step if you don’t have one yet.
         </p>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          Turnover & employment
+        </h2>
+        <Field label="Expected annual turnover (KES)" required>
+          <select className={inputCls} style={inputStyle} value={wizard.turnoverRange ?? ''} onChange={(e) => patch({ turnoverRange: e.target.value })}>
+            <option value="" disabled>Choose a range…</option>
+            {TURNOVER_RANGES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </Field>
+        <Field label="Will the business have employees?" required>
+          <div className="grid grid-cols-2 gap-2">
+            {[true, false].map((v) => (
+              <button
+                key={String(v)}
+                type="button"
+                onClick={() => patch({ hasEmployees: v })}
+                className="py-2.5 rounded-xl border text-sm font-medium"
+                style={{
+                  borderColor: wizard.hasEmployees === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                  background: wizard.hasEmployees === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                  color: 'var(--system-label)',
+                }}
+              >
+                {v ? 'Yes' : 'No'}
+              </button>
+            ))}
+          </div>
+        </Field>
       </div>
     </div>
   )
 }
 
 // ------------------------------------------------------------------
-// Step 4 — Business activities
-// ------------------------------------------------------------------
-function StepActivities({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Principal business activities
-      </h1>
-      <Field label="Primary business activity" required>
-        <textarea
-          className={inputCls}
-          style={inputStyle}
-          rows={3}
-          maxLength={200}
-          value={wizard.primaryActivity ?? ''}
-          onChange={(e) => patch({ primaryActivity: e.target.value })}
-        />
-        <p className="text-ios-caption1 mt-1 text-right" style={{ color: 'var(--system-label-3)' }}>
-          {(wizard.primaryActivity ?? '').length}/200
-        </p>
-      </Field>
-      <Field label="Secondary activities (comma-separated)">
-        <input type="text" className={inputCls} style={inputStyle} value={wizard.secondaryActivities ?? ''} onChange={(e) => patch({ secondaryActivities: e.target.value })} />
-      </Field>
-      <Field label="Business sector code (if known)">
-        <input type="text" className={inputCls} style={inputStyle} value={wizard.sectorCode ?? ''} onChange={(e) => patch({ sectorCode: e.target.value })} />
-      </Field>
-      <Field label="Expected annual turnover (KES)" required>
-        <select className={inputCls} style={inputStyle} value={wizard.turnoverRange ?? ''} onChange={(e) => patch({ turnoverRange: e.target.value })}>
-          <option value="" disabled>Choose a range…</option>
-          {TURNOVER_RANGES.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </Field>
-      <Field label="Will the business have employees?" required>
-        <div className="grid grid-cols-2 gap-2">
-          {[true, false].map((v) => (
-            <button
-              key={String(v)}
-              type="button"
-              onClick={() => patch({ hasEmployees: v })}
-              className="py-2.5 rounded-xl border text-sm font-medium"
-              style={{
-                borderColor: wizard.hasEmployees === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                background: wizard.hasEmployees === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                color: 'var(--system-label)',
-              }}
-            >
-              {v ? 'Yes' : 'No'}
-            </button>
-          ))}
-        </div>
-      </Field>
-    </div>
-  )
-}
-
-// ------------------------------------------------------------------
-// Step 5 — Directors / partners / trustees
+// Step 7 — Directors / partners / trustees
 // ------------------------------------------------------------------
 const ROLE_BY_TYPE: Partial<Record<EntityType, string>> = {
   partnership: 'Partner',
@@ -928,7 +1010,13 @@ type DirectorForm = {
 }
 
 const emptyCorporate: CorporateParticipant = {
-  registeredName: '', regNumber: '', countryOfIncorporation: 'Kenya', repName: '', repEmail: '', repPhone: '',
+  registeredName: '', tradeName: '', corporateEntityType: '', regNumber: '',
+  countryOfIncorporation: 'Kenya', isForeign: false, incorporationDate: '',
+  goodStandingStatus: '', kraPin: '', foreignTaxId: '', registeredOfficeAddress: '',
+  postalAddress: '', corporateEmail: '', corporatePhone: '',
+  repName: '', repTitle: '', repNationality: 'Kenyan', repIdType: '', repIdNumber: '',
+  repKraPin: '', repEmail: '', repPhone: '', repAuthorityCapacity: '',
+  serviceAddressForNotices: '', basisOfAuthorityToAct: '',
 }
 
 const emptyDirector: DirectorForm = {
@@ -1003,25 +1091,154 @@ function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, enti
   )
 }
 
-function CorporateFields({ value, onChange }: { value: CorporateParticipant; onChange: (p: Partial<CorporateParticipant>) => void }) {
+const CORPORATE_ENTITY_TYPES: Array<{ value: CorporateParticipant['corporateEntityType']; label: string }> = [
+  { value: 'private_company', label: 'Private company' },
+  { value: 'public_company', label: 'Public company' },
+  { value: 'llp', label: 'LLP' },
+  { value: 'foundation', label: 'Foundation' },
+  { value: 'other', label: 'Other' },
+]
+
+const REP_ID_TYPES: Array<{ value: CorporateParticipant['repIdType']; label: string }> = [
+  { value: 'kenyan_id', label: 'Kenyan ID' },
+  { value: 'passport', label: 'Passport' },
+  { value: 'foreign_id', label: 'Foreign ID' },
+  { value: 'other', label: 'Other' },
+]
+
+const AUTHORITY_BASIS_OPTIONS: Array<{ value: CorporateParticipant['basisOfAuthorityToAct']; label: string }> = [
+  { value: 'board_resolution', label: 'Board resolution' },
+  { value: 'power_of_attorney', label: 'Power of attorney' },
+  { value: 'constitutional_document', label: 'Constitutional document' },
+  { value: 'other', label: 'Other' },
+]
+
+function CorporateFields({ value, onChange, context }: {
+  value: CorporateParticipant
+  onChange: (p: Partial<CorporateParticipant>) => void
+  context: 'director' | 'shareholder'
+}) {
   return (
     <div className="space-y-3 rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
       <Field label="Registered company name" required>
         <input type="text" className={inputCls} style={inputStyle} value={value.registeredName} onChange={(e) => onChange({ registeredName: e.target.value })} />
       </Field>
+      <Field label="Trade name (if different)">
+        <input type="text" className={inputCls} style={inputStyle} value={value.tradeName} onChange={(e) => onChange({ tradeName: e.target.value })} />
+      </Field>
       <div className="grid grid-cols-2 gap-3">
+        <Field label="Entity type" required>
+          <select className={inputCls} style={inputStyle} value={value.corporateEntityType} onChange={(e) => onChange({ corporateEntityType: e.target.value as CorporateParticipant['corporateEntityType'] })}>
+            <option value="" disabled>Choose…</option>
+            {CORPORATE_ENTITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </Field>
         <Field label="Registration number" required>
           <input type="text" className={inputCls} style={inputStyle} value={value.regNumber} onChange={(e) => onChange({ regNumber: e.target.value })} />
         </Field>
+      </div>
+      <Field label="Is this company local (Kenyan) or foreign?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: false, label: 'Kenyan' }, { v: true, label: 'Foreign' }].map(({ v, label }) => (
+            <button
+              key={String(v)}
+              type="button"
+              onClick={() => onChange({ isForeign: v })}
+              className="py-2 rounded-xl border text-xs font-medium"
+              style={{
+                borderColor: value.isForeign === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: value.isForeign === v ? 'var(--system-bg)' : 'var(--system-bg-2)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
         <Field label="Country of incorporation" required>
           <input type="text" className={inputCls} style={inputStyle} value={value.countryOfIncorporation} onChange={(e) => onChange({ countryOfIncorporation: e.target.value })} />
         </Field>
+        <Field label="Date of incorporation">
+          <input type="date" className={inputCls} style={inputStyle} value={value.incorporationDate} onChange={(e) => onChange({ incorporationDate: e.target.value })} />
+        </Field>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={value.isForeign ? 'Foreign tax ID' : 'Company KRA PIN'} required>
+          <input type="text" className={inputCls} style={inputStyle} value={value.isForeign ? value.foreignTaxId : value.kraPin} onChange={(e) => onChange(value.isForeign ? { foreignTaxId: e.target.value } : { kraPin: e.target.value.toUpperCase() })} />
+        </Field>
+        {value.isForeign && (
+          <Field label="Good standing status">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Active / Certificate on file" value={value.goodStandingStatus} onChange={(e) => onChange({ goodStandingStatus: e.target.value })} />
+          </Field>
+        )}
+      </div>
+      <Field label="Registered office address" required>
+        <input type="text" className={inputCls} style={inputStyle} value={value.registeredOfficeAddress} onChange={(e) => onChange({ registeredOfficeAddress: e.target.value })} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Postal address">
+          <input type="text" className={inputCls} style={inputStyle} value={value.postalAddress} onChange={(e) => onChange({ postalAddress: e.target.value })} />
+        </Field>
+        <Field label="Company email">
+          <input type="email" className={inputCls} style={inputStyle} value={value.corporateEmail} onChange={(e) => onChange({ corporateEmail: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Company phone">
+        <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={value.corporatePhone} onChange={(e) => onChange({ corporatePhone: e.target.value })} />
+      </Field>
+
+      {context === 'director' && (
+        <>
+          <div className="h-px" style={{ background: 'var(--system-fill-3)' }} />
+          <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
+            Director-specific
+          </p>
+          <Field label="Service address for notices" required>
+            <input type="text" className={inputCls} style={inputStyle} value={value.serviceAddressForNotices} onChange={(e) => onChange({ serviceAddressForNotices: e.target.value })} />
+          </Field>
+          <Field label="Basis of authority to act as director" required>
+            <select className={inputCls} style={inputStyle} value={value.basisOfAuthorityToAct} onChange={(e) => onChange({ basisOfAuthorityToAct: e.target.value as CorporateParticipant['basisOfAuthorityToAct'] })}>
+              <option value="" disabled>Choose…</option>
+              {AUTHORITY_BASIS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+          <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+            A corporate director is flagged for legal review before filing — our team will confirm the authority
+            document before this application is submitted to BRS.
+          </p>
+        </>
+      )}
+
+      <div className="h-px" style={{ background: 'var(--system-fill-3)' }} />
       <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
         Authorised representative (natural person who acts for this company)
       </p>
       <Field label="Representative full name" required>
         <input type="text" className={inputCls} style={inputStyle} value={value.repName} onChange={(e) => onChange({ repName: e.target.value })} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Title / capacity">
+          <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Director, Company Secretary" value={value.repTitle} onChange={(e) => onChange({ repTitle: e.target.value })} />
+        </Field>
+        <Field label="Nationality">
+          <input type="text" className={inputCls} style={inputStyle} value={value.repNationality} onChange={(e) => onChange({ repNationality: e.target.value })} />
+        </Field>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="ID type" required>
+          <select className={inputCls} style={inputStyle} value={value.repIdType} onChange={(e) => onChange({ repIdType: e.target.value as CorporateParticipant['repIdType'] })}>
+            <option value="" disabled>Choose…</option>
+            {REP_ID_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </Field>
+        <Field label="ID number" required>
+          <input type="text" className={inputCls} style={inputStyle} value={value.repIdNumber} onChange={(e) => onChange({ repIdNumber: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Representative KRA PIN">
+        <input type="text" className={inputCls} style={inputStyle} value={value.repKraPin} onChange={(e) => onChange({ repKraPin: e.target.value.toUpperCase() })} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Representative email" required>
@@ -1031,8 +1248,12 @@ function CorporateFields({ value, onChange }: { value: CorporateParticipant; onC
           <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={value.repPhone} onChange={(e) => onChange({ repPhone: e.target.value })} />
         </Field>
       </div>
+      <Field label="Authority / capacity to act">
+        <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Appointed by board resolution dated…" value={value.repAuthorityCapacity} onChange={(e) => onChange({ repAuthorityCapacity: e.target.value })} />
+      </Field>
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        Upload the certificate of incorporation, board resolution, and representative ID in the document step.
+        Upload the certificate of incorporation, board resolution or power of attorney, tax certificate, and
+        representative ID in the document step.
       </p>
     </div>
   )
@@ -1058,11 +1279,24 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
 
   const validate = (f: DirectorForm): string | null => {
     if (f.isCorporate) {
-      if (!f.corporate.registeredName.trim()) return 'Registered company name is required.'
-      if (!f.corporate.regNumber.trim()) return 'Registration number is required.'
-      if (!f.corporate.repName.trim()) return 'Representative name is required.'
-      if (!f.corporate.repEmail.trim() || !EMAIL_REGEX.test(f.corporate.repEmail)) return 'Enter a valid representative email.'
-      if (!f.corporate.repPhone.trim() || !KENYA_PHONE_REGEX.test(f.corporate.repPhone)) return 'Enter a valid representative phone.'
+      const c = f.corporate
+      if (!c.registeredName.trim()) return 'Registered company name is required.'
+      if (!c.corporateEntityType) return 'Choose the corporate entity type.'
+      if (!c.regNumber.trim()) return 'Registration number is required.'
+      if (!c.countryOfIncorporation.trim()) return 'Country of incorporation is required.'
+      if (c.isForeign) {
+        if (!c.foreignTaxId.trim()) return 'Foreign tax ID is required.'
+      } else if (!c.kraPin.trim()) {
+        return 'Company KRA PIN is required.'
+      }
+      if (!c.registeredOfficeAddress.trim()) return 'Registered office address is required.'
+      if (!c.serviceAddressForNotices.trim()) return 'Service address for notices is required.'
+      if (!c.basisOfAuthorityToAct) return 'Choose the basis of authority to act as director.'
+      if (!c.repName.trim()) return 'Representative name is required.'
+      if (!c.repIdType) return 'Choose the representative’s ID type.'
+      if (!c.repIdNumber.trim()) return 'Representative ID number is required.'
+      if (!c.repEmail.trim() || !EMAIL_REGEX.test(c.repEmail)) return 'Enter a valid representative email.'
+      if (!c.repPhone.trim() || !KENYA_PHONE_REGEX.test(c.repPhone)) return 'Enter a valid representative phone.'
       return null
     }
     if (!f.fullName.trim()) return 'Full name is required.'
@@ -1230,7 +1464,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           </div>
 
           {form.isCorporate ? (
-            <CorporateFields value={form.corporate} onChange={setCorporate} />
+            <CorporateFields value={form.corporate} onChange={setCorporate} context="director" />
           ) : (
             <>
               {!form.id && (
@@ -1363,9 +1597,19 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   const save = async () => {
     if (!form) return
     if (form.isCorporate) {
-      if (!form.corporate.registeredName.trim()) { setError('Registered company name is required.'); return }
-      if (!form.corporate.regNumber.trim()) { setError('Registration number is required.'); return }
-      if (!form.corporate.repName.trim()) { setError('Representative name is required.'); return }
+      const c = form.corporate
+      if (!c.registeredName.trim()) { setError('Registered company name is required.'); return }
+      if (!c.corporateEntityType) { setError('Choose the corporate entity type.'); return }
+      if (!c.regNumber.trim()) { setError('Registration number is required.'); return }
+      if (!c.countryOfIncorporation.trim()) { setError('Country of incorporation is required.'); return }
+      if (c.isForeign ? !c.foreignTaxId.trim() : !c.kraPin.trim()) {
+        setError(c.isForeign ? 'Foreign tax ID is required.' : 'Company KRA PIN is required.')
+        return
+      }
+      if (!c.registeredOfficeAddress.trim()) { setError('Registered office address is required.'); return }
+      if (!c.repName.trim()) { setError('Representative name is required.'); return }
+      if (!c.repIdType) { setError('Choose the representative’s ID type.'); return }
+      if (!c.repIdNumber.trim()) { setError('Representative ID number is required.'); return }
     } else {
       if (!form.legalName.trim()) { setError('Name is required.'); return }
       if (!form.idNumber.trim()) { setError('National ID / registration number is required.'); return }
@@ -1412,12 +1656,27 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       const newTotal = next.reduce((s, x) => s + x.shares_held, 0)
       setShareholders(next.map((s) => ({ ...s, share_percentage: newTotal > 0 ? Math.round((s.shares_held / newTotal) * 10000) / 100 : null })))
 
-      // "Also a director?" — auto-copy this person's identity into a
-      // director profile instead of re-typing it (Charles, 2026-07-17)
-      if (form.alsoDirector && !form.isCorporate && !form.id) {
+      // "Also a director?" — auto-copy this person's (or company's)
+      // identity into a director profile instead of re-typing it
+      // (Charles, 2026-07-17; extended to corporate parties 2026-07-24
+      // so a company that's both shareholder and director isn't typed
+      // twice — same pattern, not a separate linked record).
+      if (form.alsoDirector && !form.id) {
         const dirResult = await api({
           action: 'upsert_director',
-          director: {
+          director: form.isCorporate ? {
+            fullName: form.corporate.registeredName.trim(),
+            idNumber: form.corporate.regNumber.trim(),
+            kraPin: form.corporate.isForeign ? undefined : form.corporate.kraPin.toUpperCase() || undefined,
+            nationality: form.corporate.countryOfIncorporation,
+            phone: form.corporate.repPhone || undefined,
+            email: form.corporate.repEmail || undefined,
+            role: roleLabel.toLowerCase().replace(' ', '_'),
+            appointmentDate: new Date().toISOString().slice(0, 10),
+            isCorporate: true,
+            corporate: form.corporate,
+            isForeign: form.corporate.isForeign,
+          } : {
             fullName: form.legalName.trim(),
             idNumber: form.idNumber.trim(),
             kraPin: form.kraPin.trim().toUpperCase() || undefined,
@@ -1428,16 +1687,22 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             appointmentDate: new Date().toISOString().slice(0, 10),
           },
         })
+        const displayNameForDirector = form.isCorporate ? form.corporate.registeredName.trim() : form.legalName.trim()
         setDirectors([...directors, {
           id: dirResult.id!,
-          full_name: form.legalName.trim(),
-          id_number: form.idNumber.trim(),
-          kra_pin: form.kraPin.trim().toUpperCase() || null,
-          phone: form.phone || null,
-          email: form.email || null,
-          nationality: 'Kenyan',
+          full_name: displayNameForDirector,
+          id_number: form.isCorporate ? form.corporate.regNumber.trim() : form.idNumber.trim(),
+          kra_pin: form.isCorporate ? (form.corporate.isForeign ? null : form.corporate.kraPin.toUpperCase() || null) : (form.kraPin.trim().toUpperCase() || null),
+          phone: (form.isCorporate ? form.corporate.repPhone : form.phone) || null,
+          email: (form.isCorporate ? form.corporate.repEmail : form.email) || null,
+          nationality: form.isCorporate ? form.corporate.countryOfIncorporation : 'Kenyan',
           appointment_date: new Date().toISOString().slice(0, 10),
-          residential_address: { role: roleLabel, dateOfBirth: form.dateOfBirth },
+          residential_address: {
+            role: roleLabel,
+            dateOfBirth: form.dateOfBirth,
+            isCorporate: form.isCorporate,
+            corporate: form.isCorporate ? form.corporate : undefined,
+          },
         }])
       }
 
@@ -1550,7 +1815,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           </div>
 
           {form.isCorporate ? (
-            <CorporateFields value={form.corporate} onChange={setCorporate} />
+            <CorporateFields value={form.corporate} onChange={setCorporate} context="shareholder" />
           ) : (
             <>
               {!form.id && (
@@ -1608,10 +1873,12 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             <input type="checkbox" checked={form.isNominee} onChange={(e) => set({ isNominee: e.target.checked })} />
             Nominee shareholder
           </label>
-          {!form.isCorporate && !form.id && (
+          {!form.id && (
             <label className="flex items-center gap-2 text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
               <input type="checkbox" checked={form.alsoDirector} onChange={(e) => set({ alsoDirector: e.target.checked })} />
-              This person is also a {roleLabel.toLowerCase()} — copy these details across
+              {form.isCorporate
+                ? `This company is also a ${roleLabel.toLowerCase()} — copy these details across`
+                : `This person is also a ${roleLabel.toLowerCase()} — copy these details across`}
             </label>
           )}
           <div className="flex gap-2">
@@ -1679,11 +1946,17 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
 
   // Shareholders holding 10%+ who aren't already recorded as a BO —
   // one-tap prefill per the spec's "permit the user to mark that a
-  // shareholder is also a beneficial owner" guidance
+  // shareholder is also a beneficial owner" guidance. Corporate
+  // shareholders are excluded here: a company can never itself be a
+  // beneficial owner — Kenyan BO rules require tracing through it to the
+  // natural person(s) who ultimately own/control it (corporate-party
+  // field spec, Table F). They're surfaced separately below instead.
   const recordedNames = new Set(beneficialOwners.map((b) => b.full_name.toLowerCase()))
-  const candidateShareholders = shareholders.filter(
-    (s) => (s.share_percentage ?? 0) >= 10 && !recordedNames.has(s.legal_name.toLowerCase())
+  const tenPercentPlus = shareholders.filter((s) => (s.share_percentage ?? 0) >= 10)
+  const candidateShareholders = tenPercentPlus.filter(
+    (s) => !s.corporate_details?.isCorporate && !recordedNames.has(s.legal_name.toLowerCase())
   )
+  const corporateShareholdersNeedingTrace = tenPercentPlus.filter((s) => s.corporate_details?.isCorporate)
 
   const set = (partial: Partial<BeneficialOwnerForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
 
@@ -1790,6 +2063,23 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
               <span className="font-medium" style={{ color: 'var(--system-label)' }}>{s.legal_name}</span>
               <span style={{ color: 'var(--system-label-2)' }}> — {s.share_percentage}% shares</span>
             </button>
+          ))}
+        </div>
+      )}
+
+      {corporateShareholdersNeedingTrace.length > 0 && !form && (
+        <div className="ios-surface rounded-2xl p-4 space-y-2" style={{ background: 'rgba(128,0,32,0.06)' }}>
+          <p className="text-ios-footnote font-semibold" style={{ color: 'var(--brand-navy)' }}>
+            Corporate shareholders holding 10%+ — declare who ultimately owns/controls them
+          </p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            A company can&apos;t itself be a beneficial owner. For each corporate shareholder below, add the
+            natural person(s) who ultimately own or control it as beneficial owners.
+          </p>
+          {corporateShareholdersNeedingTrace.map((s) => (
+            <p key={s.id} className="text-ios-footnote" style={{ color: 'var(--system-label)' }}>
+              • {s.legal_name} — {s.share_percentage}% shares
+            </p>
           ))}
         </div>
       )}
@@ -2339,6 +2629,48 @@ const UPLOAD_SECTIONS: UploadSection[] = [
   },
   {
     key: 'other',
+    title: 'Signed BOF1 (beneficial ownership filing)',
+    hint: 'Declares the natural persons who ultimately own or control the company.',
+    documentType: 'signed_bof1',
+    visible: (t) => SHAREHOLDER_TYPES.includes(t),
+  },
+  {
+    key: 'other',
+    title: 'Corporate party — certificate of incorporation',
+    hint: 'For any shareholder or director that is itself a company. Upload one file per corporate party if there is more than one.',
+    documentType: 'corporate_certificate_of_incorporation',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Corporate party — board resolution / power of attorney',
+    hint: 'Authorising the named representative to act for the corporate shareholder or director.',
+    documentType: 'corporate_authority_document',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Corporate party — tax certificate',
+    hint: 'The corporate party’s own KRA PIN or equivalent foreign tax certificate.',
+    documentType: 'corporate_tax_certificate',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Corporate party — good standing certificate (foreign only)',
+    hint: 'Required only if the corporate shareholder or director is registered outside Kenya.',
+    documentType: 'corporate_good_standing',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Corporate party — representative ID',
+    hint: 'National ID or passport of the person representing the corporate shareholder or director.',
+    documentType: 'corporate_representative_id',
+    visible: () => true,
+  },
+  {
+    key: 'other',
     title: 'Other supporting documents',
     hint: 'Partnership deeds, trust deeds, by-laws, draft employment contracts — anything else relevant.',
     documentType: 'other',
@@ -2346,7 +2678,66 @@ const UPLOAD_SECTIONS: UploadSection[] = [
   },
 ]
 
-type FileStatus = { name: string; state: 'uploading' | 'extracting' | 'done' | 'ocr_failed' | 'upload_failed'; summary?: string }
+// ------------------------------------------------------------------
+// Step 10 — Constitutional documents & forms (LLC spec screen 9).
+// Standard vs custom articles, plus context on the forms generated from
+// data already entered — CR1/CR2/CR8 and statement of nominal capital
+// aren't asked for as uploads until the next step, once this data exists.
+// ------------------------------------------------------------------
+function StepConstitutional({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  return (
+    <div className="space-y-5">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Constitutional documents
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        These govern how the company runs internally — rules for directors, shareholders, and decision-making.
+      </p>
+      <Field label="Which articles of association will the company use?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: 'standard' as const, label: 'Standard model articles' }, { v: 'custom' as const, label: 'Custom articles' }].map(({ v, label }) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => patch({ articlesType: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.articlesType === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.articlesType === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Field>
+      {wizard.articlesType === 'custom' && (
+        <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+          Custom articles require legal drafting — our team will follow up once you submit.
+        </p>
+      )}
+      <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
+        <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
+          Forms we&apos;ll generate for you
+        </p>
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          Using the company, share, and director details you&apos;ve already entered, we generate CR1 (application
+          for registration), CR2 (memorandum of registration), CR8 (particulars of directors), and the statement
+          of nominal capital. Download, sign, and upload them back on the next step.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+type FileStatus = {
+  name: string
+  state: 'uploading' | 'extracting' | 'done' | 'ocr_failed' | 'upload_failed'
+  summary?: string
+  documentId?: string
+  sectionKey?: UploadSection['key']
+}
 
 function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, api, setError, onExtracted }: {
   entityType: EntityType
@@ -2367,7 +2758,14 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
     setError('')
     const supabase = createClient()
 
+    let isFirst = true
     for (const file of Array.from(files)) {
+      // Space out OCR calls when several documents are selected at once —
+      // this step accepts multi-select and firing them back-to-back can
+      // burst past Gemini's per-minute rate limit.
+      if (!isFirst) await new Promise((r) => setTimeout(r, 1500))
+      isFirst = false
+
       const tempId = crypto.randomUUID()
       if (file.size > 10 * 1024 * 1024) {
         setStatus(tempId, { name: file.name, state: 'upload_failed', summary: 'Over 10MB — please compress' })
@@ -2380,7 +2778,7 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
       const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
       if (uploadError) {
         console.error('upload error', uploadError)
-        setStatus(tempId, { name: file.name, state: 'upload_failed', summary: 'Upload failed — try again' })
+        setStatus(tempId, { name: file.name, state: 'upload_failed', summary: `Upload failed: ${uploadError.message} — try again` })
         continue
       }
 
@@ -2391,34 +2789,47 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
           document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: section.documentType },
         })
         documentId = registered.id!
-      } catch {
-        setStatus(tempId, { name: file.name, state: 'upload_failed', summary: 'Upload failed — try again' })
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : 'unknown error'
+        setStatus(tempId, { name: file.name, state: 'upload_failed', summary: `Upload failed: ${reason} — try again` })
         continue
       }
 
       setDocuments([...documents, { id: documentId, name: file.name, document_type: section.documentType, file_path: path, file_size: file.size }])
-      setStatus(tempId, { name: file.name, state: 'extracting' })
+      setStatus(tempId, { name: file.name, state: 'extracting', documentId, sectionKey: section.key })
 
-      // Run OCR extraction — failures fall back to manual entry, never block
-      try {
-        const result = await api({ action: 'ocr_extract', documentId, section: section.key })
-        if (result.ok && result.fields) {
-          const f = result.fields as { full_name?: string; kra_pin?: string; address_line1?: string; document_kind?: string }
-          const summary = f.full_name ?? f.address_line1 ?? f.kra_pin ?? 'Details extracted'
-          setStatus(tempId, { name: file.name, state: 'done', summary: `Extracted: ${summary}` })
-        } else {
-          const summary =
-            result.reason === 'quota_exhausted'
-              ? 'Extraction unavailable right now — details can be entered manually'
-              : 'Couldn’t read this document — details can be entered manually'
-          setStatus(tempId, { name: file.name, state: 'ocr_failed', summary })
-        }
-      } catch {
-        setStatus(tempId, { name: file.name, state: 'ocr_failed', summary: 'Extraction failed — details can be entered manually' })
-      }
-
-      await onExtracted()
+      await runExtraction(tempId, file.name, documentId, section.key)
     }
+  }
+
+  // Run OCR extraction — failures fall back to manual entry, never block.
+  // Shared by the initial upload and the manual "Retry" button, so a
+  // repeat Gemini overload doesn't force a re-upload of the whole file.
+  const runExtraction = async (tempId: string, fileName: string, documentId: string, sectionKey: UploadSection['key']) => {
+    try {
+      const result = await api({ action: 'ocr_extract', documentId, section: sectionKey })
+      if (result.ok && result.fields) {
+        const f = result.fields as { full_name?: string; kra_pin?: string; address_line1?: string; document_kind?: string }
+        const summary = f.full_name ?? f.address_line1 ?? f.kra_pin ?? 'Details extracted'
+        setStatus(tempId, { name: fileName, state: 'done', summary: `Extracted: ${summary}` })
+      } else {
+        const summary =
+          result.reason === 'quota_exhausted'
+            ? 'Extraction unavailable right now — details can be entered manually'
+            : 'Couldn’t read this document — details can be entered manually'
+        setStatus(tempId, { name: fileName, state: 'ocr_failed', summary, documentId, sectionKey })
+      }
+    } catch {
+      setStatus(tempId, { name: fileName, state: 'ocr_failed', summary: 'Extraction failed — details can be entered manually', documentId, sectionKey })
+    }
+    await onExtracted()
+  }
+
+  const retryExtraction = async (tempId: string) => {
+    const s = statuses[tempId]
+    if (!s?.documentId || !s.sectionKey) return
+    setStatus(tempId, { ...s, state: 'extracting' })
+    await runExtraction(tempId, s.name, s.documentId, s.sectionKey)
   }
 
   const busy = Object.values(statuses).some((s) => s.state === 'uploading' || s.state === 'extracting')
@@ -2493,6 +2904,16 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
               </p>
             )}
           </div>
+          {s.state === 'ocr_failed' && s.documentId && (
+            <button
+              type="button"
+              onClick={() => retryExtraction(id)}
+              className="shrink-0 text-ios-caption1 font-semibold"
+              style={{ color: 'var(--brand-navy)' }}
+            >
+              Retry
+            </button>
+          )}
         </div>
       ))}
 
@@ -2535,17 +2956,6 @@ function StepDeclaration({ wizard, patch }: { wizard: WizardData; patch: (p: Par
         {' '}and{' '}
         <Link href="/legal/terms" target="_blank" className="underline" style={{ color: 'var(--brand-navy)' }}>Terms and Conditions</Link>.
       </Check>
-
-      <Field label="Your relationship to the business" required>
-        <select
-          className={inputCls} style={inputStyle}
-          value={wizard.applicantRelationship ?? ''}
-          onChange={(e) => patch({ applicantRelationship: e.target.value as WizardData['applicantRelationship'] })}
-        >
-          <option value="" disabled>Choose…</option>
-          {APPLICANT_RELATIONSHIPS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-        </select>
-      </Field>
 
       <Field label="Signature — type your full legal name" required>
         <input
@@ -2593,7 +3003,7 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
 
       <div className="ios-surface rounded-2xl p-4">
         <Row label="Entity type" value={typeLabel} />
-        <Row label="Industry" value={wizard.industry ?? '—'} />
+        <Row label="Applicant" value={wizard.applicantFullName ?? '—'} />
         <Row label="Proposed names" value={names.join(', ') || '—'} />
         <Row label="Registered office" value={[wizard.addressLine1, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
         <Row label="Primary activity" value={wizard.primaryActivity ?? '—'} />

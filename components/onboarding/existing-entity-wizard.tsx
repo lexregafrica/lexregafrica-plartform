@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -33,8 +33,25 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 type DirectorRow = { id: string; full_name: string; id_number: string; kra_pin: string | null }
-type ShareholderRow = { id: string; legal_name: string; id_or_reg_number: string | null; kra_pin: string | null; shares_held: number }
+type ShareholderRow = { id: string; legal_name: string; id_or_reg_number: string | null; kra_pin: string | null; shares_held: number; share_percentage?: number | null }
 type DocumentRow = { id: string; name: string; document_type: string | null; ocr_status?: string | null }
+type BeneficialOwnerRow = {
+  id: string
+  full_name: string
+  id_number: string | null
+  kra_pin: string | null
+  nationality: string
+  date_of_birth: string | null
+  postal_address: { text?: string } | null
+  business_address: { text?: string } | null
+  residential_address: { text?: string } | null
+  phone: string | null
+  email: string | null
+  occupation: string | null
+  nature_of_control: string | null
+  date_became_bo: string | null
+  share_percentage: number | null
+}
 
 type LoadState = 'loading' | 'wizard' | 'activated' | 'error'
 
@@ -57,6 +74,11 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     documentType: 'kra_pin',
   },
   {
+    title: 'Beneficial ownership filing (BOF1), if you have one',
+    hint: 'Declares the natural persons who ultimately own or control the company — upload if already filed.',
+    documentType: 'bof1',
+  },
+  {
     title: 'Other documents',
     hint: 'MEMART, permits, or anything else you’d like on file.',
     documentType: 'other',
@@ -67,6 +89,10 @@ type FileStatus = { name: string; state: 'uploading' | 'extracting' | 'done' | '
 
 export function ExistingEntityWizard() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Which entity's session to resume — see new-entity-wizard.tsx's
+  // entityParam for why this matters (a user can have several sessions).
+  const entityParam = searchParams.get('entity')
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [step, setStep] = useState(1)
   const [entityId, setEntityId] = useState<string | null>(null)
@@ -75,40 +101,45 @@ export function ExistingEntityWizard() {
   const [directors, setDirectors] = useState<DirectorRow[]>([])
   const [shareholders, setShareholders] = useState<ShareholderRow[]>([])
   const [documents, setDocuments] = useState<DocumentRow[]>([])
+  const [beneficialOwners, setBeneficialOwners] = useState<BeneficialOwnerRow[]>([])
   const [statuses, setStatuses] = useState<Record<string, FileStatus>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [showHelp, setShowHelp] = useState(false)
 
+  // Every write must target the same entity's onboarding_progress row —
+  // see new-entity-wizard.tsx's api() for why.
   const api = useCallback(async (payload: Record<string, unknown>) => {
     const res = await fetch('/api/onboarding/existing-entity', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ entityId: entityId ?? entityParam ?? undefined, ...payload }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       throw new Error(data.error || 'Request failed')
     }
     return res.json()
-  }, [])
+  }, [entityId, entityParam])
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/onboarding/existing-entity')
+      const idForRefresh = entityId ?? entityParam
+      const res = await fetch(`/api/onboarding/existing-entity${idForRefresh ? `?entity=${idForRefresh}` : ''}`)
       if (!res.ok) return
       const data = await res.json()
       setWizard(data.wizard ?? {})
       setDirectors(data.directors ?? [])
       setShareholders(data.shareholders ?? [])
       setDocuments(data.documents ?? [])
+      setBeneficialOwners(data.beneficialOwners ?? [])
     } catch { /* extraction already persisted server-side */ }
-  }, [])
+  }, [entityId, entityParam])
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/onboarding/existing-entity')
+        const res = await fetch(`/api/onboarding/existing-entity${entityParam ? `?entity=${entityParam}` : ''}`)
         if (!res.ok) { setLoadState('error'); return }
         const data = await res.json()
         setEntityId(data.entityId)
@@ -117,6 +148,7 @@ export function ExistingEntityWizard() {
         setDirectors(data.directors ?? [])
         setShareholders(data.shareholders ?? [])
         setDocuments(data.documents ?? [])
+        setBeneficialOwners(data.beneficialOwners ?? [])
         setStep(Math.min(Math.max(data.step ?? 1, 1), EXISTING_TOTAL_STEPS))
         if (data.activated) { setLoadState('activated'); return }
 
@@ -138,6 +170,7 @@ export function ExistingEntityWizard() {
       }
     }
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const patch = (partial: Partial<ExistingWizardData>) => setWizard((prev) => ({ ...prev, ...partial }))
@@ -216,6 +249,11 @@ export function ExistingEntityWizard() {
         return null
       case 4:
         if (directors.length < 1) return 'Add at least one director.'
+        return null
+      case 5:
+        if (beneficialOwners.length === 0 && !wizard.noBeneficialOwners) {
+          return 'Add at least one beneficial owner, or confirm none currently apply.'
+        }
         return null
       default:
         return null
@@ -521,8 +559,21 @@ export function ExistingEntityWizard() {
           />
         )}
 
-        {/* ---------------- Step 5: declaration & activate ---------------- */}
+        {/* ---------------- Step 5: beneficial ownership ---------------- */}
         {step === 5 && (
+          <BeneficialOwnersStep
+            shareholders={shareholders}
+            beneficialOwners={beneficialOwners}
+            setBeneficialOwners={setBeneficialOwners}
+            wizard={wizard}
+            patch={patch}
+            api={api}
+            setError={setError}
+          />
+        )}
+
+        {/* ---------------- Step 6: declaration & activate ---------------- */}
+        {step === 6 && (
           <div className="space-y-4">
             <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
               Declaration &amp; activate
@@ -812,6 +863,302 @@ function PeopleStep({ directors, shareholders, setDirectors, setShareholders, ap
             + Add shareholder
           </button>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Beneficial ownership — mirrors the new-entity flow's BO step. Kenyan
+// BO obligations apply the same way regardless of which onboarding
+// path a company came through, so an already-registered company still
+// needs this recorded separately from its shareholder register.
+// ------------------------------------------------------------------
+type BeneficialOwnerForm = {
+  id?: string
+  fullName: string
+  idNumber: string
+  kraPin: string
+  nationality: string
+  dateOfBirth: string
+  postalAddress: string
+  businessAddress: string
+  residentialAddress: string
+  phone: string
+  email: string
+  occupation: string
+  natureOfControl: string
+  dateBecameBo: string
+  sharePercentage: string
+}
+
+const emptyBeneficialOwner = (): BeneficialOwnerForm => ({
+  fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan', dateOfBirth: '',
+  postalAddress: '', businessAddress: '', residentialAddress: '', phone: '', email: '',
+  occupation: '', natureOfControl: '', dateBecameBo: '', sharePercentage: '',
+})
+
+function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, api, setError }: {
+  shareholders: ShareholderRow[]
+  beneficialOwners: BeneficialOwnerRow[]
+  setBeneficialOwners: (b: BeneficialOwnerRow[]) => void
+  wizard: ExistingWizardData
+  patch: (p: Partial<ExistingWizardData>) => void
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  setError: (e: string) => void
+}) {
+  const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const recordedNames = new Set(beneficialOwners.map((b) => b.full_name.toLowerCase()))
+  const candidateShareholders = shareholders.filter(
+    (s) => (s.share_percentage ?? 0) >= 10 && !recordedNames.has(s.legal_name.toLowerCase())
+  )
+
+  const set = (partial: Partial<BeneficialOwnerForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
+
+  const prefillFrom = (s: ShareholderRow) => {
+    patch({ noBeneficialOwners: false })
+    setForm({
+      ...emptyBeneficialOwner(),
+      fullName: s.legal_name,
+      idNumber: s.id_or_reg_number ?? '',
+      kraPin: s.kra_pin ?? '',
+      sharePercentage: s.share_percentage != null ? String(s.share_percentage) : '',
+      natureOfControl: `Shareholding of ${s.share_percentage ?? '—'}%`,
+    })
+  }
+
+  const save = async () => {
+    if (!form) return
+    if (!form.fullName.trim()) { setError('Full name is required.'); return }
+    if (!form.natureOfControl.trim()) { setError('Describe the nature of ownership or control.'); return }
+    setError('')
+    setBusy(true)
+    try {
+      const result = await api({
+        action: 'upsert_beneficial_owner',
+        beneficialOwner: {
+          id: form.id,
+          fullName: form.fullName.trim(),
+          idNumber: form.idNumber.trim() || undefined,
+          kraPin: form.kraPin.trim().toUpperCase() || undefined,
+          nationality: form.nationality || undefined,
+          dateOfBirth: form.dateOfBirth || undefined,
+          postalAddress: form.postalAddress || undefined,
+          businessAddress: form.businessAddress || undefined,
+          residentialAddress: form.residentialAddress || undefined,
+          phone: form.phone || undefined,
+          email: form.email || undefined,
+          occupation: form.occupation || undefined,
+          natureOfControl: form.natureOfControl.trim(),
+          dateBecameBo: form.dateBecameBo || undefined,
+          sharePercentage: form.sharePercentage ? parseFloat(form.sharePercentage) : undefined,
+        },
+      })
+      const updated: BeneficialOwnerRow = {
+        id: result.id!,
+        full_name: form.fullName.trim(),
+        id_number: form.idNumber.trim() || null,
+        kra_pin: form.kraPin.trim().toUpperCase() || null,
+        nationality: form.nationality,
+        date_of_birth: form.dateOfBirth || null,
+        postal_address: form.postalAddress ? { text: form.postalAddress } : null,
+        business_address: form.businessAddress ? { text: form.businessAddress } : null,
+        residential_address: form.residentialAddress ? { text: form.residentialAddress } : null,
+        phone: form.phone || null,
+        email: form.email || null,
+        occupation: form.occupation || null,
+        nature_of_control: form.natureOfControl.trim(),
+        date_became_bo: form.dateBecameBo || null,
+        share_percentage: form.sharePercentage ? parseFloat(form.sharePercentage) : null,
+      }
+      setBeneficialOwners(form.id ? beneficialOwners.map((b) => (b.id === form.id ? updated : b)) : [...beneficialOwners, updated])
+      setForm(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (id: string) => {
+    setBusy(true)
+    try {
+      await api({ action: 'delete_beneficial_owner', id })
+      setBeneficialOwners(beneficialOwners.filter((b) => b.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Beneficial ownership
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        Anyone with 10% or more direct or indirect interest, or who otherwise exercises significant control,
+        must be declared separately from the shareholder register.
+      </p>
+
+      {candidateShareholders.length > 0 && !form && (
+        <div className="ios-surface rounded-2xl p-4 space-y-2">
+          <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>
+            These shareholders hold 10%+ — add them as beneficial owners?
+          </p>
+          {candidateShareholders.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => prefillFrom(s)}
+              className="w-full rounded-xl border p-3 text-left text-ios-footnote"
+              style={{ borderColor: 'var(--system-fill-3)' }}
+            >
+              <span className="font-medium" style={{ color: 'var(--system-label)' }}>{s.legal_name}</span>
+              <span style={{ color: 'var(--system-label-2)' }}> — {s.share_percentage}% shares</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {beneficialOwners.map((b) => (
+        <div key={b.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{b.full_name}</p>
+            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{b.nature_of_control}</p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <button
+              type="button"
+              className="text-ios-footnote font-medium"
+              style={{ color: 'var(--brand-navy)' }}
+              onClick={() => setForm({
+                id: b.id,
+                fullName: b.full_name,
+                idNumber: b.id_number ?? '',
+                kraPin: b.kra_pin ?? '',
+                nationality: b.nationality,
+                dateOfBirth: b.date_of_birth ?? '',
+                postalAddress: b.postal_address?.text ?? '',
+                businessAddress: b.business_address?.text ?? '',
+                residentialAddress: b.residential_address?.text ?? '',
+                phone: b.phone ?? '',
+                email: b.email ?? '',
+                occupation: b.occupation ?? '',
+                natureOfControl: b.nature_of_control ?? '',
+                dateBecameBo: b.date_became_bo ?? '',
+                sharePercentage: b.share_percentage != null ? String(b.share_percentage) : '',
+              })}
+            >
+              Edit
+            </button>
+            <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(b.id)}>
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {form ? (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Full name" required>
+            <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="ID / passport number">
+              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+            </Field>
+            <Field label="KRA PIN">
+              <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nationality">
+              <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+            </Field>
+            <Field label="Date of birth">
+              <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Nature of ownership or control" required>
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Shareholding of 40%, or right to appoint directors" value={form.natureOfControl} onChange={(e) => set({ natureOfControl: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Percentage held/controlled">
+              <input type="number" min={0} max={100} className={inputCls} style={inputStyle} value={form.sharePercentage} onChange={(e) => set({ sharePercentage: e.target.value })} />
+            </Field>
+            <Field label="Date became beneficial owner">
+              <input type="date" className={inputCls} style={inputStyle} value={form.dateBecameBo} onChange={(e) => set({ dateBecameBo: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Phone">
+              <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+            </Field>
+            <Field label="Email">
+              <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Occupation / profession">
+            <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
+          </Field>
+          <Field label="Residential address">
+            <input type="text" className={inputCls} style={inputStyle} value={form.residentialAddress} onChange={(e) => set({ residentialAddress: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Postal address">
+              <input type="text" className={inputCls} style={inputStyle} value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+            </Field>
+            <Field label="Business address">
+              <input type="text" className={inputCls} style={inputStyle} value={form.businessAddress} onChange={(e) => set({ businessAddress: e.target.value })} />
+            </Field>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={save}
+              disabled={busy}
+              className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ background: 'var(--brand-navy)' }}
+            >
+              {busy ? 'Saving…' : form.id ? 'Update' : 'Add'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm(null)}
+              className="py-2.5 px-5 rounded-full text-sm font-medium border"
+              style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => { patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()) }}
+            className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
+            style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+          >
+            + Add beneficial owner
+          </button>
+          {beneficialOwners.length === 0 && (
+            <label className="flex items-start gap-3 text-ios-footnote" style={{ color: 'var(--system-label)' }}>
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={wizard.noBeneficialOwners ?? false}
+                onChange={(e) => patch({ noBeneficialOwners: e.target.checked })}
+              />
+              No individual currently holds 10%+ ownership or control, or exercises significant influence — I
+              confirm there is no beneficial owner to declare at this time.
+            </label>
+          )}
+        </>
       )}
     </div>
   )
