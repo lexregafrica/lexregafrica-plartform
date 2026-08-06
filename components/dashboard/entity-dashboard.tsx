@@ -125,6 +125,15 @@ function EntityCard({ entity }: { entity: DashboardEntity }) {
             >
               Upload certificate
             </Link>
+            {entity.onboardingPath === 'new_entity' && (
+              <Link
+                href={`${resumeHref(entity)}&edit=1`}
+                className="rounded-full border px-5 py-2 text-sm font-semibold"
+                style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+              >
+                Edit details
+              </Link>
+            )}
           </>
         )}
 

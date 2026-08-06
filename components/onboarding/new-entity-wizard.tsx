@@ -213,6 +213,11 @@ export function NewEntityWizard() {
   // back to whichever session is most recent when absent (a brand-new
   // /onboarding/new/1 visit, before any entity exists yet).
   const entityParam = searchParams.get('entity')
+  // Dashboard "Edit" button on a submitted/pending entity jumps straight
+  // into the wizard instead of the SubmittedScreen — Charles: business
+  // owners waiting on BRS should be able to fix a mistake and re-download
+  // an updated IDP without an extra "Edit application" click first.
+  const editParam = searchParams.get('edit') === '1'
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [step, setStep] = useState(1)
   const [entityType, setEntityType] = useState<EntityType>('limited_company')
@@ -248,8 +253,8 @@ export function NewEntityWizard() {
         setDocuments(data.documents ?? [])
         setEntityStatus(data.entityStatus ?? null)
         setIdpUrl(data.idpUrl ?? null)
-        setStep(Math.min(Math.max(data.step ?? 1, 1), TOTAL_STEPS))
-        setLoadState(data.submitted ? 'submitted' : 'wizard')
+        setStep(editParam ? TOTAL_STEPS : Math.min(Math.max(data.step ?? 1, 1), TOTAL_STEPS))
+        setLoadState(data.submitted && !editParam ? 'submitted' : 'wizard')
       } catch {
         setLoadState('error')
       }
