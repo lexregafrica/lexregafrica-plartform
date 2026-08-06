@@ -1529,6 +1529,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
             <>
               <InlineOcrUpload
                 section="director"
+                documentType="director_id_copy"
                 label={form.id ? 'Upload a replacement ID/passport or KRA PIN certificate →' : 'Upload ID/passport or KRA PIN certificate to auto-fill →'}
                 orgId={orgId}
                 entityId={entityId}
@@ -1927,6 +1928,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             <>
               <InlineOcrUpload
                 section="shareholder"
+                documentType="shareholder_id_copy"
                 label={form.id ? 'Upload a replacement ID/passport or KRA PIN certificate →' : 'Upload ID/passport or KRA PIN certificate to auto-fill →'}
                 orgId={orgId}
                 entityId={entityId}
@@ -2274,6 +2276,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
         <div className="ios-surface rounded-2xl p-4 space-y-3">
           <InlineOcrUpload
             section="other"
+            documentType="beneficial_owner_id_copy"
             label="Upload ID/passport or KRA PIN certificate to auto-fill →"
             orgId={orgId}
             entityId={entityId}
@@ -2755,23 +2758,30 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     key: 'director',
     title: 'Director / partner documents',
     hint: 'National IDs or passports, and KRA PIN certificates — one file per document, any order.',
-    documentType: 'id_copy',
+    documentType: 'director_id_copy',
     visible: (t) => t !== 'sole_proprietorship',
   },
   {
     key: 'director',
     title: 'Owner documents',
     hint: 'Your national ID or passport, and KRA PIN certificate.',
-    documentType: 'id_copy',
+    documentType: 'director_id_copy',
     visible: (t) => t === 'sole_proprietorship',
   },
   {
     key: 'shareholder',
     title: 'Shareholder / member documents',
     hint: 'IDs and KRA PIN certificates for each shareholder or member.',
-    documentType: 'id_copy',
+    documentType: 'shareholder_id_copy',
     visible: (t) =>
       t === 'limited_company' || t === 'public_limited_company' || t === 'cooperative' || t === 'limited_liability_partnership',
+  },
+  {
+    key: 'other',
+    title: 'Beneficial owner documents (optional)',
+    hint: 'IDs for any beneficial owner not already captured as a director or shareholder.',
+    documentType: 'beneficial_owner_id_copy',
+    visible: (t) => SHAREHOLDER_TYPES.includes(t),
   },
   {
     key: 'address',
@@ -2935,6 +2945,24 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
   onExtracted: () => Promise<void>
 }) {
   const [statuses, setStatuses] = useState<Record<string, FileStatus>>({})
+  const [previewingId, setPreviewingId] = useState<string | null>(null)
+
+  // Opens the actual file so a person can check contents before trusting
+  // the name alone — Charles: two docs can share a filename, need to see
+  // which is which.
+  const openDocument = async (doc: DocumentRow) => {
+    if (!doc.file_path) return
+    setPreviewingId(doc.id)
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 300)
+      if (error || !data?.signedUrl) { setError('Could not open document — try again.'); return }
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+    } finally {
+      setPreviewingId(null)
+    }
+  }
+
   // Sections where matching documents already exist collapse to a compact
   // "already on file" list instead of a blank dropzone (Charles, 2026:
   // director/shareholder/proof-of-address docs captured inline during
@@ -3075,7 +3103,15 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <p className="text-ios-footnote truncate" style={{ color: 'var(--system-label)' }}>{d.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => openDocument(d)}
+                      disabled={previewingId === d.id}
+                      className="text-ios-footnote truncate text-left underline decoration-dotted disabled:opacity-50"
+                      style={{ color: 'var(--system-label)' }}
+                    >
+                      {previewingId === d.id ? 'Opening…' : d.name}
+                    </button>
                   </div>
                 ))}
                 {!expanded[section.title] && (

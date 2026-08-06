@@ -1084,7 +1084,7 @@ async function generateAndStoreIdp(
 
     // ---- uploaded documents checklist --------------------------------
     const documentGroups = [
-      { label: 'Identity documents', types: ['id_copy'] },
+      { label: 'Identity documents', types: ['director_id_copy', 'shareholder_id_copy', 'beneficial_owner_id_copy'] },
       { label: 'Passport photos', types: ['passport_photo'] },
       { label: 'Proof of registered office', types: ['proof_of_address'] },
       { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_representative_id'] },
