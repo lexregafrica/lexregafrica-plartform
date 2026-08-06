@@ -15,6 +15,7 @@ export type DashboardEntity = {
   onboardingStep: number
   documentCount: number
   idpUrl: string | null
+  missingBrsDocs: string[]
 }
 
 export type DashboardDeadline = {
@@ -179,6 +180,13 @@ export function EntityDashboard({
             {pendingCert.length === 1
               ? `${pendingCert[0].displayName} is awaiting BRS registration — upload the certificate once issued to activate it.`
               : `${pendingCert.length} entities are awaiting BRS registration. Upload certificates once issued.`}
+            {pendingCert.some((e) => e.missingBrsDocs.length > 0) && (
+              <ul className="mt-1.5 space-y-0.5 text-ios-caption1 font-normal opacity-90">
+                {pendingCert.filter((e) => e.missingBrsDocs.length > 0).map((e) => (
+                  <li key={e.id}>{e.displayName}: still missing {e.missingBrsDocs.join(', ')}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 

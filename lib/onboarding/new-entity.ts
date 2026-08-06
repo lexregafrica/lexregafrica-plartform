@@ -113,9 +113,6 @@ export type WizardData = {
   // Step 3
   proposedNames?: string[]
   // Step 4 — Company basics
-  isNewCompany?: boolean
-  addressLine1?: string
-  addressLine2?: string
   // Granular street/building fields — Charles, 2026-07-24 call: so once
   // captured here, the client never has to be asked again for BRS/lease
   // filings that want street, building name, floor, and door number
@@ -141,8 +138,18 @@ export type WizardData = {
   sectorCode?: string
   turnoverRange?: string
   hasEmployees?: boolean
-  // Step 5 — Share structure
+  // Step 5 — Share structure. Kenyan company law requires shares to be
+  // 100% issued (Charles, 2026 call) — there's no such thing as
+  // "authorised but unissued" anymore, so authorised capital is no
+  // longer typed directly. The company is registered with a fixed total
+  // number of shares at a nominal value; capital = nominal × total. That
+  // total becomes the pool shareholders (step 6) allocate from, and
+  // registration can't complete until the pool is fully allocated.
+  totalShares?: number
   nominalValuePerShare?: number
+  // Derived (nominalValuePerShare × totalShares in single-class mode) —
+  // kept as a stored field since it mirrors onto entities.nominal_capital
+  // and is read elsewhere (secretary threshold, review, IDP).
   authorisedShareCapital?: number
   shareClasses?: 'ordinary' | 'ordinary_preference'
   votingRights?: 'one_share_one_vote' | 'weighted'

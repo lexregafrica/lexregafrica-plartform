@@ -302,7 +302,13 @@ export async function POST(request: Request) {
   // ----------------------------------------------------------
   if (action === 'upsert_director') {
     const { director } = body as {
-      director: { id?: string; fullName: string; idNumber?: string; kraPin?: string }
+      director: {
+        id?: string; fullName: string; idNumber?: string; kraPin?: string
+        nationality?: string; phone?: string; email?: string
+        physicalAddress?: string; postalAddress?: string
+        isCorporate?: boolean; corporate?: Record<string, unknown>
+        isForeign?: boolean; foreignAddress?: string
+      }
     }
     if (!director?.fullName) return NextResponse.json({ error: 'fullName required' }, { status: 400 })
 
@@ -313,6 +319,17 @@ export async function POST(request: Request) {
       full_name: director.fullName,
       id_number: director.idNumber ?? '',
       kra_pin: director.kraPin ?? null,
+      nationality: director.nationality ?? 'Kenyan',
+      phone: director.phone ?? null,
+      email: director.email ?? null,
+      is_foreign: director.isForeign ?? false,
+      residential_address: {
+        isCorporate: director.isCorporate ?? false,
+        corporate: director.isCorporate ? director.corporate : undefined,
+        foreignAddress: director.isForeign ? director.foreignAddress : undefined,
+        physicalAddress: director.physicalAddress ?? undefined,
+        postalAddress: director.postalAddress ?? undefined,
+      } as Json,
     }
     const { error } = await supabase.from('directors').upsert(row)
     if (error) return NextResponse.json({ error: 'failed to save director' }, { status: 500 })
@@ -328,7 +345,12 @@ export async function POST(request: Request) {
 
   if (action === 'upsert_shareholder') {
     const { shareholder } = body as {
-      shareholder: { id?: string; legalName: string; idNumber?: string; kraPin?: string; sharesHeld?: number }
+      shareholder: {
+        id?: string; legalName: string; idNumber?: string; kraPin?: string; sharesHeld?: number
+        physicalAddress?: string; postalAddress?: string
+        isCorporate?: boolean; corporate?: Record<string, unknown>
+        isForeign?: boolean; foreignAddress?: string
+      }
     }
     if (!shareholder?.legalName) return NextResponse.json({ error: 'legalName required' }, { status: 400 })
 
@@ -340,6 +362,16 @@ export async function POST(request: Request) {
       id_or_reg_number: shareholder.idNumber ?? null,
       kra_pin: shareholder.kraPin ?? null,
       shares_held: shareholder.sharesHeld ?? 0,
+      address: {
+        isForeign: shareholder.isForeign ?? false,
+        foreignAddress: shareholder.isForeign ? shareholder.foreignAddress : undefined,
+        physicalAddress: shareholder.physicalAddress ?? undefined,
+        postalAddress: shareholder.postalAddress ?? undefined,
+      } as Json,
+      corporate_details: {
+        isCorporate: shareholder.isCorporate ?? false,
+        corporate: shareholder.isCorporate ? shareholder.corporate : undefined,
+      } as Json,
     }
     const { error } = await supabase.from('shareholders').upsert(row)
     if (error) return NextResponse.json({ error: 'failed to save shareholder' }, { status: 500 })
@@ -578,20 +610,62 @@ async function generateAndStoreProfile(
 
     const address = entity.registered_address as { line1?: string; city?: string; county?: string; postcode?: string } | null
 
+    // Existing-entity path doesn't yet collect the full field set the
+    // revised template supports (corporate annex, BO table, forms
+    // preview) — that's the screen-by-screen parity pass still pending.
+    // Reasonable defaults keep this a valid, useful document today.
     const pdfBytes = await generateIdp({
+      organisationName: org?.name ?? 'Your organisation',
+      generatedAt: new Date(),
+      matterReference: ctx.entityId.slice(0, 8).toUpperCase(),
+      servicePath: 'Self-service (already registered)',
+      onboardingType: 'Existing company onboarding',
+
       entityTypeLabel: ENTITY_TYPES.find((t) => t.value === entity.entity_type)?.label ?? entity.entity_type,
       legalNameOptions: [entity.legal_name ?? ''].filter(Boolean),
       natureOfBusiness: entity.nature_of_business,
       registeredAddress: address ? { line1: address.line1 ?? null, city: address.city ?? null, county: address.county ?? null, postcode: address.postcode ?? null } : null,
-      nominalCapital: entity.nominal_capital,
-      totalShares: entity.total_shares,
-      directors: (directors ?? []).map((d) => ({ fullName: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin })),
-      shareholders: (shareholders ?? []).map((s) => ({ legalName: s.legal_name, sharesHeld: s.shares_held, sharePercentage: s.share_percentage })),
+      postalAddress: null,
+      companyEmail: entity.email,
+      companyPhone: entity.phone,
+
       applicantName: ctx.wizard.signature ?? null,
-      applicantEmail: entity.applicant_email,
       applicantRelationship: null,
-      organisationName: org?.name ?? 'Your organisation',
-      generatedAt: new Date(),
+      applicantEmail: entity.applicant_email,
+      applicantPhone: null,
+
+      totalShares: entity.total_shares,
+      authorisedCapital: entity.nominal_capital,
+      nominalValuePerShare: null,
+      useMultipleShareClasses: false,
+      shareClassCount: 1,
+      votingRights: null,
+
+      directors: (directors ?? []).map((d) => ({
+        fullName: d.full_name, role: 'Director', nationality: null, idNumber: d.id_number, kraPin: d.kra_pin,
+        email: null, phone: null, address: null, isAlsoShareholder: false, isAlsoBeneficialOwner: false,
+      })),
+      secretaryName: null,
+
+      shareholders: (shareholders ?? []).map((s) => ({
+        legalName: s.legal_name, type: 'Individual' as const, nationalityOrJurisdiction: null,
+        idOrRegNumber: null, kraPinOrTaxId: null, shareClass: 'Ordinary', sharesHeld: s.shares_held,
+        sharePercentage: s.share_percentage, isNominee: false,
+      })),
+      corporateParties: [],
+
+      beneficialOwners: [],
+      noBeneficialOwnersDeclared: false,
+
+      articlesType: null,
+
+      forms: [],
+      documentGroups: [],
+      exceptions: [],
+
+      declared: !!ctx.wizard.declared,
+      signature: ctx.wizard.signature ?? null,
+      declarationDate: ctx.wizard.declarationDate ?? null,
     })
 
     const path = `${ctx.orgId}/${ctx.entityId}/entity-profile-${Date.now()}.pdf`

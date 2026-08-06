@@ -94,7 +94,7 @@ function SecondaryButton({ children, onClick }: { children: React.ReactNode; onC
 // representative). OCR may pre-fill name/reg number/rep identity but is
 // never relied on for ownership %, role, board authority, or BO
 // conclusions — those always stay user-confirmed.
-type CorporateParticipant = {
+export type CorporateParticipant = {
   registeredName: string
   tradeName: string
   corporateEntityType: 'private_company' | 'public_company' | 'llp' | 'foundation' | 'other' | ''
@@ -141,6 +141,8 @@ type DirectorRow = {
     isCorporate?: boolean
     corporate?: CorporateParticipant
     foreignAddress?: string
+    physicalAddress?: string
+    postalAddress?: string
   } | null
 }
 
@@ -151,7 +153,7 @@ type ShareholderRow = {
   kra_pin: string | null
   shares_held: number
   share_percentage: number | null
-  address: { isForeign?: boolean; foreignAddress?: string } | null
+  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string } | null
   corporate_details: {
     nominee?: boolean
     isCorporate?: boolean
@@ -320,13 +322,11 @@ export function NewEntityWizard() {
       }
       case 4:
         if (!wizard.primaryActivity?.trim()) return 'Describe the business activity.'
-        if (wizard.isNewCompany === undefined) return 'Tell us whether the company is newly registering or already exists.'
         if (!wizard.entityEmail?.trim()) return 'Company email is required.'
         if (!EMAIL_REGEX.test(wizard.entityEmail)) return 'Enter a valid company email address.'
         if (!wizard.entityPhone?.trim()) return 'Entity phone is required.'
         if (!KENYA_PHONE_REGEX.test(wizard.entityPhone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
         if (!wizard.contactPersonName?.trim()) return 'Contact person is required.'
-        if (!wizard.addressLine1?.trim()) return 'Address line 1 is required.'
         if (!wizard.city?.trim()) return 'City/Town is required.'
         if (!wizard.county) return 'Choose a county.'
         if (!wizard.postalCode?.trim()) return 'Postal code is required.'
@@ -335,7 +335,6 @@ export function NewEntityWizard() {
         if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
         return null
       case 5: {
-        const authorised = wizard.authorisedShareCapital ?? 0
         if (wizard.useMultipleShareClasses) {
           const classes = wizard.shareClassList ?? []
           if (classes.length === 0) return 'Add at least one share class.'
@@ -343,26 +342,28 @@ export function NewEntityWizard() {
             if (!c.name.trim()) return 'Every share class needs a name.'
             if (!c.shares) return `Enter the number of shares for ${c.name || 'this class'}.`
           }
-          const classCapital = classes.reduce((s, c) => s + c.shares * c.nominalValue, 0)
-          if (authorised < classCapital) {
-            return `Authorised capital (KES ${authorised.toLocaleString()}) must be at least the total issued capital across classes (KES ${classCapital.toLocaleString()}).`
-          }
           return null
         }
-        const issued = shareholders.reduce((s, x) => s + x.shares_held, 0)
-        const nominal = wizard.nominalValuePerShare ?? 100
-        if (authorised < issued * nominal) {
-          return `Authorised capital (KES ${authorised.toLocaleString()}) must be at least issued shares × nominal value (KES ${(issued * nominal).toLocaleString()}).`
-        }
+        if (!wizard.nominalValuePerShare) return 'Enter the nominal value per share.'
+        if (!wizard.totalShares) return 'Enter the total number of shares the company will be registered with.'
         return null
       }
-      case 6:
+      case 6: {
         if (shareholders.length < 1) return 'Add at least one shareholder/member.'
         for (const s of shareholders) {
           if (!s.id_or_reg_number) return `Add an ID/registration number for ${s.legal_name}.`
           if (!s.corporate_details?.isCorporate && !s.kra_pin) return `Add a KRA PIN for ${s.legal_name}.`
         }
+        // Kenyan law: shares must be 100% issued — no partial/unissued
+        // pool once registration completes (Charles, 2026 call).
+        if (!wizard.useMultipleShareClasses && wizard.totalShares) {
+          const allocated = shareholders.reduce((s, x) => s + x.shares_held, 0)
+          if (allocated !== wizard.totalShares) {
+            return `All ${wizard.totalShares.toLocaleString()} shares must be allocated before continuing — ${allocated.toLocaleString()} allocated so far.`
+          }
+        }
         return null
+      }
       case 7: {
         const minimum = entityType === 'public_limited_company' || entityType === 'partnership' ? 2 : 1
         if (directors.length < minimum) return `Add at least ${minimum} ${minimum > 1 ? 'people' : 'person'}.`
@@ -504,6 +505,7 @@ export function NewEntityWizard() {
         applicantPhone={wizard.contactPersonPhone ?? wizard.entityPhone ?? null}
         api={api}
         onActivated={() => setEntityStatus('active')}
+        onEdit={() => { setStep(TOTAL_STEPS); setLoadState('wizard') }}
       />
     )
   }
@@ -556,6 +558,8 @@ export function NewEntityWizard() {
             setShareholders={setShareholders}
             directors={directors}
             setDirectors={setDirectors}
+            totalShares={wizard.totalShares}
+            useMultipleShareClasses={wizard.useMultipleShareClasses}
             orgId={orgId}
             entityId={entityId}
             api={api}
@@ -582,6 +586,8 @@ export function NewEntityWizard() {
             setBeneficialOwners={setBeneficialOwners}
             wizard={wizard}
             patch={patch}
+            orgId={orgId}
+            entityId={entityId}
             api={api}
             setError={setError}
           />
@@ -805,9 +811,8 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
 }) {
   const handleExtracted = (fields: Record<string, unknown> | undefined) => {
     if (!fields) { onExtracted(); return }
-    const f = fields as { address_line1?: string; city?: string; county?: string; postal_code?: string }
+    const f = fields as { city?: string; county?: string; postal_code?: string }
     patch({
-      addressLine1: wizard.addressLine1 || f.address_line1 || undefined,
       city: wizard.city || f.city || undefined,
       county: wizard.county || f.county || undefined,
       postalCode: wizard.postalCode || f.postal_code || undefined,
@@ -840,26 +845,6 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
         <p className="text-ios-caption1 mt-1 text-right" style={{ color: 'var(--system-label-3)' }}>
           {(wizard.primaryActivity ?? '').length}/200
         </p>
-      </Field>
-
-      <Field label="Is the company being newly registered, or does it already exist?" required>
-        <div className="grid grid-cols-2 gap-2">
-          {[{ v: true, label: 'New registration' }, { v: false, label: 'Already exists' }].map(({ v, label }) => (
-            <button
-              key={String(v)}
-              type="button"
-              onClick={() => patch({ isNewCompany: v })}
-              className="py-2.5 rounded-xl border text-sm font-medium"
-              style={{
-                borderColor: wizard.isNewCompany === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                background: wizard.isNewCompany === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                color: 'var(--system-label)',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </Field>
 
       <div className="space-y-4">
@@ -901,20 +886,17 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
           onExtracted={handleExtracted}
           setError={setError}
         />
-        <Field label="Address line 1" required>
-          <input type="text" className={inputCls} style={inputStyle} value={wizard.addressLine1 ?? ''} onChange={(e) => patch({ addressLine1: e.target.value })} />
-        </Field>
-        <Field label="Address line 2">
-          <input type="text" className={inputCls} style={inputStyle} value={wizard.addressLine2 ?? ''} onChange={(e) => patch({ addressLine2: e.target.value })} />
-        </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Street name">
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.streetName ?? ''} onChange={(e) => patch({ streetName: e.target.value })} />
-          </Field>
           <Field label="Building name">
             <input type="text" className={inputCls} style={inputStyle} value={wizard.buildingName ?? ''} onChange={(e) => patch({ buildingName: e.target.value })} />
           </Field>
+          <Field label="Street name">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.streetName ?? ''} onChange={(e) => patch({ streetName: e.target.value })} />
+          </Field>
         </div>
+        <Field label="City / Town" required>
+          <input type="text" className={inputCls} style={inputStyle} value={wizard.city ?? ''} onChange={(e) => patch({ city: e.target.value })} />
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Floor">
             <input type="text" className={inputCls} style={inputStyle} value={wizard.floorNumber ?? ''} onChange={(e) => patch({ floorNumber: e.target.value })} />
@@ -923,9 +905,6 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
             <input type="text" className={inputCls} style={inputStyle} value={wizard.doorNumber ?? ''} onChange={(e) => patch({ doorNumber: e.target.value })} />
           </Field>
         </div>
-        <Field label="City / Town" required>
-          <input type="text" className={inputCls} style={inputStyle} value={wizard.city ?? ''} onChange={(e) => patch({ city: e.target.value })} />
-        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Postal code" required>
             <input type="text" className={inputCls} style={inputStyle} value={wizard.postalCode ?? ''} onChange={(e) => patch({ postalCode: e.target.value })} />
@@ -1002,6 +981,10 @@ type DirectorForm = {
   nationality: string
   phone: string
   email: string
+  // Charles, corporate-shareholder call: CR8 needs a physical/postal
+  // address per director, distinct from the entity's registered office.
+  physicalAddress: string
+  postalAddress: string
   appointmentDate: string
   isCorporate: boolean
   corporate: CorporateParticipant
@@ -1009,7 +992,7 @@ type DirectorForm = {
   foreignAddress: string
 }
 
-const emptyCorporate: CorporateParticipant = {
+export const emptyCorporate: CorporateParticipant = {
   registeredName: '', tradeName: '', corporateEntityType: '', regNumber: '',
   countryOfIncorporation: 'Kenya', isForeign: false, incorporationDate: '',
   goodStandingStatus: '', kraPin: '', foreignTaxId: '', registeredOfficeAddress: '',
@@ -1021,7 +1004,8 @@ const emptyCorporate: CorporateParticipant = {
 
 const emptyDirector: DirectorForm = {
   fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan',
-  phone: '', email: '', appointmentDate: new Date().toISOString().slice(0, 10),
+  phone: '', email: '', physicalAddress: '', postalAddress: '',
+  appointmentDate: new Date().toISOString().slice(0, 10),
   isCorporate: false, corporate: { ...emptyCorporate },
   isForeign: false, foreignAddress: '',
 }
@@ -1032,8 +1016,8 @@ const emptyDirector: DirectorForm = {
 // Upload + register + extract, then the caller re-syncs from the server
 // (mergeExtraction already dedupes/creates the person row) and opens that
 // row in edit mode so the rest of the form is just confirmation.
-function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError }: {
-  section: 'director' | 'shareholder' | 'address'
+export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError }: {
+  section: 'director' | 'shareholder' | 'address' | 'other'
   documentType?: string
   label?: string
   orgId: string | null
@@ -1091,6 +1075,61 @@ function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, enti
   )
 }
 
+// Passport-size photo — plain upload, no OCR. Charles, corporate-shareholder
+// call: capture a passport photo per person alongside their ID documents.
+export function PhotoUpload({ orgId, entityId, api, onUploaded, setError }: {
+  orgId: string | null
+  entityId: string | null
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  onUploaded: (fileName: string) => void
+  setError: (e: string) => void
+}) {
+  const [state, setState] = useState<'idle' | 'uploading'>('idle')
+
+  const handleFile = async (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file || !orgId || !entityId) return
+    if (file.size > 10 * 1024 * 1024) { setError('File is over 10MB — please compress it.'); return }
+    setError('')
+    setState('uploading')
+    try {
+      const supabase = createClient()
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_')
+      const path = `${orgId}/${entityId}/${crypto.randomUUID()}-${safeName}`
+      const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
+      if (uploadError) { setError('Upload failed — try again.'); return }
+
+      await api({
+        action: 'register_document',
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'passport_photo' },
+      })
+      onUploaded(file.name)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed — try again.')
+    } finally {
+      setState('idle')
+    }
+  }
+
+  return (
+    <label
+      className="block w-full rounded-xl border-2 border-dashed p-3 text-center cursor-pointer"
+      style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}
+    >
+      <input
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp"
+        className="hidden"
+        disabled={state !== 'idle'}
+        onChange={(e) => { handleFile(e.target.files); e.target.value = '' }}
+      />
+      <span className="text-ios-caption1 font-medium" style={{ color: 'var(--brand-navy)' }}>
+        {state === 'uploading' ? 'Uploading…' : 'Upload passport-size photo →'}
+      </span>
+    </label>
+  )
+}
+
 const CORPORATE_ENTITY_TYPES: Array<{ value: CorporateParticipant['corporateEntityType']; label: string }> = [
   { value: 'private_company', label: 'Private company' },
   { value: 'public_company', label: 'Public company' },
@@ -1113,7 +1152,7 @@ const AUTHORITY_BASIS_OPTIONS: Array<{ value: CorporateParticipant['basisOfAutho
   { value: 'other', label: 'Other' },
 ]
 
-function CorporateFields({ value, onChange, context }: {
+export function CorporateFields({ value, onChange, context }: {
   value: CorporateParticipant
   onChange: (p: Partial<CorporateParticipant>) => void
   context: 'director' | 'shareholder'
@@ -1272,6 +1311,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
   const [form, setForm] = useState<DirectorForm | null>(directors.length === 0 ? { ...emptyDirector } : null)
   const [busy, setBusy] = useState(false)
+  const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
 
   const set = (partial: Partial<DirectorForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
   const setCorporate = (partial: Partial<CorporateParticipant>) =>
@@ -1310,6 +1350,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
     if (!KENYA_PHONE_REGEX.test(f.phone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
     if (!f.email.trim()) return 'Email address is required.'
     if (!EMAIL_REGEX.test(f.email)) return 'Enter a valid email address.'
+    if (!f.physicalAddress.trim()) return 'Physical address is required.'
     return null
   }
 
@@ -1338,6 +1379,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           corporate: form.isCorporate ? form.corporate : undefined,
           isForeign: form.isForeign,
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
+          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
         },
       })
       const updated: DirectorRow = {
@@ -1356,6 +1399,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           isCorporate: form.isCorporate,
           corporate: form.isCorporate ? form.corporate : undefined,
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
+          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
         },
       }
       setDirectors(form.id ? directors.map((d) => (d.id === form.id ? updated : d)) : [...directors, updated])
@@ -1385,13 +1430,21 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   const handleExtracted = (fields: Record<string, unknown> | undefined) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
-    setForm((prev) => (prev ? {
-      ...prev,
-      fullName: prev.fullName || f.full_name || '',
-      idNumber: prev.idNumber || f.id_number || '',
-      kraPin: prev.kraPin || f.kra_pin || '',
-      dateOfBirth: prev.dateOfBirth || f.date_of_birth || '',
-    } : prev))
+    setForm((prev) => {
+      if (!prev) return prev
+      // Editing an existing person and re-uploading is an explicit
+      // "replace this document" action (Charles, corporate-shareholder
+      // call) — overwrite rather than gap-fill. Adding a new person still
+      // gap-fills only, so it never clobbers something already typed.
+      const isReplace = !!prev.id
+      return {
+        ...prev,
+        fullName: (isReplace ? f.full_name : prev.fullName || f.full_name) || prev.fullName,
+        idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
+        kraPin: (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin,
+        dateOfBirth: (isReplace ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
+      }
+    })
     // The server may also have auto-created a person row from this
     // extraction — refresh so the list reflects reality, then drop any
     // duplicate the auto-create made for a record we're about to save
@@ -1420,7 +1473,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => setForm({
+              onClick={() => { setPhotoUploaded(null); setForm({
                 id: d.id,
                 fullName: d.residential_address?.isCorporate ? '' : d.full_name,
                 idNumber: d.residential_address?.isCorporate ? '' : d.id_number,
@@ -1434,7 +1487,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 corporate: d.residential_address?.corporate ?? { ...emptyCorporate },
                 isForeign: !!d.is_foreign,
                 foreignAddress: d.residential_address?.foreignAddress ?? '',
-              })}
+                physicalAddress: d.residential_address?.physicalAddress ?? '',
+                postalAddress: d.residential_address?.postalAddress ?? '',
+              }) }}
             >
               Edit
             </button>
@@ -1467,16 +1522,24 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
             <CorporateFields value={form.corporate} onChange={setCorporate} context="director" />
           ) : (
             <>
-              {!form.id && (
-                <InlineOcrUpload
-                  section="director"
-                  label="Upload ID/passport or KRA PIN certificate to auto-fill →"
-                  orgId={orgId}
-                  entityId={entityId}
-                  api={api}
-                  onExtracted={handleExtracted}
-                  setError={setError}
-                />
+              <InlineOcrUpload
+                section="director"
+                label={form.id ? 'Upload a replacement ID/passport or KRA PIN certificate →' : 'Upload ID/passport or KRA PIN certificate to auto-fill →'}
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onExtracted={handleExtracted}
+                setError={setError}
+              />
+              <PhotoUpload
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onUploaded={(name) => setPhotoUploaded(name)}
+                setError={setError}
+              />
+              {photoUploaded && (
+                <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
                 <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
@@ -1514,6 +1577,12 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                   <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
                 </Field>
               </div>
+              <Field label="Physical address" required>
+                <input type="text" className={inputCls} style={inputStyle} placeholder="Street, building, ward" value={form.physicalAddress} onChange={(e) => set({ physicalAddress: e.target.value })} />
+              </Field>
+              <Field label="Postal address">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              </Field>
               {form.isForeign && (
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
                   Foreign directors may need a work/immigration permit depending on their role — our team can
@@ -1534,7 +1603,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       ) : (
         <button
           type="button"
-          onClick={() => setForm({ ...emptyDirector })}
+          onClick={() => { setPhotoUploaded(null); setForm({ ...emptyDirector }) }}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -1558,6 +1627,8 @@ type ShareholderForm = {
   dateOfBirth: string
   phone: string
   email: string
+  physicalAddress: string
+  postalAddress: string
   sharesHeld: string
   isNominee: boolean
   isCorporate: boolean
@@ -1569,16 +1640,19 @@ type ShareholderForm = {
 
 const emptyShareholder: ShareholderForm = {
   legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', phone: '', email: '',
+  physicalAddress: '', postalAddress: '',
   sharesHeld: '', isNominee: false, isCorporate: false, corporate: { ...emptyCorporate }, alsoDirector: false,
   isForeign: false, foreignAddress: '',
 }
 
-function StepShareholders({ entityType, shareholders, setShareholders, directors, setDirectors, orgId, entityId, api, setError, onExtracted }: {
+function StepShareholders({ entityType, shareholders, setShareholders, directors, setDirectors, totalShares, useMultipleShareClasses, orgId, entityId, api, setError, onExtracted }: {
   entityType: EntityType
   shareholders: ShareholderRow[]
   setShareholders: (s: ShareholderRow[]) => void
   directors: DirectorRow[]
   setDirectors: (d: DirectorRow[]) => void
+  totalShares?: number
+  useMultipleShareClasses?: boolean
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
@@ -1588,6 +1662,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
   const [form, setForm] = useState<ShareholderForm | null>(shareholders.length === 0 ? { ...emptyShareholder } : null)
   const [busy, setBusy] = useState(false)
+  const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
   const total = shareholders.reduce((s, x) => s + x.shares_held, 0)
 
   const set = (partial: Partial<ShareholderForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
@@ -1615,9 +1690,17 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       if (!form.idNumber.trim()) { setError('National ID / registration number is required.'); return }
       if (!form.kraPin.trim()) { setError('KRA PIN is required.'); return }
       if (!KRA_PIN_REGEX.test(form.kraPin.toUpperCase())) { setError('KRA PIN format: A123456789B.'); return }
+      if (!form.physicalAddress.trim()) { setError('Physical address is required.'); return }
     }
     const shares = parseInt(form.sharesHeld, 10)
     if (!shares || shares < 1) { setError('Enter the number of shares/units held.'); return }
+    if (!useMultipleShareClasses && totalShares) {
+      const othersAllocated = shareholders.filter((s) => s.id !== form.id).reduce((s, x) => s + x.shares_held, 0)
+      if (othersAllocated + shares > totalShares) {
+        setError(`Only ${(totalShares - othersAllocated).toLocaleString()} shares remain unallocated out of ${totalShares.toLocaleString()} total.`)
+        return
+      }
+    }
     setError('')
     setBusy(true)
     try {
@@ -1636,6 +1719,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           corporate: form.isCorporate ? form.corporate : undefined,
           isForeign: form.isForeign,
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
+          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
         },
       })
       const updated: ShareholderRow = {
@@ -1645,7 +1730,12 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
         kra_pin: form.kraPin.trim().toUpperCase() || null,
         shares_held: shares,
         share_percentage: null,
-        address: { isForeign: form.isForeign, foreignAddress: form.isForeign ? form.foreignAddress : undefined },
+        address: {
+          isForeign: form.isForeign,
+          foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
+          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
+        },
         corporate_details: {
           nominee: form.isNominee || undefined,
           isCorporate: form.isCorporate,
@@ -1731,13 +1821,19 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   const handleExtracted = (fields: Record<string, unknown> | undefined) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
-    setForm((prev) => (prev ? {
-      ...prev,
-      legalName: prev.legalName || f.full_name || '',
-      idNumber: prev.idNumber || f.id_number || '',
-      kraPin: prev.kraPin || f.kra_pin || '',
-      dateOfBirth: prev.dateOfBirth || f.date_of_birth || '',
-    } : prev))
+    setForm((prev) => {
+      if (!prev) return prev
+      // Editing + re-uploading is an explicit "replace this document"
+      // action — overwrite rather than gap-fill. New-add stays gap-fill.
+      const isReplace = !!prev.id
+      return {
+        ...prev,
+        legalName: (isReplace ? f.full_name : prev.legalName || f.full_name) || prev.legalName,
+        idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
+        kraPin: (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin,
+        dateOfBirth: (isReplace ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
+      }
+    })
     onExtracted()
   }
 
@@ -1764,7 +1860,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => setForm({
+              onClick={() => { setPhotoUploaded(null); setForm({
                 id: s.id,
                 legalName: s.corporate_details?.isCorporate ? '' : s.legal_name,
                 idNumber: s.corporate_details?.isCorporate ? '' : (s.id_or_reg_number ?? ''),
@@ -1772,6 +1868,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 dateOfBirth: '',
                 phone: '',
                 email: '',
+                physicalAddress: s.address?.physicalAddress ?? '',
+                postalAddress: s.address?.postalAddress ?? '',
                 sharesHeld: String(s.shares_held),
                 isNominee: !!s.corporate_details?.nominee,
                 isCorporate: !!s.corporate_details?.isCorporate,
@@ -1779,7 +1877,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 alsoDirector: false,
                 isForeign: !!s.address?.isForeign,
                 foreignAddress: s.address?.foreignAddress ?? '',
-              })}
+              }) }}
             >
               Edit
             </button>
@@ -1792,7 +1890,11 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
 
       {total > 0 && (
         <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-          Total shares issued: <span className="font-semibold" style={{ color: 'var(--system-label)' }}>{total.toLocaleString()}</span>
+          {!useMultipleShareClasses && !!totalShares ? (
+            <>Allocated: <span className="font-semibold" style={{ color: 'var(--system-label)' }}>{total.toLocaleString()} of {totalShares.toLocaleString()}</span></>
+          ) : (
+            <>Total shares issued: <span className="font-semibold" style={{ color: 'var(--system-label)' }}>{total.toLocaleString()}</span></>
+          )}
         </p>
       )}
 
@@ -1818,16 +1920,24 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             <CorporateFields value={form.corporate} onChange={setCorporate} context="shareholder" />
           ) : (
             <>
-              {!form.id && (
-                <InlineOcrUpload
-                  section="shareholder"
-                  label="Upload ID/passport or KRA PIN certificate to auto-fill →"
-                  orgId={orgId}
-                  entityId={entityId}
-                  api={api}
-                  onExtracted={handleExtracted}
-                  setError={setError}
-                />
+              <InlineOcrUpload
+                section="shareholder"
+                label={form.id ? 'Upload a replacement ID/passport or KRA PIN certificate →' : 'Upload ID/passport or KRA PIN certificate to auto-fill →'}
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onExtracted={handleExtracted}
+                setError={setError}
+              />
+              <PhotoUpload
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onUploaded={(name) => setPhotoUploaded(name)}
+                setError={setError}
+              />
+              {photoUploaded && (
+                <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
                 <input type="text" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
@@ -1857,6 +1967,12 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                   <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
                 </Field>
               </div>
+              <Field label="Physical address" required>
+                <input type="text" className={inputCls} style={inputStyle} placeholder="Street, building, ward" value={form.physicalAddress} onChange={(e) => set({ physicalAddress: e.target.value })} />
+              </Field>
+              <Field label="Postal address">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              </Field>
               {form.isForeign && (
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
                   Foreign shareholders may need additional documentation depending on structure — our team can
@@ -1868,6 +1984,11 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
 
           <Field label="Shares / membership units held" required>
             <input type="number" min={1} className={inputCls} style={inputStyle} value={form.sharesHeld} onChange={(e) => set({ sharesHeld: e.target.value })} />
+            {!useMultipleShareClasses && !!totalShares && (
+              <p className="text-ios-caption1 mt-1" style={{ color: 'var(--system-label-3)' }}>
+                {(totalShares - shareholders.filter((s) => s.id !== form.id).reduce((s, x) => s + x.shares_held, 0)).toLocaleString()} of {totalShares.toLocaleString()} shares still unallocated.
+              </p>
+            )}
           </Field>
           <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
             <input type="checkbox" checked={form.isNominee} onChange={(e) => set({ isNominee: e.target.checked })} />
@@ -1889,7 +2010,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       ) : (
         <button
           type="button"
-          onClick={() => setForm({ ...emptyShareholder })}
+          onClick={() => { setPhotoUploaded(null); setForm({ ...emptyShareholder }) }}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -1932,17 +2053,39 @@ function emptyBeneficialOwner(): BeneficialOwnerForm {
   }
 }
 
-function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, api, setError }: {
+function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, orgId, entityId, api, setError }: {
   shareholders: ShareholderRow[]
   beneficialOwners: BeneficialOwnerRow[]
   setBeneficialOwners: (b: BeneficialOwnerRow[]) => void
   wizard: WizardData
   patch: (p: Partial<WizardData>) => void
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  orgId: string | null
+  entityId: string | null
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
 }) {
   const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
   const [busy, setBusy] = useState(false)
+  const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
+
+  // Charles, corporate-shareholder call: whatever can be scraped from a
+  // document should be, same as directors/shareholders. Uses section
+  // 'other' deliberately — it extracts and returns fields for the form
+  // to gap-fill, but performs no server-side auto-create/merge, since BO
+  // conclusions (ownership %, control basis) must always be user-entered
+  // and confirmed, never inferred from OCR (spec: never auto-decide BO
+  // status from a document).
+  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
+    if (!fields) return
+    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
+    setForm((prev) => (prev ? {
+      ...prev,
+      fullName: prev.fullName || f.full_name || '',
+      idNumber: prev.idNumber || f.id_number || '',
+      kraPin: prev.kraPin || f.kra_pin || '',
+      dateOfBirth: prev.dateOfBirth || f.date_of_birth || '',
+    } : prev))
+  }
 
   // Shareholders holding 10%+ who aren't already recorded as a BO —
   // one-tap prefill per the spec's "permit the user to mark that a
@@ -2095,7 +2238,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => setForm({
+              onClick={() => { setPhotoUploaded(null); setForm({
                 id: b.id,
                 fullName: b.full_name,
                 idNumber: b.id_number ?? '',
@@ -2111,7 +2254,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
                 natureOfControl: b.nature_of_control ?? '',
                 dateBecameBo: b.date_became_bo ?? '',
                 sharePercentage: b.share_percentage != null ? String(b.share_percentage) : '',
-              })}
+              }) }}
             >
               Edit
             </button>
@@ -2124,6 +2267,29 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
 
       {form ? (
         <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <InlineOcrUpload
+            section="other"
+            label="Upload ID/passport or KRA PIN certificate to auto-fill →"
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onExtracted={handleExtracted}
+            setError={setError}
+          />
+          <PhotoUpload
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onUploaded={(name) => setPhotoUploaded(name)}
+            setError={setError}
+          />
+          {photoUploaded && (
+            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
+          )}
+          <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+            Scraped details are a starting point only — please confirm everything, especially the nature and
+            percentage of control, before saving.
+          </p>
           <Field label="Full name" required>
             <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
@@ -2185,7 +2351,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
         <>
           <button
             type="button"
-            onClick={() => { patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()) }}
+            onClick={() => { patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()); setPhotoUploaded(null) }}
             className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
             style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
           >
@@ -2222,10 +2388,19 @@ function StepShareCapital({ wizard, patch, shareholders }: {
   patch: (p: Partial<WizardData>) => void
   shareholders: ShareholderRow[]
 }) {
-  const issued = shareholders.reduce((s, x) => s + x.shares_held, 0)
-  const nominal = wizard.nominalValuePerShare ?? 100
-  const issuedCapital = issued * nominal
+  const allocated = shareholders.reduce((s, x) => s + x.shares_held, 0)
+  const nominal = wizard.nominalValuePerShare ?? 0
+  const totalShares = wizard.totalShares ?? 0
+  const computedCapital = nominal * totalShares
   const multi = wizard.useMultipleShareClasses ?? false
+
+  // Kenyan law requires 100% issuance — no separate "authorised but
+  // unissued" concept anymore (Charles, 2026 call). Nominal value ×
+  // total shares *is* the authorised capital; keep authorisedShareCapital
+  // in sync since it's read elsewhere (secretary threshold, review, IDP,
+  // entities.nominal_capital mirror).
+  const setNominal = (v: number) => patch({ nominalValuePerShare: v, authorisedShareCapital: v * totalShares })
+  const setTotalShares = (v: number) => patch({ totalShares: v, authorisedShareCapital: nominal * v })
   const classes = wizard.shareClassList ?? []
 
   const setClass = (id: string, partial: Partial<ShareClass>) =>
@@ -2262,31 +2437,36 @@ function StepShareCapital({ wizard, patch, shareholders }: {
 
       {!multi ? (
         <>
-          <Field label="Nominal value per share (KES)" required>
-            <input
-              type="number" min={1} className={inputCls} style={inputStyle}
-              value={nominal}
-              onChange={(e) => patch({ nominalValuePerShare: parseInt(e.target.value, 10) || 0 })}
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nominal value per share (KES)" required>
+              <input
+                type="number" min={1} className={inputCls} style={inputStyle}
+                value={nominal || ''}
+                onChange={(e) => setNominal(parseInt(e.target.value, 10) || 0)}
+              />
+            </Field>
+            <Field label="Total number of shares" required>
+              <input
+                type="number" min={1} className={inputCls} style={inputStyle}
+                value={totalShares || ''}
+                onChange={(e) => setTotalShares(parseInt(e.target.value, 10) || 0)}
+              />
+            </Field>
+          </div>
           <div className="ios-surface rounded-2xl p-4 space-y-1">
             <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-              Shares issued (from shareholders): <span className="font-semibold" style={{ color: 'var(--system-label)' }}>{issued.toLocaleString()}</span>
+              Authorised share capital: <span className="font-semibold" style={{ color: 'var(--system-label)' }}>KES {computedCapital.toLocaleString()}</span>
             </p>
-            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-              Total issued capital: <span className="font-semibold" style={{ color: 'var(--system-label)' }}>KES {issuedCapital.toLocaleString()}</span>
+            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+              Nominal value × total shares. Kenyan law requires shares to be fully issued, so the shareholders
+              step will ask you to allocate all {totalShares.toLocaleString()} shares between shareholders.
             </p>
+            {allocated > 0 && (
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                {allocated.toLocaleString()} of {totalShares.toLocaleString()} already allocated to shareholders.
+              </p>
+            )}
           </div>
-          <Field label="Authorised share capital (KES)" required>
-            <input
-              type="number" min={issuedCapital} className={inputCls} style={inputStyle}
-              value={wizard.authorisedShareCapital ?? ''}
-              onChange={(e) => patch({ authorisedShareCapital: parseInt(e.target.value, 10) || 0 })}
-            />
-            <p className="text-ios-caption1 mt-1" style={{ color: 'var(--system-label-3)' }}>
-              Must be at least KES {issuedCapital.toLocaleString()} (issued shares × nominal value).
-            </p>
-          </Field>
           <Field label="Classes of shares" required>
             <div className="grid grid-cols-2 gap-2">
               {([['ordinary', 'Ordinary only'], ['ordinary_preference', 'Ordinary + preference']] as const).map(([v, l]) => (
@@ -2750,6 +2930,12 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
   onExtracted: () => Promise<void>
 }) {
   const [statuses, setStatuses] = useState<Record<string, FileStatus>>({})
+  // Sections where matching documents already exist collapse to a compact
+  // "already on file" list instead of a blank dropzone (Charles, 2026:
+  // director/shareholder/proof-of-address docs captured inline during
+  // those steps shouldn't be asked for again here as if nothing exists).
+  // Expanded on demand via "+ Add another".
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   const setStatus = (id: string, s: FileStatus) => setStatuses((prev) => ({ ...prev, [id]: s }))
 
@@ -2834,44 +3020,93 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
 
   const busy = Object.values(statuses).some((s) => s.state === 'uploading' || s.state === 'extracting')
 
+  const visibleSections = UPLOAD_SECTIONS.filter((s) => s.visible(entityType))
+  const missingSections = visibleSections.filter(
+    (s) => !s.title.includes('(optional)') && !documents.some((d) => d.document_type === s.documentType)
+  )
+
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
         Upload your documents
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        Upload ID documents, passport photos, and proof of address. We read them automatically and
-        cross-check what you entered — anything missing gets filled in for your review.
+        Anything you already uploaded while adding directors, shareholders, or beneficial owners is listed
+        below, not asked for again. We read documents automatically and cross-check what you entered.
       </p>
 
-      {UPLOAD_SECTIONS.filter((s) => s.visible(entityType)).map((section) => (
-        <div key={section.title} className="ios-surface rounded-2xl p-4 space-y-3">
-          <div>
-            <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>
-              {section.title}
-            </p>
-            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-              {section.hint}
-            </p>
-          </div>
-          <label
-            className="block w-full rounded-xl border-2 border-dashed p-5 text-center cursor-pointer"
-            style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}
-          >
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
-              className="hidden"
-              disabled={busy}
-              onChange={(e) => { handleFiles(section, e.target.files); e.target.value = '' }}
-            />
-            <span className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
-              {busy ? 'Working…' : 'Tap to choose files'}
-            </span>
-          </label>
+      {missingSections.length > 0 ? (
+        <div className="rounded-xl p-3" style={{ background: 'rgba(255,149,0,0.10)' }}>
+          <p className="text-ios-footnote font-medium" style={{ color: '#C77700' }}>
+            Still missing: {missingSections.map((s) => s.title.replace(/^Signed /, '')).join(', ')}
+          </p>
         </div>
-      ))}
+      ) : (
+        <div className="rounded-xl p-3" style={{ background: 'rgba(52,199,89,0.12)' }}>
+          <p className="text-ios-footnote font-medium" style={{ color: '#1E9E45' }}>
+            Everything required is on file.
+          </p>
+        </div>
+      )}
+
+      {UPLOAD_SECTIONS.filter((s) => s.visible(entityType)).map((section) => {
+        const existing = documents.filter((d) => d.document_type === section.documentType)
+        const showUploader = existing.length === 0 || expanded[section.title]
+        return (
+          <div key={section.title} className="ios-surface rounded-2xl p-4 space-y-3">
+            <div>
+              <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>
+                {section.title}
+              </p>
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                {section.hint}
+              </p>
+            </div>
+
+            {existing.length > 0 && (
+              <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
+                {existing.map((d) => (
+                  <div key={d.id} className="flex items-center gap-2">
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <p className="text-ios-footnote truncate" style={{ color: 'var(--system-label)' }}>{d.name}</p>
+                  </div>
+                ))}
+                {!expanded[section.title] && (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((prev) => ({ ...prev, [section.title]: true }))}
+                    className="text-ios-caption1 font-semibold"
+                    style={{ color: 'var(--brand-navy)' }}
+                  >
+                    + Add another
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showUploader && (
+              <label
+                className="block w-full rounded-xl border-2 border-dashed p-5 text-center cursor-pointer"
+                style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  disabled={busy}
+                  onChange={(e) => { handleFiles(section, e.target.files); e.target.value = '' }}
+                />
+                <span className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
+                  {busy ? 'Working…' : 'Tap to choose files'}
+                </span>
+              </label>
+            )}
+          </div>
+        )
+      })}
 
       {Object.entries(statuses).map(([id, s]) => (
         <div key={id} className="ios-surface rounded-2xl px-4 py-3 flex items-center gap-3">
@@ -3005,7 +3240,7 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
         <Row label="Entity type" value={typeLabel} />
         <Row label="Applicant" value={wizard.applicantFullName ?? '—'} />
         <Row label="Proposed names" value={names.join(', ') || '—'} />
-        <Row label="Registered office" value={[wizard.addressLine1, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
+        <Row label="Registered office" value={[wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
         <Row label="Primary activity" value={wizard.primaryActivity ?? '—'} />
         <Row label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />
         {directors.length > 0 && <Row label="Directors/partners" value={directors.map((d) => d.full_name).join(', ')} />}
@@ -3037,7 +3272,7 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
 // ------------------------------------------------------------------
 // Submitted screen
 // ------------------------------------------------------------------
-function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, businessName, applicantName, applicantPhone, api, onActivated }: {
+function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, businessName, applicantName, applicantPhone, api, onActivated, onEdit }: {
   onDashboard: () => void
   orgId: string | null
   entityId: string | null
@@ -3048,6 +3283,7 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
   applicantPhone: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; idpUrl?: string | null }>
   onActivated: () => void
+  onEdit: () => void
 }) {
   const [localIdpUrl, setLocalIdpUrl] = useState(idpUrl)
   const [regenerating, setRegenerating] = useState(false)
@@ -3171,8 +3407,17 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
 
         <button
           type="button"
-          onClick={onDashboard}
+          onClick={onEdit}
           className="w-full py-2.5 rounded-full text-sm font-medium border mt-4"
+          style={{ borderColor: 'var(--system-fill-3)', color: 'var(--brand-navy)' }}
+        >
+          Edit application
+        </button>
+
+        <button
+          type="button"
+          onClick={onDashboard}
+          className="w-full py-2.5 rounded-full text-sm font-medium border mt-2"
           style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}
         >
           Go to dashboard

@@ -80,7 +80,7 @@ export default async function DashboardPage() {
   const [{ data: docs }, { data: forms }, { data: events }] = await Promise.all([
     supabase
       .from('documents')
-      .select('entity_id')
+      .select('entity_id, document_type')
       .in('entity_id', entityIds)
       .is('deleted_at', null),
     supabase
@@ -99,9 +99,33 @@ export default async function DashboardPage() {
   ])
 
   const docCounts = new Map<string, number>()
+  const docTypesByEntity = new Map<string, Set<string>>()
   for (const d of docs ?? []) {
     if (!d.entity_id) continue
     docCounts.set(d.entity_id, (docCounts.get(d.entity_id) ?? 0) + 1)
+    if (d.document_type) {
+      const set = docTypesByEntity.get(d.entity_id) ?? new Set<string>()
+      set.add(d.document_type)
+      docTypesByEntity.set(d.entity_id, set)
+    }
+  }
+
+  // Charles, 2026: dashboard should nudge exactly which BRS application
+  // documents are still missing, not just "upload the certificate" —
+  // these are generated during onboarding, signed at BRS, then uploaded
+  // back, separate from the certificate which doesn't exist until BRS
+  // approves.
+  const REQUIRED_BRS_DOCS: Array<{ type: string; label: string }> = [
+    { type: 'signed_cr1', label: 'CR1' },
+    { type: 'signed_cr8', label: 'CR8' },
+  ]
+  const missingBrsDocs = (entityId: string, entityType: string) => {
+    const present = docTypesByEntity.get(entityId) ?? new Set<string>()
+    const required = [...REQUIRED_BRS_DOCS]
+    if (entityType === 'limited_company' || entityType === 'public_limited_company') {
+      required.push({ type: 'signed_cr2', label: 'CR2' }, { type: 'statement_of_nominal_capital', label: 'statement of nominal capital' })
+    }
+    return required.filter((r) => !present.has(r.type)).map((r) => r.label)
   }
 
   // Latest IDP per entity → signed URL (1h expiry)
@@ -128,6 +152,7 @@ export default async function DashboardPage() {
     onboardingStep: e.onboarding_step,
     documentCount: docCounts.get(e.id) ?? 0,
     idpUrl: idpUrls.get(e.id) ?? null,
+    missingBrsDocs: e.status === 'pending_registration' ? missingBrsDocs(e.id, e.entity_type) : [],
   }))
 
   const entityNames = new Map(dashboardEntities.map((e) => [e.id, e.displayName]))

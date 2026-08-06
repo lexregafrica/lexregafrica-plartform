@@ -5,6 +5,7 @@ import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import { generateIdp } from '@/lib/documents/idp'
 import {
   ENTITY_TYPES,
+  APPLICANT_RELATIONSHIPS,
   isStepVisible,
   TOTAL_STEPS,
   type EntityType,
@@ -213,18 +214,21 @@ export async function POST(request: Request) {
     if (wizard.entityEmail !== undefined) entityUpdate.email = wizard.entityEmail
     if (wizard.entityPhone !== undefined) entityUpdate.phone = wizard.entityPhone
     if (wizard.postalAddress !== undefined) entityUpdate.postal_address = { address: wizard.postalAddress } as Json
-    if (wizard.addressLine1) {
+    if (wizard.streetName || wizard.buildingName || wizard.city) {
       entityUpdate.registered_address = {
-        line1: mergedWizard.addressLine1,
-        line2: mergedWizard.addressLine2 ?? null,
+        buildingName: mergedWizard.buildingName ?? null,
+        streetName: mergedWizard.streetName ?? null,
+        floorNumber: mergedWizard.floorNumber ?? null,
+        doorNumber: mergedWizard.doorNumber ?? null,
         city: mergedWizard.city,
         county: mergedWizard.county,
         postcode: mergedWizard.postalCode,
         country: mergedWizard.country ?? 'Kenya',
       } as Json
     }
-    if (wizard.nominalValuePerShare !== undefined || wizard.authorisedShareCapital !== undefined || wizard.shareClassList !== undefined) {
+    if (wizard.nominalValuePerShare !== undefined || wizard.authorisedShareCapital !== undefined || wizard.totalShares !== undefined || wizard.shareClassList !== undefined) {
       entityUpdate.nominal_capital = mergedWizard.authorisedShareCapital ?? null
+      entityUpdate.total_shares = mergedWizard.totalShares ?? null
       entityUpdate.share_class = mergedWizard.useMultipleShareClasses
         ? (mergedWizard.shareClassList ?? []).map((c) => c.name).filter(Boolean).join(', ') || 'multiple classes'
         : mergedWizard.shareClasses === 'ordinary_preference' ? 'ordinary+preference' : 'ordinary'
@@ -272,6 +276,8 @@ export async function POST(request: Request) {
         }
         isForeign?: boolean
         foreignAddress?: string
+        physicalAddress?: string
+        postalAddress?: string
       }
     }
     if (!director?.fullName || !director?.idNumber) {
@@ -298,6 +304,8 @@ export async function POST(request: Request) {
         foreignAddress: director.isForeign ? director.foreignAddress : undefined,
         isCorporate: director.isCorporate ?? false,
         corporate: director.isCorporate ? director.corporate : undefined,
+        physicalAddress: director.physicalAddress ?? undefined,
+        postalAddress: director.postalAddress ?? undefined,
       } as Json,
     }
 
@@ -343,6 +351,8 @@ export async function POST(request: Request) {
         }
         isForeign?: boolean
         foreignAddress?: string
+        physicalAddress?: string
+        postalAddress?: string
       }
     }
     if (!shareholder?.legalName || !shareholder?.sharesHeld) {
@@ -360,6 +370,8 @@ export async function POST(request: Request) {
       address: {
         isForeign: shareholder.isForeign ?? false,
         foreignAddress: shareholder.isForeign ? shareholder.foreignAddress : undefined,
+        physicalAddress: shareholder.physicalAddress ?? undefined,
+        postalAddress: shareholder.postalAddress ?? undefined,
       } as Json,
       corporate_details: {
         nominee: shareholder.isNominee || undefined,
@@ -654,9 +666,14 @@ export async function POST(request: Request) {
           registration_status: 'awaiting_signature',
           onboarding_step: TOTAL_STEPS,
           onboarding_data: newData as Json,
-          applicant_name: wizard.signature ?? null,
-          applicant_email: user.email ?? null,
+          // Applicant & Contact (step 2) is the source of truth for who's
+          // filing — falls back to the declaration signature/account
+          // email only if step 2 was somehow skipped.
+          applicant_name: wizard.applicantFullName ?? wizard.signature ?? null,
+          applicant_email: wizard.applicantEmail ?? user.email ?? null,
+          applicant_mobile: wizard.applicantPhone ?? null,
           applicant_relationship: wizard.applicantRelationship ?? 'promoter',
+          has_custom_articles: wizard.articlesType === 'custom',
         })
         .eq('id', entityId),
       supabase
@@ -960,30 +977,183 @@ async function generateAndStoreIdp(
   ctx: { entityId: string; orgId: string; entityType: EntityType; wizard: WizardData }
 ): Promise<string | null> {
   try {
-    const [{ data: entity }, { data: directors }, { data: shareholders }, { data: org }] = await Promise.all([
+    const [{ data: entity }, { data: directors }, { data: shareholders }, { data: beneficialOwners }, { data: documents }, { data: org }] = await Promise.all([
       supabase.from('entities').select('*').eq('id', ctx.entityId).single(),
-      supabase.from('directors').select('full_name, id_number, kra_pin').eq('entity_id', ctx.entityId),
-      supabase.from('shareholders').select('legal_name, shares_held, share_percentage').eq('entity_id', ctx.entityId),
+      supabase.from('directors').select('*').eq('entity_id', ctx.entityId),
+      supabase.from('shareholders').select('*').eq('entity_id', ctx.entityId),
+      supabase.from('beneficial_owners').select('*').eq('entity_id', ctx.entityId),
+      supabase.from('documents').select('name, document_type').eq('entity_id', ctx.entityId).is('deleted_at', null),
       supabase.from('organisations').select('name').eq('id', ctx.orgId).single(),
     ])
     if (!entity) return null
 
+    const w = ctx.wizard
     const address = entity.registered_address as { line1?: string; city?: string; county?: string; postcode?: string } | null
+    const docTypes = new Set((documents ?? []).map((d) => d.document_type).filter(Boolean))
+    const hasDoc = (t: string) => docTypes.has(t)
+    const shareholderNamesLower = new Set((shareholders ?? []).map((s) => s.legal_name.toLowerCase()))
+    const boNamesLower = new Set((beneficialOwners ?? []).map((b) => b.full_name.toLowerCase()))
+
+    // ---- directors table -----------------------------------------
+    const idpDirectors = (directors ?? []).map((d) => {
+      const ra = d.residential_address as { isCorporate?: boolean; physicalAddress?: string; foreignAddress?: string } | null
+      return {
+        fullName: d.full_name,
+        role: ra?.isCorporate ? 'Corporate director' : 'Director',
+        nationality: d.nationality,
+        idNumber: d.id_number,
+        kraPin: d.kra_pin,
+        email: d.email,
+        phone: d.phone,
+        address: ra?.physicalAddress ?? ra?.foreignAddress ?? null,
+        isAlsoShareholder: shareholderNamesLower.has(d.full_name.toLowerCase()),
+        isAlsoBeneficialOwner: boNamesLower.has(d.full_name.toLowerCase()),
+      }
+    })
+
+    // ---- shareholders / cap table ----------------------------------
+    const idpShareholders = (shareholders ?? []).map((s) => {
+      const cd = s.corporate_details as { isCorporate?: boolean } | null
+      return {
+        legalName: s.legal_name,
+        type: (cd?.isCorporate ? 'Company' : 'Individual') as 'Individual' | 'Company',
+        nationalityOrJurisdiction: null,
+        idOrRegNumber: s.id_or_reg_number,
+        kraPinOrTaxId: s.kra_pin,
+        shareClass: w.useMultipleShareClasses ? 'Multiple' : 'Ordinary',
+        sharesHeld: s.shares_held,
+        sharePercentage: s.share_percentage,
+        isNominee: !!cd && !!(cd as { nominee?: boolean }).nominee,
+      }
+    })
+
+    // ---- corporate party annex — any director or shareholder marked
+    // corporate, deduplicated by registered name -------------------
+    const corporateParties: NonNullable<Parameters<typeof generateIdp>[0]['corporateParties']> = []
+    const seenCorporate = new Set<string>()
+    for (const d of directors ?? []) {
+      const ra = d.residential_address as { isCorporate?: boolean; corporate?: Record<string, string> } | null
+      if (!ra?.isCorporate || !ra.corporate) continue
+      const c = ra.corporate
+      if (seenCorporate.has(c.registeredName)) continue
+      seenCorporate.add(c.registeredName)
+      corporateParties.push({
+        registeredName: c.registeredName, jurisdiction: c.countryOfIncorporation ?? null,
+        regNumber: c.regNumber ?? null, kraPinOrTaxId: (c.isForeign ? c.foreignTaxId : c.kraPin) ?? null,
+        registeredOfficeAddress: c.registeredOfficeAddress ?? null, email: c.corporateEmail ?? null, phone: c.corporatePhone ?? null,
+        role: 'Director', repName: c.repName ?? null, repTitle: c.repTitle ?? null, repEmail: c.repEmail ?? null,
+        repPhone: c.repPhone ?? null, authorityBasis: c.basisOfAuthorityToAct ?? null,
+      })
+    }
+    for (const s of shareholders ?? []) {
+      const cd = s.corporate_details as { isCorporate?: boolean; corporate?: Record<string, string> } | null
+      if (!cd?.isCorporate || !cd.corporate) continue
+      const c = cd.corporate
+      if (seenCorporate.has(c.registeredName)) {
+        const existing = corporateParties.find((p) => p.registeredName === c.registeredName)
+        if (existing) existing.role = 'Shareholder & Director'
+        continue
+      }
+      seenCorporate.add(c.registeredName)
+      corporateParties.push({
+        registeredName: c.registeredName, jurisdiction: c.countryOfIncorporation ?? null,
+        regNumber: c.regNumber ?? null, kraPinOrTaxId: (c.isForeign ? c.foreignTaxId : c.kraPin) ?? null,
+        registeredOfficeAddress: c.registeredOfficeAddress ?? null, email: c.corporateEmail ?? null, phone: c.corporatePhone ?? null,
+        role: 'Shareholder', repName: c.repName ?? null, repTitle: c.repTitle ?? null, repEmail: c.repEmail ?? null,
+        repPhone: c.repPhone ?? null, authorityBasis: null,
+      })
+    }
+
+    // ---- beneficial ownership ---------------------------------------
+    const idpBeneficialOwners = (beneficialOwners ?? []).map((b) => ({
+      fullName: b.full_name, nationality: b.nationality, idNumber: b.id_number, kraPin: b.kra_pin,
+      address: (b.residential_address as { text?: string } | null)?.text ?? null,
+      phone: b.phone, email: b.email, natureOfControl: b.nature_of_control ?? '—',
+      sharePercentage: b.share_percentage, dateBecameBo: b.date_became_bo,
+    }))
+
+    // ---- forms & filing preview --------------------------------------
+    const formDefs = [
+      { type: 'signed_cr1', label: 'CR1 — Application for registration' },
+      { type: 'signed_cr2', label: 'CR2 — Memorandum of registration' },
+      { type: 'signed_cr8', label: 'CR8 — Particulars of directors' },
+      { type: 'statement_of_nominal_capital', label: 'Statement of nominal capital' },
+      { type: 'signed_bof1', label: 'BOF1 — Beneficial ownership filing' },
+    ]
+    const forms = formDefs.map((f) => ({ label: f.label, generated: hasDoc(f.type), signed: hasDoc(f.type), uploaded: hasDoc(f.type) }))
+
+    // ---- uploaded documents checklist --------------------------------
+    const documentGroups = [
+      { label: 'Identity documents', types: ['id_copy'] },
+      { label: 'Passport photos', types: ['passport_photo'] },
+      { label: 'Proof of registered office', types: ['proof_of_address'] },
+      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_representative_id'] },
+      { label: 'Registration forms', types: formDefs.map((f) => f.type) },
+    ].map((g) => ({
+      label: g.label,
+      items: g.types.map((t) => ({ name: t.replaceAll('_', ' '), provided: hasDoc(t) })),
+    }))
+
+    // ---- review exceptions ---------------------------------------------
+    const exceptions: string[] = []
+    if (!address?.line1) exceptions.push('Registered office address is missing.')
+    if ((directors ?? []).length === 0) exceptions.push('No directors captured.')
+    if ((shareholders ?? []).length === 0) exceptions.push('No shareholders captured.')
+    if (!w.useMultipleShareClasses && w.totalShares) {
+      const allocated = (shareholders ?? []).reduce((s, x) => s + x.shares_held, 0)
+      if (allocated !== w.totalShares) exceptions.push(`Only ${allocated.toLocaleString()} of ${w.totalShares.toLocaleString()} shares allocated — must be fully issued.`)
+    }
+    if ((beneficialOwners ?? []).length === 0 && !w.noBeneficialOwners) exceptions.push('Beneficial ownership not yet confirmed.')
+    for (const f of forms) if (!f.uploaded) exceptions.push(`${f.label} not yet uploaded.`)
+    if (corporateParties.length > 0 && !hasDoc('corporate_authority_document')) {
+      exceptions.push('Corporate party authority document (board resolution / power of attorney) not yet uploaded.')
+    }
 
     const pdfBytes = await generateIdp({
+      organisationName: org?.name ?? 'Your organisation',
+      generatedAt: new Date(),
+      matterReference: ctx.entityId.slice(0, 8).toUpperCase(),
+      servicePath: 'Not yet selected',
+      onboardingType: 'New company registration',
+
       entityTypeLabel: ENTITY_TYPES.find((t) => t.value === ctx.entityType)?.label ?? ctx.entityType,
       legalNameOptions: (entity.proposed_names as string[] | null) ?? [],
       natureOfBusiness: entity.nature_of_business,
       registeredAddress: address ? { line1: address.line1 ?? null, city: address.city ?? null, county: address.county ?? null, postcode: address.postcode ?? null } : null,
-      nominalCapital: entity.nominal_capital,
-      totalShares: entity.total_shares,
-      directors: (directors ?? []).map((d) => ({ fullName: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin })),
-      shareholders: (shareholders ?? []).map((s) => ({ legalName: s.legal_name, sharesHeld: s.shares_held, sharePercentage: s.share_percentage })),
+      postalAddress: (entity.postal_address as { address?: string } | null)?.address ?? null,
+      companyEmail: entity.email,
+      companyPhone: entity.phone,
+
       applicantName: entity.applicant_name,
+      applicantRelationship: entity.applicant_relationship ? APPLICANT_RELATIONSHIPS.find((r) => r.value === entity.applicant_relationship)?.label ?? entity.applicant_relationship : null,
       applicantEmail: entity.applicant_email,
-      applicantRelationship: entity.applicant_relationship,
-      organisationName: org?.name ?? 'Your organisation',
-      generatedAt: new Date(),
+      applicantPhone: entity.applicant_mobile,
+
+      totalShares: entity.total_shares,
+      authorisedCapital: entity.nominal_capital,
+      nominalValuePerShare: w.nominalValuePerShare ?? null,
+      useMultipleShareClasses: !!w.useMultipleShareClasses,
+      shareClassCount: w.useMultipleShareClasses ? (w.shareClassList ?? []).length : 1,
+      votingRights: w.votingRights === 'weighted' ? 'Weighted voting' : w.votingRights === 'one_share_one_vote' ? 'One share, one vote' : null,
+
+      directors: idpDirectors,
+      secretaryName: w.hasCompanySecretary ? (w.secretary?.fullName ?? null) : null,
+
+      shareholders: idpShareholders,
+      corporateParties,
+
+      beneficialOwners: idpBeneficialOwners,
+      noBeneficialOwnersDeclared: !!w.noBeneficialOwners,
+
+      articlesType: w.articlesType ?? null,
+
+      forms,
+      documentGroups,
+      exceptions,
+
+      declared: !!w.declared,
+      signature: w.signature ?? null,
+      declarationDate: w.declarationDate ?? null,
     })
 
     const path = `${ctx.orgId}/${ctx.entityId}/idp-${Date.now()}.pdf`
@@ -1108,7 +1278,6 @@ async function mergeExtraction(
   const wizard = { ...(progressData.wizard ?? {}) }
   let wizardChanged = false
   if (section === 'address' || fields.document_kind === 'proof_of_address') {
-    if (!wizard.addressLine1 && fields.address_line1) { wizard.addressLine1 = fields.address_line1; wizardChanged = true }
     // No dedicated district/locality UI fields yet — fall back into city
     // so the value isn't silently lost ahead of the wizard-reorder phase.
     const cityValue = fields.city ?? fields.locality ?? fields.district
@@ -1141,6 +1310,14 @@ async function mergeExtraction(
     fields.share_classes?.[0]?.nominal_value_each
   ) {
     wizard.nominalValuePerShare = fields.share_classes[0].nominal_value_each
+    wizardChanged = true
+  }
+  if (
+    (fields.document_kind === 'cr2' || fields.document_kind === 'statement_of_nominal_capital') &&
+    !wizard.totalShares &&
+    fields.share_classes?.[0]?.number_of_shares
+  ) {
+    wizard.totalShares = fields.share_classes[0].number_of_shares
     wizardChanged = true
   }
 

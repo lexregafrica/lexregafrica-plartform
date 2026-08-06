@@ -11,6 +11,13 @@ import {
 } from '@/lib/onboarding/existing-entity'
 import { ENTITY_TYPES, PHASE1_ENTITY_TYPES, KENYA_COUNTIES, KRA_PIN_REGEX, type EntityType } from '@/lib/onboarding/new-entity'
 import { HelpRequestSheet } from '@/components/onboarding/help-request-sheet'
+// Shared with the new-entity wizard — same corporate-party field set and
+// inline-OCR/photo upload pattern, not duplicated (Charles, 2026: "map
+// using the same sort of flow" once new-entity is figured out).
+import {
+  CorporateFields, InlineOcrUpload, PhotoUpload, emptyCorporate,
+  type CorporateParticipant,
+} from '@/components/onboarding/new-entity-wizard'
 
 const inputCls =
   'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
@@ -32,8 +39,32 @@ function Field({ label, required, children }: { label: string; required?: boolea
   )
 }
 
-type DirectorRow = { id: string; full_name: string; id_number: string; kra_pin: string | null }
-type ShareholderRow = { id: string; legal_name: string; id_or_reg_number: string | null; kra_pin: string | null; shares_held: number; share_percentage?: number | null }
+type DirectorRow = {
+  id: string
+  full_name: string
+  id_number: string
+  kra_pin: string | null
+  phone?: string | null
+  email?: string | null
+  is_foreign?: boolean
+  residential_address?: {
+    isCorporate?: boolean
+    corporate?: CorporateParticipant
+    foreignAddress?: string
+    physicalAddress?: string
+    postalAddress?: string
+  } | null
+}
+type ShareholderRow = {
+  id: string
+  legal_name: string
+  id_or_reg_number: string | null
+  kra_pin: string | null
+  shares_held: number
+  share_percentage?: number | null
+  address?: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string } | null
+  corporate_details?: { isCorporate?: boolean; corporate?: CorporateParticipant } | null
+}
 type DocumentRow = { id: string; name: string; document_type: string | null; ocr_status?: string | null }
 type BeneficialOwnerRow = {
   id: string
@@ -554,6 +585,8 @@ export function ExistingEntityWizard() {
             shareholders={shareholders}
             setDirectors={setDirectors}
             setShareholders={setShareholders}
+            orgId={orgId}
+            entityId={entityId}
             api={api}
             setError={setError}
           />
@@ -700,39 +733,123 @@ export function ExistingEntityWizard() {
 // ------------------------------------------------------------------
 // Step 3 — directors & shareholders (pre-filled from CR12 extraction)
 // ------------------------------------------------------------------
-type PersonForm = { id?: string; kind: 'director' | 'shareholder'; name: string; idNumber: string; kraPin: string; shares: string }
+type PersonForm = {
+  id?: string
+  kind: 'director' | 'shareholder'
+  name: string
+  idNumber: string
+  kraPin: string
+  phone: string
+  email: string
+  physicalAddress: string
+  postalAddress: string
+  shares: string
+  isCorporate: boolean
+  corporate: CorporateParticipant
+  isForeign: boolean
+  foreignAddress: string
+}
 
-function PeopleStep({ directors, shareholders, setDirectors, setShareholders, api, setError }: {
+const emptyPersonForm = (kind: 'director' | 'shareholder'): PersonForm => ({
+  kind, name: '', idNumber: '', kraPin: '', phone: '', email: '',
+  physicalAddress: '', postalAddress: '', shares: '',
+  isCorporate: false, corporate: { ...emptyCorporate }, isForeign: false, foreignAddress: '',
+})
+
+function PeopleStep({ directors, shareholders, setDirectors, setShareholders, api, setError, orgId, entityId }: {
   directors: DirectorRow[]
   shareholders: ShareholderRow[]
   setDirectors: (d: DirectorRow[]) => void
   setShareholders: (s: ShareholderRow[]) => void
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
   setError: (e: string) => void
+  orgId: string | null
+  entityId: string | null
 }) {
   const [form, setForm] = useState<PersonForm | null>(null)
   const [busy, setBusy] = useState(false)
 
+  const handleExtracted = (f: Record<string, unknown> | undefined) => {
+    setForm((prev) => {
+      if (!prev || !f) return prev
+      const isReplace = !!prev.id
+      return {
+        ...prev,
+        name: (isReplace ? (f.full_name as string) : prev.name || (f.full_name as string)) || prev.name,
+        idNumber: (isReplace ? (f.id_number as string) : prev.idNumber || (f.id_number as string)) || prev.idNumber,
+        kraPin: (isReplace ? (f.kra_pin as string) : prev.kraPin || (f.kra_pin as string))?.toUpperCase?.() || prev.kraPin,
+      }
+    })
+  }
+
   const save = async () => {
     if (!form) return
-    if (!form.name.trim()) { setError('Name is required.'); return }
+    if (form.isCorporate) {
+      if (!form.corporate.registeredName.trim()) { setError('Registered company name is required.'); return }
+    } else if (!form.name.trim()) {
+      setError('Name is required.')
+      return
+    }
     setError('')
     setBusy(true)
     try {
+      const displayName = form.isCorporate ? form.corporate.registeredName.trim() : form.name.trim()
+      const addressPayload = {
+        isCorporate: form.isCorporate,
+        corporate: form.isCorporate ? form.corporate : undefined,
+        isForeign: form.isForeign,
+        foreignAddress: form.isForeign ? form.foreignAddress.trim() : undefined,
+        physicalAddress: form.physicalAddress.trim() || undefined,
+        postalAddress: form.postalAddress.trim() || undefined,
+      }
       if (form.kind === 'director') {
         const result = await api({
           action: 'upsert_director',
-          director: { id: form.id, fullName: form.name.trim(), idNumber: form.idNumber.trim() || undefined, kraPin: form.kraPin.trim().toUpperCase() || undefined },
+          director: {
+            id: form.id,
+            fullName: displayName,
+            idNumber: form.idNumber.trim() || undefined,
+            kraPin: form.kraPin.trim().toUpperCase() || undefined,
+            phone: form.phone.trim() || undefined,
+            email: form.email.trim() || undefined,
+            physicalAddress: form.physicalAddress.trim() || undefined,
+            postalAddress: form.postalAddress.trim() || undefined,
+            isCorporate: form.isCorporate,
+            corporate: form.isCorporate ? form.corporate : undefined,
+            isForeign: form.isForeign,
+            foreignAddress: form.isForeign ? form.foreignAddress.trim() : undefined,
+          },
         })
-        const updated: DirectorRow = { id: result.id!, full_name: form.name.trim(), id_number: form.idNumber.trim(), kra_pin: form.kraPin.trim().toUpperCase() || null }
+        const updated: DirectorRow = {
+          id: result.id!, full_name: displayName, id_number: form.idNumber.trim(), kra_pin: form.kraPin.trim().toUpperCase() || null,
+          phone: form.phone.trim() || null, email: form.email.trim() || null, is_foreign: form.isForeign,
+          residential_address: addressPayload,
+        }
         setDirectors(form.id ? directors.map((d) => (d.id === form.id ? updated : d)) : [...directors, updated])
       } else {
         const shares = parseInt(form.shares, 10) || 0
         const result = await api({
           action: 'upsert_shareholder',
-          shareholder: { id: form.id, legalName: form.name.trim(), idNumber: form.idNumber.trim() || undefined, kraPin: form.kraPin.trim().toUpperCase() || undefined, sharesHeld: shares },
+          shareholder: {
+            id: form.id,
+            legalName: displayName,
+            idNumber: form.idNumber.trim() || undefined,
+            kraPin: form.kraPin.trim().toUpperCase() || undefined,
+            sharesHeld: shares,
+            physicalAddress: form.physicalAddress.trim() || undefined,
+            postalAddress: form.postalAddress.trim() || undefined,
+            isCorporate: form.isCorporate,
+            corporate: form.isCorporate ? form.corporate : undefined,
+            isForeign: form.isForeign,
+            foreignAddress: form.isForeign ? form.foreignAddress.trim() : undefined,
+          },
         })
-        const updated: ShareholderRow = { id: result.id!, legal_name: form.name.trim(), id_or_reg_number: form.idNumber.trim() || null, kra_pin: form.kraPin.trim().toUpperCase() || null, shares_held: shares }
+        const updated: ShareholderRow = {
+          id: result.id!, legal_name: displayName, id_or_reg_number: form.idNumber.trim() || null, kra_pin: form.kraPin.trim().toUpperCase() || null,
+          shares_held: shares,
+          address: { isForeign: form.isForeign, foreignAddress: form.isForeign ? form.foreignAddress.trim() : undefined, physicalAddress: form.physicalAddress.trim() || undefined, postalAddress: form.postalAddress.trim() || undefined },
+          corporate_details: { isCorporate: form.isCorporate, corporate: form.isCorporate ? form.corporate : undefined },
+        }
         setShareholders(form.id ? shareholders.map((s) => (s.id === form.id ? updated : s)) : [...shareholders, updated])
       }
       setForm(null)
@@ -788,7 +905,17 @@ function PeopleStep({ directors, shareholders, setDirectors, setShareholders, ap
           key={d.id}
           title={d.full_name}
           subtitle={[d.id_number && `ID ${d.id_number}`, d.kra_pin && `PIN ${d.kra_pin}`].filter(Boolean).join(' · ') || 'Details pending'}
-          onEdit={() => setForm({ id: d.id, kind: 'director', name: d.full_name, idNumber: d.id_number ?? '', kraPin: d.kra_pin ?? '', shares: '' })}
+          onEdit={() => setForm({
+            ...emptyPersonForm('director'),
+            id: d.id, name: d.full_name, idNumber: d.id_number ?? '', kraPin: d.kra_pin ?? '',
+            phone: d.phone ?? '', email: d.email ?? '',
+            physicalAddress: d.residential_address?.physicalAddress ?? '',
+            postalAddress: d.residential_address?.postalAddress ?? '',
+            isCorporate: d.residential_address?.isCorporate ?? false,
+            corporate: d.residential_address?.corporate ?? { ...emptyCorporate },
+            isForeign: d.is_foreign ?? false,
+            foreignAddress: d.residential_address?.foreignAddress ?? '',
+          })}
           onRemove={() => removeDirector(d.id)}
         />
       ))}
@@ -801,24 +928,96 @@ function PeopleStep({ directors, shareholders, setDirectors, setShareholders, ap
           key={s.id}
           title={s.legal_name}
           subtitle={[s.shares_held > 0 && `${s.shares_held.toLocaleString()} shares`, s.id_or_reg_number && `ID ${s.id_or_reg_number}`].filter(Boolean).join(' · ') || 'Details pending'}
-          onEdit={() => setForm({ id: s.id, kind: 'shareholder', name: s.legal_name, idNumber: s.id_or_reg_number ?? '', kraPin: s.kra_pin ?? '', shares: String(s.shares_held || '') })}
+          onEdit={() => setForm({
+            ...emptyPersonForm('shareholder'),
+            id: s.id, name: s.legal_name, idNumber: s.id_or_reg_number ?? '', kraPin: s.kra_pin ?? '',
+            shares: String(s.shares_held || ''),
+            physicalAddress: s.address?.physicalAddress ?? '',
+            postalAddress: s.address?.postalAddress ?? '',
+            isForeign: s.address?.isForeign ?? false,
+            foreignAddress: s.address?.foreignAddress ?? '',
+            isCorporate: s.corporate_details?.isCorporate ?? false,
+            corporate: s.corporate_details?.corporate ?? { ...emptyCorporate },
+          })}
           onRemove={() => removeShareholder(s.id)}
         />
       ))}
 
       {form ? (
         <div className="ios-surface rounded-2xl p-4 space-y-3">
-          <Field label="Full name" required>
-            <input type="text" className={inputCls} style={inputStyle} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </Field>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setForm({ ...form, isCorporate: false })}
+              className="flex-1 py-2 rounded-full text-sm font-medium border"
+              style={{ borderColor: !form.isCorporate ? 'var(--brand-navy)' : 'var(--system-fill-3)', color: !form.isCorporate ? 'var(--brand-navy)' : 'var(--system-label-2)' }}>
+              Individual
+            </button>
+            <button type="button" onClick={() => setForm({ ...form, isCorporate: true })}
+              className="flex-1 py-2 rounded-full text-sm font-medium border"
+              style={{ borderColor: form.isCorporate ? 'var(--brand-navy)' : 'var(--system-fill-3)', color: form.isCorporate ? 'var(--brand-navy)' : 'var(--system-label-2)' }}>
+              Corporate body
+            </button>
+          </div>
+
+          {form.isCorporate ? (
+            <CorporateFields value={form.corporate} context={form.kind} onChange={(p) => setForm({ ...form, corporate: { ...form.corporate, ...p } })} />
+          ) : (
+            <>
+              <Field label="Full name" required>
+                <input type="text" className={inputCls} style={inputStyle} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </Field>
+              <InlineOcrUpload
+                orgId={orgId}
+                entityId={entityId}
+                section={form.kind}
+                api={api}
+                label={form.id ? 'Upload a replacement ID/passport or KRA PIN certificate →' : 'Scan ID/passport or KRA PIN certificate →'}
+                onExtracted={handleExtracted}
+                setError={setError}
+              />
+              <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                <input type="checkbox" checked={form.isForeign} onChange={(e) => setForm({ ...form, isForeign: e.target.checked })} />
+                Foreign resident (no Kenyan ID)
+              </label>
+              {form.isForeign && (
+                <Field label="Foreign address">
+                  <input type="text" className={inputCls} style={inputStyle} value={form.foreignAddress} onChange={(e) => setForm({ ...form, foreignAddress: e.target.value })} />
+                </Field>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="National ID number">
+                  <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => setForm({ ...form, idNumber: e.target.value })} />
+                </Field>
+                <Field label="KRA PIN">
+                  <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => setForm({ ...form, kraPin: e.target.value })} />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Phone">
+                  <input type="text" className={inputCls} style={inputStyle} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </Field>
+                <Field label="Email">
+                  <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                </Field>
+              </div>
+              <PhotoUpload
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onUploaded={() => {}}
+                setError={setError}
+              />
+            </>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
-            <Field label="National ID number">
-              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => setForm({ ...form, idNumber: e.target.value })} />
+            <Field label="Physical address" required={!form.isCorporate}>
+              <input type="text" className={inputCls} style={inputStyle} value={form.physicalAddress} onChange={(e) => setForm({ ...form, physicalAddress: e.target.value })} />
             </Field>
-            <Field label="KRA PIN">
-              <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => setForm({ ...form, kraPin: e.target.value })} />
+            <Field label="Postal address">
+              <input type="text" className={inputCls} style={inputStyle} value={form.postalAddress} onChange={(e) => setForm({ ...form, postalAddress: e.target.value })} />
             </Field>
           </div>
+
           {form.kind === 'shareholder' && (
             <Field label="Shares held">
               <input type="number" min={0} className={inputCls} style={inputStyle} value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} />
@@ -848,7 +1047,7 @@ function PeopleStep({ directors, shareholders, setDirectors, setShareholders, ap
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => setForm({ kind: 'director', name: '', idNumber: '', kraPin: '', shares: '' })}
+            onClick={() => setForm(emptyPersonForm('director'))}
             className="py-2.5 rounded-xl border border-dashed text-sm font-medium"
             style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
           >
@@ -856,7 +1055,7 @@ function PeopleStep({ directors, shareholders, setDirectors, setShareholders, ap
           </button>
           <button
             type="button"
-            onClick={() => setForm({ kind: 'shareholder', name: '', idNumber: '', kraPin: '', shares: '' })}
+            onClick={() => setForm(emptyPersonForm('shareholder'))}
             className="py-2.5 rounded-xl border border-dashed text-sm font-medium"
             style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
           >

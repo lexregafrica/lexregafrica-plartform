@@ -5,6 +5,10 @@ import { useState } from 'react'
 // Charles's WhatsApp number (international format, no +). Set in .env.local:
 // NEXT_PUBLIC_WHATSAPP_NUMBER=2547XXXXXXXX
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
+// Charles, 2026: WhatsApp alone reads as "too cliché for something so
+// strong" — email is easier to track as a serious conversation, and
+// should be offered first, with WhatsApp as the faster alternative.
+const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? ''
 
 const inputCls =
   'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
@@ -27,25 +31,55 @@ export function HelpRequestSheet({
   context,
   defaultName,
   defaultPhone,
+  defaultEmail,
   onClose,
   onSent,
 }: {
   context: HelpRequestContext
   defaultName?: string | null
   defaultPhone?: string | null
+  defaultEmail?: string | null
   onClose: () => void
   onSent?: () => void
 }) {
+  // Email first — matches Charles's preference for a trackable, "serious"
+  // channel; WhatsApp stays as the faster alternative for quick asks.
+  const [channel, setChannel] = useState<'email' | 'whatsapp'>('email')
   const [name, setName] = useState(defaultName ?? '')
   const [phone, setPhone] = useState(defaultPhone ?? '')
+  const [email, setEmail] = useState(defaultEmail ?? '')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [idpDownloaded, setIdpDownloaded] = useState(false)
 
   const handleSend = () => {
     if (!name.trim()) { setError('Enter your name.'); return }
-    if (!phone.trim()) { setError('Enter your phone number so we can reach you.'); return }
+    if (channel === 'whatsapp' && !phone.trim()) { setError('Enter your phone number so we can reach you.'); return }
+    if (channel === 'email' && !email.trim()) { setError('Enter your email so we can reach you.'); return }
     setError('')
+
+    const idpLine = context.idpUrl
+      ? (idpDownloaded ? `IDP: downloaded — I'll attach it here.` : `IDP: not downloaded yet.`)
+      : null
+
+    if (channel === 'email') {
+      const subject = encodeURIComponent(`LexReg Africa — assistance request${context.businessName ? ` (${context.businessName})` : ''}`)
+      const bodyLines = [
+        `Name: ${name.trim()}`,
+        email.trim() ? `Email: ${email.trim()}` : null,
+        phone.trim() ? `Phone: ${phone.trim()}` : null,
+        context.businessName ? `Business: ${context.businessName}` : null,
+        `Regarding: ${context.source}`,
+        idpLine,
+        message.trim() ? `` : null,
+        message.trim() ? `Message: ${message.trim()}` : null,
+      ].filter((l): l is string => l !== null)
+      const body = encodeURIComponent(bodyLines.join('\n'))
+      window.open(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`, '_blank', 'noopener,noreferrer')
+      onSent?.()
+      onClose()
+      return
+    }
 
     const lines = [
       `Hello LexReg Africa — I'd like assistance.`,
@@ -54,7 +88,7 @@ export function HelpRequestSheet({
       `Phone: ${phone.trim()}`,
       context.businessName ? `Business: ${context.businessName}` : null,
       `Regarding: ${context.source}`,
-      context.idpUrl ? (idpDownloaded ? `IDP: downloaded — I'll attach it here.` : `IDP: not downloaded yet.`) : null,
+      idpLine,
       message.trim() ? `` : null,
       message.trim() ? `Message: ${message.trim()}` : null,
     ].filter((l): l is string => l !== null)
@@ -79,10 +113,28 @@ export function HelpRequestSheet({
         <h2 className="text-ios-title3 mb-1" style={{ color: 'var(--system-label)' }}>
           Request assistance
         </h2>
-        <p className="text-ios-footnote mb-5" style={{ color: 'var(--system-label-2)' }}>
-          Send us a message on WhatsApp — our team responds during business hours and will walk you
-          through the next steps and pricing.
+        <p className="text-ios-footnote mb-4" style={{ color: 'var(--system-label-2)' }}>
+          Reach our team directly — we respond during business hours and will walk you through the next
+          steps and pricing.
         </p>
+
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {([['email', 'Email'], ['whatsapp', 'WhatsApp']] as const).map(([v, label]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setChannel(v)}
+              className="py-2 rounded-lg border text-sm font-medium"
+              style={{
+                borderColor: channel === v ? '#800020' : 'var(--system-fill-3)',
+                background: channel === v ? 'rgba(128,0,32,0.08)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <div className="space-y-3">
           <div>
@@ -91,12 +143,21 @@ export function HelpRequestSheet({
             </label>
             <input type="text" className={inputCls} style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div>
-            <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
-              Phone number <span style={{ color: '#dc2626' }}>*</span>
-            </label>
-            <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
+          {channel === 'email' ? (
+            <div>
+              <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
+                Your email <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <input type="email" className={inputCls} style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+          ) : (
+            <div>
+              <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
+                Phone number <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+          )}
           <div>
             <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
               How can we help? (optional)
@@ -140,7 +201,7 @@ export function HelpRequestSheet({
               )}
               {idpDownloaded && (
                 <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>
-                  Great — attach it to the WhatsApp chat when asked.
+                  Great — attach it to the {channel === 'email' ? 'email' : 'WhatsApp chat'} when asked.
                 </p>
               )}
             </div>
@@ -162,9 +223,9 @@ export function HelpRequestSheet({
             type="button"
             onClick={handleSend}
             className="flex-1 rounded-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#25D366' }}
+            style={{ background: channel === 'email' ? 'var(--brand-navy)' : '#25D366' }}
           >
-            Send via WhatsApp
+            {channel === 'email' ? 'Send via email' : 'Send via WhatsApp'}
           </button>
         </div>
       </div>
