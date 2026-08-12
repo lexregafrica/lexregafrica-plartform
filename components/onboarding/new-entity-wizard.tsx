@@ -1776,8 +1776,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                   </select>
                 </Field>
               </div>
-              <Field label="Postal address">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              <Field label="P.O. Box">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 1234" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
               </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
@@ -2267,8 +2267,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                   </select>
                 </Field>
               </div>
-              <Field label="Postal address">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              <Field label="P.O. Box">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 1234" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
               </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
@@ -2657,7 +2657,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             <input type="text" className={inputCls} style={inputStyle} value={form.residentialAddress} onChange={(e) => set({ residentialAddress: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Postal address">
+            <Field label="P.O. Box">
               <input type="text" className={inputCls} style={inputStyle} value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
             </Field>
             <Field label="Business address">
