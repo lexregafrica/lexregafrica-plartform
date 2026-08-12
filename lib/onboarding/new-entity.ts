@@ -169,7 +169,6 @@ export type WizardData = {
   // Step 12
   permanentEmployees?: number
   casualEmployees?: number
-  hasDraftContracts?: boolean
   nssfNhifStatus?: 'yes' | 'no' | 'already_registered'
   payrollFrequency?: string
   // Step 13
@@ -235,7 +234,7 @@ export const STEP_LABELS: Record<number, string> = {
   8: 'Beneficial Ownership',
   9: 'Company Secretary',
   10: 'Constitutional Documents',
-  11: 'Documents & Review',
+  11: 'Document Vault',
   12: 'Employee Information',
   13: 'Declaration & Consent',
   14: 'Review & Submit',

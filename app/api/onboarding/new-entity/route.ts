@@ -82,7 +82,7 @@ export async function GET(request: Request) {
       supabase.from('directors').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('shareholders').select('*').eq('entity_id', entityId).order('created_at'),
       supabase.from('beneficial_owners').select('*').eq('entity_id', entityId).order('created_at'),
-      supabase.from('documents').select('id, name, document_type, file_path, file_size, mime_type, created_at').eq('entity_id', entityId).is('deleted_at', null).order('created_at'),
+      supabase.from('documents').select('id, name, document_type, file_path, file_size, mime_type, tags, created_at').eq('entity_id', entityId).is('deleted_at', null).order('created_at'),
       supabase.from('entities').select('status').eq('id', entityId).maybeSingle(),
       supabase.from('company_forms').select('file_url').eq('entity_id', entityId).eq('form_type', 'information_document_package').order('generated_at', { ascending: false }).limit(1).maybeSingle(),
     ])
@@ -489,7 +489,14 @@ export async function POST(request: Request) {
   // ----------------------------------------------------------
   if (action === 'register_document') {
     const { document } = body as {
-      document: { name: string; filePath: string; fileSize?: number; mimeType?: string; documentType?: string }
+      document: {
+        name: string; filePath: string; fileSize?: number; mimeType?: string; documentType?: string
+        // Person the document belongs to (for the document-vault file-tree
+        // grouping) and a category label — Charles call, 2026-08: tag docs
+        // by who/what they're for, not just their type, since there's no
+        // per-person FK on this table.
+        personName?: string; personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+      }
     }
     if (!document?.name || !document?.filePath) {
       return NextResponse.json({ error: 'name and filePath required' }, { status: 400 })
@@ -498,6 +505,9 @@ export async function POST(request: Request) {
     if (!document.filePath.startsWith(`${orgId}/`)) {
       return NextResponse.json({ error: 'invalid file path' }, { status: 400 })
     }
+
+    const tags: Json[] = []
+    if (document.personName) tags.push({ person: document.personName, role: document.personRole ?? 'other' } as Json)
 
     const { data: doc, error } = await supabase
       .from('documents')
@@ -512,6 +522,7 @@ export async function POST(request: Request) {
         mime_type: document.mimeType ?? null,
         ocr_status: 'pending', // OCR pipeline lands in a later phase — status stays pending
         uploaded_by: user.id,
+        tags: tags as unknown as Json,
         metadata: { uploaded_from: 'onboarding' } as Json,
       })
       .select('id')
@@ -1087,7 +1098,7 @@ async function generateAndStoreIdp(
       { label: 'Identity documents', types: ['director_id_copy', 'shareholder_id_copy', 'beneficial_owner_id_copy'] },
       { label: 'Passport photos', types: ['passport_photo'] },
       { label: 'Proof of registered office', types: ['proof_of_address'] },
-      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_representative_id'] },
+      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_representative_id', 'foreign_constitutional_documents'] },
       { label: 'Registration forms', types: formDefs.map((f) => f.type) },
     ].map((g) => ({
       label: g.label,

@@ -167,6 +167,19 @@ type DocumentRow = {
   document_type: string | null
   file_path: string | null
   file_size: number | null
+  tags?: Array<{ person?: string; role?: string }> | null
+}
+
+// Finds the most recent document tagged for a given person + document_type
+// so an edit-mode upload control can show "already on file" instead of a
+// blank dropzone. Best-effort — falls back to nothing if untagged (legacy
+// uploads from before tagging existed).
+function findPersonDocument(documents: DocumentRow[], personName: string, documentType: string): { name: string; filePath: string } | null {
+  if (!personName.trim()) return null
+  const match = [...documents]
+    .reverse()
+    .find((d) => d.document_type === documentType && d.tags?.some((t) => t.person?.toLowerCase() === personName.trim().toLowerCase()))
+  return match?.file_path ? { name: match.name, filePath: match.file_path } : null
 }
 
 type BeneficialOwnerRow = {
@@ -570,6 +583,7 @@ export function NewEntityWizard() {
             api={api}
             setError={setError}
             onExtracted={refresh}
+            documents={documents}
           />
         )}
         {step === 7 && (
@@ -582,6 +596,7 @@ export function NewEntityWizard() {
             api={api}
             setError={setError}
             onExtracted={refresh}
+            documents={documents}
           />
         )}
         {step === 8 && (
@@ -595,6 +610,7 @@ export function NewEntityWizard() {
             entityId={entityId}
             api={api}
             setError={setError}
+            documents={documents}
           />
         )}
         {step === 9 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
@@ -1021,7 +1037,19 @@ const emptyDirector: DirectorForm = {
 // Upload + register + extract, then the caller re-syncs from the server
 // (mergeExtraction already dedupes/creates the person row) and opens that
 // row in edit mode so the rest of the form is just confirmation.
-export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError }: {
+// Opens a private-bucket file in a new tab via a short-lived signed URL —
+// shared by InlineOcrUpload, PhotoUpload, and StepDocuments so a person can
+// confirm what's actually behind a filename (Charles call, 2026-08: two
+// docs can share a name, and scraped fields alone don't prove which file
+// produced them).
+async function openStoredDocument(filePath: string, setError: (e: string) => void) {
+  const supabase = createClient()
+  const { data, error } = await supabase.storage.from('documents').createSignedUrl(filePath, 300)
+  if (error || !data?.signedUrl) { setError('Could not open document — try again.'); return }
+  window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+}
+
+export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError, initialUploaded, personName, personRole }: {
   section: 'director' | 'shareholder' | 'address' | 'other'
   documentType?: string
   label?: string
@@ -1030,8 +1058,19 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; fields?: Record<string, unknown> }>
   onExtracted: (fields: Record<string, unknown> | undefined) => void
   setError: (e: string) => void
+  // Lets a parent pre-fill "already uploaded" state when reopening an edit
+  // form for a person who already has a document on file, so the control
+  // doesn't look like a fresh empty dropzone on every re-open.
+  initialUploaded?: { name: string; filePath: string } | null
+  // Tags the document with who it's for, so the document vault can group
+  // by person instead of just by type (Charles call, 2026-08).
+  personName?: string
+  personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
 }) {
   const [state, setState] = useState<'idle' | 'uploading' | 'extracting'>('idle')
+  const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
+  const [replacing, setReplacing] = useState(false)
+  const [opening, setOpening] = useState(false)
 
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0]
@@ -1048,17 +1087,46 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
       const registered = await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole },
       }) as { id?: string }
 
       setState('extracting')
       const result = await api({ action: 'ocr_extract', documentId: registered.id, section })
       onExtracted(result.fields)
+      setUploaded({ name: file.name, filePath: path })
+      setReplacing(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Extraction failed — enter details manually.')
     } finally {
       setState('idle')
     }
+  }
+
+  if (uploaded && !replacing) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border p-3" style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}>
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        <button
+          type="button"
+          onClick={async () => { setOpening(true); await openStoredDocument(uploaded.filePath, setError); setOpening(false) }}
+          disabled={opening}
+          className="text-ios-footnote truncate text-left underline decoration-dotted flex-1 disabled:opacity-50"
+          style={{ color: 'var(--system-label)' }}
+        >
+          {opening ? 'Opening…' : uploaded.name}
+        </button>
+        <button
+          type="button"
+          onClick={() => setReplacing(true)}
+          className="text-ios-caption1 font-semibold shrink-0"
+          style={{ color: 'var(--brand-navy)' }}
+        >
+          Replace
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -1082,14 +1150,20 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
 // Passport-size photo — plain upload, no OCR. Charles, corporate-shareholder
 // call: capture a passport photo per person alongside their ID documents.
-export function PhotoUpload({ orgId, entityId, api, onUploaded, setError }: {
+export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initialUploaded, personName, personRole }: {
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
   onUploaded: (fileName: string) => void
   setError: (e: string) => void
+  initialUploaded?: { name: string; filePath: string } | null
+  personName?: string
+  personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
 }) {
   const [state, setState] = useState<'idle' | 'uploading'>('idle')
+  const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
+  const [replacing, setReplacing] = useState(false)
+  const [opening, setOpening] = useState(false)
 
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0]
@@ -1106,14 +1180,43 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError }: {
 
       await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'passport_photo' },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'passport_photo', personName, personRole },
       })
       onUploaded(file.name)
+      setUploaded({ name: file.name, filePath: path })
+      setReplacing(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed — try again.')
     } finally {
       setState('idle')
     }
+  }
+
+  if (uploaded && !replacing) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border p-2.5" style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}>
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        <button
+          type="button"
+          onClick={async () => { setOpening(true); await openStoredDocument(uploaded.filePath, setError); setOpening(false) }}
+          disabled={opening}
+          className="text-ios-caption1 truncate text-left underline decoration-dotted flex-1 disabled:opacity-50"
+          style={{ color: 'var(--system-label)' }}
+        >
+          {opening ? 'Opening…' : uploaded.name}
+        </button>
+        <button
+          type="button"
+          onClick={() => setReplacing(true)}
+          className="text-ios-caption1 font-semibold shrink-0"
+          style={{ color: 'var(--brand-navy)' }}
+        >
+          Replace
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -1303,7 +1406,7 @@ export function CorporateFields({ value, onChange, context }: {
   )
 }
 
-function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, api, setError, onExtracted }: {
+function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, api, setError, onExtracted, documents }: {
   entityType: EntityType
   directors: DirectorRow[]
   setDirectors: (d: DirectorRow[]) => void
@@ -1312,6 +1415,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
   onExtracted: () => Promise<void>
+  documents: DocumentRow[]
 }) {
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
   const [form, setForm] = useState<DirectorForm | null>(directors.length === 0 ? { ...emptyDirector } : null)
@@ -1506,7 +1610,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       ))}
 
       {form ? (
-        <div className="ios-surface rounded-2xl p-4 space-y-3">
+        <div key={form.id ?? 'new-director'} className="ios-surface rounded-2xl p-4 space-y-3">
           <div className="flex rounded-xl p-1" style={{ background: 'var(--system-bg-2)' }}>
             {(['individual', 'corporate'] as const).map((opt) => (
               <button
@@ -1536,6 +1640,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 api={api}
                 onExtracted={handleExtracted}
                 setError={setError}
+                personName={form.fullName}
+                personRole="director"
+                initialUploaded={findPersonDocument(documents, form.fullName, 'director_id_copy')}
               />
               <PhotoUpload
                 orgId={orgId}
@@ -1543,6 +1650,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 api={api}
                 onUploaded={(name) => setPhotoUploaded(name)}
                 setError={setError}
+                personName={form.fullName}
+                personRole="director"
+                initialUploaded={findPersonDocument(documents, form.fullName, 'passport_photo')}
               />
               {photoUploaded && (
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
@@ -1651,7 +1761,7 @@ const emptyShareholder: ShareholderForm = {
   isForeign: false, foreignAddress: '',
 }
 
-function StepShareholders({ entityType, shareholders, setShareholders, directors, setDirectors, totalShares, useMultipleShareClasses, orgId, entityId, api, setError, onExtracted }: {
+function StepShareholders({ entityType, shareholders, setShareholders, directors, setDirectors, totalShares, useMultipleShareClasses, orgId, entityId, api, setError, onExtracted, documents }: {
   entityType: EntityType
   shareholders: ShareholderRow[]
   setShareholders: (s: ShareholderRow[]) => void
@@ -1664,6 +1774,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
   onExtracted: () => Promise<void>
+  documents: DocumentRow[]
 }) {
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
   const [form, setForm] = useState<ShareholderForm | null>(shareholders.length === 0 ? { ...emptyShareholder } : null)
@@ -1754,10 +1865,14 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
 
       // "Also a director?" — auto-copy this person's (or company's)
       // identity into a director profile instead of re-typing it
-      // (Charles, 2026-07-17; extended to corporate parties 2026-07-24
-      // so a company that's both shareholder and director isn't typed
-      // twice — same pattern, not a separate linked record).
-      if (form.alsoDirector && !form.id) {
+      // (Charles, 2026-07-17; extended to corporate parties 2026-07-24;
+      // enabled on edit too 2026-08 — someone can realize this later and
+      // go back). Guard against a duplicate row if they're already
+      // migrated across (by matching name or ID/reg number).
+      const alreadyADirector = directors.some((d) =>
+        d.full_name.trim().toLowerCase() === displayName.toLowerCase() || (!!idOrReg && d.id_number === idOrReg)
+      )
+      if (form.alsoDirector && !alreadyADirector) {
         const dirResult = await api({
           action: 'upsert_director',
           director: form.isCorporate ? {
@@ -1880,7 +1995,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 isNominee: !!s.corporate_details?.nominee,
                 isCorporate: !!s.corporate_details?.isCorporate,
                 corporate: s.corporate_details?.corporate ?? { ...emptyCorporate },
-                alsoDirector: false,
+                alsoDirector: directors.some((d) => d.full_name.trim().toLowerCase() === s.legal_name.trim().toLowerCase() || (!!s.id_or_reg_number && d.id_number === s.id_or_reg_number)),
                 isForeign: !!s.address?.isForeign,
                 foreignAddress: s.address?.foreignAddress ?? '',
               }) }}
@@ -1905,7 +2020,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       )}
 
       {form ? (
-        <div className="ios-surface rounded-2xl p-4 space-y-3">
+        <div key={form.id ?? 'new-shareholder'} className="ios-surface rounded-2xl p-4 space-y-3">
           <div className="flex rounded-xl p-1" style={{ background: 'var(--system-bg-2)' }}>
             {(['individual', 'corporate'] as const).map((opt) => (
               <button
@@ -1935,6 +2050,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 api={api}
                 onExtracted={handleExtracted}
                 setError={setError}
+                personName={form.legalName}
+                personRole="shareholder"
+                initialUploaded={findPersonDocument(documents, form.legalName, 'shareholder_id_copy')}
               />
               <PhotoUpload
                 orgId={orgId}
@@ -1942,6 +2060,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 api={api}
                 onUploaded={(name) => setPhotoUploaded(name)}
                 setError={setError}
+                personName={form.legalName}
+                personRole="shareholder"
+                initialUploaded={findPersonDocument(documents, form.legalName, 'passport_photo')}
               />
               {photoUploaded && (
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
@@ -2001,14 +2122,12 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             <input type="checkbox" checked={form.isNominee} onChange={(e) => set({ isNominee: e.target.checked })} />
             Nominee shareholder
           </label>
-          {!form.id && (
-            <label className="flex items-center gap-2 text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
-              <input type="checkbox" checked={form.alsoDirector} onChange={(e) => set({ alsoDirector: e.target.checked })} />
-              {form.isCorporate
-                ? `This company is also a ${roleLabel.toLowerCase()} — copy these details across`
-                : `This person is also a ${roleLabel.toLowerCase()} — copy these details across`}
-            </label>
-          )}
+          <label className="flex items-center gap-2 text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
+            <input type="checkbox" checked={form.alsoDirector} onChange={(e) => set({ alsoDirector: e.target.checked })} />
+            {form.isCorporate
+              ? `This company is also a ${roleLabel.toLowerCase()} — copy these details across`
+              : `This person is also a ${roleLabel.toLowerCase()} — copy these details across`}
+          </label>
           <div className="flex gap-2">
             <PrimaryButton onClick={save} disabled={busy}>{busy ? 'Saving…' : form.id ? 'Update' : 'Add shareholder'}</PrimaryButton>
             {shareholders.length > 0 && <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>}
@@ -2060,7 +2179,7 @@ function emptyBeneficialOwner(): BeneficialOwnerForm {
   }
 }
 
-function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, orgId, entityId, api, setError }: {
+function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, orgId, entityId, api, setError, documents }: {
   shareholders: ShareholderRow[]
   beneficialOwners: BeneficialOwnerRow[]
   setBeneficialOwners: (b: BeneficialOwnerRow[]) => void
@@ -2070,6 +2189,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
+  documents: DocumentRow[]
 }) {
   const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
   const [busy, setBusy] = useState(false)
@@ -2273,7 +2393,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
       ))}
 
       {form ? (
-        <div className="ios-surface rounded-2xl p-4 space-y-3">
+        <div key={form.id ?? 'new-bo'} className="ios-surface rounded-2xl p-4 space-y-3">
           <InlineOcrUpload
             section="other"
             documentType="beneficial_owner_id_copy"
@@ -2283,6 +2403,9 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             api={api}
             onExtracted={handleExtracted}
             setError={setError}
+            personName={form.fullName}
+            personRole="beneficial_owner"
+            initialUploaded={findPersonDocument(documents, form.fullName, 'beneficial_owner_id_copy')}
           />
           <PhotoUpload
             orgId={orgId}
@@ -2290,6 +2413,9 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             api={api}
             onUploaded={(name) => setPhotoUploaded(name)}
             setError={setError}
+            personName={form.fullName}
+            personRole="beneficial_owner"
+            initialUploaded={findPersonDocument(documents, form.fullName, 'passport_photo')}
           />
           {photoUploaded && (
             <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
@@ -2690,29 +2816,7 @@ function StepEmployees({ wizard, patch }: { wizard: WizardData; patch: (p: Parti
           <input type="number" min={0} className={inputCls} style={inputStyle} value={wizard.casualEmployees ?? ''} onChange={(e) => patch({ casualEmployees: parseInt(e.target.value, 10) || 0 })} />
         </Field>
       </div>
-      <Field label="Do you have draft employment contracts?">
-        <div className="grid grid-cols-2 gap-2">
-          {[true, false].map((v) => (
-            <button
-              key={String(v)} type="button" onClick={() => patch({ hasDraftContracts: v })}
-              className="py-2.5 rounded-xl border text-sm font-medium"
-              style={{
-                borderColor: wizard.hasDraftContracts === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                background: wizard.hasDraftContracts === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                color: 'var(--system-label)',
-              }}
-            >
-              {v ? 'Yes' : 'No'}
-            </button>
-          ))}
-        </div>
-        {wizard.hasDraftContracts && (
-          <p className="text-ios-caption1 mt-1.5" style={{ color: 'var(--system-label-3)' }}>
-            You can upload them in the document step.
-          </p>
-        )}
-      </Field>
-      <Field label="Will you register employees for NSSF/NHIF?" required>
+      <Field label="Will you register employees for NSSF/SHA?" required>
         <div className="grid grid-cols-3 gap-2">
           {([['yes', 'Yes'], ['no', 'No'], ['already_registered', 'Already registered']] as const).map(([v, l]) => (
             <button
@@ -2866,12 +2970,160 @@ const UPLOAD_SECTIONS: UploadSection[] = [
   },
   {
     key: 'other',
+    title: 'Foreign company constitutional documents (optional)',
+    hint: 'For a foreign corporate shareholder or director — their memorandum and articles under their own jurisdiction, since these won’t match the Kenyan standard-model/custom-articles split.',
+    documentType: 'foreign_constitutional_documents',
+    visible: () => true,
+  },
+  {
+    key: 'other',
     title: 'Other supporting documents',
     hint: 'Partnership deeds, trust deeds, by-laws, draft employment contracts — anything else relevant.',
     documentType: 'other',
     visible: () => true,
   },
 ]
+
+const FORM_DOCUMENT_TYPES = new Set(['signed_cr1', 'signed_cr2', 'signed_cr8', 'statement_of_nominal_capital', 'signed_bof1'])
+
+// Which folder a document belongs in — mirrors the physical-folder mental
+// model Charles described (category, then person inside it), built off
+// document_type plus the person tag captured at upload time rather than a
+// second hard-coded mapping to maintain.
+function vaultCategoryFor(doc: DocumentRow): string {
+  const role = doc.tags?.[0]?.role
+  if (doc.document_type === 'proof_of_address') return 'Registered office'
+  if (doc.document_type && FORM_DOCUMENT_TYPES.has(doc.document_type)) return 'Registration forms'
+  if (doc.document_type?.startsWith('corporate_') || doc.document_type === 'foreign_constitutional_documents') return 'Corporate parties'
+  if (doc.document_type === 'director_id_copy' || role === 'director') return 'Directors'
+  if (doc.document_type === 'shareholder_id_copy' || role === 'shareholder') return 'Shareholders'
+  if (doc.document_type === 'beneficial_owner_id_copy' || role === 'beneficial_owner') return 'Beneficial owners'
+  return 'Other'
+}
+
+const VAULT_CATEGORY_ORDER = ['Directors', 'Shareholders', 'Beneficial owners', 'Corporate parties', 'Registered office', 'Registration forms', 'Other']
+
+// File-tree view of every document on the entity — category folders, then
+// a person sub-folder inside where a tag exists, flat otherwise. Charles
+// call, 2026-08: business owners were having to jump all the way to the
+// documents step to confirm what they'd uploaded elsewhere; this collapses
+// that into one browsable tree instead of hunting section by section.
+function DocumentVaultTree({ documents, onOpen, previewingId }: {
+  documents: DocumentRow[]
+  onOpen: (doc: DocumentRow) => void
+  previewingId: string | null
+}) {
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({})
+  const [openPeople, setOpenPeople] = useState<Record<string, boolean>>({})
+
+  if (documents.length === 0) return null
+
+  const byCategory = new Map<string, DocumentRow[]>()
+  for (const doc of documents) {
+    const cat = vaultCategoryFor(doc)
+    byCategory.set(cat, [...(byCategory.get(cat) ?? []), doc])
+  }
+  const categories = VAULT_CATEGORY_ORDER.filter((c) => byCategory.has(c))
+
+  return (
+    <div className="ios-surface rounded-2xl p-4 space-y-1">
+      <p className="text-ios-caption1 font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--system-label-3)' }}>
+        All documents ({documents.length})
+      </p>
+      {categories.map((cat) => {
+        const docs = byCategory.get(cat)!
+        const isOpen = openCategories[cat] ?? true
+        const byPerson = new Map<string, DocumentRow[]>()
+        for (const d of docs) {
+          const person = d.tags?.[0]?.person ?? null
+          const key = person ?? '__none__'
+          byPerson.set(key, [...(byPerson.get(key) ?? []), d])
+        }
+        const people = [...byPerson.keys()].filter((k) => k !== '__none__')
+        const unassigned = byPerson.get('__none__') ?? []
+
+        return (
+          <div key={cat} className="border-t first:border-t-0" style={{ borderColor: 'var(--system-fill-3)' }}>
+            <button
+              type="button"
+              onClick={() => setOpenCategories((prev) => ({ ...prev, [cat]: !isOpen }))}
+              className="w-full flex items-center gap-2 py-2.5 text-left"
+            >
+              <svg className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="var(--system-label-3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 6 15 12 9 18" />
+              </svg>
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="var(--brand-navy)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+              </svg>
+              <span className="text-ios-footnote font-semibold flex-1" style={{ color: 'var(--system-label)' }}>{cat}</span>
+              <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{docs.length}</span>
+            </button>
+
+            {isOpen && (
+              <div className="pl-6 pb-2 space-y-0.5">
+                {people.map((person) => {
+                  const personKey = `${cat}:${person}`
+                  const personOpen = openPeople[personKey] ?? true
+                  const personDocs = byPerson.get(person)!
+                  return (
+                    <div key={person}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenPeople((prev) => ({ ...prev, [personKey]: !personOpen }))}
+                        className="w-full flex items-center gap-2 py-1.5 text-left"
+                      >
+                        <svg className={`w-3 h-3 shrink-0 transition-transform ${personOpen ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="var(--system-label-3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9 6 15 12 9 18" />
+                        </svg>
+                        <span className="text-ios-caption1 font-medium flex-1" style={{ color: 'var(--system-label-2)' }}>{person}</span>
+                        <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{personDocs.length}</span>
+                      </button>
+                      {personOpen && (
+                        <div className="pl-5 space-y-1 pb-1">
+                          {personDocs.map((d) => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => onOpen(d)}
+                              disabled={previewingId === d.id}
+                              className="block w-full text-left text-ios-caption1 truncate underline decoration-dotted disabled:opacity-50"
+                              style={{ color: 'var(--system-label)' }}
+                            >
+                              {previewingId === d.id ? 'Opening…' : d.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                {unassigned.length > 0 && (
+                  <div className="space-y-1 pt-1">
+                    {people.length > 0 && (
+                      <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>General</p>
+                    )}
+                    {unassigned.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => onOpen(d)}
+                        disabled={previewingId === d.id}
+                        className="block w-full text-left text-ios-caption1 truncate underline decoration-dotted disabled:opacity-50"
+                        style={{ color: 'var(--system-label)' }}
+                      >
+                        {previewingId === d.id ? 'Opening…' : d.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 // ------------------------------------------------------------------
 // Step 10 — Constitutional documents & forms (LLC spec screen 9).
@@ -2922,6 +3174,17 @@ function StepConstitutional({ wizard, patch }: { wizard: WizardData; patch: (p: 
           of nominal capital. Download, sign, and upload them back on the next step.
         </p>
       </div>
+      <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
+        <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
+          Foreign corporate shareholders or directors?
+        </p>
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          A foreign company&apos;s constitutional documents won&apos;t follow the standard-model / custom-articles
+          split above — they may include both a memorandum and articles under their own jurisdiction&apos;s
+          system. There&apos;s a separate upload for those in the Document Vault, so they aren&apos;t forced
+          into the wrong bucket.
+        </p>
+      </div>
     </div>
   )
 }
@@ -2954,10 +3217,7 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
     if (!doc.file_path) return
     setPreviewingId(doc.id)
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 300)
-      if (error || !data?.signedUrl) { setError('Could not open document — try again.'); return }
-      window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+      await openStoredDocument(doc.file_path, setError)
     } finally {
       setPreviewingId(null)
     }
@@ -3061,11 +3321,12 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Upload your documents
+        Document Vault
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        Anything you already uploaded while adding directors, shareholders, or beneficial owners is listed
-        below, not asked for again. We read documents automatically and cross-check what you entered.
+        Everything uploaded anywhere in this application lives here too, organised by who or what it&apos;s for.
+        Anything already captured while adding directors, shareholders, or beneficial owners isn&apos;t asked
+        for again below — we read documents automatically and cross-check what you entered.
       </p>
 
       {missingSections.length > 0 ? (
@@ -3081,6 +3342,8 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
           </p>
         </div>
       )}
+
+      <DocumentVaultTree documents={documents} onOpen={openDocument} previewingId={previewingId} />
 
       {UPLOAD_SECTIONS.filter((s) => s.visible(entityType)).map((section) => {
         const existing = documents.filter((d) => d.document_type === section.documentType)
