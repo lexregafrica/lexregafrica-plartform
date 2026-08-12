@@ -567,6 +567,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: doc?.id })
   }
 
+  // ----------------------------------------------------------
+  // retag_documents — fix up the person tag on documents uploaded
+  // earlier in the same form session, once Save has confirmed the
+  // row's real id and final name. Uploads made before a brand-new
+  // person has a saved id (or after their name was edited post-upload)
+  // otherwise tag with no/wrong personId and can never be matched again
+  // on reopen (Charles call, 2026-08: reproduced live — uploaded
+  // documents showed no link back on the edit screen).
+  // ----------------------------------------------------------
+  if (action === 'retag_documents') {
+    const { documentIds, personId: targetPersonId, personName, personRole } = body as {
+      documentIds?: string[]
+      personId?: string
+      personName?: string
+      personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+    }
+    if (!documentIds?.length || !targetPersonId) return NextResponse.json({ ok: true })
+
+    const { error } = await supabase
+      .from('documents')
+      .update({ tags: [{ person: personName, personId: targetPersonId, role: personRole ?? 'other' }] as unknown as Json })
+      .eq('entity_id', entityId)
+      .in('id', documentIds)
+
+    if (error) {
+      console.error('document retag error', error)
+      return NextResponse.json({ error: 'failed to retag documents' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   if (action === 'delete_document') {
     const { id } = body as { id: string }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })

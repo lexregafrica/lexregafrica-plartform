@@ -1083,7 +1083,7 @@ async function openStoredDocument(filePath: string, setError: (e: string) => voi
   window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
 }
 
-export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError, initialUploaded, personName, personRole, personId }: {
+export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError, initialUploaded, personName, personRole, personId, onDocumentRegistered }: {
   section: 'director' | 'shareholder' | 'address' | 'other'
   documentType?: string
   label?: string
@@ -1105,6 +1105,13 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   // the ID scan got tagged before the OCR-filled name had landed in form
   // state, so it could never be found again on reopen).
   personId?: string
+  // Called with the new document's id right after it's registered — the
+  // parent form tracks these so it can re-tag them with the row's real
+  // id once Save actually creates/confirms that row (Charles call,
+  // 2026-08: uploads made before a brand-new person has a saved id, or
+  // after the name was edited post-upload, could tag with the wrong or
+  // no personId/name and then never be found again).
+  onDocumentRegistered?: (documentId: string) => void
 }) {
   const [state, setState] = useState<'idle' | 'uploading' | 'extracting'>('idle')
   const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
@@ -1128,6 +1135,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
         action: 'register_document',
         document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole, personId },
       }) as { id?: string }
+      if (registered.id) onDocumentRegistered?.(registered.id)
 
       setState('extracting')
       const result = await api({ action: 'ocr_extract', documentId: registered.id, section })
@@ -1189,7 +1197,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
 // Passport-size photo — plain upload, no OCR. Charles, corporate-shareholder
 // call: capture a passport photo per person alongside their ID documents.
-export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initialUploaded, personName, personRole, personId }: {
+export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initialUploaded, personName, personRole, personId, onDocumentRegistered }: {
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
@@ -1199,6 +1207,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
   personName?: string
   personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
   personId?: string
+  onDocumentRegistered?: (documentId: string) => void
 }) {
   const [state, setState] = useState<'idle' | 'uploading'>('idle')
   const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
@@ -1218,10 +1227,11 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
       const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
       if (uploadError) { setError('Upload failed — try again.'); return }
 
-      await api({
+      const registered = await api({
         action: 'register_document',
         document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'passport_photo', personName, personRole, personId },
-      })
+      }) as { id?: string }
+      if (registered.id) onDocumentRegistered?.(registered.id)
       onUploaded(file.name)
       setUploaded({ name: file.name, filePath: path })
       setReplacing(false)
@@ -1461,6 +1471,10 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   const [form, setForm] = useState<DirectorForm | null>(directors.length === 0 ? { ...emptyDirector } : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
+  // Documents uploaded during this open form session, before the row has
+  // (or has its final) id — re-tagged with the real id once Save
+  // confirms it, so they're findable again on reopen.
+  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
 
   const set = (partial: Partial<DirectorForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
   const setCorporate = (partial: Partial<CorporateParticipant>) =>
@@ -1561,6 +1575,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
         },
       }
       setDirectors(form.id ? directors.map((d) => (d.id === form.id ? updated : d)) : [...directors, updated])
+      if (uploadedDocIds.length > 0) {
+        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: displayName, personRole: 'director' })
+      }
       setForm(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.')
@@ -1634,7 +1651,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => { setPhotoUploaded(null); setForm({
+              onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({
                 id: d.id,
                 fullName: d.residential_address?.isCorporate ? '' : d.full_name,
                 idNumber: d.residential_address?.isCorporate ? '' : d.id_number,
@@ -1699,6 +1716,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 personName={form.fullName}
                 personRole="director"
                 personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'director_id_copy')}
               />
               <InlineOcrUpload
@@ -1713,6 +1731,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 personName={form.fullName}
                 personRole="director"
                 personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'director_kra_pin_copy')}
               />
               <PhotoUpload
@@ -1724,6 +1743,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 personName={form.fullName}
                 personRole="director"
                 personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
               />
               {photoUploaded && (
@@ -1813,7 +1833,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       ) : (
         <button
           type="button"
-          onClick={() => { setPhotoUploaded(null); setForm({ ...emptyDirector }) }}
+          onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({ ...emptyDirector }) }}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -1886,6 +1906,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   const [form, setForm] = useState<ShareholderForm | null>(shareholders.length === 0 ? { ...emptyShareholder } : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
+  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
   const total = shareholders.reduce((s, x) => s + x.shares_held, 0)
 
   const set = (partial: Partial<ShareholderForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
@@ -1982,6 +2003,10 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       const next = form.id ? shareholders.map((s) => (s.id === form.id ? updated : s)) : [...shareholders, updated]
       const newTotal = next.reduce((s, x) => s + x.shares_held, 0)
       setShareholders(next.map((s) => ({ ...s, share_percentage: newTotal > 0 ? Math.round((s.shares_held / newTotal) * 10000) / 100 : null })))
+
+      if (uploadedDocIds.length > 0) {
+        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: displayName, personRole: 'shareholder' })
+      }
 
       // "Also a director?" — auto-copy this person's (or company's)
       // identity into a director profile instead of re-typing it
@@ -2121,7 +2146,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => { setPhotoUploaded(null); setForm({
+              onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({
                 id: s.id,
                 legalName: s.corporate_details?.isCorporate ? '' : s.legal_name,
                 idNumber: s.corporate_details?.isCorporate ? '' : (s.id_or_reg_number ?? ''),
@@ -2198,6 +2223,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 personName={form.legalName}
                 personRole="shareholder"
                 personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.legalName, 'shareholder_id_copy')}
               />
               <InlineOcrUpload
@@ -2212,6 +2238,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 personName={form.legalName}
                 personRole="shareholder"
                 personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.legalName, 'shareholder_kra_pin_copy')}
               />
               <PhotoUpload
@@ -2223,6 +2250,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 personName={form.legalName}
                 personRole="shareholder"
                 personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.legalName, 'passport_photo')}
               />
               {photoUploaded && (
@@ -2327,7 +2355,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       ) : (
         <button
           type="button"
-          onClick={() => { setPhotoUploaded(null); setForm({ ...emptyShareholder }) }}
+          onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({ ...emptyShareholder }) }}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -2385,6 +2413,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
+  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
 
   // Charles, corporate-shareholder call: whatever can be scraped from a
   // document should be, same as directors/shareholders. Uses section
@@ -2427,6 +2456,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   // carry across to here when it's the same person.
   const prefillFrom = (s: ShareholderRow) => {
     patch({ noBeneficialOwners: false })
+    setUploadedDocIds([])
     setForm({
       ...emptyBeneficialOwner(),
       fullName: s.legal_name,
@@ -2489,6 +2519,9 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
         share_percentage: form.sharePercentage ? parseFloat(form.sharePercentage) : null,
       }
       setBeneficialOwners(form.id ? beneficialOwners.map((b) => (b.id === form.id ? updated : b)) : [...beneficialOwners, updated])
+      if (uploadedDocIds.length > 0) {
+        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: form.fullName.trim(), personRole: 'beneficial_owner' })
+      }
       setForm(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.')
@@ -2567,7 +2600,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => { setPhotoUploaded(null); setForm({
+              onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({
                 id: b.id,
                 fullName: b.full_name,
                 idNumber: b.id_number ?? '',
@@ -2608,6 +2641,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             personName={form.fullName}
             personRole="beneficial_owner"
             personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_id_copy')}
           />
           <InlineOcrUpload
@@ -2622,6 +2656,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             personName={form.fullName}
             personRole="beneficial_owner"
             personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_kra_pin_copy')}
           />
           <PhotoUpload
@@ -2633,6 +2668,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             personName={form.fullName}
             personRole="beneficial_owner"
             personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
           />
           {photoUploaded && (
@@ -2703,7 +2739,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
         <>
           <button
             type="button"
-            onClick={() => { patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()); setPhotoUploaded(null) }}
+            onClick={() => { patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()); setPhotoUploaded(null); setUploadedDocIds([]) }}
             className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
             style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
           >
