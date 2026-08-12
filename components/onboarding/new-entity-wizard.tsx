@@ -173,14 +173,23 @@ type DocumentRow = {
   document_type: string | null
   file_path: string | null
   file_size: number | null
-  tags?: Array<{ person?: string; role?: string }> | null
+  tags?: Array<{ person?: string; personId?: string; role?: string }> | null
 }
 
 // Finds the most recent document tagged for a given person + document_type
 // so an edit-mode upload control can show "already on file" instead of a
-// blank dropzone. Best-effort — falls back to nothing if untagged (legacy
-// uploads from before tagging existed).
-function findPersonDocument(documents: DocumentRow[], personName: string, documentType: string): { name: string; filePath: string } | null {
+// blank dropzone. Matches by personId when the row has one — the name-only
+// match was a race: if a person's name hadn't finished landing in form
+// state by the moment a second document (e.g. the photo) was uploaded
+// right after the ID scan, that upload got tagged with an empty/stale
+// name and could never be found again on reopen (Charles call, 2026-08:
+// reproduced live — ID showed on edit, photo didn't). personId comes from
+// the actual saved row, so it can't drift.
+function findPersonDocument(documents: DocumentRow[], personId: string | undefined, personName: string, documentType: string): { name: string; filePath: string } | null {
+  const byId = personId
+    ? [...documents].reverse().find((d) => d.document_type === documentType && d.tags?.some((t) => t.personId === personId))
+    : undefined
+  if (byId?.file_path) return { name: byId.name, filePath: byId.file_path }
   if (!personName.trim()) return null
   const match = [...documents]
     .reverse()
@@ -1069,7 +1078,7 @@ async function openStoredDocument(filePath: string, setError: (e: string) => voi
   window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
 }
 
-export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError, initialUploaded, personName, personRole }: {
+export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError, initialUploaded, personName, personRole, personId }: {
   section: 'director' | 'shareholder' | 'address' | 'other'
   documentType?: string
   label?: string
@@ -1086,6 +1095,11 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   // by person instead of just by type (Charles call, 2026-08).
   personName?: string
   personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+  // Tags by the saved row's own id when there is one — name-only tagging
+  // raced with typing (Charles call, 2026-08: photo uploaded right after
+  // the ID scan got tagged before the OCR-filled name had landed in form
+  // state, so it could never be found again on reopen).
+  personId?: string
 }) {
   const [state, setState] = useState<'idle' | 'uploading' | 'extracting'>('idle')
   const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
@@ -1107,7 +1121,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
       const registered = await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole, personId },
       }) as { id?: string }
 
       setState('extracting')
@@ -1170,7 +1184,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
 // Passport-size photo — plain upload, no OCR. Charles, corporate-shareholder
 // call: capture a passport photo per person alongside their ID documents.
-export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initialUploaded, personName, personRole }: {
+export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initialUploaded, personName, personRole, personId }: {
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
@@ -1179,6 +1193,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
   initialUploaded?: { name: string; filePath: string } | null
   personName?: string
   personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+  personId?: string
 }) {
   const [state, setState] = useState<'idle' | 'uploading'>('idle')
   const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
@@ -1200,7 +1215,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
 
       await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'passport_photo', personName, personRole },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'passport_photo', personName, personRole, personId },
       })
       onUploaded(file.name)
       setUploaded({ name: file.name, filePath: path })
@@ -1675,7 +1690,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 setError={setError}
                 personName={form.fullName}
                 personRole="director"
-                initialUploaded={findPersonDocument(documents, form.fullName, 'director_id_copy')}
+                personId={form.id}
+                initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'director_id_copy')}
               />
               <InlineOcrUpload
                 section="director"
@@ -1688,7 +1704,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 setError={setError}
                 personName={form.fullName}
                 personRole="director"
-                initialUploaded={findPersonDocument(documents, form.fullName, 'director_kra_pin_copy')}
+                personId={form.id}
+                initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'director_kra_pin_copy')}
               />
               <PhotoUpload
                 orgId={orgId}
@@ -1698,7 +1715,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 setError={setError}
                 personName={form.fullName}
                 personRole="director"
-                initialUploaded={findPersonDocument(documents, form.fullName, 'passport_photo')}
+                personId={form.id}
+                initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
               />
               {photoUploaded && (
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
@@ -2163,7 +2181,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 setError={setError}
                 personName={form.legalName}
                 personRole="shareholder"
-                initialUploaded={findPersonDocument(documents, form.legalName, 'shareholder_id_copy')}
+                personId={form.id}
+                initialUploaded={findPersonDocument(documents, form.id, form.legalName, 'shareholder_id_copy')}
               />
               <InlineOcrUpload
                 section="shareholder"
@@ -2176,7 +2195,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 setError={setError}
                 personName={form.legalName}
                 personRole="shareholder"
-                initialUploaded={findPersonDocument(documents, form.legalName, 'shareholder_kra_pin_copy')}
+                personId={form.id}
+                initialUploaded={findPersonDocument(documents, form.id, form.legalName, 'shareholder_kra_pin_copy')}
               />
               <PhotoUpload
                 orgId={orgId}
@@ -2186,7 +2206,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 setError={setError}
                 personName={form.legalName}
                 personRole="shareholder"
-                initialUploaded={findPersonDocument(documents, form.legalName, 'passport_photo')}
+                personId={form.id}
+                initialUploaded={findPersonDocument(documents, form.id, form.legalName, 'passport_photo')}
               />
               {photoUploaded && (
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
@@ -2567,7 +2588,8 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             setError={setError}
             personName={form.fullName}
             personRole="beneficial_owner"
-            initialUploaded={findPersonDocument(documents, form.fullName, 'beneficial_owner_id_copy')}
+            personId={form.id}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_id_copy')}
           />
           <InlineOcrUpload
             section="other"
@@ -2580,7 +2602,8 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             setError={setError}
             personName={form.fullName}
             personRole="beneficial_owner"
-            initialUploaded={findPersonDocument(documents, form.fullName, 'beneficial_owner_kra_pin_copy')}
+            personId={form.id}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_kra_pin_copy')}
           />
           <PhotoUpload
             orgId={orgId}
@@ -2590,7 +2613,8 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             setError={setError}
             personName={form.fullName}
             personRole="beneficial_owner"
-            initialUploaded={findPersonDocument(documents, form.fullName, 'passport_photo')}
+            personId={form.id}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
           />
           {photoUploaded && (
             <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>

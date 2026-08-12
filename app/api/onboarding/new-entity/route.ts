@@ -516,6 +516,12 @@ export async function POST(request: Request) {
         // by who/what they're for, not just their type, since there's no
         // per-person FK on this table.
         personName?: string; personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+        // The saved row's own id, when there is one — preferred over
+        // name matching, which can race with the name itself still
+        // landing in form state (Charles call, 2026-08: a photo
+        // uploaded right after an ID scan got tagged with a stale/empty
+        // name and was unfindable on reopen).
+        personId?: string
       }
     }
     if (!document?.name || !document?.filePath) {
@@ -527,7 +533,9 @@ export async function POST(request: Request) {
     }
 
     const tags: Json[] = []
-    if (document.personName) tags.push({ person: document.personName, role: document.personRole ?? 'other' } as Json)
+    if (document.personName || document.personId) {
+      tags.push({ person: document.personName, personId: document.personId, role: document.personRole ?? 'other' } as Json)
+    }
 
     const { data: doc, error } = await supabase
       .from('documents')
