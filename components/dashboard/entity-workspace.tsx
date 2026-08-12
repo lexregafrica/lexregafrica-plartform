@@ -13,6 +13,7 @@ import {
   IconCheck,
 } from '@tabler/icons-react'
 import { REGISTRATION_STAGES, registrationStageIndex } from '@/lib/onboarding/registration-status'
+import { DocumentVaultTree } from '@/components/dashboard/document-vault-tree'
 
 type WorkspaceEntity = {
   id: string
@@ -44,6 +45,7 @@ type WorkspaceDocument = {
   fileSize: number | null
   createdAt: string
   url: string | null
+  tags?: Array<{ person?: string; personId?: string; role?: string }> | null
 }
 
 type WorkspacePerson = { id: string; name: string; kraPin?: string | null; email?: string | null; phone?: string | null }
@@ -54,18 +56,12 @@ type TabId = 'overview' | 'compliance' | 'documents' | 'people'
 const TABS: Array<{ id: TabId; label: string; icon: typeof IconLayoutDashboard }> = [
   { id: 'overview', label: 'Overview', icon: IconLayoutDashboard },
   { id: 'compliance', label: 'Compliance', icon: IconCalendarTime },
-  { id: 'documents', label: 'Documents', icon: IconFiles },
+  { id: 'documents', label: 'Document Vault', icon: IconFiles },
   { id: 'people', label: 'People', icon: IconUsers },
 ]
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-function formatSize(bytes: number | null) {
-  if (!bytes) return ''
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function daysLeft(iso: string) {
@@ -442,33 +438,9 @@ function DocumentsTab({ documents }: { documents: WorkspaceDocument[] }) {
     )
   }
   return (
-    <div className={`${CARD} !p-2`}>
-      {documents.map((doc, i) => (
-        <div
-          key={doc.id}
-          className="flex items-center justify-between gap-3 px-3 py-3.5"
-          style={i < documents.length - 1 ? { borderBottom: '1px solid var(--system-fill-4)' } : undefined}
-        >
-          <div className="min-w-0">
-            <p className="text-ios-footnote truncate font-medium" style={{ color: 'var(--system-label)' }}>{doc.name}</p>
-            <p className="text-ios-caption1 mt-0.5" style={{ color: 'var(--system-label-3)' }}>
-              {[doc.documentType?.replaceAll('_', ' '), formatSize(doc.fileSize), formatDate(doc.createdAt)].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-          {doc.url && (
-            <a
-              href={doc.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ios-footnote shrink-0 rounded-full px-3.5 py-1.5 font-semibold"
-              style={{ background: 'var(--system-fill-4)', color: 'var(--brand-navy)' }}
-            >
-              View
-            </a>
-          )}
-        </div>
-      ))}
-    </div>
+    <DocumentVaultTree
+      documents={documents.map((d) => ({ id: d.id, name: d.name, document_type: d.documentType, tags: d.tags, url: d.url }))}
+    />
   )
 }
 

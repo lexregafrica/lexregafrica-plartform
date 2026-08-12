@@ -39,7 +39,7 @@ export default async function EntityWorkspacePage({
         .order('due_date'),
       supabase
         .from('documents')
-        .select('id, name, document_type, file_path, file_size, created_at')
+        .select('id, name, document_type, file_path, file_size, tags, created_at')
         .eq('entity_id', entityId)
         .is('deleted_at', null)
         .order('created_at', { ascending: false }),
@@ -60,7 +60,7 @@ export default async function EntityWorkspacePage({
         const { data: signed } = await supabase.storage.from('documents').createSignedUrl(d.file_path, 3600)
         url = signed?.signedUrl ?? null
       }
-      return { id: d.id, name: d.name, documentType: d.document_type, fileSize: d.file_size, createdAt: d.created_at, url }
+      return { id: d.id, name: d.name, documentType: d.document_type, fileSize: d.file_size, createdAt: d.created_at, url, tags: d.tags as Array<{ person?: string; personId?: string; role?: string }> | null }
     })
   )
 
