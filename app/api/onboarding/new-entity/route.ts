@@ -278,6 +278,8 @@ export async function POST(request: Request) {
         foreignAddress?: string
         physicalAddress?: string
         postalAddress?: string
+        county?: string
+        occupation?: string
       }
     }
     if (!director?.fullName || !director?.idNumber) {
@@ -306,6 +308,8 @@ export async function POST(request: Request) {
         corporate: director.isCorporate ? director.corporate : undefined,
         physicalAddress: director.physicalAddress ?? undefined,
         postalAddress: director.postalAddress ?? undefined,
+        county: director.county ?? undefined,
+        occupation: director.occupation ?? undefined,
       } as Json,
     }
 
@@ -357,6 +361,8 @@ export async function POST(request: Request) {
         dateOfBirth?: string
         phone?: string
         email?: string
+        county?: string
+        occupation?: string
       }
     }
     if (!shareholder?.legalName || !shareholder?.sharesHeld) {
@@ -380,6 +386,8 @@ export async function POST(request: Request) {
         postalAddress: shareholder.postalAddress ?? undefined,
         nationality: shareholder.nationality ?? undefined,
         dateOfBirth: shareholder.dateOfBirth ?? undefined,
+        county: shareholder.county ?? undefined,
+        occupation: shareholder.occupation ?? undefined,
       } as Json,
       corporate_details: {
         nominee: shareholder.isNominee || undefined,
