@@ -9,6 +9,7 @@ import {
   PHASE1_ENTITY_TYPES,
   SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
+  KENYA_POSTAL_CODES,
   TURNOVER_RANGES,
   PAYROLL_FREQUENCIES,
   APPLICANT_RELATIONSHIPS,
@@ -145,6 +146,7 @@ type DirectorRow = {
     postalAddress?: string
     county?: string
     occupation?: string
+    postalCode?: string
   } | null
 }
 
@@ -157,7 +159,7 @@ type ShareholderRow = {
   email?: string | null
   shares_held: number
   share_percentage: number | null
-  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string; nationality?: string; dateOfBirth?: string; county?: string; occupation?: string } | null
+  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string; nationality?: string; dateOfBirth?: string; county?: string; occupation?: string; postalCode?: string } | null
   corporate_details: {
     nominee?: boolean
     isCorporate?: boolean
@@ -1017,6 +1019,7 @@ type DirectorForm = {
   nationality: string
   occupation: string
   county: string
+  postalCode: string
   phone: string
   email: string
   // Charles, corporate-shareholder call: CR8 needs a physical/postal
@@ -1041,7 +1044,7 @@ export const emptyCorporate: CorporateParticipant = {
 }
 
 const emptyDirector: DirectorForm = {
-  fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '',
+  fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '', postalCode: '',
   phone: '', email: '', physicalAddress: '', postalAddress: '',
   appointmentDate: new Date().toISOString().slice(0, 10),
   isCorporate: false, corporate: { ...emptyCorporate },
@@ -1072,8 +1075,8 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   label?: string
   orgId: string | null
   entityId: string | null
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; fields?: Record<string, unknown> }>
-  onExtracted: (fields: Record<string, unknown> | undefined) => void
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; fields?: Record<string, unknown>; personId?: string }>
+  onExtracted: (fields: Record<string, unknown> | undefined, personId?: string) => void
   setError: (e: string) => void
   // Lets a parent pre-fill "already uploaded" state when reopening an edit
   // form for a person who already has a document on file, so the control
@@ -1109,7 +1112,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
       setState('extracting')
       const result = await api({ action: 'ocr_extract', documentId: registered.id, section })
-      onExtracted(result.fields)
+      onExtracted(result.fields, result.personId)
       setUploaded({ name: file.name, filePath: path })
       setReplacing(false)
     } catch (e) {
@@ -1508,6 +1511,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
           postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
+          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
       })
@@ -1530,6 +1534,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
           postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
+          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
       }
@@ -1557,7 +1562,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   // Inline OCR extracted fields — prefill the open "add new" form directly
   // rather than relying on the server's auto-created row, so there is
   // exactly one record once the user hits Save.
-  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     setForm((prev) => {
@@ -1569,6 +1574,12 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       const isReplace = !!prev.id
       return {
         ...prev,
+        // Adopt the server's matched-or-created row id so Save updates
+        // it instead of inserting a second row — without this, OCR
+        // auto-create + then Save always duplicated the person (Charles
+        // call, 2026-08: reproduced live, "created yet another Charles
+        // Adede").
+        id: prev.id ?? personId,
         fullName: (isReplace ? f.full_name : prev.fullName || f.full_name) || prev.fullName,
         idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
         kraPin: (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin,
@@ -1576,9 +1587,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       }
     })
     // The server may also have auto-created a person row from this
-    // extraction — refresh so the list reflects reality, then drop any
-    // duplicate the auto-create made for a record we're about to save
-    // as a fresh entry from the open form.
+    // extraction — refresh so the list (and the id we just adopted) reflect reality.
     onExtracted()
   }
 
@@ -1612,6 +1621,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 nationality: d.residential_address?.isCorporate ? 'Kenyan' : d.nationality,
                 occupation: d.residential_address?.occupation ?? '',
                 county: d.residential_address?.county ?? '',
+                postalCode: d.residential_address?.postalCode ?? '',
                 phone: d.residential_address?.isCorporate ? '' : (d.phone ?? ''),
                 email: d.residential_address?.isCorporate ? '' : (d.email ?? ''),
                 appointmentDate: d.appointment_date ?? '',
@@ -1657,7 +1667,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               <InlineOcrUpload
                 section="director"
                 documentType="director_id_copy"
-                label={form.id ? 'Upload a replacement ID/passport or KRA PIN certificate →' : 'Upload ID/passport or KRA PIN certificate to auto-fill →'}
+                label={form.id ? 'Upload a replacement ID/passport →' : 'Upload ID/passport to auto-fill →'}
                 orgId={orgId}
                 entityId={entityId}
                 api={api}
@@ -1666,6 +1676,19 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 personName={form.fullName}
                 personRole="director"
                 initialUploaded={findPersonDocument(documents, form.fullName, 'director_id_copy')}
+              />
+              <InlineOcrUpload
+                section="director"
+                documentType="director_kra_pin_copy"
+                label={form.id ? 'Upload a replacement KRA PIN certificate →' : 'Upload KRA PIN certificate to auto-fill →'}
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onExtracted={handleExtracted}
+                setError={setError}
+                personName={form.fullName}
+                personRole="director"
+                initialUploaded={findPersonDocument(documents, form.fullName, 'director_kra_pin_copy')}
               />
               <PhotoUpload
                 orgId={orgId}
@@ -1721,15 +1744,23 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="County">
-                  <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value })}>
+                  <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
                     <option value="">—</option>
                     {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </Field>
-                <Field label="Postal address">
-                  <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+                <Field label="Postal code">
+                  <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
+                    <option value="">{form.county ? '—' : 'Choose county first'}</option>
+                    {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
+                      <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
+                    ))}
+                  </select>
                 </Field>
               </div>
+              <Field label="Postal address">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
               </Field>
@@ -1778,6 +1809,7 @@ type ShareholderForm = {
   nationality: string
   occupation: string
   county: string
+  postalCode: string
   phone: string
   email: string
   physicalAddress: string
@@ -1798,7 +1830,7 @@ type ShareholderForm = {
 // beneficial-owner screens further down can gap-fill from this record
 // instead of re-asking for the same person.
 const emptyShareholder: ShareholderForm = {
-  legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '',
+  legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '', postalCode: '',
   phone: '', email: '',
   physicalAddress: '', postalAddress: '',
   sharesHeld: '', isNominee: false, isCorporate: false, corporate: { ...emptyCorporate }, alsoDirector: false,
@@ -1885,6 +1917,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           nationality: form.isCorporate ? undefined : form.nationality || undefined,
           dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
+          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
       })
@@ -1905,6 +1938,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           nationality: form.isCorporate ? undefined : form.nationality || undefined,
           dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
+          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
         corporate_details: {
@@ -1979,6 +2013,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
             postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
             county: form.isCorporate ? undefined : form.county || undefined,
+            postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
             occupation: form.isCorporate ? undefined : form.occupation || undefined,
           },
         }])
@@ -2006,7 +2041,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
     }
   }
 
-  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     setForm((prev) => {
@@ -2016,6 +2051,11 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       const isReplace = !!prev.id
       return {
         ...prev,
+        // Adopt the server's matched-or-created row id — otherwise Save
+        // always inserted a second row on top of the OCR auto-create
+        // (Charles call, 2026-08: reproduced live, duplicate row + shares
+        // total not updating).
+        id: prev.id ?? personId,
         legalName: (isReplace ? f.full_name : prev.legalName || f.full_name) || prev.legalName,
         idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
         kraPin: (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin,
@@ -2057,6 +2097,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 nationality: s.address?.nationality ?? 'Kenyan',
                 occupation: s.address?.occupation ?? '',
                 county: s.address?.county ?? '',
+                postalCode: s.address?.postalCode ?? '',
                 phone: s.phone ?? '',
                 email: s.email ?? '',
                 physicalAddress: s.address?.physicalAddress ?? '',
@@ -2114,7 +2155,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               <InlineOcrUpload
                 section="shareholder"
                 documentType="shareholder_id_copy"
-                label={form.id ? 'Upload a replacement ID/passport or KRA PIN certificate →' : 'Upload ID/passport or KRA PIN certificate to auto-fill →'}
+                label={form.id ? 'Upload a replacement ID/passport →' : 'Upload ID/passport to auto-fill →'}
                 orgId={orgId}
                 entityId={entityId}
                 api={api}
@@ -2123,6 +2164,19 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 personName={form.legalName}
                 personRole="shareholder"
                 initialUploaded={findPersonDocument(documents, form.legalName, 'shareholder_id_copy')}
+              />
+              <InlineOcrUpload
+                section="shareholder"
+                documentType="shareholder_kra_pin_copy"
+                label={form.id ? 'Upload a replacement KRA PIN certificate →' : 'Upload KRA PIN certificate to auto-fill →'}
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onExtracted={handleExtracted}
+                setError={setError}
+                personName={form.legalName}
+                personRole="shareholder"
+                initialUploaded={findPersonDocument(documents, form.legalName, 'shareholder_kra_pin_copy')}
               />
               <PhotoUpload
                 orgId={orgId}
@@ -2178,15 +2232,23 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="County">
-                  <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value })}>
+                  <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
                     <option value="">—</option>
                     {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </Field>
-                <Field label="Postal address">
-                  <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+                <Field label="Postal code">
+                  <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
+                    <option value="">{form.county ? '—' : 'Choose county first'}</option>
+                    {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
+                      <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
+                    ))}
+                  </select>
                 </Field>
               </div>
+              <Field label="Postal address">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box, if different" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
               </Field>
@@ -2497,7 +2559,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
           <InlineOcrUpload
             section="other"
             documentType="beneficial_owner_id_copy"
-            label="Upload ID/passport or KRA PIN certificate to auto-fill →"
+            label="Upload ID/passport to auto-fill →"
             orgId={orgId}
             entityId={entityId}
             api={api}
@@ -2506,6 +2568,19 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             personName={form.fullName}
             personRole="beneficial_owner"
             initialUploaded={findPersonDocument(documents, form.fullName, 'beneficial_owner_id_copy')}
+          />
+          <InlineOcrUpload
+            section="other"
+            documentType="beneficial_owner_kra_pin_copy"
+            label="Upload KRA PIN certificate to auto-fill →"
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onExtracted={handleExtracted}
+            setError={setError}
+            personName={form.fullName}
+            personRole="beneficial_owner"
+            initialUploaded={findPersonDocument(documents, form.fullName, 'beneficial_owner_kra_pin_copy')}
           />
           <PhotoUpload
             orgId={orgId}
@@ -2960,31 +3035,60 @@ type UploadSection = {
 const UPLOAD_SECTIONS: UploadSection[] = [
   {
     key: 'director',
-    title: 'Director / partner documents',
-    hint: 'National IDs or passports, and KRA PIN certificates — one file per document, any order.',
+    title: 'Director / partner documents — ID or passport',
+    hint: 'National IDs or passports — one file per person.',
     documentType: 'director_id_copy',
     visible: (t) => t !== 'sole_proprietorship',
   },
   {
     key: 'director',
-    title: 'Owner documents',
-    hint: 'Your national ID or passport, and KRA PIN certificate.',
+    title: 'Director / partner documents — KRA PIN',
+    hint: 'KRA PIN certificates — one file per person.',
+    documentType: 'director_kra_pin_copy',
+    visible: (t) => t !== 'sole_proprietorship',
+  },
+  {
+    key: 'director',
+    title: 'Owner documents — ID or passport',
+    hint: 'Your national ID or passport.',
     documentType: 'director_id_copy',
     visible: (t) => t === 'sole_proprietorship',
   },
   {
+    key: 'director',
+    title: 'Owner documents — KRA PIN',
+    hint: 'Your KRA PIN certificate.',
+    documentType: 'director_kra_pin_copy',
+    visible: (t) => t === 'sole_proprietorship',
+  },
+  {
     key: 'shareholder',
-    title: 'Shareholder / member documents',
-    hint: 'IDs and KRA PIN certificates for each shareholder or member.',
+    title: 'Shareholder / member documents — ID or passport',
+    hint: 'IDs or passports for each shareholder or member.',
     documentType: 'shareholder_id_copy',
     visible: (t) =>
       t === 'limited_company' || t === 'public_limited_company' || t === 'cooperative' || t === 'limited_liability_partnership',
   },
   {
+    key: 'shareholder',
+    title: 'Shareholder / member documents — KRA PIN',
+    hint: 'KRA PIN certificates for each shareholder or member.',
+    documentType: 'shareholder_kra_pin_copy',
+    visible: (t) =>
+      t === 'limited_company' || t === 'public_limited_company' || t === 'cooperative' || t === 'limited_liability_partnership',
+  },
+  {
     key: 'other',
-    title: 'Beneficial owner documents (optional)',
+    title: 'Beneficial owner documents — ID or passport (optional)',
     hint: 'IDs for any beneficial owner not already captured as a director or shareholder.',
     documentType: 'beneficial_owner_id_copy',
+    visible: (t) => SHAREHOLDER_TYPES.includes(t),
+  },
+  {
+    key: 'other',
+    title: 'Beneficial owner documents — KRA PIN (optional)',
+    hint: 'KRA PIN certificates for any beneficial owner not already captured as a director or shareholder.',
+    documentType: 'beneficial_owner_kra_pin_copy',
     visible: (t) => SHAREHOLDER_TYPES.includes(t),
   },
   {
@@ -3095,9 +3199,9 @@ function vaultCategoryFor(doc: DocumentRow): string {
   if (doc.document_type === 'proof_of_address') return 'Registered office'
   if (doc.document_type && FORM_DOCUMENT_TYPES.has(doc.document_type)) return 'Registration forms'
   if (doc.document_type?.startsWith('corporate_') || doc.document_type === 'foreign_constitutional_documents') return 'Corporate parties'
-  if (doc.document_type === 'director_id_copy' || role === 'director') return 'Directors'
-  if (doc.document_type === 'shareholder_id_copy' || role === 'shareholder') return 'Shareholders'
-  if (doc.document_type === 'beneficial_owner_id_copy' || role === 'beneficial_owner') return 'Beneficial owners'
+  if (doc.document_type === 'director_id_copy' || doc.document_type === 'director_kra_pin_copy' || role === 'director') return 'Directors'
+  if (doc.document_type === 'shareholder_id_copy' || doc.document_type === 'shareholder_kra_pin_copy' || role === 'shareholder') return 'Shareholders'
+  if (doc.document_type === 'beneficial_owner_id_copy' || doc.document_type === 'beneficial_owner_kra_pin_copy' || role === 'beneficial_owner') return 'Beneficial owners'
   return 'Other'
 }
 

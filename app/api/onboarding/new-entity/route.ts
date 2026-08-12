@@ -279,6 +279,7 @@ export async function POST(request: Request) {
         physicalAddress?: string
         postalAddress?: string
         county?: string
+        postalCode?: string
         occupation?: string
       }
     }
@@ -309,6 +310,7 @@ export async function POST(request: Request) {
         physicalAddress: director.physicalAddress ?? undefined,
         postalAddress: director.postalAddress ?? undefined,
         county: director.county ?? undefined,
+        postalCode: director.postalCode ?? undefined,
         occupation: director.occupation ?? undefined,
       } as Json,
     }
@@ -362,6 +364,7 @@ export async function POST(request: Request) {
         phone?: string
         email?: string
         county?: string
+        postalCode?: string
         occupation?: string
       }
     }
@@ -387,6 +390,7 @@ export async function POST(request: Request) {
         nationality: shareholder.nationality ?? undefined,
         dateOfBirth: shareholder.dateOfBirth ?? undefined,
         county: shareholder.county ?? undefined,
+        postalCode: shareholder.postalCode ?? undefined,
         occupation: shareholder.occupation ?? undefined,
       } as Json,
       corporate_details: {
@@ -1112,6 +1116,7 @@ async function generateAndStoreIdp(
     // ---- uploaded documents checklist --------------------------------
     const documentGroups = [
       { label: 'Identity documents', types: ['director_id_copy', 'shareholder_id_copy', 'beneficial_owner_id_copy'] },
+      { label: 'KRA PIN certificates', types: ['director_kra_pin_copy', 'shareholder_kra_pin_copy', 'beneficial_owner_kra_pin_copy'] },
       { label: 'Passport photos', types: ['passport_photo'] },
       { label: 'Proof of registered office', types: ['proof_of_address'] },
       { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_representative_id', 'foreign_constitutional_documents'] },
@@ -1226,6 +1231,12 @@ async function mergeExtraction(
 ) {
   const { fields, section, entityId, orgId, progressId, progressData } = ctx
   const created: { directors: number; shareholders: number } = { directors: 0, shareholders: 0 }
+  // The matched-or-created row's id, handed back to the client so it can
+  // adopt it into the open form — without this, saving the form after an
+  // OCR auto-create inserts a second, duplicate row instead of updating
+  // the one OCR just made (Charles call, 2026-08: reproduced live —
+  // "created yet another Charles Adede").
+  let personId: string | undefined
 
   // Person documents → directors / shareholders
   if (section === 'director' || section === 'shareholder') {
@@ -1245,14 +1256,16 @@ async function mergeExtraction(
         )
 
         if (match) {
+          personId = match.id
           const update: Database['public']['Tables']['directors']['Update'] = {}
           if (!match.kra_pin && fields.kra_pin) update.kra_pin = fields.kra_pin
           if (Object.keys(update).length > 0) {
             await supabase.from('directors').update(update).eq('id', match.id)
           }
         } else if (fields.full_name && fields.id_number) {
+          const newId = crypto.randomUUID()
           await supabase.from('directors').insert({
-            id: crypto.randomUUID(),
+            id: newId,
             entity_id: entityId,
             organisation_id: orgId,
             full_name: fields.full_name,
@@ -1260,6 +1273,7 @@ async function mergeExtraction(
             kra_pin: fields.kra_pin,
             residential_address: { dateOfBirth: fields.date_of_birth, source: 'ocr' } as Json,
           })
+          personId = newId
           created.directors += 1
         }
       } else {
@@ -1275,6 +1289,7 @@ async function mergeExtraction(
         )
 
         if (match) {
+          personId = match.id
           const update: Database['public']['Tables']['shareholders']['Update'] = {}
           if (!match.kra_pin && fields.kra_pin) update.kra_pin = fields.kra_pin
           if (Object.keys(update).length > 0) {
@@ -1284,8 +1299,9 @@ async function mergeExtraction(
           // Require both name AND ID number (matches director creation
           // below) — a shareholder row with no ID number can never pass
           // step validation and had no clear fix path for the user.
+          const newId = crypto.randomUUID()
           await supabase.from('shareholders').insert({
-            id: crypto.randomUUID(),
+            id: newId,
             entity_id: entityId,
             organisation_id: orgId,
             legal_name: fields.full_name,
@@ -1294,6 +1310,7 @@ async function mergeExtraction(
             shares_held: 0, // user sets shares in the shareholders step
             corporate_details: { source: 'ocr' } as Json,
           })
+          personId = newId
           created.shareholders += 1
         }
       }
@@ -1353,5 +1370,5 @@ async function mergeExtraction(
     await supabase.from('onboarding_progress').update({ data: newData as Json }).eq('id', progressId)
   }
 
-  return { created, wizardChanged }
+  return { created, wizardChanged, personId }
 }
