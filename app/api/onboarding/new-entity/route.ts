@@ -280,6 +280,7 @@ export async function POST(request: Request) {
         postalAddress?: string
         county?: string
         postalCode?: string
+        postalAddressLine?: string
         occupation?: string
       }
     }
@@ -311,6 +312,7 @@ export async function POST(request: Request) {
         postalAddress: director.postalAddress ?? undefined,
         county: director.county ?? undefined,
         postalCode: director.postalCode ?? undefined,
+        postalAddressLine: director.postalAddressLine ?? undefined,
         occupation: director.occupation ?? undefined,
       } as Json,
     }
@@ -365,6 +367,7 @@ export async function POST(request: Request) {
         email?: string
         county?: string
         postalCode?: string
+        postalAddressLine?: string
         occupation?: string
       }
     }
@@ -392,6 +395,7 @@ export async function POST(request: Request) {
         county: shareholder.county ?? undefined,
         postalCode: shareholder.postalCode ?? undefined,
         occupation: shareholder.occupation ?? undefined,
+        postalAddressLine: shareholder.postalAddressLine ?? undefined,
       } as Json,
       corporate_details: {
         nominee: shareholder.isNominee || undefined,

@@ -147,6 +147,7 @@ type DirectorRow = {
     county?: string
     occupation?: string
     postalCode?: string
+    postalAddressLine?: string
   } | null
 }
 
@@ -159,7 +160,7 @@ type ShareholderRow = {
   email?: string | null
   shares_held: number
   share_percentage: number | null
-  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string; nationality?: string; dateOfBirth?: string; county?: string; occupation?: string; postalCode?: string } | null
+  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string; nationality?: string; dateOfBirth?: string; county?: string; occupation?: string; postalCode?: string; postalAddressLine?: string } | null
   corporate_details: {
     nominee?: boolean
     isCorporate?: boolean
@@ -1035,6 +1036,10 @@ type DirectorForm = {
   // address per director, distinct from the entity's registered office.
   physicalAddress: string
   postalAddress: string
+  // Full mailing address line — distinct from the P.O. Box (postalAddress
+  // above); Charles wanted both captured, not one standing in for the
+  // other.
+  postalAddressLine: string
   appointmentDate: string
   isCorporate: boolean
   corporate: CorporateParticipant
@@ -1054,7 +1059,7 @@ export const emptyCorporate: CorporateParticipant = {
 
 const emptyDirector: DirectorForm = {
   fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '', postalCode: '',
-  phone: '', email: '', physicalAddress: '', postalAddress: '',
+  phone: '', email: '', physicalAddress: '', postalAddress: '', postalAddressLine: '',
   appointmentDate: new Date().toISOString().slice(0, 10),
   isCorporate: false, corporate: { ...emptyCorporate },
   isForeign: false, foreignAddress: '',
@@ -1527,6 +1532,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
           postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
+          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
       })
@@ -1550,6 +1556,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
           postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
+          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
       }
@@ -1637,6 +1644,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 occupation: d.residential_address?.occupation ?? '',
                 county: d.residential_address?.county ?? '',
                 postalCode: d.residential_address?.postalCode ?? '',
+                postalAddressLine: d.residential_address?.postalAddressLine ?? '',
                 phone: d.residential_address?.isCorporate ? '' : (d.phone ?? ''),
                 email: d.residential_address?.isCorporate ? '' : (d.email ?? ''),
                 appointmentDate: d.appointment_date ?? '',
@@ -1779,6 +1787,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               <Field label="P.O. Box">
                 <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 1234" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
               </Field>
+              <Field label="Postal address">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value })} />
+              </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
               </Field>
@@ -1832,6 +1843,7 @@ type ShareholderForm = {
   email: string
   physicalAddress: string
   postalAddress: string
+  postalAddressLine: string
   sharesHeld: string
   isNominee: boolean
   isCorporate: boolean
@@ -1850,7 +1862,7 @@ type ShareholderForm = {
 const emptyShareholder: ShareholderForm = {
   legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '', postalCode: '',
   phone: '', email: '',
-  physicalAddress: '', postalAddress: '',
+  physicalAddress: '', postalAddress: '', postalAddressLine: '',
   sharesHeld: '', isNominee: false, isCorporate: false, corporate: { ...emptyCorporate }, alsoDirector: false,
   isForeign: false, foreignAddress: '',
 }
@@ -1936,6 +1948,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
           postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
+          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
       })
@@ -1957,6 +1970,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
           county: form.isCorporate ? undefined : form.county || undefined,
           postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
+          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
         corporate_details: {
@@ -2032,6 +2046,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
             county: form.isCorporate ? undefined : form.county || undefined,
             postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
+            postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
             occupation: form.isCorporate ? undefined : form.occupation || undefined,
           },
         }])
@@ -2116,6 +2131,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 occupation: s.address?.occupation ?? '',
                 county: s.address?.county ?? '',
                 postalCode: s.address?.postalCode ?? '',
+                postalAddressLine: s.address?.postalAddressLine ?? '',
                 phone: s.phone ?? '',
                 email: s.email ?? '',
                 physicalAddress: s.address?.physicalAddress ?? '',
@@ -2269,6 +2285,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               </div>
               <Field label="P.O. Box">
                 <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 1234" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              </Field>
+              <Field label="Postal address">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value })} />
               </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
