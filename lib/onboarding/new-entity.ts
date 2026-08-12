@@ -96,6 +96,31 @@ export const SHAREHOLDER_TYPES: EntityType[] = [
 // Share capital structuring — company/cooperative only (not LLP, which uses capital contributions differently)
 const SHARE_CAPITAL_TYPES: EntityType[] = ['limited_company', 'public_limited_company', 'cooperative']
 
+// Single source of truth for "what documents does this entity still need"
+// — used by both the Document Vault step (live, during onboarding) and
+// the post-registration dashboard alert (Charles call, 2026-08: the
+// missing-docs nudge was confusing mid-onboarding since some of these
+// can't exist yet; moved to fire once the certificate is on file,
+// staying in the Document Vault too). Deliberately excludes anything
+// conditional/optional (proof of address, corporate-party docs, BO docs,
+// foreign constitutional docs, "other") — those can't be flagged as
+// "missing" without knowing whether they even apply.
+export const REQUIRED_DOCUMENT_CHECKLIST: Array<{ type: string; label: string; appliesTo: (t: EntityType) => boolean }> = [
+  { type: 'director_id_copy', label: 'Director/partner documents', appliesTo: () => true },
+  { type: 'shareholder_id_copy', label: 'Shareholder/member documents', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
+  { type: 'signed_cr1', label: 'Signed CR1', appliesTo: () => true },
+  { type: 'signed_cr2', label: 'Signed CR2', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
+  { type: 'signed_cr8', label: 'Signed CR8', appliesTo: () => true },
+  { type: 'statement_of_nominal_capital', label: 'Statement of nominal capital', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
+  { type: 'signed_bof1', label: 'Signed BOF1', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
+]
+
+export function missingRequiredDocuments(entityType: EntityType, presentTypes: Set<string>): string[] {
+  return REQUIRED_DOCUMENT_CHECKLIST
+    .filter((r) => r.appliesTo(entityType) && !presentTypes.has(r.type))
+    .map((r) => r.label)
+}
+
 // Company secretary — Ltd (optional) and PLC (required)
 const SECRETARY_TYPES: EntityType[] = ['limited_company', 'public_limited_company']
 

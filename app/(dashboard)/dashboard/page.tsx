@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DraftResumeShell } from '@/components/dashboard/draft-resume-shell'
 import { EntityDashboard, type DashboardEntity } from '@/components/dashboard/entity-dashboard'
-import { ENTITY_TYPES } from '@/lib/onboarding/new-entity'
+import { ENTITY_TYPES, missingRequiredDocuments, type EntityType } from '@/lib/onboarding/new-entity'
 
 const EXTRA_TYPE_LABELS: Record<string, string> = {
   foreign_branch: 'Foreign Branch',
@@ -110,22 +110,15 @@ export default async function DashboardPage() {
     }
   }
 
-  // Charles, 2026: dashboard should nudge exactly which BRS application
-  // documents are still missing, not just "upload the certificate" —
-  // these are generated during onboarding, signed at BRS, then uploaded
-  // back, separate from the certificate which doesn't exist until BRS
-  // approves.
-  const REQUIRED_BRS_DOCS: Array<{ type: string; label: string }> = [
-    { type: 'signed_cr1', label: 'CR1' },
-    { type: 'signed_cr8', label: 'CR8' },
-  ]
-  const missingBrsDocs = (entityId: string, entityType: string) => {
+  // Charles call, 2026-08: the "what's missing" checklist used to fire
+  // mid-onboarding, before some of these documents could even exist yet
+  // (a CR8 can't be generated before the data behind it is entered) —
+  // moved here, gated to once the certificate is on file (status
+  // 'active'), same required-document list the Document Vault step uses
+  // so the two views can't drift apart.
+  const missingDocs = (entityId: string, entityType: string) => {
     const present = docTypesByEntity.get(entityId) ?? new Set<string>()
-    const required = [...REQUIRED_BRS_DOCS]
-    if (entityType === 'limited_company' || entityType === 'public_limited_company') {
-      required.push({ type: 'signed_cr2', label: 'CR2' }, { type: 'statement_of_nominal_capital', label: 'statement of nominal capital' })
-    }
-    return required.filter((r) => !present.has(r.type)).map((r) => r.label)
+    return missingRequiredDocuments(entityType as EntityType, present)
   }
 
   // Latest IDP per entity → signed URL (1h expiry)
@@ -152,7 +145,7 @@ export default async function DashboardPage() {
     onboardingStep: e.onboarding_step,
     documentCount: docCounts.get(e.id) ?? 0,
     idpUrl: idpUrls.get(e.id) ?? null,
-    missingBrsDocs: e.status === 'pending_registration' ? missingBrsDocs(e.id, e.entity_type) : [],
+    missingDocs: e.status === 'pending_registration' || e.status === 'active' ? missingDocs(e.id, e.entity_type) : [],
   }))
 
   const entityNames = new Map(dashboardEntities.map((e) => [e.id, e.displayName]))

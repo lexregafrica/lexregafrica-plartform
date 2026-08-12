@@ -23,6 +23,7 @@ import {
   prevVisibleStep,
   SHARE_CLASS_TYPES,
   SHAREHOLDER_TYPES,
+  missingRequiredDocuments,
   type EntityType,
   type WizardData,
   type ShareClass,
@@ -151,9 +152,11 @@ type ShareholderRow = {
   legal_name: string
   id_or_reg_number: string | null
   kra_pin: string | null
+  phone?: string | null
+  email?: string | null
   shares_held: number
   share_percentage: number | null
-  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string } | null
+  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string; nationality?: string; dateOfBirth?: string } | null
   corporate_details: {
     nominee?: boolean
     isCorporate?: boolean
@@ -1741,6 +1744,7 @@ type ShareholderForm = {
   idNumber: string
   kraPin: string
   dateOfBirth: string
+  nationality: string
   phone: string
   email: string
   physicalAddress: string
@@ -1754,8 +1758,14 @@ type ShareholderForm = {
   foreignAddress: string
 }
 
+// Shareholders are captured before directors in this wizard (Charles,
+// 2026-07-17 reorder), so this is the earliest point most people are
+// entered — Charles call, 2026-08: capture as comprehensively as
+// possible here (nationality, DOB, both addresses) so the director and
+// beneficial-owner screens further down can gap-fill from this record
+// instead of re-asking for the same person.
 const emptyShareholder: ShareholderForm = {
-  legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', phone: '', email: '',
+  legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', phone: '', email: '',
   physicalAddress: '', postalAddress: '',
   sharesHeld: '', isNominee: false, isCorporate: false, corporate: { ...emptyCorporate }, alsoDirector: false,
   isForeign: false, foreignAddress: '',
@@ -1838,6 +1848,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
           physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
           postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
+          nationality: form.isCorporate ? undefined : form.nationality || undefined,
+          dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
         },
       })
       const updated: ShareholderRow = {
@@ -1845,6 +1857,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
         legal_name: displayName,
         id_or_reg_number: idOrReg || null,
         kra_pin: form.kraPin.trim().toUpperCase() || null,
+        phone: form.isCorporate ? null : form.phone || null,
+        email: form.isCorporate ? null : form.email || null,
         shares_held: shares,
         share_percentage: null,
         address: {
@@ -1852,6 +1866,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
           physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
           postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
+          nationality: form.isCorporate ? undefined : form.nationality || undefined,
+          dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
         },
         corporate_details: {
           nominee: form.isNominee || undefined,
@@ -1892,8 +1908,13 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             idNumber: form.idNumber.trim(),
             kraPin: form.kraPin.trim().toUpperCase() || undefined,
             dateOfBirth: form.dateOfBirth || undefined,
+            nationality: form.nationality || undefined,
             phone: form.phone || undefined,
             email: form.email || undefined,
+            physicalAddress: form.physicalAddress || undefined,
+            postalAddress: form.postalAddress || undefined,
+            isForeign: form.isForeign,
+            foreignAddress: form.isForeign ? form.foreignAddress : undefined,
             role: roleLabel.toLowerCase().replace(' ', '_'),
             appointmentDate: new Date().toISOString().slice(0, 10),
           },
@@ -1906,13 +1927,17 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           kra_pin: form.isCorporate ? (form.corporate.isForeign ? null : form.corporate.kraPin.toUpperCase() || null) : (form.kraPin.trim().toUpperCase() || null),
           phone: (form.isCorporate ? form.corporate.repPhone : form.phone) || null,
           email: (form.isCorporate ? form.corporate.repEmail : form.email) || null,
-          nationality: form.isCorporate ? form.corporate.countryOfIncorporation : 'Kenyan',
+          nationality: form.isCorporate ? form.corporate.countryOfIncorporation : (form.nationality || 'Kenyan'),
           appointment_date: new Date().toISOString().slice(0, 10),
+          is_foreign: form.isCorporate ? form.corporate.isForeign : form.isForeign,
           residential_address: {
             role: roleLabel,
             dateOfBirth: form.dateOfBirth,
             isCorporate: form.isCorporate,
             corporate: form.isCorporate ? form.corporate : undefined,
+            foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+            physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
+            postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
           },
         }])
       }
@@ -1986,9 +2011,10 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 legalName: s.corporate_details?.isCorporate ? '' : s.legal_name,
                 idNumber: s.corporate_details?.isCorporate ? '' : (s.id_or_reg_number ?? ''),
                 kraPin: s.kra_pin ?? '',
-                dateOfBirth: '',
-                phone: '',
-                email: '',
+                dateOfBirth: s.address?.dateOfBirth ?? '',
+                nationality: s.address?.nationality ?? 'Kenyan',
+                phone: s.phone ?? '',
+                email: s.email ?? '',
                 physicalAddress: s.address?.physicalAddress ?? '',
                 postalAddress: s.address?.postalAddress ?? '',
                 sharesHeld: String(s.shares_held),
@@ -2087,6 +2113,14 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                   <input type="text" className={inputCls} style={inputStyle} value={form.foreignAddress} onChange={(e) => set({ foreignAddress: e.target.value })} />
                 </Field>
               )}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Date of birth">
+                  <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
+                </Field>
+                <Field label="Nationality">
+                  <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+                </Field>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Phone">
                   <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
@@ -2230,6 +2264,10 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
 
   const set = (partial: Partial<BeneficialOwnerForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
 
+  // Gap-fills from the shareholder record instead of re-asking — Charles
+  // call, 2026-08: whatever was captured comprehensively at the
+  // shareholder screen (the first, most detailed capture point) should
+  // carry across to here when it's the same person.
   const prefillFrom = (s: ShareholderRow) => {
     patch({ noBeneficialOwners: false })
     setForm({
@@ -2237,6 +2275,12 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
       fullName: s.legal_name,
       idNumber: s.id_or_reg_number ?? '',
       kraPin: s.kra_pin ?? '',
+      nationality: s.address?.nationality ?? '',
+      dateOfBirth: s.address?.dateOfBirth ?? '',
+      phone: s.phone ?? '',
+      email: s.email ?? '',
+      residentialAddress: s.address?.physicalAddress ?? '',
+      postalAddress: s.address?.postalAddress ?? '',
       sharePercentage: s.share_percentage != null ? String(s.share_percentage) : '',
       natureOfControl: `Shareholding of ${s.share_percentage ?? '—'}%`,
     })
@@ -3313,10 +3357,8 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
 
   const busy = Object.values(statuses).some((s) => s.state === 'uploading' || s.state === 'extracting')
 
-  const visibleSections = UPLOAD_SECTIONS.filter((s) => s.visible(entityType))
-  const missingSections = visibleSections.filter(
-    (s) => !s.title.includes('(optional)') && !documents.some((d) => d.document_type === s.documentType)
-  )
+  const presentTypes = new Set(documents.map((d) => d.document_type).filter((t): t is string => !!t))
+  const missingRequired = missingRequiredDocuments(entityType, presentTypes)
 
   return (
     <div className="space-y-5">
@@ -3329,10 +3371,10 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
         for again below — we read documents automatically and cross-check what you entered.
       </p>
 
-      {missingSections.length > 0 ? (
+      {missingRequired.length > 0 ? (
         <div className="rounded-xl p-3" style={{ background: 'rgba(255,149,0,0.10)' }}>
           <p className="text-ios-footnote font-medium" style={{ color: '#C77700' }}>
-            Still missing: {missingSections.map((s) => s.title.replace(/^Signed /, '')).join(', ')}
+            Still missing: {missingRequired.join(', ')}
           </p>
         </div>
       ) : (

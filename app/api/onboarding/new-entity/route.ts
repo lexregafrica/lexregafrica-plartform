@@ -353,6 +353,10 @@ export async function POST(request: Request) {
         foreignAddress?: string
         physicalAddress?: string
         postalAddress?: string
+        nationality?: string
+        dateOfBirth?: string
+        phone?: string
+        email?: string
       }
     }
     if (!shareholder?.legalName || !shareholder?.sharesHeld) {
@@ -367,11 +371,15 @@ export async function POST(request: Request) {
       id_or_reg_number: shareholder.idNumber ?? null,
       kra_pin: shareholder.kraPin ?? null,
       shares_held: shareholder.sharesHeld,
+      phone: shareholder.phone ?? null,
+      email: shareholder.email ?? null,
       address: {
         isForeign: shareholder.isForeign ?? false,
         foreignAddress: shareholder.isForeign ? shareholder.foreignAddress : undefined,
         physicalAddress: shareholder.physicalAddress ?? undefined,
         postalAddress: shareholder.postalAddress ?? undefined,
+        nationality: shareholder.nationality ?? undefined,
+        dateOfBirth: shareholder.dateOfBirth ?? undefined,
       } as Json,
       corporate_details: {
         nominee: shareholder.isNominee || undefined,
