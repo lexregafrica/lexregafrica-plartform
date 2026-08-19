@@ -14,7 +14,7 @@ export type VaultDocument = {
   url?: string | null
 }
 
-const FORM_DOCUMENT_TYPES = new Set(['signed_cr1', 'signed_cr2', 'signed_cr8', 'statement_of_nominal_capital', 'signed_bof1'])
+const FORM_DOCUMENT_TYPES = new Set(['signed_cr1', 'signed_cr2', 'signed_cr8', 'statement_of_nominal_capital', 'signed_bof1', 'signed_bn2', 'partnership_agreement'])
 
 // Which folder a document belongs in — category, then person inside it,
 // mirroring the physical-folder mental model Charles described. Built off

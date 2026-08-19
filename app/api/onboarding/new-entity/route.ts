@@ -282,6 +282,11 @@ export async function POST(request: Request) {
         postalCode?: string
         postalAddressLine?: string
         occupation?: string
+        // Partnership only — General Partnership Formation Workflow
+        // spec, 2026-08, GP-060/061.
+        interestPercentage?: string
+        contributionType?: string
+        contributionValue?: string
       }
     }
     if (!director?.fullName || !director?.idNumber) {
@@ -314,6 +319,9 @@ export async function POST(request: Request) {
         postalCode: director.postalCode ?? undefined,
         postalAddressLine: director.postalAddressLine ?? undefined,
         occupation: director.occupation ?? undefined,
+        interestPercentage: director.interestPercentage ?? undefined,
+        contributionType: director.contributionType ?? undefined,
+        contributionValue: director.contributionValue ?? undefined,
       } as Json,
     }
 
@@ -724,7 +732,13 @@ export async function POST(request: Request) {
     const entityType = progress.entity_type
 
     // Server-side minimum-director validation (PLC needs 2, partnership needs 2)
-    if (isStepVisible(6, entityType, wizard)) {
+    // Step numbers matched to isStepVisible's actual meanings — 7 is
+    // Directors/Partners, 6 is Shareholders, 8 is Beneficial Ownership.
+    // (Previously checked 6/5/7, which happened to be harmless only
+    // because limited_company has all three visible=true regardless —
+    // masked the bug rather than fixing it. Real for other entity types,
+    // e.g. sole_proprietorship, where these checks would silently no-op.)
+    if (isStepVisible(7, entityType, wizard)) {
       const { count } = await supabase
         .from('directors')
         .select('id', { count: 'exact', head: true })
@@ -735,7 +749,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (isStepVisible(5, entityType, wizard)) {
+    if (isStepVisible(6, entityType, wizard)) {
       const { count } = await supabase
         .from('shareholders')
         .select('id', { count: 'exact', head: true })
@@ -747,13 +761,29 @@ export async function POST(request: Request) {
 
     // Beneficial ownership: required unless the user explicitly confirmed
     // none currently apply (LLC-Only Developer Implementation Spec)
-    if (isStepVisible(7, entityType, wizard)) {
+    if (isStepVisible(8, entityType, wizard)) {
       const { count } = await supabase
         .from('beneficial_owners')
         .select('id', { count: 'exact', head: true })
         .eq('entity_id', entityId)
       if ((count ?? 0) < 1 && !wizard.noBeneficialOwners) {
         return NextResponse.json({ error: 'beneficial ownership details required, or confirm none currently apply' }, { status: 400 })
+      }
+    }
+
+    if (entityType === 'partnership') {
+      const { data: partners } = await supabase
+        .from('directors')
+        .select('residential_address')
+        .eq('entity_id', entityId)
+      const totalInterest = (partners ?? []).reduce(
+        (sum, p) => sum + (parseFloat((p.residential_address as { interestPercentage?: string } | null)?.interestPercentage ?? '0') || 0), 0
+      )
+      if (Math.round(totalInterest * 100) / 100 !== 100) {
+        return NextResponse.json({ error: `partner interests must total 100% (currently ${totalInterest}%)` }, { status: 400 })
+      }
+      if (wizard.hasPartnershipAgreement === undefined) {
+        return NextResponse.json({ error: 'confirm whether a Partnership Agreement already exists' }, { status: 400 })
       }
     }
 
@@ -1100,7 +1130,9 @@ async function generateAndStoreIdp(
       const ra = d.residential_address as { isCorporate?: boolean; physicalAddress?: string; foreignAddress?: string } | null
       return {
         fullName: d.full_name,
-        role: ra?.isCorporate ? 'Corporate director' : 'Director',
+        role: ctx.entityType === 'partnership'
+          ? (ra?.isCorporate ? 'Corporate partner' : 'Partner')
+          : (ra?.isCorporate ? 'Corporate director' : 'Director'),
         nationality: d.nationality,
         idNumber: d.id_number,
         kraPin: d.kra_pin,
@@ -1174,13 +1206,15 @@ async function generateAndStoreIdp(
     }))
 
     // ---- forms & filing preview --------------------------------------
-    const formDefs = [
-      { type: 'signed_cr1', label: 'CR1 — Application for registration' },
-      { type: 'signed_cr2', label: 'CR2 — Memorandum of registration' },
-      { type: 'signed_cr8', label: 'CR8 — Particulars of directors' },
-      { type: 'statement_of_nominal_capital', label: 'Statement of nominal capital' },
-      { type: 'signed_bof1', label: 'BOF1 — Beneficial ownership filing' },
-    ]
+    const formDefs = ctx.entityType === 'partnership'
+      ? [{ type: 'signed_bn2', label: 'BN2 — Application for registration of a business name' }]
+      : [
+          { type: 'signed_cr1', label: 'CR1 — Application for registration' },
+          { type: 'signed_cr2', label: 'CR2 — Memorandum of registration' },
+          { type: 'signed_cr8', label: 'CR8 — Particulars of directors' },
+          { type: 'statement_of_nominal_capital', label: 'Statement of nominal capital' },
+          { type: 'signed_bof1', label: 'BOF1 — Beneficial ownership filing' },
+        ]
     const forms = formDefs.map((f) => ({ label: f.label, generated: hasDoc(f.type), signed: hasDoc(f.type), uploaded: hasDoc(f.type) }))
 
     // ---- uploaded documents checklist --------------------------------
@@ -1199,13 +1233,19 @@ async function generateAndStoreIdp(
     // ---- review exceptions ---------------------------------------------
     const exceptions: string[] = []
     if (!address?.line1) exceptions.push('Registered office address is missing.')
-    if ((directors ?? []).length === 0) exceptions.push('No directors captured.')
-    if ((shareholders ?? []).length === 0) exceptions.push('No shareholders captured.')
-    if (!w.useMultipleShareClasses && w.totalShares) {
-      const allocated = (shareholders ?? []).reduce((s, x) => s + x.shares_held, 0)
-      if (allocated !== w.totalShares) exceptions.push(`Only ${allocated.toLocaleString()} of ${w.totalShares.toLocaleString()} shares allocated — must be fully issued.`)
+    if ((directors ?? []).length === 0) exceptions.push(ctx.entityType === 'partnership' ? 'No partners captured.' : 'No directors captured.')
+    if (ctx.entityType === 'partnership') {
+      const totalInterest = (directors ?? []).reduce((s, d) => s + (parseFloat((d.residential_address as { interestPercentage?: string } | null)?.interestPercentage ?? '0') || 0), 0)
+      if (Math.round(totalInterest * 100) / 100 !== 100) exceptions.push(`Partner interests total ${totalInterest.toLocaleString()}%, not 100%.`)
+      if (w.hasPartnershipAgreement === undefined) exceptions.push('Partnership Agreement status not yet confirmed.')
+    } else {
+      if ((shareholders ?? []).length === 0) exceptions.push('No shareholders captured.')
+      if (!w.useMultipleShareClasses && w.totalShares) {
+        const allocated = (shareholders ?? []).reduce((s, x) => s + x.shares_held, 0)
+        if (allocated !== w.totalShares) exceptions.push(`Only ${allocated.toLocaleString()} of ${w.totalShares.toLocaleString()} shares allocated — must be fully issued.`)
+      }
+      if ((beneficialOwners ?? []).length === 0 && !w.noBeneficialOwners) exceptions.push('Beneficial ownership not yet confirmed.')
     }
-    if ((beneficialOwners ?? []).length === 0 && !w.noBeneficialOwners) exceptions.push('Beneficial ownership not yet confirmed.')
     for (const f of forms) if (!f.uploaded) exceptions.push(`${f.label} not yet uploaded.`)
     if (corporateParties.length > 0 && !hasDoc('corporate_authority_document')) {
       exceptions.push('Corporate party authority document (board resolution / power of attorney) not yet uploaded.')

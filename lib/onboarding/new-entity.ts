@@ -27,7 +27,37 @@ export const SHARE_CLASS_TYPES: Array<{ value: ShareClass['type']; label: string
 // this list for future expansion but render as "coming later" —
 // disabled, not selectable — until the LLC flow is validated in
 // production and the rules engine is generalised.
-export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company']
+// Charles, General Partnership Formation Workflow spec, 2026-08: second
+// reference implementation of the formation engine — proves the "one
+// engine, entity type determines the questions" architecture, not a
+// parallel system. LLP and LP stay disabled until their own workflows
+// are built on top of the same Partner object this introduces.
+export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnership']
+
+// The spec's "first user decision" (section 3): selecting Partnership
+// doesn't launch the questionnaire directly — it first asks which kind.
+// Only General Partnership is wired to a real workflow; LLP/LP are
+// listed so the distinction is explained, but stay disabled.
+export const PARTNERSHIP_KINDS: Array<{ value: 'general_partnership' | 'llp' | 'lp'; label: string; description: string; enabled: boolean }> = [
+  {
+    value: 'general_partnership',
+    label: 'General Partnership',
+    description: 'A business carried on jointly by two or more partners, who generally assume personal responsibility for its obligations.',
+    enabled: true,
+  },
+  {
+    value: 'llp',
+    label: 'Limited Liability Partnership (LLP)',
+    description: 'A registered body corporate with a legal identity separate from its partners and limited liability characteristics.',
+    enabled: false,
+  },
+  {
+    value: 'lp',
+    label: 'Limited Partnership (LP)',
+    description: 'A partnership with at least one general partner and one limited partner, with different liability arrangements.',
+    enabled: false,
+  },
+]
 
 // Company secretary threshold — Charles, LLC-Only Developer
 // Implementation Spec: private companies above this nominal share
@@ -185,11 +215,15 @@ const SHARE_CAPITAL_TYPES: EntityType[] = ['limited_company', 'public_limited_co
 export const REQUIRED_DOCUMENT_CHECKLIST: Array<{ type: string; label: string; appliesTo: (t: EntityType) => boolean }> = [
   { type: 'director_id_copy', label: 'Director/partner documents', appliesTo: () => true },
   { type: 'shareholder_id_copy', label: 'Shareholder/member documents', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
-  { type: 'signed_cr1', label: 'Signed CR1', appliesTo: () => true },
+  { type: 'signed_cr1', label: 'Signed CR1', appliesTo: (t) => t !== 'partnership' },
   { type: 'signed_cr2', label: 'Signed CR2', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
-  { type: 'signed_cr8', label: 'Signed CR8', appliesTo: () => true },
+  { type: 'signed_cr8', label: 'Signed CR8', appliesTo: (t) => t !== 'partnership' },
   { type: 'statement_of_nominal_capital', label: 'Statement of nominal capital', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
   { type: 'signed_bof1', label: 'Signed BOF1', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
+  // General Partnership — Business Name Registration filing (BN2), not a
+  // company incorporation form (Charles, General Partnership Formation
+  // Workflow spec, 2026-08, section 19).
+  { type: 'signed_bn2', label: 'Signed BN2', appliesTo: (t) => t === 'partnership' },
 ]
 
 export function missingRequiredDocuments(entityType: EntityType, presentTypes: Set<string>): string[] {
@@ -240,6 +274,33 @@ export type WizardData = {
   sectorCode?: string
   turnoverRange?: string
   hasEmployees?: boolean
+  commencementDate?: string
+  // Step 1 — which kind of partnership (spec section 3's "first user
+  // decision"); only 'general_partnership' has a working flow so far.
+  partnershipKind?: 'general_partnership' | 'llp' | 'lp'
+  // Step 5 (repurposed for partnership — Share Structure is hidden for
+  // this entity type, so the slot is reused rather than adding a new
+  // step number) — Partnership Suitability, GP-001–004. Advisory only:
+  // per spec, the user may continue after acknowledging a mismatch.
+  gpOwnerCount?: number
+  gpWantsSeparateLegalPersonality?: boolean
+  gpWantsLimitedLiability?: boolean
+  gpSameLiabilityBasis?: boolean
+  gpSuitabilityAcknowledged?: boolean
+  // Step 6 (repurposed for partnership — Shareholders is hidden) —
+  // partnership-level governance, GP-062–067. Per-partner interest %
+  // and contribution (GP-060/061) live on the partner record itself,
+  // not here.
+  profitLossSharing?: 'proportional' | 'equal' | 'custom'
+  profitLossSharingCustom?: string
+  bankAccountOperators?: string
+  bindingAuthority?: string
+  authorityLimits?: string
+  unanimousDecisions?: string
+  majorityDecisions?: string
+  // Step 10 (repurposed for partnership — Constitutional Documents
+  // doesn't apply) — Partnership Agreement, spec section 16.
+  hasPartnershipAgreement?: boolean
   // Step 5 — Share structure. Kenyan company law requires shares to be
   // 100% issued (Charles, 2026 call) — there's no such thing as
   // "authorised but unissued" anymore, so authorised capital is no
@@ -294,11 +355,14 @@ export type WizardData = {
 //  13 Declaration & Consent · 14 Review & Submit
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
-    case 5: // Share Structure
-      return SHARE_CAPITAL_TYPES.includes(entityType)
+    case 5: // Share Structure — repurposed as Partnership Suitability for
+      // partnership, since the two are mutually exclusive by entity type
+      // (Charles, General Partnership Formation Workflow spec, 2026-08)
+      return SHARE_CAPITAL_TYPES.includes(entityType) || entityType === 'partnership'
     case 6: // Shareholders/Members — captured before directors so a
       // shareholder-who-is-also-a-director isn't typed twice (Charles, 2026-07-17)
-      return SHAREHOLDER_TYPES.includes(entityType)
+      // Repurposed as Partnership Governance for partnership.
+      return SHAREHOLDER_TYPES.includes(entityType) || entityType === 'partnership'
     case 7: // Directors/Partners/Trustees
       return DIRECTOR_TYPES.includes(entityType)
     case 8: // Beneficial Ownership — same entities that need a shareholder
@@ -325,7 +389,7 @@ export function prevVisibleStep(current: number, entityType: EntityType, data: W
   return Math.max(step, 1)
 }
 
-export const STEP_LABELS: Record<number, string> = {
+const STEP_LABELS: Record<number, string> = {
   1: 'Entity Type',
   2: 'Applicant & Contact',
   3: 'Company Name Reservation',
@@ -340,4 +404,18 @@ export const STEP_LABELS: Record<number, string> = {
   12: 'Employee Information',
   13: 'Declaration & Consent',
   14: 'Review & Submit',
+}
+
+const PARTNERSHIP_STEP_LABELS: Partial<Record<number, string>> = {
+  3: 'Business Name Reservation',
+  4: 'Business Basics',
+  5: 'Partnership Suitability',
+  6: 'Partnership Governance',
+  7: 'Partners',
+  10: 'Partnership Agreement',
+}
+
+export function stepLabel(step: number, entityType: EntityType): string {
+  if (entityType === 'partnership' && PARTNERSHIP_STEP_LABELS[step]) return PARTNERSHIP_STEP_LABELS[step]!
+  return STEP_LABELS[step]
 }

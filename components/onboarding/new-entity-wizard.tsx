@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   ENTITY_TYPES,
   PHASE1_ENTITY_TYPES,
+  PARTNERSHIP_KINDS,
   SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
   KENYA_POSTAL_CODES,
@@ -18,7 +19,7 @@ import {
   EMAIL_REGEX,
   KENYA_PHONE_REGEX,
   TOTAL_STEPS,
-  STEP_LABELS,
+  stepLabel,
   isStepVisible,
   nextVisibleStep,
   prevVisibleStep,
@@ -148,6 +149,9 @@ type DirectorRow = {
     occupation?: string
     postalCode?: string
     postalAddressLine?: string
+    interestPercentage?: string
+    contributionType?: string
+    contributionValue?: string
   } | null
 }
 
@@ -342,6 +346,9 @@ export function NewEntityWizard() {
     switch (step) {
       case 1:
         if (!entityType) return 'Choose an entity type.'
+        if (entityType === 'partnership' && wizard.partnershipKind !== 'general_partnership') {
+          return 'Choose which type of partnership you want to establish.'
+        }
         return null
       case 2:
         if (!wizard.applicantFullName?.trim()) return 'Enter the applicant’s full name.'
@@ -369,6 +376,18 @@ export function NewEntityWizard() {
         if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
         return null
       case 5: {
+        if (entityType === 'partnership') {
+          if (wizard.gpOwnerCount == null) return 'Enter how many people will own the business.'
+          if (wizard.gpWantsSeparateLegalPersonality == null) return 'Answer whether you want a separate legal personality.'
+          if (wizard.gpWantsLimitedLiability == null) return 'Answer whether you require limited liability.'
+          if (wizard.gpSameLiabilityBasis == null) return 'Answer whether all partners share the same liability basis.'
+          const mismatch =
+            wizard.gpOwnerCount < 2 || wizard.gpWantsSeparateLegalPersonality || wizard.gpWantsLimitedLiability || wizard.gpSameLiabilityBasis === false
+          if (mismatch && !wizard.gpSuitabilityAcknowledged) {
+            return 'Please acknowledge the suitability note above before continuing, or adjust your answers.'
+          }
+          return null
+        }
         if (wizard.useMultipleShareClasses) {
           const classes = wizard.shareClassList ?? []
           if (classes.length === 0) return 'Add at least one share class.'
@@ -383,6 +402,15 @@ export function NewEntityWizard() {
         return null
       }
       case 6: {
+        if (entityType === 'partnership') {
+          if (!wizard.profitLossSharing) return 'Choose how profits and losses will be shared.'
+          if (wizard.profitLossSharing === 'custom' && !wizard.profitLossSharingCustom?.trim()) {
+            return 'Describe the custom profit/loss sharing arrangement.'
+          }
+          if (!wizard.bankAccountOperators?.trim()) return "Describe who may operate the partnership's bank account."
+          if (!wizard.bindingAuthority?.trim()) return 'Describe who has authority to bind the partnership.'
+          return null
+        }
         if (shareholders.length < 1) return 'Add at least one shareholder/member.'
         for (const s of shareholders) {
           if (!s.id_or_reg_number) return `Add an ID/registration number for ${s.legal_name}.`
@@ -411,6 +439,13 @@ export function NewEntityWizard() {
           if (!d.phone) return `Add a phone number for ${d.full_name}.`
           if (!d.email) return `Add an email address for ${d.full_name}.`
         }
+        // GP-060: percentage interest across all partners must total 100%.
+        if (entityType === 'partnership') {
+          const total = directors.reduce((sum, d) => sum + (parseFloat(d.residential_address?.interestPercentage ?? '0') || 0), 0)
+          if (Math.round(total * 100) / 100 !== 100) {
+            return `Partner interests must total 100% — currently ${total.toLocaleString()}%.`
+          }
+        }
         return null
       }
       case 8:
@@ -431,6 +466,10 @@ export function NewEntityWizard() {
         return null
       }
       case 10:
+        if (entityType === 'partnership') {
+          if (wizard.hasPartnershipAgreement === undefined) return 'Tell us whether you already have a Partnership Agreement.'
+          return null
+        }
         if (!wizard.articlesType) return 'Choose which articles of association the company will use.'
         return null
       case 11:
@@ -563,7 +602,7 @@ export function NewEntityWizard() {
         </div>
 
         <p className="text-ios-footnote mb-2" style={{ color: 'var(--system-label-3)' }}>
-          Step {step} of {TOTAL_STEPS} — {STEP_LABELS[step]}
+          Step {step} of {TOTAL_STEPS} — {stepLabel(step, entityType)}
         </p>
 
         {/* ---- step bodies ---- */}
@@ -584,23 +623,29 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 5 && <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />}
-        {step === 6 && (
-          <StepShareholders
-            entityType={entityType}
-            shareholders={shareholders}
-            setShareholders={setShareholders}
-            directors={directors}
-            setDirectors={setDirectors}
-            totalShares={wizard.totalShares}
-            useMultipleShareClasses={wizard.useMultipleShareClasses}
-            orgId={orgId}
-            entityId={entityId}
-            api={api}
-            setError={setError}
-            onExtracted={refresh}
-            documents={documents}
-          />
+        {step === 5 && (entityType === 'partnership'
+          ? <StepPartnershipSuitability wizard={wizard} patch={patch} />
+          : <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />
+        )}
+        {step === 6 && (entityType === 'partnership'
+          ? <StepPartnershipGovernance wizard={wizard} patch={patch} />
+          : (
+            <StepShareholders
+              entityType={entityType}
+              shareholders={shareholders}
+              setShareholders={setShareholders}
+              directors={directors}
+              setDirectors={setDirectors}
+              totalShares={wizard.totalShares}
+              useMultipleShareClasses={wizard.useMultipleShareClasses}
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              onExtracted={refresh}
+              documents={documents}
+            />
+          )
         )}
         {step === 7 && (
           <StepDirectors
@@ -632,6 +677,7 @@ export function NewEntityWizard() {
         {step === 9 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
         {step === 10 && (
           <StepConstitutional
+            entityType={entityType}
             wizard={wizard}
             patch={patch}
             orgId={orgId}
@@ -708,6 +754,56 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
   patch: (p: Partial<WizardData>) => void
   recommendedType?: EntityType | null
 }) {
+  // Spec section 3, "first user decision": picking Partnership doesn't
+  // launch the questionnaire directly — first ask which kind, since
+  // General Partnership / LLP / LP are legally distinct workflows.
+  if (entityType === 'partnership' && wizard.partnershipKind !== 'general_partnership') {
+    return (
+      <div className="space-y-5">
+        <button
+          type="button"
+          onClick={() => setEntityType('limited_company')}
+          className="text-ios-footnote font-medium"
+          style={{ color: 'var(--brand-navy)' }}
+        >
+          ← Back to entity types
+        </button>
+        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          What type of partnership would you like to establish?
+        </h1>
+        <div className="space-y-2">
+          {PARTNERSHIP_KINDS.map((k) => {
+            const selected = wizard.partnershipKind === k.value
+            return (
+              <button
+                key={k.value}
+                type="button"
+                disabled={!k.enabled}
+                onClick={() => k.enabled && patch({ partnershipKind: k.value })}
+                className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
+                style={{
+                  borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                  background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                  opacity: k.enabled ? 1 : 0.45,
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{k.label}</span>
+                  {!k.enabled && (
+                    <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'var(--system-fill-3)', color: 'var(--system-label-3)' }}>
+                      Coming later
+                    </span>
+                  )}
+                </span>
+                <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{k.description}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -730,7 +826,7 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
               key={t.value}
               type="button"
               disabled={!available}
-              onClick={() => available && setEntityType(t.value)}
+              onClick={() => { if (!available) return; setEntityType(t.value); if (t.value !== 'partnership') patch({ partnershipKind: undefined }) }}
               className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
               style={{
                 borderColor: selected || recommended ? 'var(--brand-navy)' : 'var(--system-fill-3)',
@@ -761,7 +857,7 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
         })}
       </div>
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        LexReg is currently focused on limited companies. Other entity types are on the roadmap.
+        LexReg currently supports Limited Companies and Partnerships. Other entity types are on the roadmap.
       </p>
     </div>
   )
@@ -1045,6 +1141,13 @@ type DirectorForm = {
   corporate: CorporateParticipant
   isForeign: boolean
   foreignAddress: string
+  // Partnership only (General Partnership Formation Workflow spec,
+  // 2026-08, GP-060/061) — an economic interest, not a governance role,
+  // so it lives on the partner record itself rather than a separate
+  // shareholders-style step.
+  interestPercentage: string
+  contributionType: 'cash' | 'property' | 'intellectual_property' | 'equipment' | 'services' | 'other' | ''
+  contributionValue: string
 }
 
 export const emptyCorporate: CorporateParticipant = {
@@ -1063,6 +1166,7 @@ const emptyDirector: DirectorForm = {
   appointmentDate: new Date().toISOString().slice(0, 10),
   isCorporate: false, corporate: { ...emptyCorporate },
   isForeign: false, foreignAddress: '',
+  interestPercentage: '', contributionType: '', contributionValue: '',
 }
 
 // Shared inline OCR uploader — used inside the director/shareholder "add
@@ -1481,6 +1585,10 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
     setForm((prev) => (prev ? { ...prev, corporate: { ...prev.corporate, ...partial } } : prev))
 
   const validate = (f: DirectorForm): string | null => {
+    if (entityType === 'partnership') {
+      if (!f.interestPercentage.trim() || Number(f.interestPercentage) <= 0) return 'Enter this partner’s percentage interest.'
+      if (!f.contributionType) return 'Choose what this partner is contributing.'
+    }
     if (f.isCorporate) {
       const c = f.corporate
       if (!c.registeredName.trim()) return 'Registered company name is required.'
@@ -1548,6 +1656,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
           postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
+          interestPercentage: entityType === 'partnership' ? form.interestPercentage || undefined : undefined,
+          contributionType: entityType === 'partnership' ? form.contributionType || undefined : undefined,
+          contributionValue: entityType === 'partnership' ? form.contributionValue || undefined : undefined,
         },
       })
       const updated: DirectorRow = {
@@ -1572,6 +1683,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
           postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
+          interestPercentage: entityType === 'partnership' ? form.interestPercentage || undefined : undefined,
+          contributionType: entityType === 'partnership' ? form.contributionType || undefined : undefined,
+          contributionValue: entityType === 'partnership' ? form.contributionValue || undefined : undefined,
         },
       }
       setDirectors(form.id ? directors.map((d) => (d.id === form.id ? updated : d)) : [...directors, updated])
@@ -1667,6 +1781,9 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 county: d.residential_address?.county ?? '',
                 postalCode: d.residential_address?.postalCode ?? '',
                 postalAddressLine: d.residential_address?.postalAddressLine ?? '',
+                interestPercentage: d.residential_address?.interestPercentage ?? '',
+                contributionType: (d.residential_address?.contributionType ?? '') as DirectorForm['contributionType'],
+                contributionValue: d.residential_address?.contributionValue ?? '',
                 phone: d.residential_address?.isCorporate ? '' : (d.phone ?? ''),
                 email: d.residential_address?.isCorporate ? '' : (d.email ?? ''),
                 appointmentDate: d.appointment_date ?? '',
@@ -1822,7 +1939,40 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
             </>
           )}
 
-          <Field label="Appointment date">
+          {entityType === 'partnership' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Percentage interest" required>
+                  <input
+                    type="number" min={0} max={100} step="0.01" className={inputCls} style={inputStyle}
+                    value={form.interestPercentage} onChange={(e) => set({ interestPercentage: e.target.value })}
+                  />
+                </Field>
+                <Field label="Contribution type" required>
+                  <select
+                    className={inputCls} style={inputStyle} value={form.contributionType}
+                    onChange={(e) => set({ contributionType: e.target.value as DirectorForm['contributionType'] })}
+                  >
+                    <option value="" disabled>Choose…</option>
+                    <option value="cash">Cash</option>
+                    <option value="property">Property</option>
+                    <option value="intellectual_property">Intellectual property</option>
+                    <option value="equipment">Equipment</option>
+                    <option value="services">Services</option>
+                    <option value="other">Other</option>
+                  </select>
+                </Field>
+              </div>
+              <Field label="Describe the contribution">
+                <input
+                  type="text" className={inputCls} style={inputStyle} placeholder="e.g. KES 500,000 cash, or a description of the property/services"
+                  value={form.contributionValue} onChange={(e) => set({ contributionValue: e.target.value })}
+                />
+              </Field>
+            </>
+          )}
+
+          <Field label={entityType === 'partnership' ? 'Admission date' : 'Appointment date'}>
             <input type="date" className={inputCls} style={inputStyle} value={form.appointmentDate} onChange={(e) => set({ appointmentDate: e.target.value })} />
           </Field>
           <div className="flex gap-2">
@@ -2758,6 +2908,225 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
 }
 
 // ------------------------------------------------------------------
+// Partnership — Suitability (repurposes the Share Structure step slot,
+// General Partnership Formation Workflow spec, 2026-08, section 5,
+// GP-001–004). Advisory only — flags a mismatch but never blocks
+// progress, per spec: "the user may nevertheless continue after
+// acknowledging the distinction."
+// ------------------------------------------------------------------
+function StepPartnershipSuitability({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  const mismatch =
+    (wizard.gpOwnerCount != null && wizard.gpOwnerCount < 2) ||
+    wizard.gpWantsSeparateLegalPersonality === true ||
+    wizard.gpWantsLimitedLiability === true ||
+    wizard.gpSameLiabilityBasis === false
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Is a general partnership right for you?
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        A few quick questions before we collect the full application — a general partnership isn&apos;t always
+        the right structure, and it&apos;s cheaper to find that out now than after registration.
+      </p>
+
+      <Field label="How many people will own the business?" required>
+        <input
+          type="number" min={0} className={inputCls} style={inputStyle}
+          value={wizard.gpOwnerCount ?? ''}
+          onChange={(e) => patch({ gpOwnerCount: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+        />
+        {wizard.gpOwnerCount != null && wizard.gpOwnerCount < 2 && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            A general partnership needs at least two owners. With one owner, a Sole Proprietorship is the
+            appropriate structure — you can switch entity type on step 1.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Do you want the business to have a legal personality separate from its owners?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ gpWantsSeparateLegalPersonality: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.gpWantsSeparateLegalPersonality === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.gpWantsSeparateLegalPersonality === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.gpWantsSeparateLegalPersonality === true && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            A general partnership has no legal identity separate from its partners — an LLP or a limited
+            company may suit you better. You can still continue with a general partnership if you prefer.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Do you require the partners’ liability to be limited?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ gpWantsLimitedLiability: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.gpWantsLimitedLiability === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.gpWantsLimitedLiability === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.gpWantsLimitedLiability === true && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            In a general partnership, partners are personally responsible for the business&apos;s obligations.
+            An LLP, Limited Partnership, or limited company would give you limited liability instead.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Will all partners participate on substantially the same liability basis?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ gpSameLiabilityBasis: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.gpSameLiabilityBasis === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.gpSameLiabilityBasis === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.gpSameLiabilityBasis === false && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            If some partners should carry less liability than others, a Limited Partnership (at least one
+            general partner and one limited partner) may be the better fit.
+          </p>
+        )}
+      </Field>
+
+      {mismatch && (
+        <label className="flex items-start gap-3 ios-surface rounded-2xl p-4 cursor-pointer">
+          <input
+            type="checkbox" className="mt-0.5"
+            checked={!!wizard.gpSuitabilityAcknowledged}
+            onChange={(e) => patch({ gpSuitabilityAcknowledged: e.target.checked })}
+          />
+          <span className="text-ios-footnote leading-relaxed" style={{ color: 'var(--system-label)' }}>
+            I understand a general partnership may not be the ideal structure based on my answers above, and
+            I want to continue with a general partnership anyway.
+          </span>
+        </label>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Partnership — Governance (repurposes the Shareholders step slot,
+// spec section 15, GP-062–067). Whole-partnership rules; per-partner
+// interest % and contribution (GP-060/061) are captured on the
+// Partners step instead, alongside each partner's identity.
+// ------------------------------------------------------------------
+function StepPartnershipGovernance({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  return (
+    <div className="space-y-5">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Partnership governance
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        This isn&apos;t required by BRS to register the business name, but it gives you a proper governance
+        record and feeds directly into your Partnership Agreement.
+      </p>
+
+      <Field label="How will profits and losses be shared?" required>
+        <div className="grid grid-cols-3 gap-2">
+          {([['proportional', 'By interest'], ['equal', 'Equally'], ['custom', 'Custom']] as const).map(([v, label]) => (
+            <button
+              key={v} type="button" onClick={() => patch({ profitLossSharing: v })}
+              className="py-2.5 rounded-xl border text-xs font-medium"
+              style={{
+                borderColor: wizard.profitLossSharing === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.profitLossSharing === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Field>
+      {wizard.profitLossSharing === 'custom' && (
+        <Field label="Describe the custom arrangement" required>
+          <textarea
+            className={inputCls} style={inputStyle} rows={3}
+            value={wizard.profitLossSharingCustom ?? ''}
+            onChange={(e) => patch({ profitLossSharingCustom: e.target.value })}
+          />
+        </Field>
+      )}
+
+      <Field label="Who may operate the partnership's bank account?" required>
+        <textarea
+          className={inputCls} style={inputStyle} rows={2}
+          placeholder="e.g. Any two partners acting jointly"
+          value={wizard.bankAccountOperators ?? ''}
+          onChange={(e) => patch({ bankAccountOperators: e.target.value })}
+        />
+      </Field>
+
+      <Field label="Who has authority to bind the partnership?" required>
+        <textarea
+          className={inputCls} style={inputStyle} rows={2}
+          placeholder="e.g. Each partner, acting individually, within the ordinary course of business"
+          value={wizard.bindingAuthority ?? ''}
+          onChange={(e) => patch({ bindingAuthority: e.target.value })}
+        />
+      </Field>
+
+      <Field label="Are there limits on individual partner authority?">
+        <textarea
+          className={inputCls} style={inputStyle} rows={2}
+          placeholder="e.g. No partner may commit the firm to spend above KES 500,000 without consent"
+          value={wizard.authorityLimits ?? ''}
+          onChange={(e) => patch({ authorityLimits: e.target.value })}
+        />
+      </Field>
+
+      <Field label="What decisions require unanimous approval?">
+        <textarea
+          className={inputCls} style={inputStyle} rows={2}
+          placeholder="e.g. Admitting a new partner, borrowing above a set limit"
+          value={wizard.unanimousDecisions ?? ''}
+          onChange={(e) => patch({ unanimousDecisions: e.target.value })}
+        />
+      </Field>
+
+      <Field label="What decisions may be taken by majority?">
+        <textarea
+          className={inputCls} style={inputStyle} rows={2}
+          placeholder="e.g. Day-to-day operational decisions"
+          value={wizard.majorityDecisions ?? ''}
+          onChange={(e) => patch({ majorityDecisions: e.target.value })}
+        />
+      </Field>
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
 // Step 8 — Share capital
 // ------------------------------------------------------------------
 function emptyShareClass(): ShareClass {
@@ -3182,7 +3551,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR1 (application for registration)',
     hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
     documentType: 'signed_cr1',
-    visible: () => true,
+    visible: (t) => t !== 'partnership',
   },
   {
     key: 'other',
@@ -3196,7 +3565,21 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR8 (particulars of directors)',
     hint: 'Lists all directors captured in this application.',
     documentType: 'signed_cr8',
-    visible: () => true,
+    visible: (t) => t !== 'partnership',
+  },
+  {
+    key: 'other',
+    title: 'Signed BN2 (business name registration)',
+    hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
+    documentType: 'signed_bn2',
+    visible: (t) => t === 'partnership',
+  },
+  {
+    key: 'other',
+    title: 'Partnership Agreement',
+    hint: 'Whatever was uploaded or prepared on the previous step lives here too.',
+    documentType: 'partnership_agreement',
+    visible: (t) => t === 'partnership',
   },
   {
     key: 'other',
@@ -3337,7 +3720,8 @@ function SimpleDocumentUpload({ orgId, entityId, api, setError, documentType, do
   )
 }
 
-function StepConstitutional({ wizard, patch, orgId, entityId, api, setError, documents, onExtracted }: {
+function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, setError, documents, onExtracted }: {
+  entityType: EntityType
   wizard: WizardData
   patch: (p: Partial<WizardData>) => void
   orgId: string | null
@@ -3347,6 +3731,68 @@ function StepConstitutional({ wizard, patch, orgId, entityId, api, setError, doc
   documents: DocumentRow[]
   onExtracted: () => Promise<void>
 }) {
+  if (entityType === 'partnership') {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          Partnership Agreement
+        </h1>
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          BRS doesn&apos;t require a Partnership Agreement to register a business name, but having one is good
+          governance practice — it&apos;s where the answers you gave on the previous step (profit sharing,
+          authority, decision rules) actually take effect.
+        </p>
+        <Field label="Do you already have a Partnership Agreement?" required>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ v: true, label: 'Yes, I have one' }, { v: false, label: 'No, prepare one' }].map(({ v, label }) => (
+              <button
+                key={String(v)} type="button" onClick={() => patch({ hasPartnershipAgreement: v })}
+                className="py-2.5 rounded-xl border text-sm font-medium"
+                style={{
+                  borderColor: wizard.hasPartnershipAgreement === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                  background: wizard.hasPartnershipAgreement === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                  color: 'var(--system-label)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+        {wizard.hasPartnershipAgreement === true && (
+          <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
+            <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>Upload your agreement</p>
+            <SimpleDocumentUpload
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              documentType="partnership_agreement"
+              documents={documents}
+              onUploaded={onExtracted}
+              label="Upload Partnership Agreement →"
+            />
+          </div>
+        )}
+        {wizard.hasPartnershipAgreement === false && (
+          <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+            We&apos;ll prepare a draft Partnership Agreement from the partners, contributions, and governance
+            answers you&apos;ve already provided — our team will follow up once you submit.
+          </p>
+        )}
+        <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
+          <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
+            Form we&apos;ll generate for you
+          </p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            Using the details you&apos;ve entered, we generate BN2 (application for registration of a business
+            name). Download, sign, and upload it back on the next step.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -3788,6 +4234,9 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
         {wizard.authorisedShareCapital != null && (
           <Row label="Authorised capital" value={`KES ${wizard.authorisedShareCapital.toLocaleString()}`} />
         )}
+        {entityType === 'partnership' && (
+          <Row label="Partnership Agreement" value={wizard.hasPartnershipAgreement ? 'Uploaded' : 'To be prepared'} />
+        )}
         <Row label="Documents uploaded" value={String(documents.length)} />
         <Row label="Signed by" value={wizard.signature ?? '—'} />
       </div>
@@ -3799,7 +4248,11 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
         <ol className="list-decimal pl-5 space-y-1.5 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
           <li>We compile your information into a document package for BRS registration.</li>
           <li>You choose: register yourself on eCitizen with our guidance, or have LexReg assist with filing.</li>
-          <li>Once BRS issues your certificate of incorporation, upload it back here.</li>
+          {entityType === 'partnership' ? (
+            <li>Once BRS issues your Certificate of Registration (business name), upload it back here.</li>
+          ) : (
+            <li>Once BRS issues your certificate of incorporation, upload it back here.</li>
+          )}
           <li>Your entity goes live on the dashboard with its compliance calendar set up automatically.</li>
         </ol>
       </div>
