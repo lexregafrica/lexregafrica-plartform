@@ -1507,7 +1507,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
     if (!f.isForeign && !NATIONAL_ID_REGEX.test(f.idNumber)) return 'Kenyan national ID must be 7–8 digits.'
     if (f.isForeign && !f.nationality.trim()) return 'Nationality is required for foreign directors.'
     if (!f.kraPin.trim()) return 'KRA PIN is required.'
-    if (!KRA_PIN_REGEX.test(f.kraPin.toUpperCase())) return 'KRA PIN format: A123456789B.'
+    if (!KRA_PIN_REGEX.test(f.kraPin.trim().toUpperCase())) return 'KRA PIN format: A123456789B.'
     if (!f.dateOfBirth) return 'Date of birth is required.'
     if (!f.phone.trim()) return 'Phone number is required.'
     if (!KENYA_PHONE_REGEX.test(f.phone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
@@ -1604,6 +1604,11 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
+    // Silent misses looked like a bug ("first try doesn't pick up the
+    // name, have to replace and redo it") when it was really the scan
+    // just not reading a name — Charles call, 2026-08. Say so instead of
+    // leaving the field blank with no explanation.
+    if (!f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
     setForm((prev) => {
       if (!prev) return prev
       // Editing an existing person and re-uploading is an explicit
@@ -1621,7 +1626,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
         id: prev.id ?? personId,
         fullName: (isReplace ? f.full_name : prev.fullName || f.full_name) || prev.fullName,
         idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
-        kraPin: (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin,
+        kraPin: ((isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin)?.trim().toUpperCase(),
         dateOfBirth: (isReplace ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
       }
     })
@@ -1788,27 +1793,22 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               <Field label="Physical address" required>
                 <input type="text" className={inputCls} style={inputStyle} placeholder="Street, building, ward" value={form.physicalAddress} onChange={(e) => set({ physicalAddress: e.target.value })} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="County">
-                  <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
-                    <option value="">—</option>
-                    {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </Field>
-                <Field label="Postal code">
-                  <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
-                    <option value="">{form.county ? '—' : 'Choose county first'}</option>
-                    {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
-                      <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-              <Field label="P.O. Box">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 1234" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              <Field label="County">
+                <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
+                  <option value="">—</option>
+                  {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </Field>
               <Field label="Postal address">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value })} />
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value, postalAddress: e.target.value })} />
+              </Field>
+              <Field label="Postal code">
+                <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
+                  <option value="">{form.county ? '—' : 'Choose county first'}</option>
+                  {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
+                    <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
+                  ))}
+                </select>
               </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
@@ -1933,7 +1933,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       if (!form.legalName.trim()) { setError('Name is required.'); return }
       if (!form.idNumber.trim()) { setError('National ID / registration number is required.'); return }
       if (!form.kraPin.trim()) { setError('KRA PIN is required.'); return }
-      if (!KRA_PIN_REGEX.test(form.kraPin.toUpperCase())) { setError('KRA PIN format: A123456789B.'); return }
+      if (!KRA_PIN_REGEX.test(form.kraPin.trim().toUpperCase())) { setError('KRA PIN format: A123456789B.'); return }
       if (!form.physicalAddress.trim()) { setError('Physical address is required.'); return }
     }
     const shares = parseInt(form.sharesHeld, 10)
@@ -2102,6 +2102,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
+    if (!f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
     setForm((prev) => {
       if (!prev) return prev
       // Editing + re-uploading is an explicit "replace this document"
@@ -2116,7 +2117,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
         id: prev.id ?? personId,
         legalName: (isReplace ? f.full_name : prev.legalName || f.full_name) || prev.legalName,
         idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
-        kraPin: (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin,
+        kraPin: ((isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin)?.trim().toUpperCase(),
         dateOfBirth: (isReplace ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
       }
     })
@@ -2295,27 +2296,22 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               <Field label="Physical address" required>
                 <input type="text" className={inputCls} style={inputStyle} placeholder="Street, building, ward" value={form.physicalAddress} onChange={(e) => set({ physicalAddress: e.target.value })} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="County">
-                  <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
-                    <option value="">—</option>
-                    {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </Field>
-                <Field label="Postal code">
-                  <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
-                    <option value="">{form.county ? '—' : 'Choose county first'}</option>
-                    {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
-                      <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-              <Field label="P.O. Box">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 1234" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+              <Field label="County">
+                <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
+                  <option value="">—</option>
+                  {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </Field>
               <Field label="Postal address">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value })} />
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value, postalAddress: e.target.value })} />
+              </Field>
+              <Field label="Postal code">
+                <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
+                  <option value="">{form.county ? '—' : 'Choose county first'}</option>
+                  {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
+                    <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
+                  ))}
+                </select>
               </Field>
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
@@ -2712,8 +2708,8 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             <input type="text" className={inputCls} style={inputStyle} value={form.residentialAddress} onChange={(e) => set({ residentialAddress: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="P.O. Box">
-              <input type="text" className={inputCls} style={inputStyle} value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+            <Field label="Postal address">
+              <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
             </Field>
             <Field label="Business address">
               <input type="text" className={inputCls} style={inputStyle} value={form.businessAddress} onChange={(e) => set({ businessAddress: e.target.value })} />
@@ -3567,23 +3563,54 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
             </div>
 
             {existing.length > 0 && (
-              <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
-                {existing.map((d) => (
-                  <div key={d.id} className="flex items-center gap-2">
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <button
-                      type="button"
-                      onClick={() => openDocument(d)}
-                      disabled={previewingId === d.id}
-                      className="text-ios-footnote truncate text-left underline decoration-dotted disabled:opacity-50"
-                      style={{ color: 'var(--system-label)' }}
-                    >
-                      {previewingId === d.id ? 'Opening…' : d.name}
-                    </button>
-                  </div>
-                ))}
+              <div className="rounded-xl p-3 space-y-3" style={{ background: 'var(--system-bg-2)' }}>
+                {(() => {
+                  // Group by the tagged person so a section with several
+                  // people's documents doesn't pool them into one
+                  // undifferentiated list (Charles call, 2026-08: "each
+                  // person's document should sit in their own space").
+                  const byPerson = new Map<string, DocumentRow[]>()
+                  for (const d of existing) {
+                    const person = d.tags?.[0]?.person ?? '__none__'
+                    byPerson.set(person, [...(byPerson.get(person) ?? []), d])
+                  }
+                  const people = [...byPerson.keys()].filter((k) => k !== '__none__')
+                  const unassigned = byPerson.get('__none__') ?? []
+                  const DocRow = ({ d }: { d: DocumentRow }) => (
+                    <div key={d.id} className="flex items-center gap-2">
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <button
+                        type="button"
+                        onClick={() => openDocument(d)}
+                        disabled={previewingId === d.id}
+                        className="text-ios-footnote truncate text-left underline decoration-dotted disabled:opacity-50"
+                        style={{ color: 'var(--system-label)' }}
+                      >
+                        {previewingId === d.id ? 'Opening…' : d.name}
+                      </button>
+                    </div>
+                  )
+                  return (
+                    <>
+                      {people.map((person) => (
+                        <div key={person} className="space-y-1.5">
+                          <p className="text-ios-caption1 font-semibold" style={{ color: 'var(--system-label-2)' }}>{person}</p>
+                          {byPerson.get(person)!.map((d) => <DocRow key={d.id} d={d} />)}
+                        </div>
+                      ))}
+                      {unassigned.length > 0 && (
+                        <div className="space-y-1.5">
+                          {people.length > 0 && (
+                            <p className="text-ios-caption1 font-semibold" style={{ color: 'var(--system-label-2)' }}>Other</p>
+                          )}
+                          {unassigned.map((d) => <DocRow key={d.id} d={d} />)}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
                 {!expanded[section.title] && (
                   <button
                     type="button"

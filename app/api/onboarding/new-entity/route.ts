@@ -541,6 +541,33 @@ export async function POST(request: Request) {
       tags.push({ person: document.personName, personId: document.personId, role: document.personRole ?? 'other' } as Json)
     }
 
+    // A "Replace" upload should retire the old file, not pile up next to
+    // it — every re-upload for the same person + document type used to
+    // insert a fresh row and leave the previous one sitting in the vault
+    // forever (Charles call, 2026-08: "every time you add, it keeps
+    // adding, adding, adding" — reproduced live, the vault had 4+ copies
+    // of the same statement of nominal capital). Only applies when we
+    // know who/what this document is for — the general multi-file vault
+    // buckets (proof of address, "other supporting documents") are meant
+    // to hold more than one file and stay untouched.
+    if (document.documentType && (document.personId || document.personName)) {
+      const { data: existing } = await supabase
+        .from('documents')
+        .select('id, tags')
+        .eq('entity_id', entityId)
+        .eq('document_type', document.documentType)
+        .is('deleted_at', null)
+      const stale = (existing ?? []).filter((d) => {
+        const t = (d.tags as Array<{ person?: string; personId?: string }> | null)?.[0]
+        if (!t) return false
+        if (document.personId && t.personId) return t.personId === document.personId
+        return !!document.personName && t.person?.toLowerCase() === document.personName.toLowerCase()
+      })
+      if (stale.length > 0) {
+        await supabase.from('documents').update({ deleted_at: new Date().toISOString() }).in('id', stale.map((d) => d.id))
+      }
+    }
+
     const { data: doc, error } = await supabase
       .from('documents')
       .insert({
