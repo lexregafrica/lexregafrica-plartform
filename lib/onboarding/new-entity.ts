@@ -32,7 +32,10 @@ export const SHARE_CLASS_TYPES: Array<{ value: ShareClass['type']; label: string
 // engine, entity type determines the questions" architecture, not a
 // parallel system. LLP and LP stay disabled until their own workflows
 // are built on top of the same Partner object this introduces.
-export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnership']
+// Sole Proprietorship Workflow spec, 2026-08: third reference
+// implementation — simplest of the three, single Proprietor, no
+// governance objects at all.
+export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnership', 'sole_proprietorship']
 
 // The spec's "first user decision" (section 3): selecting Partnership
 // doesn't launch the questionnaire directly — it first asks which kind.
@@ -189,9 +192,13 @@ export const KENYA_PHONE_REGEX = /^(?:\+254|0)([17][0-9]{8})$/
 
 export const TOTAL_STEPS = 14
 
-// Steps that require directors/partners/trustees — hidden for sole proprietorship
+// Steps that require directors/partners/trustees/proprietor. Sole
+// Proprietorship Workflow spec, 2026-08: the proprietor is captured the
+// same way as a director (identity, OCR, address) even though there's no
+// directors register — reuses this step rather than a parallel one, capped
+// to exactly one person by the step component itself.
 const DIRECTOR_TYPES: EntityType[] = [
-  'limited_company', 'public_limited_company', 'partnership',
+  'limited_company', 'public_limited_company', 'partnership', 'sole_proprietorship',
   'limited_liability_partnership', 'company_limited_by_guarantee', 'trust',
 ]
 
@@ -215,15 +222,15 @@ const SHARE_CAPITAL_TYPES: EntityType[] = ['limited_company', 'public_limited_co
 export const REQUIRED_DOCUMENT_CHECKLIST: Array<{ type: string; label: string; appliesTo: (t: EntityType) => boolean }> = [
   { type: 'director_id_copy', label: 'Director/partner documents', appliesTo: () => true },
   { type: 'shareholder_id_copy', label: 'Shareholder/member documents', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
-  { type: 'signed_cr1', label: 'Signed CR1', appliesTo: (t) => t !== 'partnership' },
+  { type: 'signed_cr1', label: 'Signed CR1', appliesTo: (t) => t !== 'partnership' && t !== 'sole_proprietorship' },
   { type: 'signed_cr2', label: 'Signed CR2', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
-  { type: 'signed_cr8', label: 'Signed CR8', appliesTo: (t) => t !== 'partnership' },
+  { type: 'signed_cr8', label: 'Signed CR8', appliesTo: (t) => t !== 'partnership' && t !== 'sole_proprietorship' },
   { type: 'statement_of_nominal_capital', label: 'Statement of nominal capital', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
   { type: 'signed_bof1', label: 'Signed BOF1', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
-  // General Partnership — Business Name Registration filing (BN2), not a
-  // company incorporation form (Charles, General Partnership Formation
-  // Workflow spec, 2026-08, section 19).
-  { type: 'signed_bn2', label: 'Signed BN2', appliesTo: (t) => t === 'partnership' },
+  // Business Name Registration filing (BN2) — both General Partnership
+  // and Sole Proprietorship register under a business name rather than
+  // incorporating a company (Charles specs, 2026-08, both section 19/21).
+  { type: 'signed_bn2', label: 'Signed BN2', appliesTo: (t) => t === 'partnership' || t === 'sole_proprietorship' },
 ]
 
 export function missingRequiredDocuments(entityType: EntityType, presentTypes: Set<string>): string[] {
@@ -301,6 +308,24 @@ export type WizardData = {
   // Step 10 (repurposed for partnership — Constitutional Documents
   // doesn't apply) — Partnership Agreement, spec section 16.
   hasPartnershipAgreement?: boolean
+  // Step 5 (repurposed for sole proprietorship — Share Structure is
+  // hidden for this entity type) — Suitability Check, Sole
+  // Proprietorship Workflow spec, 2026-08, SP-001–004. Advisory only,
+  // same pattern as the partnership suitability check.
+  spOwnerCount?: 'one' | 'two_or_more'
+  spWantsSeparateLegalPersonality?: boolean
+  spWantsLimitedLiability?: boolean
+  spComfortableInPersonalCapacity?: boolean
+  spSuitabilityAcknowledged?: boolean
+  // Step 4 (Company/Business Basics) — sole proprietorship business
+  // profile flags, spec sections 14–18. Captured now so the review
+  // screen can show them; the compliance modules they eventually
+  // activate are a follow-up phase, not built this pass.
+  hasAdditionalLocations?: boolean
+  isRegulatedActivity?: boolean
+  processesPersonalData?: boolean
+  isOnlineBusiness?: boolean
+  businessWebsite?: string
   // Step 5 — Share structure. Kenyan company law requires shares to be
   // 100% issued (Charles, 2026 call) — there's no such thing as
   // "authorised but unissued" anymore, so authorised capital is no
@@ -356,20 +381,26 @@ export type WizardData = {
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
     case 5: // Share Structure — repurposed as Partnership Suitability for
-      // partnership, since the two are mutually exclusive by entity type
-      // (Charles, General Partnership Formation Workflow spec, 2026-08)
-      return SHARE_CAPITAL_TYPES.includes(entityType) || entityType === 'partnership'
+      // partnership and Suitability Check for sole proprietorship, since
+      // all three are mutually exclusive by entity type (Charles specs, 2026-08)
+      return SHARE_CAPITAL_TYPES.includes(entityType) || entityType === 'partnership' || entityType === 'sole_proprietorship'
     case 6: // Shareholders/Members — captured before directors so a
       // shareholder-who-is-also-a-director isn't typed twice (Charles, 2026-07-17)
-      // Repurposed as Partnership Governance for partnership.
+      // Repurposed as Partnership Governance for partnership. Sole
+      // proprietorship has no partners/governance — stays hidden.
       return SHAREHOLDER_TYPES.includes(entityType) || entityType === 'partnership'
-    case 7: // Directors/Partners/Trustees
+    case 7: // Directors/Partners/Trustees/Proprietor
       return DIRECTOR_TYPES.includes(entityType)
     case 8: // Beneficial Ownership — same entities that need a shareholder
       // register need a beneficial-ownership record (LLC spec, screen 8)
       return SHAREHOLDER_TYPES.includes(entityType)
     case 9: // Company Secretary
       return SECRETARY_TYPES.includes(entityType)
+    case 10: // Constitutional Documents — repurposed as Partnership
+      // Agreement for partnership; sole proprietorship has no
+      // constitution/agreement concept at all (spec section 26) so this
+      // step is skipped entirely rather than repurposed.
+      return entityType !== 'sole_proprietorship'
     case 12: // Employee Info
       return data.hasEmployees === true
     default:
@@ -415,7 +446,15 @@ const PARTNERSHIP_STEP_LABELS: Partial<Record<number, string>> = {
   10: 'Partnership Agreement',
 }
 
+const SOLE_PROPRIETORSHIP_STEP_LABELS: Partial<Record<number, string>> = {
+  3: 'Business Name Reservation',
+  4: 'Business Basics',
+  5: 'Suitability Check',
+  7: 'Proprietor',
+}
+
 export function stepLabel(step: number, entityType: EntityType): string {
   if (entityType === 'partnership' && PARTNERSHIP_STEP_LABELS[step]) return PARTNERSHIP_STEP_LABELS[step]!
+  if (entityType === 'sole_proprietorship' && SOLE_PROPRIETORSHIP_STEP_LABELS[step]) return SOLE_PROPRIETORSHIP_STEP_LABELS[step]!
   return STEP_LABELS[step]
 }

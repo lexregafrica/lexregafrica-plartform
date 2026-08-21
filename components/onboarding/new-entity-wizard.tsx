@@ -374,6 +374,12 @@ export function NewEntityWizard() {
         if (!wizard.postalAddress?.trim()) return 'Postal address is required.'
         if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
         if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
+        if (entityType === 'sole_proprietorship') {
+          if (wizard.hasAdditionalLocations === undefined) return 'Tell us whether the business has additional locations.'
+          if (wizard.isRegulatedActivity === undefined) return 'Tell us whether the business operates in a regulated profession or industry.'
+          if (wizard.processesPersonalData === undefined) return 'Tell us whether the business will process personal data.'
+          if (wizard.isOnlineBusiness === undefined) return 'Tell us whether the business will operate online.'
+        }
         return null
       case 5: {
         if (entityType === 'partnership') {
@@ -384,6 +390,18 @@ export function NewEntityWizard() {
           const mismatch =
             wizard.gpOwnerCount < 2 || wizard.gpWantsSeparateLegalPersonality || wizard.gpWantsLimitedLiability || wizard.gpSameLiabilityBasis === false
           if (mismatch && !wizard.gpSuitabilityAcknowledged) {
+            return 'Please acknowledge the suitability note above before continuing, or adjust your answers.'
+          }
+          return null
+        }
+        if (entityType === 'sole_proprietorship') {
+          if (!wizard.spOwnerCount) return 'Tell us how many people will own the business.'
+          if (wizard.spWantsSeparateLegalPersonality == null) return 'Answer whether you want a separate legal identity.'
+          if (wizard.spWantsLimitedLiability == null) return 'Answer whether you require limited liability protection.'
+          if (wizard.spComfortableInPersonalCapacity == null) return 'Answer whether you are comfortable operating in your personal capacity.'
+          const mismatch =
+            wizard.spOwnerCount === 'two_or_more' || wizard.spWantsSeparateLegalPersonality || wizard.spWantsLimitedLiability || wizard.spComfortableInPersonalCapacity === false
+          if (mismatch && !wizard.spSuitabilityAcknowledged) {
             return 'Please acknowledge the suitability note above before continuing, or adjust your answers.'
           }
           return null
@@ -429,6 +447,10 @@ export function NewEntityWizard() {
       case 7: {
         const minimum = entityType === 'public_limited_company' || entityType === 'partnership' ? 2 : 1
         if (directors.length < minimum) return `Add at least ${minimum} ${minimum > 1 ? 'people' : 'person'}.`
+        // SP-001: a sole proprietorship has exactly one proprietor.
+        if (entityType === 'sole_proprietorship' && directors.length > 1) {
+          return 'A sole proprietorship can only have one proprietor.'
+        }
         // Spec: KRA PIN, date of birth, phone, and email are required per
         // natural-person director. Corporate directors carry rep contact
         // details instead, captured on the corporate sub-form.
@@ -623,9 +645,10 @@ export function NewEntityWizard() {
             onExtracted={refresh}
           />
         )}
-        {step === 5 && (entityType === 'partnership'
-          ? <StepPartnershipSuitability wizard={wizard} patch={patch} />
-          : <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />
+        {step === 5 && (
+          entityType === 'partnership' ? <StepPartnershipSuitability wizard={wizard} patch={patch} /> :
+          entityType === 'sole_proprietorship' ? <StepSoleProprietorshipSuitability wizard={wizard} patch={patch} setEntityType={setEntityType} /> :
+          <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />
         )}
         {step === 6 && (entityType === 'partnership'
           ? <StepPartnershipGovernance wizard={wizard} patch={patch} />
@@ -857,7 +880,7 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
         })}
       </div>
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        LexReg currently supports Limited Companies and Partnerships. Other entity types are on the roadmap.
+        LexReg currently supports Limited Companies, Partnerships, and Sole Proprietorships. Other entity types are on the roadmap.
       </p>
     </div>
   )
@@ -1102,6 +1125,51 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
           </div>
         </Field>
       </div>
+
+      {entityType === 'sole_proprietorship' && (
+        <div className="space-y-4">
+          <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+            Business profile
+          </h2>
+          <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+            These help us activate the right compliance modules once you&apos;re registered.
+          </p>
+          {([
+            ['hasAdditionalLocations', 'Will the business operate from any additional locations?'],
+            ['isRegulatedActivity', 'Does the business operate in a regulated profession or industry?'],
+            ['processesPersonalData', 'Will the business collect or process personal data about customers, employees, or suppliers?'],
+            ['isOnlineBusiness', 'Will the business sell online or operate through a website, app, or social media?'],
+          ] as const).map(([key, label]) => (
+            <Field key={key} label={label} required>
+              <div className="grid grid-cols-2 gap-2">
+                {[true, false].map((v) => (
+                  <button
+                    key={String(v)}
+                    type="button"
+                    onClick={() => patch({ [key]: v })}
+                    className="py-2.5 rounded-xl border text-sm font-medium"
+                    style={{
+                      borderColor: wizard[key] === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                      background: wizard[key] === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                      color: 'var(--system-label)',
+                    }}
+                  >
+                    {v ? 'Yes' : 'No'}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          ))}
+          {wizard.isOnlineBusiness === true && (
+            <Field label="Website (if any)">
+              <input
+                type="text" className={inputCls} style={inputStyle} placeholder="e.g. www.example.co.ke"
+                value={wizard.businessWebsite ?? ''} onChange={(e) => patch({ businessWebsite: e.target.value })}
+              />
+            </Field>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -1111,6 +1179,7 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
 // ------------------------------------------------------------------
 const ROLE_BY_TYPE: Partial<Record<EntityType, string>> = {
   partnership: 'Partner',
+  sole_proprietorship: 'Proprietor',
   limited_liability_partnership: 'Designated Member',
   trust: 'Trustee',
   company_limited_by_guarantee: 'Trustee',
@@ -1972,7 +2041,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
             </>
           )}
 
-          <Field label={entityType === 'partnership' ? 'Admission date' : 'Appointment date'}>
+          <Field label={entityType === 'partnership' ? 'Admission date' : entityType === 'sole_proprietorship' ? 'Start date' : 'Appointment date'}>
             <input type="date" className={inputCls} style={inputStyle} value={form.appointmentDate} onChange={(e) => set({ appointmentDate: e.target.value })} />
           </Field>
           <div className="flex gap-2">
@@ -1980,7 +2049,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
             {directors.length > 0 && <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>}
           </div>
         </div>
-      ) : (
+      ) : entityType === 'sole_proprietorship' && directors.length >= 1 ? null : (
         <button
           type="button"
           onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({ ...emptyDirector }) }}
@@ -3127,6 +3196,149 @@ function StepPartnershipGovernance({ wizard, patch }: { wizard: WizardData; patc
 }
 
 // ------------------------------------------------------------------
+// Sole Proprietorship — Suitability Check (repurposes the Share
+// Structure step slot, Sole Proprietorship Workflow spec, 2026-08,
+// section 4, SP-001–004). Advisory, same pattern as the partnership
+// suitability step — never blocks progress on its own.
+// ------------------------------------------------------------------
+function StepSoleProprietorshipSuitability({ wizard, patch, setEntityType }: {
+  wizard: WizardData
+  patch: (p: Partial<WizardData>) => void
+  setEntityType: (t: EntityType) => void
+}) {
+  const mismatch =
+    wizard.spOwnerCount === 'two_or_more' ||
+    wizard.spWantsSeparateLegalPersonality === true ||
+    wizard.spWantsLimitedLiability === true ||
+    wizard.spComfortableInPersonalCapacity === false
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Is a sole proprietorship right for you?
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        A few quick questions before we collect the full application.
+      </p>
+
+      <Field label="How many people will own the business?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: 'one' as const, label: 'One' }, { v: 'two_or_more' as const, label: 'Two or more' }].map(({ v, label }) => (
+            <button
+              key={v} type="button" onClick={() => patch({ spOwnerCount: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.spOwnerCount === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.spOwnerCount === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.spOwnerCount === 'two_or_more' && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            A sole proprietorship has exactly one owner. With two or more, a General Partnership, LLP, or
+            Limited Company is the appropriate structure.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Do you want the business to have a legal identity separate from you personally?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ spWantsSeparateLegalPersonality: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.spWantsSeparateLegalPersonality === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.spWantsSeparateLegalPersonality === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.spWantsSeparateLegalPersonality === true && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            A sole proprietorship does not provide that separation — you and the business are legally the
+            same. A Limited Company or LLP would give you that instead.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Do you require limited liability protection?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ spWantsLimitedLiability: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.spWantsLimitedLiability === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.spWantsLimitedLiability === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.spWantsLimitedLiability === true && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            A sole proprietorship does not ordinarily provide limited liability — you remain personally
+            responsible for the business&apos;s obligations. An incorporated structure would suit you better.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Are you comfortable operating the business in your personal capacity as proprietor?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ spComfortableInPersonalCapacity: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.spComfortableInPersonalCapacity === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.spComfortableInPersonalCapacity === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      {mismatch && (
+        <label className="flex items-start gap-3 ios-surface rounded-2xl p-4 cursor-pointer">
+          <input
+            type="checkbox" className="mt-0.5"
+            checked={!!wizard.spSuitabilityAcknowledged}
+            onChange={(e) => patch({ spSuitabilityAcknowledged: e.target.checked })}
+          />
+          <span className="text-ios-footnote leading-relaxed" style={{ color: 'var(--system-label)' }}>
+            I understand a sole proprietorship may not be the ideal structure based on my answers above, and
+            I want to continue with a sole proprietorship anyway.
+          </span>
+        </label>
+      )}
+      {wizard.spOwnerCount === 'two_or_more' && (
+        <button
+          type="button"
+          onClick={() => setEntityType('partnership')}
+          className="text-ios-footnote font-medium"
+          style={{ color: 'var(--brand-navy)' }}
+        >
+          Switch to General Partnership instead →
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
 // Step 8 — Share capital
 // ------------------------------------------------------------------
 function emptyShareClass(): ShareClass {
@@ -3551,7 +3763,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR1 (application for registration)',
     hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
     documentType: 'signed_cr1',
-    visible: (t) => t !== 'partnership',
+    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship',
   },
   {
     key: 'other',
@@ -3565,14 +3777,14 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR8 (particulars of directors)',
     hint: 'Lists all directors captured in this application.',
     documentType: 'signed_cr8',
-    visible: (t) => t !== 'partnership',
+    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship',
   },
   {
     key: 'other',
     title: 'Signed BN2 (business name registration)',
     hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
     documentType: 'signed_bn2',
-    visible: (t) => t === 'partnership',
+    visible: (t) => t === 'partnership' || t === 'sole_proprietorship',
   },
   {
     key: 'other',
@@ -4227,7 +4439,12 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
         <Row label="Registered office" value={[wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
         <Row label="Primary activity" value={wizard.primaryActivity ?? '—'} />
         <Row label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />
-        {directors.length > 0 && <Row label="Directors/partners" value={directors.map((d) => d.full_name).join(', ')} />}
+        {directors.length > 0 && (
+          <Row
+            label={entityType === 'sole_proprietorship' ? 'Proprietor' : 'Directors/partners'}
+            value={directors.map((d) => d.full_name).join(', ')}
+          />
+        )}
         {shareholders.length > 0 && (
           <Row label="Shareholders" value={shareholders.map((s) => `${s.legal_name} (${s.share_percentage ?? '—'}%)`).join(', ')} />
         )}
@@ -4248,7 +4465,7 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
         <ol className="list-decimal pl-5 space-y-1.5 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
           <li>We compile your information into a document package for BRS registration.</li>
           <li>You choose: register yourself on eCitizen with our guidance, or have LexReg assist with filing.</li>
-          {entityType === 'partnership' ? (
+          {entityType === 'partnership' || entityType === 'sole_proprietorship' ? (
             <li>Once BRS issues your Certificate of Registration (business name), upload it back here.</li>
           ) : (
             <li>Once BRS issues your certificate of incorporation, upload it back here.</li>

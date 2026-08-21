@@ -747,6 +747,10 @@ export async function POST(request: Request) {
       if ((count ?? 0) < minimum) {
         return NextResponse.json({ error: `at least ${minimum} director(s)/partner(s) required` }, { status: 400 })
       }
+      // SP-001: exactly one proprietor.
+      if (entityType === 'sole_proprietorship' && (count ?? 0) > 1) {
+        return NextResponse.json({ error: 'a sole proprietorship can only have one proprietor' }, { status: 400 })
+      }
     }
 
     if (isStepVisible(6, entityType, wizard)) {
@@ -1130,8 +1134,8 @@ async function generateAndStoreIdp(
       const ra = d.residential_address as { isCorporate?: boolean; physicalAddress?: string; foreignAddress?: string } | null
       return {
         fullName: d.full_name,
-        role: ctx.entityType === 'partnership'
-          ? (ra?.isCorporate ? 'Corporate partner' : 'Partner')
+        role: ctx.entityType === 'partnership' ? (ra?.isCorporate ? 'Corporate partner' : 'Partner')
+          : ctx.entityType === 'sole_proprietorship' ? 'Proprietor'
           : (ra?.isCorporate ? 'Corporate director' : 'Director'),
         nationality: d.nationality,
         idNumber: d.id_number,
@@ -1206,7 +1210,7 @@ async function generateAndStoreIdp(
     }))
 
     // ---- forms & filing preview --------------------------------------
-    const formDefs = ctx.entityType === 'partnership'
+    const formDefs = (ctx.entityType === 'partnership' || ctx.entityType === 'sole_proprietorship')
       ? [{ type: 'signed_bn2', label: 'BN2 — Application for registration of a business name' }]
       : [
           { type: 'signed_cr1', label: 'CR1 — Application for registration' },
@@ -1233,11 +1237,19 @@ async function generateAndStoreIdp(
     // ---- review exceptions ---------------------------------------------
     const exceptions: string[] = []
     if (!address?.line1) exceptions.push('Registered office address is missing.')
-    if ((directors ?? []).length === 0) exceptions.push(ctx.entityType === 'partnership' ? 'No partners captured.' : 'No directors captured.')
+    if ((directors ?? []).length === 0) {
+      exceptions.push(
+        ctx.entityType === 'partnership' ? 'No partners captured.'
+        : ctx.entityType === 'sole_proprietorship' ? 'No proprietor captured.'
+        : 'No directors captured.'
+      )
+    }
     if (ctx.entityType === 'partnership') {
       const totalInterest = (directors ?? []).reduce((s, d) => s + (parseFloat((d.residential_address as { interestPercentage?: string } | null)?.interestPercentage ?? '0') || 0), 0)
       if (Math.round(totalInterest * 100) / 100 !== 100) exceptions.push(`Partner interests total ${totalInterest.toLocaleString()}%, not 100%.`)
       if (w.hasPartnershipAgreement === undefined) exceptions.push('Partnership Agreement status not yet confirmed.')
+    } else if (ctx.entityType === 'sole_proprietorship') {
+      if ((directors ?? []).length > 1) exceptions.push('More than one proprietor is on record — a sole proprietorship should have exactly one.')
     } else {
       if ((shareholders ?? []).length === 0) exceptions.push('No shareholders captured.')
       if (!w.useMultipleShareClasses && w.totalShares) {
