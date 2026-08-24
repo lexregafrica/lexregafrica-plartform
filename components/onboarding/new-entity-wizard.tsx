@@ -8,6 +8,7 @@ import {
   ENTITY_TYPES,
   PHASE1_ENTITY_TYPES,
   PARTNERSHIP_KINDS,
+  TRUST_KINDS,
   SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
   KENYA_POSTAL_CODES,
@@ -85,6 +86,43 @@ function SecondaryButton({ children, onClick }: { children: React.ReactNode; onC
     >
       {children}
     </button>
+  )
+}
+
+// Simple growable list of free-text entries — charitable trust objects
+// (Trust spec section 7, "permit multiple objects"), Society membership
+// classes, etc. Always keeps at least one (possibly empty) row visible.
+function StringListEditor({ values, onChange, placeholder }: {
+  values: string[]
+  onChange: (values: string[]) => void
+  placeholder?: string
+}) {
+  const rows = values.length > 0 ? values : ['']
+  const setAt = (i: number, v: string) => {
+    const next = [...rows]
+    next[i] = v
+    onChange(next)
+  }
+  const removeAt = (i: number) => onChange(rows.filter((_, idx) => idx !== i).length > 0 ? rows.filter((_, idx) => idx !== i) : [''])
+  return (
+    <div className="space-y-2">
+      {rows.map((v, i) => (
+        <div key={i} className="flex gap-2">
+          <input type="text" className={inputCls} style={inputStyle} value={v} placeholder={placeholder} onChange={(e) => setAt(i, e.target.value)} />
+          {rows.length > 1 && (
+            <button type="button" onClick={() => removeAt(i)} className="text-ios-footnote font-medium text-red-500 shrink-0 px-2">Remove</button>
+          )}
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...rows, ''])}
+        className="text-ios-caption1 font-semibold"
+        style={{ color: 'var(--brand-navy)' }}
+      >
+        + Add another
+      </button>
+    </div>
   )
 }
 
@@ -349,6 +387,9 @@ export function NewEntityWizard() {
         if (entityType === 'partnership' && wizard.partnershipKind !== 'general_partnership') {
           return 'Choose which type of partnership you want to establish.'
         }
+        if (entityType === 'trust' && wizard.trustKind !== 'family_trust' && wizard.trustKind !== 'charitable_trust') {
+          return 'Choose what type of trust you want to establish.'
+        }
         return null
       case 2:
         if (!wizard.applicantFullName?.trim()) return 'Enter the applicant’s full name.'
@@ -362,7 +403,7 @@ export function NewEntityWizard() {
         return null
       }
       case 4:
-        if (!wizard.primaryActivity?.trim()) return 'Describe the business activity.'
+        if (entityType !== 'trust' && !wizard.primaryActivity?.trim()) return 'Describe the business activity.'
         if (!wizard.entityEmail?.trim()) return 'Company email is required.'
         if (!EMAIL_REGEX.test(wizard.entityEmail)) return 'Enter a valid company email address.'
         if (!wizard.entityPhone?.trim()) return 'Entity phone is required.'
@@ -372,13 +413,24 @@ export function NewEntityWizard() {
         if (!wizard.county) return 'Choose a county.'
         if (!wizard.postalCode?.trim()) return 'Postal code is required.'
         if (!wizard.postalAddress?.trim()) return 'Postal address is required.'
-        if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
-        if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
+        if (entityType !== 'trust') {
+          if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
+          if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
+        }
         if (entityType === 'sole_proprietorship') {
           if (wizard.hasAdditionalLocations === undefined) return 'Tell us whether the business has additional locations.'
           if (wizard.isRegulatedActivity === undefined) return 'Tell us whether the business operates in a regulated profession or industry.'
           if (wizard.processesPersonalData === undefined) return 'Tell us whether the business will process personal data.'
           if (wizard.isOnlineBusiness === undefined) return 'Tell us whether the business will operate online.'
+        }
+        if (entityType === 'trust' && wizard.trustKind === 'family_trust') {
+          if (!wizard.ftPrincipalPurpose) return 'Choose the principal purpose of the trust.'
+          if (wizard.ftCreatedDuringLifetime === undefined) return "Tell us whether the trust will be created during the settlor's lifetime."
+          if (wizard.ftSettlorAlsoBeneficiary === undefined) return 'Tell us whether the settlor will also be a beneficiary.'
+          if (wizard.ftConductsTrading === undefined) return 'Tell us whether the trust will conduct ordinary trading activities.'
+        }
+        if (entityType === 'trust' && wizard.trustKind === 'charitable_trust') {
+          if (!(wizard.trustCharitableObjects ?? []).some((o) => o.trim())) return 'List at least one charitable object.'
         }
         return null
       case 5: {
@@ -406,6 +458,14 @@ export function NewEntityWizard() {
           }
           return null
         }
+        if (entityType === 'trust') {
+          if (beneficialOwners.length < 1) return 'Add at least one settlor.'
+          for (const s of beneficialOwners) {
+            if (!s.id_number) return `Add an ID/passport number for ${s.full_name}.`
+            if (!s.kra_pin) return `Add a KRA PIN for ${s.full_name}.`
+          }
+          return null
+        }
         if (wizard.useMultipleShareClasses) {
           const classes = wizard.shareClassList ?? []
           if (classes.length === 0) return 'Add at least one share class.'
@@ -427,6 +487,14 @@ export function NewEntityWizard() {
           }
           if (!wizard.bankAccountOperators?.trim()) return "Describe who may operate the partnership's bank account."
           if (!wizard.bindingAuthority?.trim()) return 'Describe who has authority to bind the partnership.'
+          return null
+        }
+        if (entityType === 'trust') {
+          if (wizard.trustKind === 'charitable_trust') {
+            if (!wizard.charitableBeneficiaryClass?.trim()) return 'Describe the intended beneficiary class.'
+            return null
+          }
+          if (shareholders.length < 1) return 'Add at least one beneficiary or class of beneficiaries.'
           return null
         }
         if (shareholders.length < 1) return 'Add at least one shareholder/member.'
@@ -471,6 +539,9 @@ export function NewEntityWizard() {
         return null
       }
       case 8:
+        // Trust Property (spec sections 15–16) — optional at this stage,
+        // a trust may legitimately have no settled property yet.
+        if (entityType === 'trust') return null
         // Spec: BO details required unless the user explicitly confirms
         // no declarable beneficial owner presently exists (10%+ direct/
         // indirect interest or significant control — Charles, LLC spec)
@@ -479,6 +550,11 @@ export function NewEntityWizard() {
         }
         return null
       case 9: {
+        if (entityType === 'trust') {
+          if (wizard.hasProtector === undefined) return 'Tell us whether the trust will have a Protector or Enforcer.'
+          if (wizard.hasProtector && !wizard.protectorName?.trim()) return 'Enter the Protector/Enforcer’s name.'
+          return null
+        }
         const secretaryMandatory = entityType === 'public_limited_company' || (wizard.authorisedShareCapital ?? 0) > SECRETARY_CAPITAL_THRESHOLD_KES
         if (secretaryMandatory && wizard.hasCompanySecretary !== true) {
           return 'A company secretary is required for this entity.'
@@ -490,6 +566,10 @@ export function NewEntityWizard() {
       case 10:
         if (entityType === 'partnership') {
           if (wizard.hasPartnershipAgreement === undefined) return 'Tell us whether you already have a Partnership Agreement.'
+          return null
+        }
+        if (entityType === 'trust') {
+          if (wizard.hasTrustDeed === undefined) return 'Tell us whether you already have a Trust Deed.'
           return null
         }
         if (!wizard.articlesType) return 'Choose which articles of association the company will use.'
@@ -648,11 +728,31 @@ export function NewEntityWizard() {
         {step === 5 && (
           entityType === 'partnership' ? <StepPartnershipSuitability wizard={wizard} patch={patch} /> :
           entityType === 'sole_proprietorship' ? <StepSoleProprietorshipSuitability wizard={wizard} patch={patch} setEntityType={setEntityType} /> :
+          entityType === 'trust' ? (
+            <StepTrustSettlors
+              settlors={beneficialOwners}
+              setSettlors={setBeneficialOwners}
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              documents={documents}
+            />
+          ) :
           <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />
         )}
-        {step === 6 && (entityType === 'partnership'
-          ? <StepPartnershipGovernance wizard={wizard} patch={patch} />
-          : (
+        {step === 6 && (
+          entityType === 'partnership' ? <StepPartnershipGovernance wizard={wizard} patch={patch} /> :
+          entityType === 'trust' ? (
+            <StepTrustBeneficiaries
+              wizard={wizard}
+              patch={patch}
+              beneficiaries={shareholders}
+              setBeneficiaries={setShareholders}
+              api={api}
+              setError={setError}
+            />
+          ) : (
             <StepShareholders
               entityType={entityType}
               shareholders={shareholders}
@@ -684,20 +784,28 @@ export function NewEntityWizard() {
           />
         )}
         {step === 8 && (
-          <StepBeneficialOwners
-            shareholders={shareholders}
-            beneficialOwners={beneficialOwners}
-            setBeneficialOwners={setBeneficialOwners}
-            wizard={wizard}
-            patch={patch}
-            orgId={orgId}
-            entityId={entityId}
-            api={api}
-            setError={setError}
-            documents={documents}
-          />
+          entityType === 'trust' ? (
+            <StepTrustProperty wizard={wizard} patch={patch} />
+          ) : (
+            <StepBeneficialOwners
+              shareholders={shareholders}
+              beneficialOwners={beneficialOwners}
+              setBeneficialOwners={setBeneficialOwners}
+              wizard={wizard}
+              patch={patch}
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              documents={documents}
+            />
+          )
         )}
-        {step === 9 && <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />}
+        {step === 9 && (
+          entityType === 'trust'
+            ? <StepTrustProtector wizard={wizard} patch={patch} />
+            : <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />
+        )}
         {step === 10 && (
           <StepConstitutional
             entityType={entityType}
@@ -714,6 +822,7 @@ export function NewEntityWizard() {
         {step === 11 && (
           <StepDocuments
             entityType={entityType}
+            wizard={wizard}
             orgId={orgId}
             entityId={entityId}
             documents={documents}
@@ -731,6 +840,7 @@ export function NewEntityWizard() {
             wizard={wizard}
             directors={directors}
             shareholders={shareholders}
+            beneficialOwners={beneficialOwners}
             documents={documents}
           />
         )}
@@ -827,6 +937,54 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
     )
   }
 
+  // Trust spec section 3, "first user decision" — same pattern.
+  if (entityType === 'trust' && wizard.trustKind !== 'family_trust' && wizard.trustKind !== 'charitable_trust') {
+    return (
+      <div className="space-y-5">
+        <button
+          type="button"
+          onClick={() => setEntityType('limited_company')}
+          className="text-ios-footnote font-medium"
+          style={{ color: 'var(--brand-navy)' }}
+        >
+          ← Back to entity types
+        </button>
+        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          What type of trust do you wish to establish?
+        </h1>
+        <div className="space-y-2">
+          {TRUST_KINDS.map((k) => {
+            const selected = wizard.trustKind === k.value
+            return (
+              <button
+                key={k.value}
+                type="button"
+                disabled={!k.enabled}
+                onClick={() => k.enabled && patch({ trustKind: k.value })}
+                className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
+                style={{
+                  borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                  background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                  opacity: k.enabled ? 1 : 0.45,
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{k.label}</span>
+                  {!k.enabled && (
+                    <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'var(--system-fill-3)', color: 'var(--system-label-3)' }}>
+                      Talk to us
+                    </span>
+                  )}
+                </span>
+                <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{k.description}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -849,7 +1007,7 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
               key={t.value}
               type="button"
               disabled={!available}
-              onClick={() => { if (!available) return; setEntityType(t.value); if (t.value !== 'partnership') patch({ partnershipKind: undefined }) }}
+              onClick={() => { if (!available) return; setEntityType(t.value); patch({ partnershipKind: t.value === 'partnership' ? wizard.partnershipKind : undefined, trustKind: t.value === 'trust' ? wizard.trustKind : undefined }) }}
               className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
               style={{
                 borderColor: selected || recommended ? 'var(--brand-navy)' : 'var(--system-fill-3)',
@@ -880,7 +1038,7 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
         })}
       </div>
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        LexReg currently supports Limited Companies, Partnerships, and Sole Proprietorships. Other entity types are on the roadmap.
+        LexReg currently supports Limited Companies, Partnerships, Sole Proprietorships, and Trusts. Other entity types are on the roadmap.
       </p>
     </div>
   )
@@ -992,27 +1150,29 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Company basics
+        {entityType === 'trust' ? 'Trust basics' : 'Company basics'}
       </h1>
 
-      <Field label="Company type">
+      <Field label={entityType === 'trust' ? 'Trust type' : 'Company type'}>
         <input type="text" className={inputCls} style={{ ...inputStyle, opacity: 0.7 }} value={entityLabel} disabled readOnly />
       </Field>
 
-      <Field label="Nature of business / business activity" required>
-        <textarea
-          className={inputCls}
-          style={inputStyle}
-          rows={3}
-          maxLength={200}
-          placeholder="Briefly describe the business activity…"
-          value={wizard.primaryActivity ?? ''}
-          onChange={(e) => patch({ primaryActivity: e.target.value })}
-        />
-        <p className="text-ios-caption1 mt-1 text-right" style={{ color: 'var(--system-label-3)' }}>
-          {(wizard.primaryActivity ?? '').length}/200
-        </p>
-      </Field>
+      {entityType !== 'trust' && (
+        <Field label="Nature of business / business activity" required>
+          <textarea
+            className={inputCls}
+            style={inputStyle}
+            rows={3}
+            maxLength={200}
+            placeholder="Briefly describe the business activity…"
+            value={wizard.primaryActivity ?? ''}
+            onChange={(e) => patch({ primaryActivity: e.target.value })}
+          />
+          <p className="text-ios-caption1 mt-1 text-right" style={{ color: 'var(--system-label-3)' }}>
+            {(wizard.primaryActivity ?? '').length}/200
+          </p>
+        </Field>
+      )}
 
       <div className="space-y-4">
         <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -1095,36 +1255,131 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
         </p>
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-          Turnover & employment
-        </h2>
-        <Field label="Expected annual turnover (KES)" required>
-          <select className={inputCls} style={inputStyle} value={wizard.turnoverRange ?? ''} onChange={(e) => patch({ turnoverRange: e.target.value })}>
-            <option value="" disabled>Choose a range…</option>
-            {TURNOVER_RANGES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </Field>
-        <Field label="Will the business have employees?" required>
-          <div className="grid grid-cols-2 gap-2">
-            {[true, false].map((v) => (
-              <button
-                key={String(v)}
-                type="button"
-                onClick={() => patch({ hasEmployees: v })}
-                className="py-2.5 rounded-xl border text-sm font-medium"
-                style={{
-                  borderColor: wizard.hasEmployees === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                  background: wizard.hasEmployees === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                  color: 'var(--system-label)',
-                }}
-              >
-                {v ? 'Yes' : 'No'}
-              </button>
-            ))}
-          </div>
-        </Field>
-      </div>
+      {entityType !== 'trust' && (
+        <div className="space-y-4">
+          <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+            Turnover & employment
+          </h2>
+          <Field label="Expected annual turnover (KES)" required>
+            <select className={inputCls} style={inputStyle} value={wizard.turnoverRange ?? ''} onChange={(e) => patch({ turnoverRange: e.target.value })}>
+              <option value="" disabled>Choose a range…</option>
+              {TURNOVER_RANGES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </Field>
+          <Field label="Will the business have employees?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[true, false].map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => patch({ hasEmployees: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: wizard.hasEmployees === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.hasEmployees === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {v ? 'Yes' : 'No'}
+                </button>
+              ))}
+            </div>
+          </Field>
+        </div>
+      )}
+
+      {entityType === 'trust' && wizard.trustKind === 'family_trust' && (
+        <div className="space-y-4">
+          <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+            Purpose check
+          </h2>
+          <Field label="What is the principal purpose of the trust?" required>
+            <select className={inputCls} style={inputStyle} value={wizard.ftPrincipalPurpose ?? ''} onChange={(e) => patch({ ftPrincipalPurpose: e.target.value })}>
+              <option value="" disabled>Choose…</option>
+              <option value="estate_planning">Estate planning</option>
+              <option value="preservation_of_wealth">Preservation of family wealth</option>
+              <option value="succession_planning">Succession planning</option>
+              <option value="holding_family_assets">Holding family assets</option>
+              <option value="supporting_beneficiaries">Supporting beneficiaries</option>
+              <option value="intergenerational_wealth_planning">Inter-generational wealth planning</option>
+              <option value="combination">Combination of the above</option>
+            </select>
+          </Field>
+          <Field label="Will the trust be created during the settlor's lifetime?" required>
+            <div className="grid grid-cols-3 gap-2">
+              {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+                <button
+                  key={String(v)} type="button" onClick={() => patch({ ftCreatedDuringLifetime: v })}
+                  className="py-2.5 rounded-xl border text-xs font-medium"
+                  style={{
+                    borderColor: wizard.ftCreatedDuringLifetime === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.ftCreatedDuringLifetime === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Will the settlor also be a beneficiary?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+                <button
+                  key={String(v)} type="button" onClick={() => patch({ ftSettlorAlsoBeneficiary: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: wizard.ftSettlorAlsoBeneficiary === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.ftSettlorAlsoBeneficiary === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Will the trust conduct ordinary trading activities?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+                <button
+                  key={String(v)} type="button" onClick={() => patch({ ftConductsTrading: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: wizard.ftConductsTrading === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.ftConductsTrading === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {wizard.ftConductsTrading === true && (
+              <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+                A family trust is intended as a non-trading vehicle — this will be flagged for legal review.
+              </p>
+            )}
+          </Field>
+        </div>
+      )}
+
+      {entityType === 'trust' && wizard.trustKind === 'charitable_trust' && (
+        <div className="space-y-4">
+          <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+            Charitable objects
+          </h2>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            List each intended charitable object — e.g. relief of poverty, education, religion, health,
+            environmental protection, community development. You can list more than one.
+          </p>
+          <StringListEditor
+            values={wizard.trustCharitableObjects ?? ['']}
+            onChange={(values) => patch({ trustCharitableObjects: values })}
+            placeholder="e.g. Education"
+          />
+        </div>
+      )}
 
       {entityType === 'sole_proprietorship' && (
         <div className="space-y-4">
@@ -3339,6 +3594,618 @@ function StepSoleProprietorshipSuitability({ wizard, patch, setEntityType }: {
 }
 
 // ------------------------------------------------------------------
+// Trust — Settlor Details (repurposes the Share Structure step slot,
+// Trust Formation Workflow spec, 2026-08, section 8, TR-010–019).
+// Reuses the beneficial_owners table/actions — same shape (identity +
+// residential/postal address), no ownership-percentage semantics
+// involved, so no schema change was needed. nature_of_control carries
+// "relationship to proposed beneficiaries" (TR-019) instead.
+// ------------------------------------------------------------------
+type SettlorForm = {
+  id?: string
+  fullName: string
+  idNumber: string
+  kraPin: string
+  nationality: string
+  dateOfBirth: string
+  postalAddress: string
+  residentialAddress: string
+  phone: string
+  email: string
+  relationshipToBeneficiaries: string
+}
+
+function emptySettlor(): SettlorForm {
+  return {
+    fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan', dateOfBirth: '',
+    postalAddress: '', residentialAddress: '', phone: '', email: '', relationshipToBeneficiaries: '',
+  }
+}
+
+function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setError, documents }: {
+  settlors: BeneficialOwnerRow[]
+  setSettlors: (s: BeneficialOwnerRow[]) => void
+  orgId: string | null
+  entityId: string | null
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
+  setError: (e: string) => void
+  documents: DocumentRow[]
+}) {
+  const [form, setForm] = useState<SettlorForm | null>(settlors.length === 0 ? emptySettlor() : null)
+  const [busy, setBusy] = useState(false)
+  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
+
+  const set = (partial: Partial<SettlorForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
+
+  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
+    if (!fields) return
+    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
+    setForm((prev) => (prev ? {
+      ...prev,
+      fullName: prev.fullName || f.full_name || '',
+      idNumber: prev.idNumber || f.id_number || '',
+      kraPin: prev.kraPin || f.kra_pin || '',
+      dateOfBirth: prev.dateOfBirth || f.date_of_birth || '',
+    } : prev))
+  }
+
+  const save = async () => {
+    if (!form) return
+    if (!form.fullName.trim()) { setError('Full name is required.'); return }
+    if (!form.idNumber.trim()) { setError('ID / passport number is required.'); return }
+    if (!form.kraPin.trim()) { setError('KRA PIN is required.'); return }
+    setError('')
+    setBusy(true)
+    try {
+      const result = await api({
+        action: 'upsert_beneficial_owner',
+        beneficialOwner: {
+          id: form.id,
+          fullName: form.fullName.trim(),
+          idNumber: form.idNumber.trim(),
+          kraPin: form.kraPin.trim().toUpperCase(),
+          nationality: form.nationality || undefined,
+          dateOfBirth: form.dateOfBirth || undefined,
+          postalAddress: form.postalAddress || undefined,
+          residentialAddress: form.residentialAddress || undefined,
+          phone: form.phone || undefined,
+          email: form.email || undefined,
+          natureOfControl: form.relationshipToBeneficiaries.trim() || 'Settlor',
+        },
+      })
+      const updated: BeneficialOwnerRow = {
+        id: result.id!,
+        full_name: form.fullName.trim(),
+        id_number: form.idNumber.trim(),
+        kra_pin: form.kraPin.trim().toUpperCase(),
+        nationality: form.nationality,
+        date_of_birth: form.dateOfBirth || null,
+        postal_address: form.postalAddress ? { text: form.postalAddress } : null,
+        business_address: null,
+        residential_address: form.residentialAddress ? { text: form.residentialAddress } : null,
+        phone: form.phone || null,
+        email: form.email || null,
+        occupation: null,
+        nature_of_control: form.relationshipToBeneficiaries.trim() || 'Settlor',
+        date_became_bo: null,
+        share_percentage: null,
+      }
+      setSettlors(form.id ? settlors.map((s) => (s.id === form.id ? updated : s)) : [...settlors, updated])
+      if (uploadedDocIds.length > 0) {
+        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: form.fullName.trim(), personRole: 'beneficial_owner' })
+      }
+      setForm(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (id: string) => {
+    setBusy(true)
+    try {
+      await api({ action: 'delete_beneficial_owner', id })
+      setSettlors(settlors.filter((s) => s.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Settlor details
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        The person or persons establishing the trust. A trust may have one settlor, or several joint settlors.
+      </p>
+
+      {settlors.map((s) => (
+        <div key={s.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{s.full_name}</p>
+            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>ID {s.id_number}{s.kra_pin ? ` · PIN ${s.kra_pin}` : ''}</p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <button
+              type="button"
+              className="text-ios-footnote font-medium"
+              style={{ color: 'var(--brand-navy)' }}
+              onClick={() => { setUploadedDocIds([]); setForm({
+                id: s.id,
+                fullName: s.full_name,
+                idNumber: s.id_number ?? '',
+                kraPin: s.kra_pin ?? '',
+                nationality: s.nationality ?? 'Kenyan',
+                dateOfBirth: s.date_of_birth ?? '',
+                postalAddress: s.postal_address?.text ?? '',
+                residentialAddress: s.residential_address?.text ?? '',
+                phone: s.phone ?? '',
+                email: s.email ?? '',
+                relationshipToBeneficiaries: s.nature_of_control === 'Settlor' ? '' : (s.nature_of_control ?? ''),
+              }) }}
+            >
+              Edit
+            </button>
+            <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(s.id)} disabled={busy}>
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {form ? (
+        <div key={form.id ?? 'new-settlor'} className="ios-surface rounded-2xl p-4 space-y-3">
+          <InlineOcrUpload
+            section="other"
+            documentType="beneficial_owner_id_copy"
+            label={form.id ? 'Upload a replacement ID/passport →' : 'Upload ID/passport to auto-fill →'}
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onExtracted={handleExtracted}
+            setError={setError}
+            personName={form.fullName}
+            personRole="beneficial_owner"
+            personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_id_copy')}
+          />
+          <InlineOcrUpload
+            section="other"
+            documentType="beneficial_owner_kra_pin_copy"
+            label={form.id ? 'Upload a replacement KRA PIN certificate →' : 'Upload KRA PIN certificate to auto-fill →'}
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onExtracted={handleExtracted}
+            setError={setError}
+            personName={form.fullName}
+            personRole="beneficial_owner"
+            personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_kra_pin_copy')}
+          />
+          <Field label="Full legal name" required>
+            <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="National ID / passport number" required>
+              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+            </Field>
+            <Field label="KRA PIN" required>
+              <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nationality">
+              <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+            </Field>
+            <Field label="Date of birth">
+              <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Phone">
+              <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+            </Field>
+            <Field label="Email">
+              <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Residential address">
+            <input type="text" className={inputCls} style={inputStyle} value={form.residentialAddress} onChange={(e) => set({ residentialAddress: e.target.value })} />
+          </Field>
+          <Field label="Postal address">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
+          </Field>
+          <Field label="Relationship to proposed beneficiaries (if any)">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Parent of the beneficiaries" value={form.relationshipToBeneficiaries} onChange={(e) => set({ relationshipToBeneficiaries: e.target.value })} />
+          </Field>
+          <div className="flex gap-2">
+            <PrimaryButton onClick={save} disabled={busy}>{busy ? 'Saving…' : form.id ? 'Update' : 'Add settlor'}</PrimaryButton>
+            {settlors.length > 0 && <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>}
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => { setUploadedDocIds([]); setForm(emptySettlor()) }}
+          className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
+          style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+        >
+          + Add another settlor
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Trust — Beneficiaries (repurposes the Shareholders step slot, Trust
+// Formation Workflow spec, section 12). Named beneficiaries or a class
+// (family trust) — reuses the shareholders table/actions purely for its
+// person-record shape; shares_held is unused (kept at 0). Charitable
+// trusts skip named beneficiaries entirely per spec section 13 — they
+// capture charitable-objects fields on the Purpose Check step instead.
+// ------------------------------------------------------------------
+type BeneficiaryForm = {
+  id?: string
+  isClass: boolean
+  name: string
+  relationship: string
+  dateOfBirth: string
+  status: 'named' | 'future_unborn'
+}
+
+function emptyBeneficiary(): BeneficiaryForm {
+  return { isClass: false, name: '', relationship: '', dateOfBirth: '', status: 'named' }
+}
+
+function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries, api, setError }: {
+  wizard: WizardData
+  patch: (p: Partial<WizardData>) => void
+  beneficiaries: ShareholderRow[]
+  setBeneficiaries: (s: ShareholderRow[]) => void
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  setError: (e: string) => void
+}) {
+  const [form, setForm] = useState<BeneficiaryForm | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  if (wizard.trustKind === 'charitable_trust') {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          Beneficiary model
+        </h1>
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          A charitable trust doesn&apos;t require individual beneficiaries the way a family trust does — these
+          details describe who benefits from the charitable objects instead.
+        </p>
+        <Field label="Intended beneficiary class" required>
+          <textarea className={inputCls} style={inputStyle} rows={2} placeholder="e.g. Residents of Kibera experiencing poverty" value={wizard.charitableBeneficiaryClass ?? ''} onChange={(e) => patch({ charitableBeneficiaryClass: e.target.value })} />
+        </Field>
+        <Field label="Geographic area">
+          <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Nairobi County" value={wizard.charitableGeographicArea ?? ''} onChange={(e) => patch({ charitableGeographicArea: e.target.value })} />
+        </Field>
+        <Field label="Programme / activity areas">
+          <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.charitableProgrammeAreas ?? ''} onChange={(e) => patch({ charitableProgrammeAreas: e.target.value })} />
+        </Field>
+        <Field label="Restrictions on application of trust property">
+          <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.charitablePropertyRestrictions ?? ''} onChange={(e) => patch({ charitablePropertyRestrictions: e.target.value })} />
+        </Field>
+      </div>
+    )
+  }
+
+  const save = async () => {
+    if (!form) return
+    if (!form.name.trim()) { setError(form.isClass ? 'Describe the class of beneficiaries.' : 'Beneficiary name is required.'); return }
+    setError('')
+    setBusy(true)
+    try {
+      const result = await api({
+        action: 'upsert_shareholder',
+        shareholder: { id: form.id, legalName: form.name.trim(), sharesHeld: 1, dateOfBirth: form.dateOfBirth || undefined },
+      })
+      const updated: ShareholderRow = {
+        id: result.id!,
+        legal_name: form.name.trim(),
+        id_or_reg_number: null,
+        kra_pin: null,
+        shares_held: 1,
+        share_percentage: null,
+        address: { dateOfBirth: form.dateOfBirth || undefined },
+        corporate_details: { isCorporate: false },
+      }
+      setBeneficiaries(form.id ? beneficiaries.map((b) => (b.id === form.id ? updated : b)) : [...beneficiaries, updated])
+      setForm(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (id: string) => {
+    setBusy(true)
+    try {
+      await api({ action: 'delete_shareholder', id })
+      setBeneficiaries(beneficiaries.filter((b) => b.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Beneficiaries
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        Add named beneficiaries, or a class such as &quot;children of the settlor&quot; or &quot;future
+        descendants&quot; — minors and unborn beneficiaries are fine, no contact details are forced.
+      </p>
+
+      {beneficiaries.map((b) => (
+        <div key={b.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
+          <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{b.legal_name}</p>
+          <div className="flex gap-3 shrink-0">
+            <button
+              type="button"
+              className="text-ios-footnote font-medium"
+              style={{ color: 'var(--brand-navy)' }}
+              onClick={() => setForm({ id: b.id, isClass: false, name: b.legal_name, relationship: '', dateOfBirth: (b.address as { dateOfBirth?: string } | null)?.dateOfBirth ?? '', status: 'named' })}
+            >
+              Edit
+            </button>
+            <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(b.id)} disabled={busy}>
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {form ? (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Named beneficiary, or a class?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: false, label: 'Named person' }, { v: true, label: 'Class of beneficiaries' }].map(({ v, label }) => (
+                <button
+                  key={String(v)} type="button" onClick={() => setForm((prev) => (prev ? { ...prev, isClass: v } : prev))}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: form.isClass === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: form.isClass === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label={form.isClass ? 'Describe the class' : 'Full name'} required>
+            <input
+              type="text" className={inputCls} style={inputStyle}
+              placeholder={form.isClass ? 'e.g. Children of the settlor' : undefined}
+              value={form.name} onChange={(e) => setForm((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
+            />
+          </Field>
+          {!form.isClass && (
+            <>
+              <Field label="Relationship to settlor">
+                <input type="text" className={inputCls} style={inputStyle} value={form.relationship} onChange={(e) => setForm((prev) => (prev ? { ...prev, relationship: e.target.value } : prev))} />
+              </Field>
+              <Field label="Date of birth (if known)">
+                <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => setForm((prev) => (prev ? { ...prev, dateOfBirth: e.target.value } : prev))} />
+              </Field>
+            </>
+          )}
+          <div className="flex gap-2">
+            <PrimaryButton onClick={save} disabled={busy}>{busy ? 'Saving…' : form.id ? 'Update' : 'Add beneficiary'}</PrimaryButton>
+            <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setForm(emptyBeneficiary())}
+          className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
+          style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+        >
+          + Add beneficiary
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Trust — Trust Property (repurposes the Beneficial Ownership step
+// slot, Trust Formation Workflow spec, sections 15–16). Kept as a
+// settings array on the wizard rather than its own table — the
+// post-registration Trust Asset Register is a later phase.
+// ------------------------------------------------------------------
+const TRUST_PROPERTY_CATEGORIES: Array<{ value: NonNullable<WizardData['trustPropertyItems']>[number]['category']; label: string }> = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'land', label: 'Land' },
+  { value: 'shares', label: 'Shares' },
+  { value: 'investments', label: 'Investments' },
+  { value: 'business_interests', label: 'Business interests' },
+  { value: 'intellectual_property', label: 'Intellectual property' },
+  { value: 'movable_property', label: 'Movable property' },
+  { value: 'other', label: 'Other' },
+]
+
+function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  const items = wizard.trustPropertyItems ?? []
+  const [form, setForm] = useState<NonNullable<WizardData['trustPropertyItems']>[number] | null>(null)
+
+  const save = () => {
+    if (!form) return
+    const next = items.some((i) => i.id === form.id) ? items.map((i) => (i.id === form.id ? form : i)) : [...items, form]
+    patch({ trustPropertyItems: next })
+    setForm(null)
+  }
+  const remove = (id: string) => patch({ trustPropertyItems: items.filter((i) => i.id !== id) })
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Trust property
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        What property will initially be settled into the trust? Add each asset separately — you can mark
+        whether it&apos;s already been transferred, or is only intended to be transferred later.
+      </p>
+
+      {items.map((i) => (
+        <div key={i.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{i.description || TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label}</p>
+            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+              {TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label} · {i.isVested ? 'Vested / transferred' : 'Intended'}
+            </p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <button type="button" className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }} onClick={() => setForm(i)}>Edit</button>
+            <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(i.id)}>Remove</button>
+          </div>
+        </div>
+      ))}
+
+      {form ? (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Category" required>
+            <select className={inputCls} style={inputStyle} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as typeof form.category })}>
+              {TRUST_PROPERTY_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Description" required>
+            <input type="text" className={inputCls} style={inputStyle} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Approximate value (KES)">
+              <input type="text" className={inputCls} style={inputStyle} value={form.approxValue ?? ''} onChange={(e) => setForm({ ...form, approxValue: e.target.value })} />
+            </Field>
+            <Field label="Date settled / transferred">
+              <input type="date" className={inputCls} style={inputStyle} value={form.dateSettled ?? ''} onChange={(e) => setForm({ ...form, dateSettled: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Ownership before settlement">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Held solely by the settlor" value={form.ownershipBefore ?? ''} onChange={(e) => setForm({ ...form, ownershipBefore: e.target.value })} />
+          </Field>
+          <Field label="Registration / reference details">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. title number, account number" value={form.registrationReference ?? ''} onChange={(e) => setForm({ ...form, registrationReference: e.target.value })} />
+          </Field>
+          <Field label="Has this property actually been transferred to the trustees?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: true, label: 'Vested / transferred' }, { v: false, label: 'Intended only' }].map(({ v, label }) => (
+                <button
+                  key={String(v)} type="button" onClick={() => setForm({ ...form, isVested: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: form.isVested === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: form.isVested === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <div className="flex gap-2">
+            <PrimaryButton onClick={save}>{items.some((i) => i.id === form.id) ? 'Update' : 'Add property'}</PrimaryButton>
+            <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setForm({ id: crypto.randomUUID(), category: 'cash', description: '', isVested: false })}
+          className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
+          style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+        >
+          + Add trust property
+        </button>
+      )}
+      <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+        Supporting documents (title deeds, share certificates, bank/investment evidence) can be uploaded on the
+        Document Vault step.
+      </p>
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Trust — Protector / Enforcer (repurposes the Company Secretary step
+// slot, Trust Formation Workflow spec, section 14). Single optional
+// role, not a repeating register, so it's captured as wizard fields
+// rather than its own table.
+// ------------------------------------------------------------------
+function StepTrustProtector({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Protector / Enforcer
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        Not every trust needs this role — it&apos;s someone appointed to supervise or monitor aspects of trust
+        administration.
+      </p>
+      <Field label="Will the trust have a Protector or Enforcer?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[true, false].map((v) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ hasProtector: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.hasProtector === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.hasProtector === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {v ? 'Yes' : 'No'}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      {wizard.hasProtector === true && (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Full name" required>
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorName ?? ''} onChange={(e) => patch({ protectorName: e.target.value })} />
+          </Field>
+          <Field label="ID / registration information">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorIdInfo ?? ''} onChange={(e) => patch({ protectorIdInfo: e.target.value })} />
+          </Field>
+          <Field label="Contact details">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorContact ?? ''} onChange={(e) => patch({ protectorContact: e.target.value })} />
+          </Field>
+          <Field label="Powers">
+            <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.protectorPowers ?? ''} onChange={(e) => patch({ protectorPowers: e.target.value })} />
+          </Field>
+          <Field label="Appointment date">
+            <input type="date" className={inputCls} style={inputStyle} value={wizard.protectorAppointmentDate ?? ''} onChange={(e) => patch({ protectorAppointmentDate: e.target.value })} />
+          </Field>
+          <Field label="Replacement mechanism">
+            <textarea className={inputCls} style={inputStyle} rows={2} placeholder="How is a replacement Protector/Enforcer appointed?" value={wizard.protectorReplacementMechanism ?? ''} onChange={(e) => patch({ protectorReplacementMechanism: e.target.value })} />
+          </Field>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
 // Step 8 — Share capital
 // ------------------------------------------------------------------
 function emptyShareClass(): ShareClass {
@@ -3685,7 +4552,7 @@ type UploadSection = {
   title: string
   hint: string
   documentType: string
-  visible: (entityType: EntityType) => boolean
+  visible: (entityType: EntityType, wizard: WizardData) => boolean
 }
 
 const UPLOAD_SECTIONS: UploadSection[] = [
@@ -3694,14 +4561,14 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Director / partner documents — ID or passport',
     hint: 'National IDs or passports — one file per person.',
     documentType: 'director_id_copy',
-    visible: (t) => t !== 'sole_proprietorship',
+    visible: (t) => t !== 'sole_proprietorship' && t !== 'trust',
   },
   {
     key: 'director',
     title: 'Director / partner documents — KRA PIN',
     hint: 'KRA PIN certificates — one file per person.',
     documentType: 'director_kra_pin_copy',
-    visible: (t) => t !== 'sole_proprietorship',
+    visible: (t) => t !== 'sole_proprietorship' && t !== 'trust',
   },
   {
     key: 'director',
@@ -3716,6 +4583,20 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'Your KRA PIN certificate.',
     documentType: 'director_kra_pin_copy',
     visible: (t) => t === 'sole_proprietorship',
+  },
+  {
+    key: 'director',
+    title: 'Trustee documents — ID or passport',
+    hint: 'National IDs or passports — one file per trustee.',
+    documentType: 'director_id_copy',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'director',
+    title: 'Trustee documents — KRA PIN',
+    hint: 'KRA PIN certificates — one file per trustee.',
+    documentType: 'director_kra_pin_copy',
+    visible: (t) => t === 'trust',
   },
   {
     key: 'shareholder',
@@ -3734,6 +4615,13 @@ const UPLOAD_SECTIONS: UploadSection[] = [
       t === 'limited_company' || t === 'public_limited_company' || t === 'cooperative' || t === 'limited_liability_partnership',
   },
   {
+    key: 'shareholder',
+    title: 'Beneficiary documents — ID or passport (optional)',
+    hint: 'IDs for any named beneficiary who can reasonably provide one.',
+    documentType: 'shareholder_id_copy',
+    visible: (t, w) => t === 'trust' && w.trustKind === 'family_trust',
+  },
+  {
     key: 'other',
     title: 'Beneficial owner documents — ID or passport (optional)',
     hint: 'IDs for any beneficial owner not already captured as a director or shareholder.',
@@ -3746,6 +4634,34 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'KRA PIN certificates for any beneficial owner not already captured as a director or shareholder.',
     documentType: 'beneficial_owner_kra_pin_copy',
     visible: (t) => SHAREHOLDER_TYPES.includes(t),
+  },
+  {
+    key: 'other',
+    title: 'Settlor documents — ID or passport',
+    hint: 'National IDs or passports — one file per settlor.',
+    documentType: 'beneficial_owner_id_copy',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Settlor documents — KRA PIN',
+    hint: 'KRA PIN certificates — one file per settlor.',
+    documentType: 'beneficial_owner_kra_pin_copy',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Trust Deed',
+    hint: 'Whatever was uploaded or prepared on the previous step lives here too.',
+    documentType: 'trust_deed',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Trust property documents (optional)',
+    hint: 'Title deeds, share certificates, bank/investment evidence, or valuations for property listed on the Trust Property step.',
+    documentType: 'trust_property_document',
+    visible: (t) => t === 'trust',
   },
   {
     key: 'address',
@@ -3763,7 +4679,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR1 (application for registration)',
     hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
     documentType: 'signed_cr1',
-    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship',
+    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust',
   },
   {
     key: 'other',
@@ -3777,7 +4693,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR8 (particulars of directors)',
     hint: 'Lists all directors captured in this application.',
     documentType: 'signed_cr8',
-    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship',
+    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust',
   },
   {
     key: 'other',
@@ -4005,6 +4921,76 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
     )
   }
 
+  if (entityType === 'trust') {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          Trust Deed
+        </h1>
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          The Trust Deed is the constitutive instrument that actually creates the trust — distinct from any
+          later incorporation of the trustees.
+        </p>
+        <Field label="Do you already have a Trust Deed?" required>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ v: true, label: 'Yes, I have one' }, { v: false, label: 'No, prepare one' }].map(({ v, label }) => (
+              <button
+                key={String(v)} type="button" onClick={() => patch({ hasTrustDeed: v })}
+                className="py-2.5 rounded-xl border text-sm font-medium"
+                style={{
+                  borderColor: wizard.hasTrustDeed === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                  background: wizard.hasTrustDeed === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                  color: 'var(--system-label)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+        {wizard.hasTrustDeed === true && (
+          <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
+            <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>Upload your Trust Deed</p>
+            <SimpleDocumentUpload
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              documentType="trust_deed"
+              documents={documents}
+              onUploaded={onExtracted}
+              label="Upload Trust Deed →"
+            />
+          </div>
+        )}
+        {wizard.hasTrustDeed === false && (
+          <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+            We&apos;ll prepare a draft Trust Deed from the settlor, trustee, beneficiary, and governance answers
+            you&apos;ve already provided. Given the legal significance of the deed, professional review is
+            required before execution — our team will follow up once you submit.
+          </p>
+        )}
+        <Field label="Proposed name for the incorporated trustees (if seeking incorporation)">
+          <input
+            type="text" className={inputCls} style={inputStyle}
+            placeholder="May differ from the trust name itself"
+            value={wizard.trusteeCorporateName ?? ''} onChange={(e) => patch({ trusteeCorporateName: e.target.value })}
+          />
+        </Field>
+        <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
+          <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
+            Trust creation vs. trustee incorporation
+          </p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            Executing the Trust Deed creates the trust. Incorporating the trustees under the Trustees (Perpetual
+            Succession) Act — giving them a body corporate with perpetual succession — is a separate, later step
+            our team will guide you through once the trust itself is created.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -4079,8 +5065,9 @@ type FileStatus = {
   sectionKey?: UploadSection['key']
 }
 
-function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, api, setError, onExtracted }: {
+function StepDocuments({ entityType, wizard, orgId, entityId, documents, setDocuments, api, setError, onExtracted }: {
   entityType: EntityType
+  wizard: WizardData
   orgId: string | null
   entityId: string | null
   documents: DocumentRow[]
@@ -4206,7 +5193,7 @@ function StepDocuments({ entityType, orgId, entityId, documents, setDocuments, a
         view of every document on file lives on the entity dashboard once this application is submitted.
       </p>
 
-      {UPLOAD_SECTIONS.filter((s) => s.visible(entityType)).map((section) => {
+      {UPLOAD_SECTIONS.filter((s) => s.visible(entityType, wizard)).map((section) => {
         const existing = documents.filter((d) => d.document_type === section.documentType)
         const showUploader = existing.length === 0 || expanded[section.title]
         return (
@@ -4409,22 +5396,26 @@ function StepDeclaration({ wizard, patch }: { wizard: WizardData; patch: (p: Par
 // ------------------------------------------------------------------
 // Step 12 — Review
 // ------------------------------------------------------------------
-function StepReview({ entityType, wizard, directors, shareholders, documents }: {
-  entityType: EntityType
-  wizard: WizardData
-  directors: DirectorRow[]
-  shareholders: ShareholderRow[]
-  documents: DocumentRow[]
-}) {
-  const typeLabel = ENTITY_TYPES.find((t) => t.value === entityType)?.label ?? entityType
-  const names = (wizard.proposedNames ?? []).filter((n) => n.trim())
-
-  const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
     <div className="flex justify-between gap-4 py-2 border-b last:border-0" style={{ borderColor: 'var(--system-fill-3)' }}>
       <span className="text-ios-footnote shrink-0" style={{ color: 'var(--system-label-2)' }}>{label}</span>
       <span className="text-ios-footnote font-medium text-right" style={{ color: 'var(--system-label)' }}>{value}</span>
     </div>
   )
+}
+
+function StepReview({ entityType, wizard, directors, shareholders, beneficialOwners, documents }: {
+  entityType: EntityType
+  wizard: WizardData
+  directors: DirectorRow[]
+  shareholders: ShareholderRow[]
+  beneficialOwners: BeneficialOwnerRow[]
+  documents: DocumentRow[]
+}) {
+  const typeLabel = wizard.trustKind === 'family_trust' ? 'Family Trust' : wizard.trustKind === 'charitable_trust' ? 'Charitable Trust' : ENTITY_TYPES.find((t) => t.value === entityType)?.label ?? entityType
+  const names = (wizard.proposedNames ?? []).filter((n) => n.trim())
+  const isTrust = entityType === 'trust'
 
   return (
     <div className="space-y-4">
@@ -4433,29 +5424,47 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
       </h1>
 
       <div className="ios-surface rounded-2xl p-4">
-        <Row label="Entity type" value={typeLabel} />
-        <Row label="Applicant" value={wizard.applicantFullName ?? '—'} />
-        <Row label="Proposed names" value={names.join(', ') || '—'} />
-        <Row label="Registered office" value={[wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
-        <Row label="Primary activity" value={wizard.primaryActivity ?? '—'} />
-        <Row label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />
+        <ReviewRow label="Entity type" value={typeLabel} />
+        <ReviewRow label="Applicant" value={wizard.applicantFullName ?? '—'} />
+        <ReviewRow label={isTrust ? 'Proposed trust names' : 'Proposed names'} value={names.join(', ') || '—'} />
+        <ReviewRow label={isTrust ? 'Registered / administrative address' : 'Registered office'} value={[wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
+        {!isTrust && <ReviewRow label="Primary activity" value={wizard.primaryActivity ?? '—'} />}
+        {!isTrust && <ReviewRow label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />}
+        {isTrust && beneficialOwners.length > 0 && (
+          <ReviewRow label="Settlor(s)" value={beneficialOwners.map((s) => s.full_name).join(', ')} />
+        )}
         {directors.length > 0 && (
-          <Row
-            label={entityType === 'sole_proprietorship' ? 'Proprietor' : 'Directors/partners'}
+          <ReviewRow
+            label={isTrust ? 'Trustees' : entityType === 'sole_proprietorship' ? 'Proprietor' : 'Directors/partners'}
             value={directors.map((d) => d.full_name).join(', ')}
           />
         )}
-        {shareholders.length > 0 && (
-          <Row label="Shareholders" value={shareholders.map((s) => `${s.legal_name} (${s.share_percentage ?? '—'}%)`).join(', ')} />
+        {isTrust && wizard.trustKind === 'family_trust' && shareholders.length > 0 && (
+          <ReviewRow label="Beneficiaries" value={shareholders.map((s) => s.legal_name).join(', ')} />
+        )}
+        {isTrust && wizard.trustKind === 'charitable_trust' && (
+          <ReviewRow label="Charitable objects" value={(wizard.trustCharitableObjects ?? []).filter((o) => o.trim()).join(', ') || '—'} />
+        )}
+        {isTrust && (
+          <ReviewRow label="Trust property" value={`${(wizard.trustPropertyItems ?? []).length} item(s)`} />
+        )}
+        {isTrust && (
+          <ReviewRow label="Protector / Enforcer" value={wizard.hasProtector ? (wizard.protectorName || 'Yes') : 'None'} />
+        )}
+        {isTrust && (
+          <ReviewRow label="Trust Deed" value={wizard.hasTrustDeed ? 'Uploaded' : 'To be prepared'} />
+        )}
+        {!isTrust && shareholders.length > 0 && (
+          <ReviewRow label="Shareholders" value={shareholders.map((s) => `${s.legal_name} (${s.share_percentage ?? '—'}%)`).join(', ')} />
         )}
         {wizard.authorisedShareCapital != null && (
-          <Row label="Authorised capital" value={`KES ${wizard.authorisedShareCapital.toLocaleString()}`} />
+          <ReviewRow label="Authorised capital" value={`KES ${wizard.authorisedShareCapital.toLocaleString()}`} />
         )}
         {entityType === 'partnership' && (
-          <Row label="Partnership Agreement" value={wizard.hasPartnershipAgreement ? 'Uploaded' : 'To be prepared'} />
+          <ReviewRow label="Partnership Agreement" value={wizard.hasPartnershipAgreement ? 'Uploaded' : 'To be prepared'} />
         )}
-        <Row label="Documents uploaded" value={String(documents.length)} />
-        <Row label="Signed by" value={wizard.signature ?? '—'} />
+        <ReviewRow label="Documents uploaded" value={String(documents.length)} />
+        <ReviewRow label="Signed by" value={wizard.signature ?? '—'} />
       </div>
 
       <div className="ios-surface rounded-2xl p-4">
@@ -4465,7 +5474,9 @@ function StepReview({ entityType, wizard, directors, shareholders, documents }: 
         <ol className="list-decimal pl-5 space-y-1.5 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
           <li>We compile your information into a document package for BRS registration.</li>
           <li>You choose: register yourself on eCitizen with our guidance, or have LexReg assist with filing.</li>
-          {entityType === 'partnership' || entityType === 'sole_proprietorship' ? (
+          {isTrust ? (
+            <li>Executing the Trust Deed creates the trust. Incorporating the trustees under the Trustees (Perpetual Succession) Act is a separate, later step.</li>
+          ) : entityType === 'partnership' || entityType === 'sole_proprietorship' ? (
             <li>Once BRS issues your Certificate of Registration (business name), upload it back here.</li>
           ) : (
             <li>Once BRS issues your certificate of incorporation, upload it back here.</li>

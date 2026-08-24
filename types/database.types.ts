@@ -865,6 +865,12 @@ export type Database = {
         | "shareholder"
         | "advocate"
         | "authorised_agent"
+        | "partner"
+        | "proprietor"
+        | "settlor"
+        | "trustee"
+        | "member"
+        | "officer"
       compliance_status: "pending" | "complete" | "overdue"
       document_category:
         | "legal"
@@ -889,6 +895,7 @@ export type Database = {
         | "foreign_branch"
         | "cooperative"
         | "trust"
+        | "society"
       onboarding_path: "existing_entity" | "new_entity" | "informal_business"
       shareholder_type: "individual" | "company"
       user_role: "super_admin" | "business_owner" | "lawyer"
@@ -1025,6 +1032,12 @@ export const Constants = {
         "shareholder",
         "advocate",
         "authorised_agent",
+        "partner",
+        "proprietor",
+        "settlor",
+        "trustee",
+        "member",
+        "officer",
       ],
       compliance_status: ["pending", "complete", "overdue"],
       document_category: [
@@ -1052,6 +1065,7 @@ export const Constants = {
         "foreign_branch",
         "cooperative",
         "trust",
+        "society",
       ],
       onboarding_path: ["existing_entity", "new_entity", "informal_business"],
       shareholder_type: ["individual", "company"],

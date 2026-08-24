@@ -16,6 +16,12 @@ import {
 // (lib/ocr/gemini.ts) — default serverless timeout would kill that mid-retry.
 export const maxDuration = 30
 
+const TRUST_PROPERTY_CATEGORY_LABELS: Record<string, string> = {
+  cash: 'Cash', land: 'Land', shares: 'Shares', investments: 'Investments',
+  business_interests: 'Business interests', intellectual_property: 'Intellectual property',
+  movable_property: 'Movable property', other: 'Other',
+}
+
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>
 
 type ProgressRow = {
@@ -753,25 +759,43 @@ export async function POST(request: Request) {
       }
     }
 
-    if (isStepVisible(6, entityType, wizard)) {
+    // Charitable trusts don't require individual beneficiary records
+    // (Trust spec section 13) — the charitable-objects fields captured on
+    // step 4 stand in for them.
+    if (isStepVisible(6, entityType, wizard) && !(entityType === 'trust' && wizard.trustKind === 'charitable_trust')) {
       const { count } = await supabase
         .from('shareholders')
         .select('id', { count: 'exact', head: true })
         .eq('entity_id', entityId)
       if ((count ?? 0) < 1) {
-        return NextResponse.json({ error: 'at least one shareholder/member required' }, { status: 400 })
+        return NextResponse.json({ error: entityType === 'trust' ? 'at least one beneficiary or class of beneficiaries required' : 'at least one shareholder/member required' }, { status: 400 })
       }
     }
 
     // Beneficial ownership: required unless the user explicitly confirmed
     // none currently apply (LLC-Only Developer Implementation Spec)
-    if (isStepVisible(8, entityType, wizard)) {
+    if (isStepVisible(8, entityType, wizard) && entityType !== 'trust') {
       const { count } = await supabase
         .from('beneficial_owners')
         .select('id', { count: 'exact', head: true })
         .eq('entity_id', entityId)
       if ((count ?? 0) < 1 && !wizard.noBeneficialOwners) {
         return NextResponse.json({ error: 'beneficial ownership details required, or confirm none currently apply' }, { status: 400 })
+      }
+    }
+    if (entityType === 'trust') {
+      const { count } = await supabase
+        .from('beneficial_owners')
+        .select('id', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+      if ((count ?? 0) < 1) {
+        return NextResponse.json({ error: 'at least one settlor required' }, { status: 400 })
+      }
+      if (wizard.hasTrustDeed === undefined) {
+        return NextResponse.json({ error: 'confirm whether a Trust Deed already exists' }, { status: 400 })
+      }
+      if (wizard.hasProtector === undefined) {
+        return NextResponse.json({ error: 'confirm whether the trust will have a Protector or Enforcer' }, { status: 400 })
       }
     }
 
@@ -1136,6 +1160,7 @@ async function generateAndStoreIdp(
         fullName: d.full_name,
         role: ctx.entityType === 'partnership' ? (ra?.isCorporate ? 'Corporate partner' : 'Partner')
           : ctx.entityType === 'sole_proprietorship' ? 'Proprietor'
+          : ctx.entityType === 'trust' ? (ra?.isCorporate ? 'Corporate trustee' : 'Trustee')
           : (ra?.isCorporate ? 'Corporate director' : 'Director'),
         nationality: d.nationality,
         idNumber: d.id_number,
@@ -1210,8 +1235,14 @@ async function generateAndStoreIdp(
     }))
 
     // ---- forms & filing preview --------------------------------------
+    // Neither Trust nor Society has a fixed BRS form code (both specs
+    // flag the live filing sequence as needing verification before
+    // automation) — the constitutive document itself is the checklist
+    // item instead.
     const formDefs = (ctx.entityType === 'partnership' || ctx.entityType === 'sole_proprietorship')
       ? [{ type: 'signed_bn2', label: 'BN2 — Application for registration of a business name' }]
+      : ctx.entityType === 'trust'
+      ? [{ type: 'trust_deed', label: 'Trust Deed' }]
       : [
           { type: 'signed_cr1', label: 'CR1 — Application for registration' },
           { type: 'signed_cr2', label: 'CR2 — Memorandum of registration' },
@@ -1250,6 +1281,12 @@ async function generateAndStoreIdp(
       if (w.hasPartnershipAgreement === undefined) exceptions.push('Partnership Agreement status not yet confirmed.')
     } else if (ctx.entityType === 'sole_proprietorship') {
       if ((directors ?? []).length > 1) exceptions.push('More than one proprietor is on record — a sole proprietorship should have exactly one.')
+    } else if (ctx.entityType === 'trust') {
+      if ((beneficialOwners ?? []).length === 0) exceptions.push('No settlor captured.')
+      if (w.trustKind !== 'charitable_trust' && (shareholders ?? []).length === 0) exceptions.push('No beneficiaries captured.')
+      if (w.trustKind === 'charitable_trust' && !(w.trustCharitableObjects ?? []).some((o) => o.trim())) exceptions.push('No charitable objects listed.')
+      if (w.hasTrustDeed === undefined) exceptions.push('Trust Deed status not yet confirmed.')
+      if (w.hasProtector === undefined) exceptions.push('Protector/Enforcer status not yet confirmed.')
     } else {
       if ((shareholders ?? []).length === 0) exceptions.push('No shareholders captured.')
       if (!w.useMultipleShareClasses && w.totalShares) {
@@ -1308,6 +1345,14 @@ async function generateAndStoreIdp(
       declared: !!w.declared,
       signature: w.signature ?? null,
       declarationDate: w.declarationDate ?? null,
+
+      isTrust: ctx.entityType === 'trust',
+      trustProperty: (w.trustPropertyItems ?? []).map((p) => ({
+        description: p.description, category: TRUST_PROPERTY_CATEGORY_LABELS[p.category] ?? p.category,
+        approxValue: p.approxValue ?? null, isVested: p.isVested,
+      })),
+      protector: w.hasProtector ? { name: w.protectorName ?? '—', powers: w.protectorPowers ?? null } : null,
+      hasTrustDeed: w.hasTrustDeed ?? null,
     })
 
     const path = `${ctx.orgId}/${ctx.entityId}/idp-${Date.now()}.pdf`

@@ -35,7 +35,13 @@ export const SHARE_CLASS_TYPES: Array<{ value: ShareClass['type']; label: string
 // Sole Proprietorship Workflow spec, 2026-08: third reference
 // implementation — simplest of the three, single Proprietor, no
 // governance objects at all.
-export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnership', 'sole_proprietorship']
+// Trust Formation Workflow spec, 2026-08: fourth reference implementation
+// — proves the engine can carry a legal model with no directors/
+// shareholders at all (settlor/trustee/beneficiary instead). Society
+// stays disabled here until its own workflow build is complete —
+// entity_type/isStepVisible already carry its rules, but its wizard
+// steps aren't wired up yet.
+export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnership', 'sole_proprietorship', 'trust']
 
 // The spec's "first user decision" (section 3): selecting Partnership
 // doesn't launch the questionnaire directly — it first asks which kind.
@@ -62,6 +68,31 @@ export const PARTNERSHIP_KINDS: Array<{ value: 'general_partnership' | 'llp' | '
   },
 ]
 
+// Trust spec section 3, "first user decision" — same pattern as
+// PARTNERSHIP_KINDS: selecting Trust asks which kind before launching the
+// questionnaire. "Other/Not sure" stays disabled and routes to assisted
+// legal onboarding rather than a self-serve flow, per the spec.
+export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | 'other'; label: string; description: string; enabled: boolean }> = [
+  {
+    value: 'family_trust',
+    label: 'Family Trust',
+    description: 'Established principally for estate planning, preservation, or creation of wealth for beneficiaries and future generations.',
+    enabled: true,
+  },
+  {
+    value: 'charitable_trust',
+    label: 'Charitable Trust',
+    description: 'Established for legally recognised charitable purposes, governed for the benefit of those objects rather than private profit.',
+    enabled: true,
+  },
+  {
+    value: 'other',
+    label: 'Other / Not sure',
+    description: 'Non-charitable purpose trusts, discretionary trusts, testamentary trusts, and other specialised structures.',
+    enabled: false,
+  },
+]
+
 // Company secretary threshold — Charles, LLC-Only Developer
 // Implementation Spec: private companies above this nominal share
 // capital must appoint a secretary, same as PLCs. Below it, secretarial
@@ -75,6 +106,7 @@ export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description
   { value: 'public_limited_company', label: 'Public Limited Company', description: 'Can offer shares to public, complex governance' },
   { value: 'company_limited_by_guarantee', label: 'NGO / Non-Profit', description: 'Charitable or social purpose, no profit distribution' },
   { value: 'trust', label: 'Trust', description: 'Property held for beneficiaries, fiduciary arrangement' },
+  { value: 'society', label: 'Society', description: 'Membership-based organisation — residents’, welfare, alumni, or professional associations' },
   { value: 'cooperative', label: 'Cooperative', description: 'Member-owned, democratic control, profit-sharing' },
   { value: 'limited_liability_partnership', label: 'LLP', description: 'Limited Liability Partnership, hybrid structure' },
 ]
@@ -180,6 +212,12 @@ export const APPLICANT_RELATIONSHIPS: Array<{ value: Database['public']['Enums']
   { value: 'promoter', label: 'Promoter' },
   { value: 'director', label: 'Director' },
   { value: 'shareholder', label: 'Shareholder' },
+  { value: 'partner', label: 'Partner' },
+  { value: 'proprietor', label: 'Proprietor' },
+  { value: 'settlor', label: 'Settlor' },
+  { value: 'trustee', label: 'Trustee' },
+  { value: 'member', label: 'Member' },
+  { value: 'officer', label: 'Officer' },
   { value: 'advocate', label: 'Advocate' },
   { value: 'authorised_agent', label: 'Authorised Agent' },
 ]
@@ -199,7 +237,7 @@ export const TOTAL_STEPS = 14
 // to exactly one person by the step component itself.
 const DIRECTOR_TYPES: EntityType[] = [
   'limited_company', 'public_limited_company', 'partnership', 'sole_proprietorship',
-  'limited_liability_partnership', 'company_limited_by_guarantee', 'trust',
+  'limited_liability_partnership', 'company_limited_by_guarantee', 'trust', 'society',
 ]
 
 // Steps that require shareholders/members — company/cooperative/LLP only
@@ -209,6 +247,11 @@ export const SHAREHOLDER_TYPES: EntityType[] = [
 
 // Share capital structuring — company/cooperative only (not LLP, which uses capital contributions differently)
 const SHARE_CAPITAL_TYPES: EntityType[] = ['limited_company', 'public_limited_company', 'cooperative']
+
+// Entity types that never file CR1/CR8 — no company incorporation event
+// at all, just a business name registration (partnership/sole
+// proprietorship) or a non-company statutory filing (trust/society).
+const NO_COMPANY_FORM_TYPES: EntityType[] = ['partnership', 'sole_proprietorship', 'trust', 'society']
 
 // Single source of truth for "what documents does this entity still need"
 // — used by both the Document Vault step (live, during onboarding) and
@@ -222,15 +265,20 @@ const SHARE_CAPITAL_TYPES: EntityType[] = ['limited_company', 'public_limited_co
 export const REQUIRED_DOCUMENT_CHECKLIST: Array<{ type: string; label: string; appliesTo: (t: EntityType) => boolean }> = [
   { type: 'director_id_copy', label: 'Director/partner documents', appliesTo: () => true },
   { type: 'shareholder_id_copy', label: 'Shareholder/member documents', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
-  { type: 'signed_cr1', label: 'Signed CR1', appliesTo: (t) => t !== 'partnership' && t !== 'sole_proprietorship' },
+  { type: 'signed_cr1', label: 'Signed CR1', appliesTo: (t) => !NO_COMPANY_FORM_TYPES.includes(t) },
   { type: 'signed_cr2', label: 'Signed CR2', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
-  { type: 'signed_cr8', label: 'Signed CR8', appliesTo: (t) => t !== 'partnership' && t !== 'sole_proprietorship' },
+  { type: 'signed_cr8', label: 'Signed CR8', appliesTo: (t) => !NO_COMPANY_FORM_TYPES.includes(t) },
   { type: 'statement_of_nominal_capital', label: 'Statement of nominal capital', appliesTo: (t) => t === 'limited_company' || t === 'public_limited_company' },
   { type: 'signed_bof1', label: 'Signed BOF1', appliesTo: (t) => SHAREHOLDER_TYPES.includes(t) },
   // Business Name Registration filing (BN2) — both General Partnership
   // and Sole Proprietorship register under a business name rather than
   // incorporating a company (Charles specs, 2026-08, both section 19/21).
   { type: 'signed_bn2', label: 'Signed BN2', appliesTo: (t) => t === 'partnership' || t === 'sole_proprietorship' },
+  // Trust and Society formation specs, 2026-08: neither has a fixed BRS
+  // form code, so the constitutive/governing document itself is the
+  // checklist item instead.
+  { type: 'trust_deed', label: 'Trust Deed', appliesTo: (t) => t === 'trust' },
+  { type: 'constitution', label: 'Society Constitution', appliesTo: (t) => t === 'society' },
 ]
 
 export function missingRequiredDocuments(entityType: EntityType, presentTypes: Set<string>): string[] {
@@ -326,6 +374,96 @@ export type WizardData = {
   processesPersonalData?: boolean
   isOnlineBusiness?: boolean
   businessWebsite?: string
+  // Step 1 — which kind of trust (Trust spec section 3's "first user
+  // decision"); only family_trust/charitable_trust have a working flow.
+  trustKind?: 'family_trust' | 'charitable_trust' | 'other'
+  // Step 4 (repurposed for trust — Company Basics' turnover/employee
+  // fields don't apply) — Purpose Check, FT-001–004 for a family trust or
+  // the charitable-objects list for a charitable trust (Trust spec
+  // sections 6–7). trustCharitableObjects holds free-text entries since
+  // the spec explicitly wants multiple objects permitted.
+  ftPrincipalPurpose?: string
+  ftCreatedDuringLifetime?: boolean
+  ftSettlorAlsoBeneficiary?: boolean
+  ftConductsTrading?: boolean
+  trustCharitableObjects?: string[]
+  // Step 6 (repurposed for trust — Shareholders doesn't apply) —
+  // Charitable Trust beneficiary model, spec section 13. Family trust
+  // beneficiaries are captured as person records instead (shareholders
+  // table, repurposed) — these fields are charitable-trust only.
+  charitableBeneficiaryClass?: string
+  charitableGeographicArea?: string
+  charitableProgrammeAreas?: string
+  charitablePropertyRestrictions?: string
+  // Step 8 (repurposed for trust — Beneficial Ownership doesn't apply) —
+  // Trust Property, spec sections 15–16. Kept as a settings array rather
+  // than its own table/register — the post-registration Trust Asset
+  // Register itself is a later phase, not built this pass.
+  trustPropertyItems?: Array<{
+    id: string
+    category: 'cash' | 'land' | 'shares' | 'investments' | 'business_interests' | 'intellectual_property' | 'movable_property' | 'other'
+    description: string
+    approxValue?: string
+    ownershipBefore?: string
+    dateSettled?: string
+    registrationReference?: string
+    isVested: boolean // Intended (false) vs Vested/Transferred (true) — spec section 16
+  }>
+  // Step 9 (repurposed for trust — Company Secretary doesn't apply) —
+  // Protector/Enforcer, spec section 14. Single optional role, not a
+  // repeating register, so it lives here rather than its own table.
+  hasProtector?: boolean
+  protectorName?: string
+  protectorIdInfo?: string
+  protectorContact?: string
+  protectorPowers?: string
+  protectorAppointmentDate?: string
+  protectorReplacementMechanism?: string
+  // Step 3 — proposed name for the incorporated trustees (a body
+  // corporate distinct from the trust itself, Trust spec section 17).
+  trusteeCorporateName?: string
+  // Step 10 (repurposed for trust — Constitutional Documents doesn't
+  // apply) — Trust Deed, spec section 18.
+  hasTrustDeed?: boolean
+  // Step 5 — Society Eligibility Assessment, SOC-001–004.
+  socFounderCount?: number
+  socIsForProfit?: boolean
+  socAlreadyRegisteredElsewhere?: boolean
+  socClassification?: string
+  // Step 4 (repurposed for society — Company Basics) — Objects & Purpose
+  // plus Property, spec sections 7 and 16.
+  socPrimaryObject?: string
+  socAdditionalObjects?: string
+  socGeographicScope?: 'estate' | 'county' | 'national' | 'other' | ''
+  socPrincipalActivities?: string
+  socIsAffiliated?: boolean
+  socAffiliationName?: string
+  socAffiliationJurisdiction?: string
+  socAffiliationNature?: string
+  socAffiliationIsPolitical?: boolean
+  socOwnsProperty?: boolean
+  socPropertyItems?: Array<{ id: string; description: string; location: string; titleReference?: string; vestedIn?: string }>
+  // Step 6 (repurposed for society — Shareholders doesn't apply) —
+  // Membership Structure settings, SOC-030–035. The founding member
+  // list itself lives on the Initial Members step (person records).
+  socMembershipEligibility?: string
+  socHasMembershipClasses?: boolean
+  socMembershipClasses?: string[]
+  socAdmissionProcess?: string
+  socMembershipFees?: string
+  socVotingRights?: string
+  socTerminationRules?: string
+  // Step 9 (repurposed for society — Company Secretary doesn't apply) —
+  // Governing Committee, spec section 14. Settings only, not a repeating
+  // register.
+  socHasGoverningBody?: boolean
+  socGoverningBodyName?: string
+  socGoverningBodyPositions?: string
+  socGoverningBodySize?: string
+  socGoverningBodyQuorum?: string
+  socGoverningBodyTerm?: string
+  socGoverningBodyProcedure?: string
+  socGoverningBodyDecisionThreshold?: string
   // Step 5 — Share structure. Kenyan company law requires shares to be
   // 100% issued (Charles, 2026 call) — there's no such thing as
   // "authorised but unissued" anymore, so authorised capital is no
@@ -381,25 +519,32 @@ export type WizardData = {
 export function isStepVisible(step: number, entityType: EntityType, data: WizardData): boolean {
   switch (step) {
     case 5: // Share Structure — repurposed as Partnership Suitability for
-      // partnership and Suitability Check for sole proprietorship, since
-      // all three are mutually exclusive by entity type (Charles specs, 2026-08)
-      return SHARE_CAPITAL_TYPES.includes(entityType) || entityType === 'partnership' || entityType === 'sole_proprietorship'
+      // partnership, Suitability Check for sole proprietorship, Settlor
+      // Details for trust, and Eligibility Assessment for society
+      // (Charles specs, 2026-08)
+      return SHARE_CAPITAL_TYPES.includes(entityType) || entityType === 'partnership' || entityType === 'sole_proprietorship' || entityType === 'trust' || entityType === 'society'
     case 6: // Shareholders/Members — captured before directors so a
       // shareholder-who-is-also-a-director isn't typed twice (Charles, 2026-07-17)
-      // Repurposed as Partnership Governance for partnership. Sole
+      // Repurposed as Partnership Governance for partnership, Beneficiaries
+      // for trust, and Membership Structure settings for society. Sole
       // proprietorship has no partners/governance — stays hidden.
-      return SHAREHOLDER_TYPES.includes(entityType) || entityType === 'partnership'
-    case 7: // Directors/Partners/Trustees/Proprietor
+      return SHAREHOLDER_TYPES.includes(entityType) || entityType === 'partnership' || entityType === 'trust' || entityType === 'society'
+    case 7: // Directors/Partners/Trustees/Proprietor/Officers
       return DIRECTOR_TYPES.includes(entityType)
     case 8: // Beneficial Ownership — same entities that need a shareholder
-      // register need a beneficial-ownership record (LLC spec, screen 8)
-      return SHAREHOLDER_TYPES.includes(entityType)
-    case 9: // Company Secretary
-      return SECRETARY_TYPES.includes(entityType)
+      // register need a beneficial-ownership record (LLC spec, screen 8).
+      // Repurposed as Trust Property for trust and Initial Members
+      // (founding member register) for society.
+      return SHAREHOLDER_TYPES.includes(entityType) || entityType === 'trust' || entityType === 'society'
+    case 9: // Company Secretary — repurposed as Protector/Enforcer for
+      // trust and Governing Committee for society, both conditional
+      // Yes/No roles rather than mandatory ones.
+      return SECRETARY_TYPES.includes(entityType) || entityType === 'trust' || entityType === 'society'
     case 10: // Constitutional Documents — repurposed as Partnership
-      // Agreement for partnership; sole proprietorship has no
-      // constitution/agreement concept at all (spec section 26) so this
-      // step is skipped entirely rather than repurposed.
+      // Agreement for partnership, Trust Deed for trust, Constitution for
+      // society; sole proprietorship has no constitution/agreement
+      // concept at all (spec section 26) so this step is skipped entirely
+      // rather than repurposed.
       return entityType !== 'sole_proprietorship'
     case 12: // Employee Info
       return data.hasEmployees === true
@@ -453,8 +598,32 @@ const SOLE_PROPRIETORSHIP_STEP_LABELS: Partial<Record<number, string>> = {
   7: 'Proprietor',
 }
 
+const TRUST_STEP_LABELS: Partial<Record<number, string>> = {
+  3: 'Trust Name',
+  4: 'Purpose Check',
+  5: 'Settlor Details',
+  6: 'Beneficiaries',
+  7: 'Trustees',
+  8: 'Trust Property',
+  9: 'Protector / Enforcer',
+  10: 'Trust Deed',
+}
+
+const SOCIETY_STEP_LABELS: Partial<Record<number, string>> = {
+  3: 'Society Name',
+  4: 'Objects & Registered Office',
+  5: 'Eligibility Assessment',
+  6: 'Membership Structure',
+  7: 'Officers',
+  8: 'Initial Members',
+  9: 'Governing Committee',
+  10: 'Constitution',
+}
+
 export function stepLabel(step: number, entityType: EntityType): string {
   if (entityType === 'partnership' && PARTNERSHIP_STEP_LABELS[step]) return PARTNERSHIP_STEP_LABELS[step]!
   if (entityType === 'sole_proprietorship' && SOLE_PROPRIETORSHIP_STEP_LABELS[step]) return SOLE_PROPRIETORSHIP_STEP_LABELS[step]!
+  if (entityType === 'trust' && TRUST_STEP_LABELS[step]) return TRUST_STEP_LABELS[step]!
+  if (entityType === 'society' && SOCIETY_STEP_LABELS[step]) return SOCIETY_STEP_LABELS[step]!
   return STEP_LABELS[step]
 }

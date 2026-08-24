@@ -142,6 +142,15 @@ export type IdpInput = {
   declared: boolean
   signature: string | null
   declarationDate: string | null
+
+  // Trust Formation Workflow spec, 2026-08 — when set, the summary uses
+  // trust terminology throughout (Settlors/Trustees/Beneficiaries, no
+  // share capital or beneficial-ownership sections) instead of the
+  // company-registration framing the rest of this document defaults to.
+  isTrust?: boolean
+  trustProperty?: Array<{ description: string; category: string; approxValue: string | null; isVested: boolean }>
+  protector?: { name: string; powers: string | null } | null
+  hasTrustDeed?: boolean | null
 }
 
 export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
@@ -150,14 +159,20 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   const bold = await doc.embedFont(StandardFonts.TimesRomanBold)
   const ctx = new PageBuilder(doc, font, bold)
 
+  const isTrust = !!input.isTrust
+
   // ---------- 1. Cover & matter summary ----------
-  ctx.title('COMPANY REGISTRATION & GOVERNANCE SUMMARY')
+  ctx.title(isTrust ? 'TRUST FORMATION & GOVERNANCE SUMMARY' : 'COMPANY REGISTRATION & GOVERNANCE SUMMARY')
   ctx.subtitle(`Prepared for ${input.organisationName}  ·  ${formatDate(input.generatedAt)}`)
   ctx.rule(true)
   ctx.notice(
-    'This document summarises the information provided to LexReg Africa for a private company limited by ' +
-    'shares. It is not itself an official BRS form, but it is intended to be used as the review pack from ' +
-    'which statutory forms and filing information are confirmed.'
+    isTrust
+      ? 'This document summarises the information provided to LexReg Africa for the creation of a trust. It ' +
+        'is not itself the Trust Deed, but is intended as the review pack from which the deed and any ' +
+        'trustee-incorporation filing are confirmed.'
+      : 'This document summarises the information provided to LexReg Africa for a private company limited by ' +
+        'shares. It is not itself an official BRS form, but it is intended to be used as the review pack from ' +
+        'which statutory forms and filing information are confirmed.'
   )
   ctx.section('Matter Summary')
   ctx.field('Matter reference', input.matterReference)
@@ -165,17 +180,17 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.field('Service path', input.servicePath)
 
   // ---------- 2. Company overview ----------
-  ctx.section('Company Overview')
-  ctx.field('Company type', input.entityTypeLabel)
+  ctx.section(isTrust ? 'Trust Overview' : 'Company Overview')
+  ctx.field(isTrust ? 'Trust type' : 'Company type', input.entityTypeLabel)
   const names = input.legalNameOptions.filter(Boolean)
-  ctx.field('Proposed company name', names[0] ?? '—')
+  ctx.field(isTrust ? 'Proposed trust name' : 'Proposed company name', names[0] ?? '—')
   if (names.length > 1) ctx.field('Alternative names', names.slice(1).join('  •  '))
-  ctx.field('Nature of business', input.natureOfBusiness ?? '—')
+  if (!isTrust) ctx.field('Nature of business', input.natureOfBusiness ?? '—')
   const addr = input.registeredAddress
-  ctx.field('Registered office', addr ? [addr.line1, addr.city, addr.county, addr.postcode].filter(Boolean).join(', ') || '—' : '—')
+  ctx.field(isTrust ? 'Registered / administrative address' : 'Registered office', addr ? [addr.line1, addr.city, addr.county, addr.postcode].filter(Boolean).join(', ') || '—' : '—')
   ctx.field('Postal address', input.postalAddress ?? '—')
-  ctx.field('Company email', input.companyEmail ?? '—')
-  ctx.field('Company phone', input.companyPhone ?? '—')
+  ctx.field(isTrust ? 'Contact email' : 'Company email', input.companyEmail ?? '—')
+  ctx.field(isTrust ? 'Contact phone' : 'Company phone', input.companyPhone ?? '—')
 
   // ---------- 3. Applicant & primary contact ----------
   ctx.section('Applicant & Primary Contact')
@@ -185,38 +200,61 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.field('Applicant phone', input.applicantPhone ?? '—')
 
   // ---------- 4. Share capital summary ----------
-  ctx.section('Share Capital Summary')
-  ctx.field('Total number of shares', input.totalShares != null ? input.totalShares.toLocaleString() : '—')
-  ctx.field('Authorised capital', input.authorisedCapital != null ? `KES ${input.authorisedCapital.toLocaleString()}` : '—')
-  ctx.field('Nominal value per share', input.nominalValuePerShare != null ? `KES ${input.nominalValuePerShare.toLocaleString()}` : '—')
-  ctx.field('Share structure', input.useMultipleShareClasses ? `Multiple classes (${input.shareClassCount})` : 'Single class (ordinary)')
-  ctx.field('Voting rights', input.votingRights ?? '—')
-
-  // ---------- 5. Directors & officers ----------
-  if (input.directors.length > 0) {
-    ctx.section('Directors & Officers')
-    ctx.table(
-      ['Name', 'Role', 'Nationality', 'ID / Passport', 'KRA PIN', 'Also SH?', 'Also BO?'],
-      [0.24, 0.12, 0.14, 0.16, 0.14, 0.1, 0.1],
-      input.directors.map((d) => [
-        d.fullName, d.role, d.nationality ?? '—', d.idNumber ?? '—', d.kraPin ?? '—',
-        d.isAlsoShareholder ? 'Yes' : 'No', d.isAlsoBeneficialOwner ? 'Yes' : 'No',
-      ])
-    )
-    if (input.secretaryName) ctx.field('Company secretary', input.secretaryName)
+  if (!isTrust) {
+    ctx.section('Share Capital Summary')
+    ctx.field('Total number of shares', input.totalShares != null ? input.totalShares.toLocaleString() : '—')
+    ctx.field('Authorised capital', input.authorisedCapital != null ? `KES ${input.authorisedCapital.toLocaleString()}` : '—')
+    ctx.field('Nominal value per share', input.nominalValuePerShare != null ? `KES ${input.nominalValuePerShare.toLocaleString()}` : '—')
+    ctx.field('Share structure', input.useMultipleShareClasses ? `Multiple classes (${input.shareClassCount})` : 'Single class (ordinary)')
+    ctx.field('Voting rights', input.votingRights ?? '—')
   }
 
-  // ---------- 6. Shareholders & cap table ----------
+  // ---------- 5. Directors & officers / Trustees ----------
+  if (input.directors.length > 0) {
+    if (isTrust) {
+      ctx.section('Trustees')
+      ctx.table(
+        ['Name', 'Role', 'Nationality', 'ID / Passport', 'KRA PIN'],
+        [0.3, 0.14, 0.16, 0.2, 0.2],
+        input.directors.map((d) => [d.fullName, d.role, d.nationality ?? '—', d.idNumber ?? '—', d.kraPin ?? '—'])
+      )
+    } else {
+      ctx.section('Directors & Officers')
+      ctx.table(
+        ['Name', 'Role', 'Nationality', 'ID / Passport', 'KRA PIN', 'Also SH?', 'Also BO?'],
+        [0.24, 0.12, 0.14, 0.16, 0.14, 0.1, 0.1],
+        input.directors.map((d) => [
+          d.fullName, d.role, d.nationality ?? '—', d.idNumber ?? '—', d.kraPin ?? '—',
+          d.isAlsoShareholder ? 'Yes' : 'No', d.isAlsoBeneficialOwner ? 'Yes' : 'No',
+        ])
+      )
+      if (input.secretaryName) ctx.field('Company secretary', input.secretaryName)
+    }
+  }
+
+  // ---------- 6. Shareholders & cap table / Beneficiaries ----------
   if (input.shareholders.length > 0) {
-    ctx.section('Shareholders & Cap Table')
-    ctx.table(
-      ['Name', 'Type', 'ID / Reg. no.', 'Class', 'Shares', '%', 'Nominee?'],
-      [0.26, 0.1, 0.18, 0.12, 0.12, 0.1, 0.12],
-      input.shareholders.map((s) => [
-        s.legalName, s.type, s.idOrRegNumber ?? '—', s.shareClass, s.sharesHeld.toLocaleString(),
-        s.sharePercentage != null ? `${s.sharePercentage}%` : '—', s.isNominee ? 'Yes' : 'No',
-      ])
-    )
+    if (isTrust) {
+      ctx.section('Beneficiaries')
+      ctx.table(
+        ['Name / class', 'ID / Passport (if applicable)'],
+        [0.6, 0.4],
+        input.shareholders.map((s) => [s.legalName, s.idOrRegNumber ?? '—'])
+      )
+    } else {
+      ctx.section('Shareholders & Cap Table')
+      ctx.table(
+        ['Name', 'Type', 'ID / Reg. no.', 'Class', 'Shares', '%', 'Nominee?'],
+        [0.26, 0.1, 0.18, 0.12, 0.12, 0.1, 0.12],
+        input.shareholders.map((s) => [
+          s.legalName, s.type, s.idOrRegNumber ?? '—', s.shareClass, s.sharesHeld.toLocaleString(),
+          s.sharePercentage != null ? `${s.sharePercentage}%` : '—', s.isNominee ? 'Yes' : 'No',
+        ])
+      )
+    }
+  } else if (isTrust) {
+    ctx.section('Beneficiaries')
+    ctx.field('Charitable beneficiary class', 'See charitable objects below — no individual beneficiaries required.')
   }
 
   // ---------- 7. Corporate party annex ----------
@@ -239,31 +277,69 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
     }
   }
 
-  // ---------- 8. Beneficial ownership ----------
-  ctx.section('Beneficial Ownership Summary')
-  if (input.noBeneficialOwnersDeclared && input.beneficialOwners.length === 0) {
-    ctx.field('Declaration', 'No individual currently holds 10%+ ownership/control — confirmed by applicant.')
-  } else if (input.beneficialOwners.length > 0) {
-    ctx.table(
-      ['Name', 'Nationality', 'ID / Passport', 'Nature of control', '% / basis', 'Since'],
-      [0.22, 0.14, 0.16, 0.24, 0.12, 0.12],
-      input.beneficialOwners.map((b) => [
-        b.fullName, b.nationality ?? '—', b.idNumber ?? '—', b.natureOfControl,
-        b.sharePercentage != null ? `${b.sharePercentage}%` : '—', b.dateBecameBo ?? '—',
-      ])
-    )
-    ctx.notice(
-      'Reflects the Kenyan beneficial ownership framework — natural persons with 10%+ direct or indirect ' +
-      'interest, or who otherwise exercise significant influence or control.'
-    )
+  // ---------- 8. Beneficial ownership / Settlors ----------
+  if (isTrust) {
+    ctx.section('Settlors')
+    if (input.beneficialOwners.length > 0) {
+      ctx.table(
+        ['Name', 'Nationality', 'ID / Passport', 'Relationship to beneficiaries'],
+        [0.28, 0.16, 0.2, 0.36],
+        input.beneficialOwners.map((b) => [b.fullName, b.nationality ?? '—', b.idNumber ?? '—', b.natureOfControl])
+      )
+    } else {
+      ctx.field('Declaration', 'Not yet confirmed — outstanding before filing.')
+    }
   } else {
-    ctx.field('Declaration', 'Not yet confirmed — outstanding before filing.')
+    ctx.section('Beneficial Ownership Summary')
+    if (input.noBeneficialOwnersDeclared && input.beneficialOwners.length === 0) {
+      ctx.field('Declaration', 'No individual currently holds 10%+ ownership/control — confirmed by applicant.')
+    } else if (input.beneficialOwners.length > 0) {
+      ctx.table(
+        ['Name', 'Nationality', 'ID / Passport', 'Nature of control', '% / basis', 'Since'],
+        [0.22, 0.14, 0.16, 0.24, 0.12, 0.12],
+        input.beneficialOwners.map((b) => [
+          b.fullName, b.nationality ?? '—', b.idNumber ?? '—', b.natureOfControl,
+          b.sharePercentage != null ? `${b.sharePercentage}%` : '—', b.dateBecameBo ?? '—',
+        ])
+      )
+      ctx.notice(
+        'Reflects the Kenyan beneficial ownership framework — natural persons with 10%+ direct or indirect ' +
+        'interest, or who otherwise exercise significant influence or control.'
+      )
+    } else {
+      ctx.field('Declaration', 'Not yet confirmed — outstanding before filing.')
+    }
+  }
+
+  // ---------- Trust property (trust only) ----------
+  if (isTrust) {
+    ctx.section('Trust Property')
+    if ((input.trustProperty ?? []).length > 0) {
+      ctx.table(
+        ['Description', 'Category', 'Approx. value', 'Status'],
+        [0.36, 0.22, 0.2, 0.22],
+        (input.trustProperty ?? []).map((p) => [p.description, p.category, p.approxValue ?? '—', p.isVested ? 'Vested / transferred' : 'Intended'])
+      )
+    } else {
+      ctx.field('Declaration', 'No trust property recorded yet.')
+    }
+    ctx.section('Protector / Enforcer')
+    ctx.field('Appointed', input.protector ? 'Yes' : 'No')
+    if (input.protector) {
+      ctx.field('Name', input.protector.name)
+      ctx.field('Powers', input.protector.powers ?? '—')
+    }
   }
 
   // ---------- 9. Constitutional & registration basis ----------
-  ctx.section('Constitutional & Registration Basis')
-  ctx.field('Articles of association', input.articlesType === 'custom' ? 'Custom articles' : input.articlesType === 'standard' ? 'Standard model articles' : '—')
-  ctx.field('Multiple share classes declared', input.useMultipleShareClasses ? 'Yes' : 'No')
+  if (isTrust) {
+    ctx.section('Trust Deed')
+    ctx.field('Status', input.hasTrustDeed ? 'Already exists — uploaded' : 'To be prepared')
+  } else {
+    ctx.section('Constitutional & Registration Basis')
+    ctx.field('Articles of association', input.articlesType === 'custom' ? 'Custom articles' : input.articlesType === 'standard' ? 'Standard model articles' : '—')
+    ctx.field('Multiple share classes declared', input.useMultipleShareClasses ? 'Yes' : 'No')
+  }
 
   // ---------- 10. Required forms & filing preview ----------
   if (input.forms.length > 0) {
