@@ -293,6 +293,11 @@ export async function POST(request: Request) {
         interestPercentage?: string
         contributionType?: string
         contributionValue?: string
+        // Society only — Society Formation Workflow spec, 2026-08, SOC-040–051.
+        position?: string
+        isRegistrationSignatory?: boolean
+        termOfOffice?: string
+        termExpiryDate?: string
       }
     }
     if (!director?.fullName || !director?.idNumber) {
@@ -328,6 +333,10 @@ export async function POST(request: Request) {
         interestPercentage: director.interestPercentage ?? undefined,
         contributionType: director.contributionType ?? undefined,
         contributionValue: director.contributionValue ?? undefined,
+        position: director.position ?? undefined,
+        isRegistrationSignatory: director.isRegistrationSignatory ?? undefined,
+        termOfOffice: director.termOfOffice ?? undefined,
+        termExpiryDate: director.termExpiryDate ?? undefined,
       } as Json,
     }
 
@@ -383,6 +392,11 @@ export async function POST(request: Request) {
         postalCode?: string
         postalAddressLine?: string
         occupation?: string
+        // Society only — Society Formation Workflow spec, 2026-08, section 9.
+        membershipClass?: string
+        isFoundingMember?: boolean
+        dateAdmitted?: string
+        votingStatus?: string
       }
     }
     if (!shareholder?.legalName || !shareholder?.sharesHeld) {
@@ -410,6 +424,10 @@ export async function POST(request: Request) {
         postalCode: shareholder.postalCode ?? undefined,
         occupation: shareholder.occupation ?? undefined,
         postalAddressLine: shareholder.postalAddressLine ?? undefined,
+        membershipClass: shareholder.membershipClass ?? undefined,
+        isFoundingMember: shareholder.isFoundingMember ?? undefined,
+        dateAdmitted: shareholder.dateAdmitted ?? undefined,
+        votingStatus: shareholder.votingStatus ?? undefined,
       } as Json,
       corporate_details: {
         nominee: shareholder.isNominee || undefined,
@@ -757,6 +775,14 @@ export async function POST(request: Request) {
       if (entityType === 'sole_proprietorship' && (count ?? 0) > 1) {
         return NextResponse.json({ error: 'a sole proprietorship can only have one proprietor' }, { status: 400 })
       }
+      // SOC section 13: at least three registration signatories.
+      if (entityType === 'society') {
+        const { data: officers } = await supabase.from('directors').select('residential_address').eq('entity_id', entityId)
+        const signatories = (officers ?? []).filter((o) => (o.residential_address as { isRegistrationSignatory?: boolean } | null)?.isRegistrationSignatory).length
+        if (signatories < 3) {
+          return NextResponse.json({ error: `at least 3 officers must be marked as registration signatories (currently ${signatories})` }, { status: 400 })
+        }
+      }
     }
 
     // Charitable trusts don't require individual beneficiary records
@@ -768,13 +794,16 @@ export async function POST(request: Request) {
         .select('id', { count: 'exact', head: true })
         .eq('entity_id', entityId)
       if ((count ?? 0) < 1) {
-        return NextResponse.json({ error: entityType === 'trust' ? 'at least one beneficiary or class of beneficiaries required' : 'at least one shareholder/member required' }, { status: 400 })
+        return NextResponse.json({ error: entityType === 'trust' ? 'at least one beneficiary or class of beneficiaries required' : entityType === 'society' ? 'at least one founding member required' : 'at least one shareholder/member required' }, { status: 400 })
       }
     }
 
     // Beneficial ownership: required unless the user explicitly confirmed
-    // none currently apply (LLC-Only Developer Implementation Spec)
-    if (isStepVisible(8, entityType, wizard) && entityType !== 'trust') {
+    // none currently apply (LLC-Only Developer Implementation Spec).
+    // Trust and Society don't use this register at all — reuse the same
+    // table for settlors (trust) or skip it entirely (society, spec
+    // section 40: no beneficial ownership register in the company sense).
+    if (isStepVisible(8, entityType, wizard) && entityType !== 'trust' && entityType !== 'society') {
       const { count } = await supabase
         .from('beneficial_owners')
         .select('id', { count: 'exact', head: true })
@@ -782,6 +811,9 @@ export async function POST(request: Request) {
       if ((count ?? 0) < 1 && !wizard.noBeneficialOwners) {
         return NextResponse.json({ error: 'beneficial ownership details required, or confirm none currently apply' }, { status: 400 })
       }
+    }
+    if (entityType === 'society' && wizard.hasConstitution === undefined) {
+      return NextResponse.json({ error: 'confirm whether a Constitution already exists' }, { status: 400 })
     }
     if (entityType === 'trust') {
       const { count } = await supabase
@@ -1155,12 +1187,13 @@ async function generateAndStoreIdp(
 
     // ---- directors table -----------------------------------------
     const idpDirectors = (directors ?? []).map((d) => {
-      const ra = d.residential_address as { isCorporate?: boolean; physicalAddress?: string; foreignAddress?: string } | null
+      const ra = d.residential_address as { isCorporate?: boolean; physicalAddress?: string; foreignAddress?: string; position?: string } | null
       return {
         fullName: d.full_name,
         role: ctx.entityType === 'partnership' ? (ra?.isCorporate ? 'Corporate partner' : 'Partner')
           : ctx.entityType === 'sole_proprietorship' ? 'Proprietor'
           : ctx.entityType === 'trust' ? (ra?.isCorporate ? 'Corporate trustee' : 'Trustee')
+          : ctx.entityType === 'society' ? (ra?.position || 'Officer')
           : (ra?.isCorporate ? 'Corporate director' : 'Director'),
         nationality: d.nationality,
         idNumber: d.id_number,
@@ -1243,6 +1276,8 @@ async function generateAndStoreIdp(
       ? [{ type: 'signed_bn2', label: 'BN2 — Application for registration of a business name' }]
       : ctx.entityType === 'trust'
       ? [{ type: 'trust_deed', label: 'Trust Deed' }]
+      : ctx.entityType === 'society'
+      ? [{ type: 'constitution', label: 'Constitution' }]
       : [
           { type: 'signed_cr1', label: 'CR1 — Application for registration' },
           { type: 'signed_cr2', label: 'CR2 — Memorandum of registration' },
@@ -1287,6 +1322,13 @@ async function generateAndStoreIdp(
       if (w.trustKind === 'charitable_trust' && !(w.trustCharitableObjects ?? []).some((o) => o.trim())) exceptions.push('No charitable objects listed.')
       if (w.hasTrustDeed === undefined) exceptions.push('Trust Deed status not yet confirmed.')
       if (w.hasProtector === undefined) exceptions.push('Protector/Enforcer status not yet confirmed.')
+    } else if (ctx.entityType === 'society') {
+      if ((directors ?? []).length === 0) exceptions.push('No officers captured.')
+      const signatories = (directors ?? []).filter((d) => (d.residential_address as { isRegistrationSignatory?: boolean } | null)?.isRegistrationSignatory).length
+      if (signatories < 3) exceptions.push(`Only ${signatories} registration signatory officer(s) — at least 3 required.`)
+      if ((shareholders ?? []).length === 0) exceptions.push('No founding members captured.')
+      if (w.socFounderCount != null && w.socFounderCount < 10) exceptions.push('Fewer than 10 founders recorded — Societies generally require at least 10.')
+      if (w.hasConstitution === undefined) exceptions.push('Constitution status not yet confirmed.')
     } else {
       if ((shareholders ?? []).length === 0) exceptions.push('No shareholders captured.')
       if (!w.useMultipleShareClasses && w.totalShares) {
@@ -1353,6 +1395,11 @@ async function generateAndStoreIdp(
       })),
       protector: w.hasProtector ? { name: w.protectorName ?? '—', powers: w.protectorPowers ?? null } : null,
       hasTrustDeed: w.hasTrustDeed ?? null,
+
+      isSociety: ctx.entityType === 'society',
+      societyGoverningBody: w.socHasGoverningBody ? { name: w.socGoverningBodyName ?? '—', quorum: w.socGoverningBodyQuorum ?? null } : null,
+      societyProperty: (w.socPropertyItems ?? []).map((p) => ({ description: p.description, location: p.location })),
+      hasConstitution: w.hasConstitution ?? null,
     })
 
     const path = `${ctx.orgId}/${ctx.entityId}/idp-${Date.now()}.pdf`

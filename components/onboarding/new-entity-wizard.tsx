@@ -190,6 +190,10 @@ type DirectorRow = {
     interestPercentage?: string
     contributionType?: string
     contributionValue?: string
+    position?: string
+    isRegistrationSignatory?: boolean
+    termOfOffice?: string
+    termExpiryDate?: string
   } | null
 }
 
@@ -202,7 +206,16 @@ type ShareholderRow = {
   email?: string | null
   shares_held: number
   share_percentage: number | null
-  address: { isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string; nationality?: string; dateOfBirth?: string; county?: string; occupation?: string; postalCode?: string; postalAddressLine?: string } | null
+  address: {
+    isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string
+    nationality?: string; dateOfBirth?: string; county?: string; occupation?: string; postalCode?: string; postalAddressLine?: string
+    // Society only — Society Formation Workflow spec, 2026-08, section 9.
+    membershipClass?: string
+    isFoundingMember?: boolean
+    dateAdmitted?: string
+    votingStatus?: string
+    memberStatus?: string
+  } | null
   corporate_details: {
     nominee?: boolean
     isCorporate?: boolean
@@ -413,7 +426,7 @@ export function NewEntityWizard() {
         if (!wizard.county) return 'Choose a county.'
         if (!wizard.postalCode?.trim()) return 'Postal code is required.'
         if (!wizard.postalAddress?.trim()) return 'Postal address is required.'
-        if (entityType !== 'trust') {
+        if (entityType !== 'trust' && entityType !== 'society') {
           if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
           if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
         }
@@ -431,6 +444,13 @@ export function NewEntityWizard() {
         }
         if (entityType === 'trust' && wizard.trustKind === 'charitable_trust') {
           if (!(wizard.trustCharitableObjects ?? []).some((o) => o.trim())) return 'List at least one charitable object.'
+        }
+        if (entityType === 'society') {
+          if (!wizard.socPrimaryObject?.trim()) return 'Describe the primary object of the Society.'
+          if (!wizard.socGeographicScope) return 'Choose the geographic scope.'
+          if (wizard.socIsAffiliated === undefined) return 'Tell us whether the Society is affiliated with another organisation.'
+          if (wizard.socIsAffiliated && wizard.socAffiliationIsPolitical === undefined) return 'Tell us whether the affiliation is political in nature.'
+          if (wizard.socOwnsProperty === undefined) return 'Tell us whether the Society currently owns property.'
         }
         return null
       case 5: {
@@ -466,6 +486,13 @@ export function NewEntityWizard() {
           }
           return null
         }
+        if (entityType === 'society') {
+          if (wizard.socFounderCount == null) return 'Enter how many persons are forming the organisation.'
+          if (wizard.socIsForProfit === undefined) return 'Answer whether the organisation is being formed for profit.'
+          if (wizard.socAlreadyRegisteredElsewhere === undefined) return 'Answer whether the organisation is already registered under another legal framework.'
+          if (!wizard.socClassification) return 'Choose what best describes the organisation.'
+          return null
+        }
         if (wizard.useMultipleShareClasses) {
           const classes = wizard.shareClassList ?? []
           if (classes.length === 0) return 'Add at least one share class.'
@@ -495,6 +522,13 @@ export function NewEntityWizard() {
             return null
           }
           if (shareholders.length < 1) return 'Add at least one beneficiary or class of beneficiaries.'
+          return null
+        }
+        if (entityType === 'society') {
+          if (!wizard.socMembershipEligibility?.trim()) return 'Describe who is eligible to become a member.'
+          if (wizard.socHasMembershipClasses === undefined) return 'Tell us whether there are different classes of membership.'
+          if (!wizard.socAdmissionProcess?.trim()) return 'Describe the admission process.'
+          if (!wizard.socTerminationRules?.trim()) return 'Describe the termination/resignation/expulsion rules.'
           return null
         }
         if (shareholders.length < 1) return 'Add at least one shareholder/member.'
@@ -542,6 +576,10 @@ export function NewEntityWizard() {
         // Trust Property (spec sections 15–16) — optional at this stage,
         // a trust may legitimately have no settled property yet.
         if (entityType === 'trust') return null
+        if (entityType === 'society') {
+          if (shareholders.length < 1) return 'Add at least one founding member.'
+          return null
+        }
         // Spec: BO details required unless the user explicitly confirms
         // no declarable beneficial owner presently exists (10%+ direct/
         // indirect interest or significant control — Charles, LLC spec)
@@ -553,6 +591,14 @@ export function NewEntityWizard() {
         if (entityType === 'trust') {
           if (wizard.hasProtector === undefined) return 'Tell us whether the trust will have a Protector or Enforcer.'
           if (wizard.hasProtector && !wizard.protectorName?.trim()) return 'Enter the Protector/Enforcer’s name.'
+          return null
+        }
+        if (entityType === 'society') {
+          if (wizard.socHasGoverningBody === undefined) return 'Tell us whether the Society has a Committee, Council, or other governing body.'
+          if (wizard.socHasGoverningBody) {
+            if (!wizard.socGoverningBodyName?.trim()) return 'Enter the name of the governing body.'
+            if (!wizard.socGoverningBodyQuorum?.trim()) return 'Enter the quorum for the governing body.'
+          }
           return null
         }
         const secretaryMandatory = entityType === 'public_limited_company' || (wizard.authorisedShareCapital ?? 0) > SECRETARY_CAPITAL_THRESHOLD_KES
@@ -570,6 +616,10 @@ export function NewEntityWizard() {
         }
         if (entityType === 'trust') {
           if (wizard.hasTrustDeed === undefined) return 'Tell us whether you already have a Trust Deed.'
+          return null
+        }
+        if (entityType === 'society') {
+          if (wizard.hasConstitution === undefined) return 'Tell us whether you already have a Constitution.'
           return null
         }
         if (!wizard.articlesType) return 'Choose which articles of association the company will use.'
@@ -739,6 +789,7 @@ export function NewEntityWizard() {
               documents={documents}
             />
           ) :
+          entityType === 'society' ? <StepSocietyEligibility wizard={wizard} patch={patch} /> :
           <StepShareCapital wizard={wizard} patch={patch} shareholders={shareholders} />
         )}
         {step === 6 && (
@@ -752,7 +803,8 @@ export function NewEntityWizard() {
               api={api}
               setError={setError}
             />
-          ) : (
+          ) :
+          entityType === 'society' ? <StepSocietyMembershipStructure wizard={wizard} patch={patch} /> : (
             <StepShareholders
               entityType={entityType}
               shareholders={shareholders}
@@ -786,6 +838,8 @@ export function NewEntityWizard() {
         {step === 8 && (
           entityType === 'trust' ? (
             <StepTrustProperty wizard={wizard} patch={patch} />
+          ) : entityType === 'society' ? (
+            <StepSocietyMembers members={shareholders} setMembers={setShareholders} api={api} setError={setError} />
           ) : (
             <StepBeneficialOwners
               shareholders={shareholders}
@@ -802,9 +856,9 @@ export function NewEntityWizard() {
           )
         )}
         {step === 9 && (
-          entityType === 'trust'
-            ? <StepTrustProtector wizard={wizard} patch={patch} />
-            : <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />
+          entityType === 'trust' ? <StepTrustProtector wizard={wizard} patch={patch} /> :
+          entityType === 'society' ? <StepSocietyGoverningCommittee wizard={wizard} patch={patch} /> :
+          <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />
         )}
         {step === 10 && (
           <StepConstitutional
@@ -1038,7 +1092,7 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
         })}
       </div>
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        LexReg currently supports Limited Companies, Partnerships, Sole Proprietorships, and Trusts. Other entity types are on the roadmap.
+        LexReg currently supports Limited Companies, Partnerships, Sole Proprietorships, Trusts, and Societies. Other entity types are on the roadmap.
       </p>
     </div>
   )
@@ -1150,21 +1204,93 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        {entityType === 'trust' ? 'Trust basics' : 'Company basics'}
+        {entityType === 'trust' ? 'Trust basics' : entityType === 'society' ? 'Objects & registered office' : 'Company basics'}
       </h1>
 
-      <Field label={entityType === 'trust' ? 'Trust type' : 'Company type'}>
+      <Field label={entityType === 'trust' ? 'Trust type' : entityType === 'society' ? 'Entity type' : 'Company type'}>
         <input type="text" className={inputCls} style={{ ...inputStyle, opacity: 0.7 }} value={entityLabel} disabled readOnly />
       </Field>
 
+      {entityType === 'society' && (
+        <div className="space-y-4">
+          <Field label="Primary object of the Society" required>
+            <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socPrimaryObject ?? ''} onChange={(e) => patch({ socPrimaryObject: e.target.value })} />
+          </Field>
+          <Field label="Additional objects">
+            <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socAdditionalObjects ?? ''} onChange={(e) => patch({ socAdditionalObjects: e.target.value })} />
+          </Field>
+          <Field label="Geographic scope" required>
+            <select className={inputCls} style={inputStyle} value={wizard.socGeographicScope ?? ''} onChange={(e) => patch({ socGeographicScope: e.target.value as WizardData['socGeographicScope'] })}>
+              <option value="" disabled>Choose…</option>
+              <option value="estate">Estate / neighbourhood</option>
+              <option value="county">County</option>
+              <option value="national">National</option>
+              <option value="other">Other</option>
+            </select>
+          </Field>
+          <Field label="Is the Society affiliated with or connected to another organisation?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[true, false].map((v) => (
+                <button
+                  key={String(v)} type="button" onClick={() => patch({ socIsAffiliated: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: wizard.socIsAffiliated === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.socIsAffiliated === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {v ? 'Yes' : 'No'}
+                </button>
+              ))}
+            </div>
+          </Field>
+          {wizard.socIsAffiliated === true && (
+            <div className="ios-surface rounded-2xl p-4 space-y-3">
+              <Field label="Organisation name">
+                <input type="text" className={inputCls} style={inputStyle} value={wizard.socAffiliationName ?? ''} onChange={(e) => patch({ socAffiliationName: e.target.value })} />
+              </Field>
+              <Field label="Jurisdiction">
+                <input type="text" className={inputCls} style={inputStyle} value={wizard.socAffiliationJurisdiction ?? ''} onChange={(e) => patch({ socAffiliationJurisdiction: e.target.value })} />
+              </Field>
+              <Field label="Nature of affiliation">
+                <input type="text" className={inputCls} style={inputStyle} value={wizard.socAffiliationNature ?? ''} onChange={(e) => patch({ socAffiliationNature: e.target.value })} />
+              </Field>
+              <Field label="Is the affiliation political in nature?" required>
+                <div className="grid grid-cols-2 gap-2">
+                  {[true, false].map((v) => (
+                    <button
+                      key={String(v)} type="button" onClick={() => patch({ socAffiliationIsPolitical: v })}
+                      className="py-2.5 rounded-xl border text-sm font-medium"
+                      style={{
+                        borderColor: wizard.socAffiliationIsPolitical === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                        background: wizard.socAffiliationIsPolitical === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                        color: 'var(--system-label)',
+                      }}
+                    >
+                      {v ? 'Yes' : 'No'}
+                    </button>
+                  ))}
+                </div>
+                {wizard.socAffiliationIsPolitical === true && (
+                  <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+                    A political affiliation will be flagged for professional review.
+                  </p>
+                )}
+              </Field>
+            </div>
+          )}
+        </div>
+      )}
+
       {entityType !== 'trust' && (
-        <Field label="Nature of business / business activity" required>
+        <Field label={entityType === 'society' ? 'Principal activities' : 'Nature of business / business activity'} required>
           <textarea
             className={inputCls}
             style={inputStyle}
             rows={3}
             maxLength={200}
-            placeholder="Briefly describe the business activity…"
+            placeholder={entityType === 'society' ? 'Briefly describe the Society’s principal activities…' : 'Briefly describe the business activity…'}
             value={wizard.primaryActivity ?? ''}
             onChange={(e) => patch({ primaryActivity: e.target.value })}
           />
@@ -1255,7 +1381,7 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
         </p>
       </div>
 
-      {entityType !== 'trust' && (
+      {entityType !== 'trust' && entityType !== 'society' && (
         <div className="space-y-4">
           <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
             Turnover & employment
@@ -1425,6 +1551,91 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
           )}
         </div>
       )}
+
+      {entityType === 'society' && (
+        <div className="space-y-4">
+          <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+            Property
+          </h2>
+          <Field label="Does the Society currently own land, premises or other significant property?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[true, false].map((v) => (
+                <button
+                  key={String(v)} type="button" onClick={() => patch({ socOwnsProperty: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: wizard.socOwnsProperty === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.socOwnsProperty === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {v ? 'Yes' : 'No'}
+                </button>
+              ))}
+            </div>
+          </Field>
+          {wizard.socOwnsProperty === true && (
+            <SocietyPropertyEditor
+              items={wizard.socPropertyItems ?? []}
+              onChange={(items) => patch({ socPropertyItems: items })}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SocietyPropertyEditor({ items, onChange }: {
+  items: NonNullable<WizardData['socPropertyItems']>
+  onChange: (items: NonNullable<WizardData['socPropertyItems']>) => void
+}) {
+  const [form, setForm] = useState<NonNullable<WizardData['socPropertyItems']>[number] | null>(null)
+  const save = () => {
+    if (!form) return
+    onChange(items.some((i) => i.id === form.id) ? items.map((i) => (i.id === form.id ? form : i)) : [...items, form])
+    setForm(null)
+  }
+  return (
+    <div className="space-y-2">
+      {items.map((i) => (
+        <div key={i.id} className="ios-surface rounded-2xl p-3 flex items-start justify-between gap-3">
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label)' }}>{i.description} — {i.location}</p>
+          <div className="flex gap-3 shrink-0">
+            <button type="button" className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }} onClick={() => setForm(i)}>Edit</button>
+            <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => onChange(items.filter((x) => x.id !== i.id))}>Remove</button>
+          </div>
+        </div>
+      ))}
+      {form ? (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Description" required>
+            <input type="text" className={inputCls} style={inputStyle} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </Field>
+          <Field label="Location" required>
+            <input type="text" className={inputCls} style={inputStyle} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+          </Field>
+          <Field label="Title / reference">
+            <input type="text" className={inputCls} style={inputStyle} value={form.titleReference ?? ''} onChange={(e) => setForm({ ...form, titleReference: e.target.value })} />
+          </Field>
+          <Field label="How is it legally vested?">
+            <input type="text" className={inputCls} style={inputStyle} value={form.vestedIn ?? ''} onChange={(e) => setForm({ ...form, vestedIn: e.target.value })} />
+          </Field>
+          <div className="flex gap-2">
+            <PrimaryButton onClick={save}>{items.some((i) => i.id === form.id) ? 'Update' : 'Add property'}</PrimaryButton>
+            <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setForm({ id: crypto.randomUUID(), description: '', location: '' })}
+          className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
+          style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+        >
+          + Add property
+        </button>
+      )}
     </div>
   )
 }
@@ -1438,6 +1649,7 @@ const ROLE_BY_TYPE: Partial<Record<EntityType, string>> = {
   limited_liability_partnership: 'Designated Member',
   trust: 'Trustee',
   company_limited_by_guarantee: 'Trustee',
+  society: 'Officer',
 }
 
 type DirectorForm = {
@@ -1472,6 +1684,12 @@ type DirectorForm = {
   interestPercentage: string
   contributionType: 'cash' | 'property' | 'intellectual_property' | 'equipment' | 'services' | 'other' | ''
   contributionValue: string
+  // Society only (Society Formation Workflow spec, 2026-08, SOC-040–051)
+  // — officer-specific fields, not meaningful for any other entity type.
+  position: string
+  isRegistrationSignatory: boolean
+  termOfOffice: string
+  termExpiryDate: string
 }
 
 export const emptyCorporate: CorporateParticipant = {
@@ -1491,6 +1709,7 @@ const emptyDirector: DirectorForm = {
   isCorporate: false, corporate: { ...emptyCorporate },
   isForeign: false, foreignAddress: '',
   interestPercentage: '', contributionType: '', contributionValue: '',
+  position: '', isRegistrationSignatory: false, termOfOffice: '', termExpiryDate: '',
 }
 
 // Shared inline OCR uploader — used inside the director/shareholder "add
@@ -1913,6 +2132,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       if (!f.interestPercentage.trim() || Number(f.interestPercentage) <= 0) return 'Enter this partner’s percentage interest.'
       if (!f.contributionType) return 'Choose what this partner is contributing.'
     }
+    if (entityType === 'society' && !f.position.trim()) return 'Enter this officer’s position/title.'
     if (f.isCorporate) {
       const c = f.corporate
       if (!c.registeredName.trim()) return 'Registered company name is required.'
@@ -1983,6 +2203,10 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           interestPercentage: entityType === 'partnership' ? form.interestPercentage || undefined : undefined,
           contributionType: entityType === 'partnership' ? form.contributionType || undefined : undefined,
           contributionValue: entityType === 'partnership' ? form.contributionValue || undefined : undefined,
+          position: entityType === 'society' ? form.position || undefined : undefined,
+          isRegistrationSignatory: entityType === 'society' ? form.isRegistrationSignatory : undefined,
+          termOfOffice: entityType === 'society' ? form.termOfOffice || undefined : undefined,
+          termExpiryDate: entityType === 'society' ? form.termExpiryDate || undefined : undefined,
         },
       })
       const updated: DirectorRow = {
@@ -2010,6 +2234,10 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           interestPercentage: entityType === 'partnership' ? form.interestPercentage || undefined : undefined,
           contributionType: entityType === 'partnership' ? form.contributionType || undefined : undefined,
           contributionValue: entityType === 'partnership' ? form.contributionValue || undefined : undefined,
+          position: entityType === 'society' ? form.position || undefined : undefined,
+          isRegistrationSignatory: entityType === 'society' ? form.isRegistrationSignatory : undefined,
+          termOfOffice: entityType === 'society' ? form.termOfOffice || undefined : undefined,
+          termExpiryDate: entityType === 'society' ? form.termExpiryDate || undefined : undefined,
         },
       }
       setDirectors(form.id ? directors.map((d) => (d.id === form.id ? updated : d)) : [...directors, updated])
@@ -2108,6 +2336,10 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 interestPercentage: d.residential_address?.interestPercentage ?? '',
                 contributionType: (d.residential_address?.contributionType ?? '') as DirectorForm['contributionType'],
                 contributionValue: d.residential_address?.contributionValue ?? '',
+                position: d.residential_address?.position ?? '',
+                isRegistrationSignatory: !!d.residential_address?.isRegistrationSignatory,
+                termOfOffice: d.residential_address?.termOfOffice ?? '',
+                termExpiryDate: d.residential_address?.termExpiryDate ?? '',
                 phone: d.residential_address?.isCorporate ? '' : (d.phone ?? ''),
                 email: d.residential_address?.isCorporate ? '' : (d.email ?? ''),
                 appointmentDate: d.appointment_date ?? '',
@@ -2296,7 +2528,30 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
             </>
           )}
 
-          <Field label={entityType === 'partnership' ? 'Admission date' : entityType === 'sole_proprietorship' ? 'Start date' : 'Appointment date'}>
+          {entityType === 'society' && (
+            <>
+              <Field label="Position / title" required>
+                <input
+                  type="text" className={inputCls} style={inputStyle} placeholder="e.g. Chairperson, Secretary, Treasurer"
+                  value={form.position} onChange={(e) => set({ position: e.target.value })}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Term of office">
+                  <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 2 years" value={form.termOfOffice} onChange={(e) => set({ termOfOffice: e.target.value })} />
+                </Field>
+                <Field label="Term expiry date">
+                  <input type="date" className={inputCls} style={inputStyle} value={form.termExpiryDate} onChange={(e) => set({ termExpiryDate: e.target.value })} />
+                </Field>
+              </div>
+              <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                <input type="checkbox" checked={form.isRegistrationSignatory} onChange={(e) => set({ isRegistrationSignatory: e.target.checked })} />
+                This officer will sign the statutory registration documentation
+              </label>
+            </>
+          )}
+
+          <Field label={entityType === 'partnership' ? 'Admission date' : entityType === 'sole_proprietorship' ? 'Start date' : entityType === 'society' ? 'Appointment / election date' : 'Appointment date'}>
             <input type="date" className={inputCls} style={inputStyle} value={form.appointmentDate} onChange={(e) => set({ appointmentDate: e.target.value })} />
           </Field>
           <div className="flex gap-2">
@@ -4206,6 +4461,428 @@ function StepTrustProtector({ wizard, patch }: { wizard: WizardData; patch: (p: 
 }
 
 // ------------------------------------------------------------------
+// Society — Eligibility Assessment (repurposes the Share Structure step
+// slot, Society Formation Workflow spec, 2026-08, section 4, SOC-001–
+// 004). Advisory — flags likely-wrong entity choices but doesn't force
+// the user off this path, same pattern as the trust/partnership/sole-
+// proprietorship suitability checks.
+// ------------------------------------------------------------------
+const SOCIETY_CLASSIFICATIONS = [
+  "Residents' / Property Owners' Association", 'Welfare Association', 'Club', 'Alumni Association',
+  'Cultural Association', 'Professional / Membership Association', 'Religious / Faith-based Association',
+  'Community Association', 'Other',
+]
+
+function StepSocietyEligibility({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  return (
+    <div className="space-y-5">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Eligibility assessment
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        A few quick questions before we collect the full application — a Society isn&apos;t always the right
+        legal vehicle.
+      </p>
+
+      <Field label="How many persons are forming the organisation?" required>
+        <input
+          type="number" min={0} className={inputCls} style={inputStyle}
+          value={wizard.socFounderCount ?? ''}
+          onChange={(e) => patch({ socFounderCount: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+        />
+        {wizard.socFounderCount != null && wizard.socFounderCount < 10 && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            A Society under the Societies Act generally requires an association of at least ten persons. Another
+            organisational form may be more suitable — our team can advise.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Is the organisation being formed primarily to carry on business for profit for its members?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ socIsForProfit: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.socIsForProfit === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.socIsForProfit === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.socIsForProfit === true && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            A Society may not be the appropriate legal structure for a for-profit purpose — a Partnership, LLP,
+            or Company may suit you better.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Is the organisation already registered under another legal framework?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(({ v, label }) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ socAlreadyRegisteredElsewhere: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.socAlreadyRegisteredElsewhere === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.socAlreadyRegisteredElsewhere === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wizard.socAlreadyRegisteredElsewhere === true && (
+          <p className="text-ios-caption1 mt-1 rounded-lg p-2" style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}>
+            e.g. as a company, cooperative, trade union, school, or other statutory body — this will be flagged
+            for manual review.
+          </p>
+        )}
+      </Field>
+
+      <Field label="What best describes the organisation?" required>
+        <select className={inputCls} style={inputStyle} value={wizard.socClassification ?? ''} onChange={(e) => patch({ socClassification: e.target.value })}>
+          <option value="" disabled>Choose…</option>
+          {SOCIETY_CLASSIFICATIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </Field>
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Society — Membership Structure (repurposes the Shareholders step
+// slot, spec section 8, SOC-030–035). Settings only — the founding
+// member list itself is a separate step (Initial Members).
+// ------------------------------------------------------------------
+function StepSocietyMembershipStructure({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  return (
+    <div className="space-y-5">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Membership structure
+      </h1>
+      <Field label="Who is eligible to become a member?" required>
+        <textarea className={inputCls} style={inputStyle} rows={2} placeholder="e.g. Residents/property owners, former students, members of a profession" value={wizard.socMembershipEligibility ?? ''} onChange={(e) => patch({ socMembershipEligibility: e.target.value })} />
+      </Field>
+      <Field label="Are there different classes of membership?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[true, false].map((v) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ socHasMembershipClasses: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.socHasMembershipClasses === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.socHasMembershipClasses === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {v ? 'Yes' : 'No'}
+            </button>
+          ))}
+        </div>
+      </Field>
+      {wizard.socHasMembershipClasses === true && (
+        <Field label="Membership classes">
+          <p className="text-ios-caption1 mb-2" style={{ color: 'var(--system-label-3)' }}>e.g. Ordinary, Associate, Honorary, Corporate, Life</p>
+          <StringListEditor values={wizard.socMembershipClasses ?? ['']} onChange={(values) => patch({ socMembershipClasses: values })} placeholder="e.g. Ordinary Member" />
+        </Field>
+      )}
+      <Field label="Admission process">
+        <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socAdmissionProcess ?? ''} onChange={(e) => patch({ socAdmissionProcess: e.target.value })} />
+      </Field>
+      <Field label="Membership fees / subscriptions">
+        <input type="text" className={inputCls} style={inputStyle} value={wizard.socMembershipFees ?? ''} onChange={(e) => patch({ socMembershipFees: e.target.value })} />
+      </Field>
+      <Field label="Voting rights by class">
+        <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socVotingRights ?? ''} onChange={(e) => patch({ socVotingRights: e.target.value })} />
+      </Field>
+      <Field label="Termination / resignation / expulsion rules">
+        <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socTerminationRules ?? ''} onChange={(e) => patch({ socTerminationRules: e.target.value })} />
+      </Field>
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Society — Initial Members (repurposes the Beneficial Ownership step
+// slot, spec sections 9–10). Reuses the shareholders table/actions
+// purely for its person-record shape — shares_held is unused (kept at
+// 1). Former members should be marked inactive, not deleted (spec
+// section 10) — deletion here is only for a founding record entered in
+// error before submission, not post-registration member lifecycle
+// management (a later phase, same as other entities' post-formation
+// lifecycle work).
+// ------------------------------------------------------------------
+type SocietyMemberForm = {
+  id?: string
+  fullName: string
+  idNumber: string
+  nationality: string
+  address: string
+  email: string
+  phone: string
+  membershipClass: string
+  isFoundingMember: boolean
+  dateAdmitted: string
+  votingStatus: 'voting' | 'non_voting'
+}
+
+function emptySocietyMember(): SocietyMemberForm {
+  return {
+    fullName: '', idNumber: '', nationality: 'Kenyan', address: '', email: '', phone: '',
+    membershipClass: '', isFoundingMember: true, dateAdmitted: new Date().toISOString().slice(0, 10), votingStatus: 'voting',
+  }
+}
+
+function StepSocietyMembers({ members, setMembers, api, setError }: {
+  members: ShareholderRow[]
+  setMembers: (m: ShareholderRow[]) => void
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  setError: (e: string) => void
+}) {
+  const [form, setForm] = useState<SocietyMemberForm | null>(members.length === 0 ? emptySocietyMember() : null)
+  const [busy, setBusy] = useState(false)
+  const set = (partial: Partial<SocietyMemberForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
+
+  const save = async () => {
+    if (!form) return
+    if (!form.fullName.trim()) { setError('Full name is required.'); return }
+    setError('')
+    setBusy(true)
+    try {
+      const result = await api({
+        action: 'upsert_shareholder',
+        shareholder: {
+          id: form.id,
+          legalName: form.fullName.trim(),
+          idNumber: form.idNumber || undefined,
+          sharesHeld: 1,
+          physicalAddress: form.address || undefined,
+          nationality: form.nationality || undefined,
+          phone: form.phone || undefined,
+          email: form.email || undefined,
+          membershipClass: form.membershipClass || undefined,
+          isFoundingMember: form.isFoundingMember,
+          dateAdmitted: form.dateAdmitted || undefined,
+          votingStatus: form.votingStatus,
+        },
+      })
+      const updated: ShareholderRow = {
+        id: result.id!,
+        legal_name: form.fullName.trim(),
+        id_or_reg_number: form.idNumber || null,
+        kra_pin: null,
+        phone: form.phone || null,
+        email: form.email || null,
+        shares_held: 1,
+        share_percentage: null,
+        address: {
+          physicalAddress: form.address || undefined, nationality: form.nationality || undefined,
+          membershipClass: form.membershipClass || undefined, isFoundingMember: form.isFoundingMember,
+          dateAdmitted: form.dateAdmitted || undefined, votingStatus: form.votingStatus,
+        },
+        corporate_details: { isCorporate: false },
+      }
+      setMembers(form.id ? members.map((m) => (m.id === form.id ? updated : m)) : [...members, updated])
+      setForm(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (id: string) => {
+    setBusy(true)
+    try {
+      await api({ action: 'delete_shareholder', id })
+      setMembers(members.filter((m) => m.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Initial members
+      </h1>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        The founding membership list — this becomes the Member Register once the Society is registered.
+      </p>
+
+      {members.map((m) => (
+        <div key={m.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{m.legal_name}</p>
+            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{m.address?.membershipClass || 'Ordinary member'}</p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <button
+              type="button"
+              className="text-ios-footnote font-medium"
+              style={{ color: 'var(--brand-navy)' }}
+              onClick={() => setForm({
+                id: m.id,
+                fullName: m.legal_name,
+                idNumber: m.id_or_reg_number ?? '',
+                nationality: m.address?.nationality ?? 'Kenyan',
+                address: m.address?.physicalAddress ?? '',
+                email: m.email ?? '',
+                phone: m.phone ?? '',
+                membershipClass: m.address?.membershipClass ?? '',
+                isFoundingMember: m.address?.isFoundingMember ?? true,
+                dateAdmitted: m.address?.dateAdmitted ?? '',
+                votingStatus: (m.address?.votingStatus as SocietyMemberForm['votingStatus']) ?? 'voting',
+              })}
+            >
+              Edit
+            </button>
+            <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(m.id)} disabled={busy}>
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {form ? (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Full name" required>
+            <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="ID / passport">
+              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+            </Field>
+            <Field label="Nationality">
+              <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Address">
+            <input type="text" className={inputCls} style={inputStyle} value={form.address} onChange={(e) => set({ address: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Email">
+              <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
+            </Field>
+            <Field label="Phone">
+              <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Membership class">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Ordinary Member" value={form.membershipClass} onChange={(e) => set({ membershipClass: e.target.value })} />
+          </Field>
+          <Field label="Date admitted">
+            <input type="date" className={inputCls} style={inputStyle} value={form.dateAdmitted} onChange={(e) => set({ dateAdmitted: e.target.value })} />
+          </Field>
+          <Field label="Voting status" required>
+            <div className="grid grid-cols-2 gap-2">
+              {(['voting', 'non_voting'] as const).map((v) => (
+                <button
+                  key={v} type="button" onClick={() => set({ votingStatus: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium capitalize"
+                  style={{
+                    borderColor: form.votingStatus === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: form.votingStatus === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {v.replace('_', '-')}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            <input type="checkbox" checked={form.isFoundingMember} onChange={(e) => set({ isFoundingMember: e.target.checked })} />
+            Founding member
+          </label>
+          <div className="flex gap-2">
+            <PrimaryButton onClick={save} disabled={busy}>{busy ? 'Saving…' : form.id ? 'Update' : 'Add member'}</PrimaryButton>
+            {members.length > 0 && <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>}
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setForm(emptySocietyMember())}
+          className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
+          style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+        >
+          + Add another member
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
+// Society — Governing Committee (repurposes the Company Secretary step
+// slot, spec section 14). Settings only, not a repeating register.
+// ------------------------------------------------------------------
+function StepSocietyGoverningCommittee({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Governing committee
+      </h1>
+      <Field label="Does the Society have a Committee, Council, Executive Committee or other governing body?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[true, false].map((v) => (
+            <button
+              key={String(v)} type="button" onClick={() => patch({ socHasGoverningBody: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.socHasGoverningBody === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.socHasGoverningBody === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {v ? 'Yes' : 'No'}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      {wizard.socHasGoverningBody === true && (
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
+          <Field label="Name of body" required>
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Executive Committee" value={wizard.socGoverningBodyName ?? ''} onChange={(e) => patch({ socGoverningBodyName: e.target.value })} />
+          </Field>
+          <Field label="Positions">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Chairperson, Secretary, Treasurer" value={wizard.socGoverningBodyPositions ?? ''} onChange={(e) => patch({ socGoverningBodyPositions: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Number of members">
+              <input type="text" className={inputCls} style={inputStyle} value={wizard.socGoverningBodySize ?? ''} onChange={(e) => patch({ socGoverningBodySize: e.target.value })} />
+            </Field>
+            <Field label="Quorum" required>
+              <input type="text" className={inputCls} style={inputStyle} value={wizard.socGoverningBodyQuorum ?? ''} onChange={(e) => patch({ socGoverningBodyQuorum: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Term">
+            <input type="text" className={inputCls} style={inputStyle} value={wizard.socGoverningBodyTerm ?? ''} onChange={(e) => patch({ socGoverningBodyTerm: e.target.value })} />
+          </Field>
+          <Field label="Appointment / election procedure">
+            <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socGoverningBodyProcedure ?? ''} onChange={(e) => patch({ socGoverningBodyProcedure: e.target.value })} />
+          </Field>
+          <Field label="Decision-making threshold">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Simple majority" value={wizard.socGoverningBodyDecisionThreshold ?? ''} onChange={(e) => patch({ socGoverningBodyDecisionThreshold: e.target.value })} />
+          </Field>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------
 // Step 8 — Share capital
 // ------------------------------------------------------------------
 function emptyShareClass(): ShareClass {
@@ -4561,14 +5238,14 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Director / partner documents — ID or passport',
     hint: 'National IDs or passports — one file per person.',
     documentType: 'director_id_copy',
-    visible: (t) => t !== 'sole_proprietorship' && t !== 'trust',
+    visible: (t) => t !== 'sole_proprietorship' && t !== 'trust' && t !== 'society',
   },
   {
     key: 'director',
     title: 'Director / partner documents — KRA PIN',
     hint: 'KRA PIN certificates — one file per person.',
     documentType: 'director_kra_pin_copy',
-    visible: (t) => t !== 'sole_proprietorship' && t !== 'trust',
+    visible: (t) => t !== 'sole_proprietorship' && t !== 'trust' && t !== 'society',
   },
   {
     key: 'director',
@@ -4664,6 +5341,48 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     visible: (t) => t === 'trust',
   },
   {
+    key: 'director',
+    title: 'Officer documents — ID or passport',
+    hint: 'National IDs or passports — one file per officer.',
+    documentType: 'director_id_copy',
+    visible: (t) => t === 'society',
+  },
+  {
+    key: 'director',
+    title: 'Officer documents — KRA PIN',
+    hint: 'KRA PIN certificates — one file per officer.',
+    documentType: 'director_kra_pin_copy',
+    visible: (t) => t === 'society',
+  },
+  {
+    key: 'shareholder',
+    title: 'Member documents — ID or passport (optional)',
+    hint: 'IDs or passports for founding members who can reasonably provide one.',
+    documentType: 'shareholder_id_copy',
+    visible: (t) => t === 'society',
+  },
+  {
+    key: 'other',
+    title: 'Constitution',
+    hint: 'Whatever was uploaded or prepared on the previous step lives here too.',
+    documentType: 'constitution',
+    visible: (t) => t === 'society',
+  },
+  {
+    key: 'other',
+    title: 'Founding meeting records (optional)',
+    hint: 'Notice, agenda, attendance list, founding minutes and resolutions.',
+    documentType: 'founding_minutes',
+    visible: (t) => t === 'society',
+  },
+  {
+    key: 'other',
+    title: 'Property documents (optional)',
+    hint: 'Title/reference documents for property listed on the Objects & Registered Office step.',
+    documentType: 'society_property_document',
+    visible: (t) => t === 'society',
+  },
+  {
     key: 'address',
     title: 'Proof of registered office (optional)',
     hint: 'Utility bill, bank/mobile money statement, signed lease, landlord letter, or official correspondence showing the address — issued within the last 3 months where applicable. Upload later if you don’t have one yet.',
@@ -4679,7 +5398,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR1 (application for registration)',
     hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
     documentType: 'signed_cr1',
-    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust',
+    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust' && t !== 'society',
   },
   {
     key: 'other',
@@ -4693,7 +5412,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Signed CR8 (particulars of directors)',
     hint: 'Lists all directors captured in this application.',
     documentType: 'signed_cr8',
-    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust',
+    visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust' && t !== 'society',
   },
   {
     key: 'other',
@@ -4985,6 +5704,68 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
             Executing the Trust Deed creates the trust. Incorporating the trustees under the Trustees (Perpetual
             Succession) Act — giving them a body corporate with perpetual succession — is a separate, later step
             our team will guide you through once the trust itself is created.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (entityType === 'society') {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          Constitution
+        </h1>
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          The Constitution is the Society&apos;s core governance document — name, objects, membership, officers,
+          meetings, finances, amendment, and dissolution provisions all live here.
+        </p>
+        <Field label="Do you already have a Constitution?" required>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ v: true, label: 'Yes, I have one' }, { v: false, label: 'No, prepare one' }].map(({ v, label }) => (
+              <button
+                key={String(v)} type="button" onClick={() => patch({ hasConstitution: v })}
+                className="py-2.5 rounded-xl border text-sm font-medium"
+                style={{
+                  borderColor: wizard.hasConstitution === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                  background: wizard.hasConstitution === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                  color: 'var(--system-label)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+        {wizard.hasConstitution === true && (
+          <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
+            <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>Upload your Constitution</p>
+            <SimpleDocumentUpload
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              documentType="constitution"
+              documents={documents}
+              onUploaded={onExtracted}
+              label="Upload Constitution →"
+            />
+          </div>
+        )}
+        {wizard.hasConstitution === false && (
+          <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+            We&apos;ll prepare a draft Constitution from the objects, membership, and governance answers
+            you&apos;ve already provided — our team will follow up once you submit.
+          </p>
+        )}
+        <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
+          <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
+            Founding meeting
+          </p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            Once the Constitution is prepared, a founding meeting approves the Society&apos;s name, objects,
+            Constitution, membership, initial officers, and the application for registration. Our team will
+            help generate the notice, agenda, and founding minutes once you submit.
           </p>
         </div>
       </div>
@@ -5416,6 +6197,7 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
   const typeLabel = wizard.trustKind === 'family_trust' ? 'Family Trust' : wizard.trustKind === 'charitable_trust' ? 'Charitable Trust' : ENTITY_TYPES.find((t) => t.value === entityType)?.label ?? entityType
   const names = (wizard.proposedNames ?? []).filter((n) => n.trim())
   const isTrust = entityType === 'trust'
+  const isSociety = entityType === 'society'
 
   return (
     <div className="space-y-4">
@@ -5426,16 +6208,17 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
       <div className="ios-surface rounded-2xl p-4">
         <ReviewRow label="Entity type" value={typeLabel} />
         <ReviewRow label="Applicant" value={wizard.applicantFullName ?? '—'} />
-        <ReviewRow label={isTrust ? 'Proposed trust names' : 'Proposed names'} value={names.join(', ') || '—'} />
-        <ReviewRow label={isTrust ? 'Registered / administrative address' : 'Registered office'} value={[wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
-        {!isTrust && <ReviewRow label="Primary activity" value={wizard.primaryActivity ?? '—'} />}
-        {!isTrust && <ReviewRow label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />}
+        <ReviewRow label={isTrust ? 'Proposed trust names' : isSociety ? 'Proposed society names' : 'Proposed names'} value={names.join(', ') || '—'} />
+        <ReviewRow label={isTrust || isSociety ? 'Registered / administrative address' : 'Registered office'} value={[wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
+        {!isTrust && <ReviewRow label={isSociety ? 'Principal activities' : 'Primary activity'} value={wizard.primaryActivity ?? '—'} />}
+        {isSociety && <ReviewRow label="Primary object" value={wizard.socPrimaryObject ?? '—'} />}
+        {!isTrust && !isSociety && <ReviewRow label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />}
         {isTrust && beneficialOwners.length > 0 && (
           <ReviewRow label="Settlor(s)" value={beneficialOwners.map((s) => s.full_name).join(', ')} />
         )}
         {directors.length > 0 && (
           <ReviewRow
-            label={isTrust ? 'Trustees' : entityType === 'sole_proprietorship' ? 'Proprietor' : 'Directors/partners'}
+            label={isTrust ? 'Trustees' : isSociety ? 'Officers' : entityType === 'sole_proprietorship' ? 'Proprietor' : 'Directors/partners'}
             value={directors.map((d) => d.full_name).join(', ')}
           />
         )}
@@ -5454,7 +6237,16 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
         {isTrust && (
           <ReviewRow label="Trust Deed" value={wizard.hasTrustDeed ? 'Uploaded' : 'To be prepared'} />
         )}
-        {!isTrust && shareholders.length > 0 && (
+        {isSociety && shareholders.length > 0 && (
+          <ReviewRow label="Founding members" value={`${shareholders.length} recorded`} />
+        )}
+        {isSociety && (
+          <ReviewRow label="Governing committee" value={wizard.socHasGoverningBody ? (wizard.socGoverningBodyName || 'Yes') : 'None'} />
+        )}
+        {isSociety && (
+          <ReviewRow label="Constitution" value={wizard.hasConstitution ? 'Uploaded' : 'To be prepared'} />
+        )}
+        {!isTrust && !isSociety && shareholders.length > 0 && (
           <ReviewRow label="Shareholders" value={shareholders.map((s) => `${s.legal_name} (${s.share_percentage ?? '—'}%)`).join(', ')} />
         )}
         {wizard.authorisedShareCapital != null && (
@@ -5476,6 +6268,8 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
           <li>You choose: register yourself on eCitizen with our guidance, or have LexReg assist with filing.</li>
           {isTrust ? (
             <li>Executing the Trust Deed creates the trust. Incorporating the trustees under the Trustees (Perpetual Succession) Act is a separate, later step.</li>
+          ) : isSociety ? (
+            <li>Once the Registrar of Societies issues your Certificate of Registration, upload it back here.</li>
           ) : entityType === 'partnership' || entityType === 'sole_proprietorship' ? (
             <li>Once BRS issues your Certificate of Registration (business name), upload it back here.</li>
           ) : (

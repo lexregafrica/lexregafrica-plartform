@@ -37,11 +37,11 @@ export const SHARE_CLASS_TYPES: Array<{ value: ShareClass['type']; label: string
 // governance objects at all.
 // Trust Formation Workflow spec, 2026-08: fourth reference implementation
 // — proves the engine can carry a legal model with no directors/
-// shareholders at all (settlor/trustee/beneficiary instead). Society
-// stays disabled here until its own workflow build is complete —
-// entity_type/isStepVisible already carry its rules, but its wizard
-// steps aren't wired up yet.
-export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnership', 'sole_proprietorship', 'trust']
+// shareholders at all (settlor/trustee/beneficiary instead).
+// Society — New Entity Formation Workflow spec, 2026-08: fifth reference
+// implementation — membership-based governance (members/officers/
+// constitution) instead of ownership-based.
+export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnership', 'sole_proprietorship', 'trust', 'society']
 
 // The spec's "first user decision" (section 3): selecting Partnership
 // doesn't launch the questionnaire directly — it first asks which kind.
@@ -464,6 +464,9 @@ export type WizardData = {
   socGoverningBodyTerm?: string
   socGoverningBodyProcedure?: string
   socGoverningBodyDecisionThreshold?: string
+  // Step 10 (repurposed for society — Constitutional Documents doesn't
+  // apply) — Constitution, spec section 17.
+  hasConstitution?: boolean
   // Step 5 — Share structure. Kenyan company law requires shares to be
   // 100% issued (Charles, 2026 call) — there's no such thing as
   // "authorised but unissued" anymore, so authorised capital is no

@@ -151,6 +151,15 @@ export type IdpInput = {
   trustProperty?: Array<{ description: string; category: string; approxValue: string | null; isVested: boolean }>
   protector?: { name: string; powers: string | null } | null
   hasTrustDeed?: boolean | null
+
+  // Society Formation Workflow spec, 2026-08 — when set, the summary
+  // uses membership-organisation terminology (Officers/Members/
+  // Constitution), skipping share capital and beneficial ownership
+  // entirely rather than relabelling them (a Society has neither).
+  isSociety?: boolean
+  societyGoverningBody?: { name: string; quorum: string | null } | null
+  societyProperty?: Array<{ description: string; location: string }>
+  hasConstitution?: boolean | null
 }
 
 export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
@@ -160,9 +169,10 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   const ctx = new PageBuilder(doc, font, bold)
 
   const isTrust = !!input.isTrust
+  const isSociety = !!input.isSociety
 
   // ---------- 1. Cover & matter summary ----------
-  ctx.title(isTrust ? 'TRUST FORMATION & GOVERNANCE SUMMARY' : 'COMPANY REGISTRATION & GOVERNANCE SUMMARY')
+  ctx.title(isTrust ? 'TRUST FORMATION & GOVERNANCE SUMMARY' : isSociety ? 'SOCIETY REGISTRATION & GOVERNANCE SUMMARY' : 'COMPANY REGISTRATION & GOVERNANCE SUMMARY')
   ctx.subtitle(`Prepared for ${input.organisationName}  ·  ${formatDate(input.generatedAt)}`)
   ctx.rule(true)
   ctx.notice(
@@ -170,6 +180,10 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
       ? 'This document summarises the information provided to LexReg Africa for the creation of a trust. It ' +
         'is not itself the Trust Deed, but is intended as the review pack from which the deed and any ' +
         'trustee-incorporation filing are confirmed.'
+      : isSociety
+      ? 'This document summarises the information provided to LexReg Africa for registration of a Society. It ' +
+        'is not itself the Constitution or an official filing, but is intended as the review pack from which ' +
+        'the Constitution and registration application are confirmed.'
       : 'This document summarises the information provided to LexReg Africa for a private company limited by ' +
         'shares. It is not itself an official BRS form, but it is intended to be used as the review pack from ' +
         'which statutory forms and filing information are confirmed.'
@@ -180,17 +194,17 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.field('Service path', input.servicePath)
 
   // ---------- 2. Company overview ----------
-  ctx.section(isTrust ? 'Trust Overview' : 'Company Overview')
-  ctx.field(isTrust ? 'Trust type' : 'Company type', input.entityTypeLabel)
+  ctx.section(isTrust ? 'Trust Overview' : isSociety ? 'Society Overview' : 'Company Overview')
+  ctx.field(isTrust ? 'Trust type' : isSociety ? 'Entity type' : 'Company type', input.entityTypeLabel)
   const names = input.legalNameOptions.filter(Boolean)
-  ctx.field(isTrust ? 'Proposed trust name' : 'Proposed company name', names[0] ?? '—')
+  ctx.field(isTrust ? 'Proposed trust name' : isSociety ? 'Proposed society name' : 'Proposed company name', names[0] ?? '—')
   if (names.length > 1) ctx.field('Alternative names', names.slice(1).join('  •  '))
-  if (!isTrust) ctx.field('Nature of business', input.natureOfBusiness ?? '—')
+  if (!isTrust) ctx.field(isSociety ? 'Principal activities' : 'Nature of business', input.natureOfBusiness ?? '—')
   const addr = input.registeredAddress
-  ctx.field(isTrust ? 'Registered / administrative address' : 'Registered office', addr ? [addr.line1, addr.city, addr.county, addr.postcode].filter(Boolean).join(', ') || '—' : '—')
+  ctx.field(isTrust || isSociety ? 'Registered / administrative address' : 'Registered office', addr ? [addr.line1, addr.city, addr.county, addr.postcode].filter(Boolean).join(', ') || '—' : '—')
   ctx.field('Postal address', input.postalAddress ?? '—')
-  ctx.field(isTrust ? 'Contact email' : 'Company email', input.companyEmail ?? '—')
-  ctx.field(isTrust ? 'Contact phone' : 'Company phone', input.companyPhone ?? '—')
+  ctx.field(isTrust || isSociety ? 'Contact email' : 'Company email', input.companyEmail ?? '—')
+  ctx.field(isTrust || isSociety ? 'Contact phone' : 'Company phone', input.companyPhone ?? '—')
 
   // ---------- 3. Applicant & primary contact ----------
   ctx.section('Applicant & Primary Contact')
@@ -200,7 +214,7 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.field('Applicant phone', input.applicantPhone ?? '—')
 
   // ---------- 4. Share capital summary ----------
-  if (!isTrust) {
+  if (!isTrust && !isSociety) {
     ctx.section('Share Capital Summary')
     ctx.field('Total number of shares', input.totalShares != null ? input.totalShares.toLocaleString() : '—')
     ctx.field('Authorised capital', input.authorisedCapital != null ? `KES ${input.authorisedCapital.toLocaleString()}` : '—')
@@ -209,10 +223,10 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
     ctx.field('Voting rights', input.votingRights ?? '—')
   }
 
-  // ---------- 5. Directors & officers / Trustees ----------
+  // ---------- 5. Directors & officers / Trustees / Officers ----------
   if (input.directors.length > 0) {
-    if (isTrust) {
-      ctx.section('Trustees')
+    if (isTrust || isSociety) {
+      ctx.section(isSociety ? 'Officers' : 'Trustees')
       ctx.table(
         ['Name', 'Role', 'Nationality', 'ID / Passport', 'KRA PIN'],
         [0.3, 0.14, 0.16, 0.2, 0.2],
@@ -232,12 +246,12 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
     }
   }
 
-  // ---------- 6. Shareholders & cap table / Beneficiaries ----------
+  // ---------- 6. Shareholders & cap table / Beneficiaries / Members ----------
   if (input.shareholders.length > 0) {
-    if (isTrust) {
-      ctx.section('Beneficiaries')
+    if (isTrust || isSociety) {
+      ctx.section(isSociety ? 'Founding Members' : 'Beneficiaries')
       ctx.table(
-        ['Name / class', 'ID / Passport (if applicable)'],
+        [isSociety ? 'Name' : 'Name / class', 'ID / Passport (if applicable)'],
         [0.6, 0.4],
         input.shareholders.map((s) => [s.legalName, s.idOrRegNumber ?? '—'])
       )
@@ -255,6 +269,27 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   } else if (isTrust) {
     ctx.section('Beneficiaries')
     ctx.field('Charitable beneficiary class', 'See charitable objects below — no individual beneficiaries required.')
+  } else if (isSociety) {
+    ctx.section('Founding Members')
+    ctx.field('Declaration', 'Not yet confirmed — outstanding before filing.')
+  }
+
+  // ---------- Governing committee & property (society only) ----------
+  if (isSociety) {
+    ctx.section('Governing Committee')
+    ctx.field('Appointed', input.societyGoverningBody ? 'Yes' : 'No')
+    if (input.societyGoverningBody) {
+      ctx.field('Name', input.societyGoverningBody.name)
+      ctx.field('Quorum', input.societyGoverningBody.quorum ?? '—')
+    }
+    if ((input.societyProperty ?? []).length > 0) {
+      ctx.section('Property')
+      ctx.table(
+        ['Description', 'Location'],
+        [0.5, 0.5],
+        (input.societyProperty ?? []).map((p) => [p.description, p.location])
+      )
+    }
   }
 
   // ---------- 7. Corporate party annex ----------
@@ -278,7 +313,11 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   }
 
   // ---------- 8. Beneficial ownership / Settlors ----------
-  if (isTrust) {
+  // Society has no beneficial-ownership concept at all (spec section
+  // 40) — the section is omitted entirely rather than shown empty.
+  if (isSociety) {
+    // intentionally no section rendered
+  } else if (isTrust) {
     ctx.section('Settlors')
     if (input.beneficialOwners.length > 0) {
       ctx.table(
@@ -335,6 +374,9 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   if (isTrust) {
     ctx.section('Trust Deed')
     ctx.field('Status', input.hasTrustDeed ? 'Already exists — uploaded' : 'To be prepared')
+  } else if (isSociety) {
+    ctx.section('Constitution')
+    ctx.field('Status', input.hasConstitution ? 'Already exists — uploaded' : 'To be prepared')
   } else {
     ctx.section('Constitutional & Registration Basis')
     ctx.field('Articles of association', input.articlesType === 'custom' ? 'Custom articles' : input.articlesType === 'standard' ? 'Standard model articles' : '—')
