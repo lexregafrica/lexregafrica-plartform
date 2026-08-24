@@ -6,6 +6,7 @@ import { generateIdp } from '@/lib/documents/idp'
 import {
   ENTITY_TYPES,
   APPLICANT_RELATIONSHIPS,
+  SHAREHOLDER_TYPES,
   isStepVisible,
   TOTAL_STEPS,
   type EntityType,
@@ -785,16 +786,30 @@ export async function POST(request: Request) {
       }
     }
 
-    // Charitable trusts don't require individual beneficiary records
-    // (Trust spec section 13) — the charitable-objects fields captured on
-    // step 4 stand in for them.
-    if (isStepVisible(6, entityType, wizard) && !(entityType === 'trust' && wizard.trustKind === 'charitable_trust')) {
+    // Step 6 slot means genuinely different things per entity type — only
+    // SHAREHOLDER_TYPES and family trusts actually populate the
+    // shareholders table AT this step. Partnership's step 6 is Governance
+    // settings (partners themselves live in directors, checked above) and
+    // Society's step 6 is Membership Structure settings (the founding
+    // member list is step 8, checked below) — checking shareholders.count
+    // here for either would incorrectly block every partnership/society
+    // submission, since neither ever puts a row in that table at step 6.
+    if (SHAREHOLDER_TYPES.includes(entityType) || (entityType === 'trust' && wizard.trustKind !== 'charitable_trust')) {
       const { count } = await supabase
         .from('shareholders')
         .select('id', { count: 'exact', head: true })
         .eq('entity_id', entityId)
       if ((count ?? 0) < 1) {
-        return NextResponse.json({ error: entityType === 'trust' ? 'at least one beneficiary or class of beneficiaries required' : entityType === 'society' ? 'at least one founding member required' : 'at least one shareholder/member required' }, { status: 400 })
+        return NextResponse.json({ error: entityType === 'trust' ? 'at least one beneficiary or class of beneficiaries required' : 'at least one shareholder/member required' }, { status: 400 })
+      }
+    }
+    if (entityType === 'society') {
+      const { count } = await supabase
+        .from('shareholders')
+        .select('id', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+      if ((count ?? 0) < 1) {
+        return NextResponse.json({ error: 'at least one founding member required' }, { status: 400 })
       }
     }
 
@@ -1179,7 +1194,21 @@ async function generateAndStoreIdp(
     if (!entity) return null
 
     const w = ctx.wizard
-    const address = entity.registered_address as { line1?: string; city?: string; county?: string; postcode?: string } | null
+    // registered_address is stored as {buildingName, streetName, city,
+    // county, postcode, country} (see save_step) — there has never been a
+    // line1 key. Deriving it here means the exceptions check below and
+    // the IDP's own address line actually reflect what was entered,
+    // instead of always reading undefined and (a) dropping building/
+    // street from the printed address and (b) flagging "Registered
+    // office address is missing" on every application regardless of
+    // entity type, even when fully filled in (caught via live Trust
+    // formation test, 2026-08 — pre-existing, not introduced by the
+    // trust/society work).
+    const rawAddress = entity.registered_address as { buildingName?: string; streetName?: string; city?: string; county?: string; postcode?: string } | null
+    const address = rawAddress ? {
+      line1: [rawAddress.buildingName, rawAddress.streetName].filter(Boolean).join(', ') || undefined,
+      city: rawAddress.city, county: rawAddress.county, postcode: rawAddress.postcode,
+    } : null
     const docTypes = new Set((documents ?? []).map((d) => d.document_type).filter(Boolean))
     const hasDoc = (t: string) => docTypes.has(t)
     const shareholderNamesLower = new Set((shareholders ?? []).map((s) => s.legal_name.toLowerCase()))
@@ -1302,7 +1331,11 @@ async function generateAndStoreIdp(
 
     // ---- review exceptions ---------------------------------------------
     const exceptions: string[] = []
-    if (!address?.line1) exceptions.push('Registered office address is missing.')
+    // City is the actually-required address field (building/street are
+    // optional on the form) — checking line1 here would flag a fully
+    // valid address as "missing" whenever those two optional fields were
+    // left blank.
+    if (!address?.city) exceptions.push('Registered office address is missing.')
     if ((directors ?? []).length === 0) {
       exceptions.push(
         ctx.entityType === 'partnership' ? 'No partners captured.'
@@ -1400,6 +1433,15 @@ async function generateAndStoreIdp(
       societyGoverningBody: w.socHasGoverningBody ? { name: w.socGoverningBodyName ?? '—', quorum: w.socGoverningBodyQuorum ?? null } : null,
       societyProperty: (w.socPropertyItems ?? []).map((p) => ({ description: p.description, location: p.location })),
       hasConstitution: w.hasConstitution ?? null,
+
+      certificateNextStepNote:
+        ctx.entityType === 'trust'
+          ? 'Once the Trust Deed is executed, the trust is created. If you’re incorporating the trustees, upload the Certificate of Incorporation of Trustees once the Registrar issues it, to activate your entity.'
+          : ctx.entityType === 'society'
+          ? 'Once the Registrar of Societies issues your Certificate of Registration, upload it back on your dashboard to activate your entity.'
+          : ctx.entityType === 'partnership' || ctx.entityType === 'sole_proprietorship'
+          ? 'Once BRS issues your Certificate of Registration (business name), upload it back on your dashboard to activate your entity.'
+          : 'Once BRS issues your certificate of incorporation, upload it back on your dashboard — along with the company KRA PIN certificate and, later, CR12 or beneficial ownership filing evidence — to activate your entity.',
     })
 
     const path = `${ctx.orgId}/${ctx.entityId}/idp-${Date.now()}.pdf`

@@ -160,6 +160,14 @@ export type IdpInput = {
   societyGoverningBody?: { name: string; quorum: string | null } | null
   societyProperty?: Array<{ description: string; location: string }>
   hasConstitution?: boolean | null
+
+  // Final "next steps" bullet — differs by what BRS (or the Registrar of
+  // Societies) actually issues and what follow-up filings apply. Caught
+  // via live testing, 2026-08: this used to be hardcoded company
+  // language ("certificate of incorporation", "CR12") on every single
+  // application regardless of entity type, including partnership and
+  // sole proprietorship, which register a business name and get neither.
+  certificateNextStepNote?: string
 }
 
 export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
@@ -426,7 +434,7 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.bullet('Self-service: file this package yourself on the BRS eCitizen portal.')
   ctx.bullet('Assisted service: request LexReg Africa to handle BRS filing on your behalf.')
   ctx.bullet('Lawyer-assisted: a LexReg Africa lawyer reviews and files on your behalf.')
-  ctx.bullet('Once BRS issues your certificate of incorporation, upload it back on your dashboard — along with the company KRA PIN certificate and, later, CR12 or beneficial ownership filing evidence — to activate your entity.')
+  ctx.bullet(input.certificateNextStepNote ?? 'Once BRS issues your certificate of incorporation, upload it back on your dashboard — along with the company KRA PIN certificate and, later, CR12 or beneficial ownership filing evidence — to activate your entity.')
 
   return doc.save()
 }
