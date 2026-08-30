@@ -661,6 +661,70 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
 
+  // clone_person_documents — "also a director" copies a shareholder's
+  // identity fields straight into a new director row, but their ID/KRA
+  // PIN documents live under shareholder-specific document_type values
+  // (shareholder_id_copy, shareholder_kra_pin_copy) tagged with the
+  // shareholder's own id. The director row never had any document
+  // pointing at it, so its edit screen showed the fields filled in but
+  // "Upload ID/passport" / "Upload KRA PIN" as empty even though the
+  // files genuinely exist (reported live, 2026-08-30). Point new document
+  // rows at the SAME stored file under the director-flavoured type,
+  // tagged to the director's own id — no re-upload needed.
+  if (action === 'clone_person_documents') {
+    const { sourcePersonId, targetPersonId, targetName, targetRole, typeMap } = body as {
+      sourcePersonId?: string
+      targetPersonId?: string
+      targetName?: string
+      targetRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+      typeMap?: Record<string, string>
+    }
+    if (!sourcePersonId || !targetPersonId || !typeMap) return NextResponse.json({ ok: true })
+
+    const { data: docs } = await supabase
+      .from('documents')
+      .select('id, name, document_type, file_path, file_size, mime_type, tags')
+      .eq('entity_id', entityId)
+      .is('deleted_at', null)
+
+    const sourceDocs = (docs ?? []).filter(
+      (d) =>
+        d.document_type &&
+        typeMap[d.document_type] &&
+        (d.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === sourcePersonId)
+    )
+    // Idempotent — don't re-clone a type the target already has (e.g. the
+    // "also a director" checkbox toggled on and off, or Save clicked twice).
+    const targetHasType = new Set(
+      (docs ?? [])
+        .filter((d) => (d.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === targetPersonId))
+        .map((d) => d.document_type)
+    )
+
+    const inserts = sourceDocs
+      .filter((d) => !targetHasType.has(typeMap[d.document_type!]))
+      .map((d) => ({
+        id: crypto.randomUUID(),
+        entity_id: entityId,
+        organisation_id: orgId,
+        name: d.name,
+        document_type: typeMap[d.document_type!],
+        file_path: d.file_path,
+        file_size: d.file_size,
+        mime_type: d.mime_type,
+        tags: [{ person: targetName, personId: targetPersonId, role: targetRole ?? 'other' }] as unknown as Json,
+      }))
+
+    if (inserts.length > 0) {
+      const { error } = await supabase.from('documents').insert(inserts)
+      if (error) {
+        console.error('document clone error', error)
+        return NextResponse.json({ error: 'failed to clone documents' }, { status: 500 })
+      }
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   if (action === 'delete_document') {
     const { id } = body as { id: string }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })

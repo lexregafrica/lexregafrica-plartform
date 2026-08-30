@@ -2921,6 +2921,21 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             occupation: form.isCorporate ? undefined : form.occupation || undefined,
           },
         }])
+
+        // The copy above only carries text fields across — their ID/KRA
+        // PIN documents are still shareholder-typed and tagged to the
+        // shareholder's id, so the new director row had nothing to show
+        // as "already uploaded" even though the files exist.
+        if (dirResult.id) {
+          await api({
+            action: 'clone_person_documents',
+            sourcePersonId: result.id,
+            targetPersonId: dirResult.id,
+            targetName: displayNameForDirector,
+            targetRole: 'director',
+            typeMap: { shareholder_id_copy: 'director_id_copy', shareholder_kra_pin_copy: 'director_kra_pin_copy' },
+          })
+        }
       }
 
       setForm(null)
