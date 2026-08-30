@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { EntityWorkspace } from '@/components/dashboard/entity-workspace'
-import { ENTITY_TYPES } from '@/lib/onboarding/new-entity'
+import { ENTITY_TYPES, missingRequiredDocuments, type EntityType } from '@/lib/onboarding/new-entity'
 
 export default async function EntityWorkspacePage({
   params,
@@ -74,6 +74,15 @@ export default async function EntityWorkspacePage({
   const proposed = (entity.proposed_names as string[] | null)?.find((n) => n?.trim())
   const address = entity.registered_address as { line1?: string; city?: string; county?: string; postcode?: string } | null
 
+  // Same gate and same checklist as the dashboard list used to show
+  // this from — only once a certificate is on file, since some of these
+  // documents can't exist before then.
+  const presentDocTypes = new Set((docs ?? []).map((d) => d.document_type).filter((t): t is string => !!t))
+  const missingDocs =
+    entity.status === 'pending_registration' || entity.status === 'active'
+      ? missingRequiredDocuments(entity.entity_type as EntityType, presentDocTypes)
+      : []
+
   return (
     <EntityWorkspace
       entity={{
@@ -88,6 +97,7 @@ export default async function EntityWorkspacePage({
         natureOfBusiness: entity.nature_of_business,
         address: address ? [address.line1, address.city, address.county, address.postcode].filter(Boolean).join(', ') : null,
         profileUrl,
+        missingDocs,
       }}
       canManageStatus={canManageStatus}
       events={(events ?? []).map((e) => ({

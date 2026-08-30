@@ -169,11 +169,6 @@ export function EntityDashboard({
   const pendingCount = entities.filter((e) => e.status === 'pending_registration').length
   const documentCount = entities.reduce((sum, e) => sum + e.documentCount, 0)
   const pendingCert = entities.filter((e) => e.status === 'pending_registration')
-  // Charles call, 2026-08: the "what's missing" nudge moved here from
-  // mid-onboarding — fires once the certificate is on file (status
-  // 'active'), not before, since some of these documents genuinely can't
-  // exist until registration completes.
-  const activeWithMissingDocs = entities.filter((e) => e.status === 'active' && e.missingDocs.length > 0)
 
   return (
     <DashboardShell userName={userName} userEmail={userEmail} isSuperAdmin={isSuperAdmin}>
@@ -194,31 +189,13 @@ export function EntityDashboard({
             {pendingCert.length === 1
               ? `${pendingCert[0].displayName} is awaiting BRS registration — upload the certificate once issued to activate it.`
               : `${pendingCert.length} entities are awaiting BRS registration. Upload certificates once issued.`}
-            {pendingCert.some((e) => e.missingDocs.length > 0) && (
-              <ul className="mt-1.5 space-y-0.5 text-ios-caption1 font-normal opacity-90">
-                {pendingCert.filter((e) => e.missingDocs.length > 0).map((e) => (
-                  <li key={e.id}>{e.displayName}: still missing {e.missingDocs.join(', ')}</li>
-                ))}
-              </ul>
-            )}
           </div>
         )}
 
-        {activeWithMissingDocs.length > 0 && (
-          <div
-            className="text-ios-footnote mb-6 rounded-2xl px-4 py-3 font-medium"
-            style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}
-          >
-            {activeWithMissingDocs.length === 1
-              ? `${activeWithMissingDocs[0].displayName} is registered, but some documents are still missing from the vault.`
-              : `${activeWithMissingDocs.length} registered entities are still missing documents from the vault.`}
-            <ul className="mt-1.5 space-y-0.5 text-ios-caption1 font-normal opacity-90">
-              {activeWithMissingDocs.map((e) => (
-                <li key={e.id}>{e.displayName}: still missing {e.missingDocs.join(', ')}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Missing-documents detail moved to each entity's own Overview
+            tab, 2026-08 — a "still missing: X, Y, Z" list per entity was
+            cluttering this page for every registered entity; it's
+            actionable on that entity's page, not here. */}
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main column — entities */}

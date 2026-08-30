@@ -27,6 +27,11 @@ type WorkspaceEntity = {
   natureOfBusiness: string | null
   address: string | null
   profileUrl: string | null
+  // Moved off the global dashboard, 2026-08: per-entity missing-doc
+  // detail was cluttering the "your entities" list with a wall of text
+  // for every registered entity — it belongs on that entity's own page,
+  // where there's room and it's actually actionable.
+  missingDocs: string[]
 }
 
 type WorkspaceEvent = {
@@ -221,6 +226,14 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
+      {entity.missingDocs.length > 0 && (
+        <div
+          className="text-ios-footnote rounded-2xl px-4 py-3 font-medium lg:col-span-3"
+          style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}
+        >
+          Still missing from the vault: {entity.missingDocs.join(', ')}.
+        </div>
+      )}
       {/* Left mosaic (2 cols on desktop) */}
       <div className="grid content-start gap-4 sm:grid-cols-2 lg:col-span-2">
         {/* Identity card — spans both mosaic columns */}
