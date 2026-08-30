@@ -1840,7 +1840,15 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
       if (registered.id) onDocumentRegistered?.(registered.id)
 
       setState('extracting')
-      const result = await api({ action: 'ocr_extract', documentId: registered.id, section })
+      // Pass personId through when we already know it (a second document
+      // for someone whose row already exists, e.g. KRA PIN right after
+      // the ID scan) — otherwise the server has to re-guess who this is
+      // for by name/id_number, which a KRA PIN certificate alone can
+      // easily fail to match (no national ID number on it, and OCR name
+      // formatting can differ from the ID scan's reading), silently
+      // leaving that field blank on the saved row (reported live,
+      // 2026-08-30: KRA PIN uploaded fine, tagged fine, field stayed empty).
+      const result = await api({ action: 'ocr_extract', documentId: registered.id, section, personId })
 
       // This document was registered before the person existed (personId
       // prop was still undefined), tagged only by name at that instant —

@@ -682,9 +682,20 @@ export async function POST(request: Request) {
   // and pre-fill wizard fields / directors / shareholders from it
   // ----------------------------------------------------------
   if (action === 'ocr_extract') {
-    const { documentId, section } = body as {
+    const { documentId, section, personId } = body as {
       documentId: string
       section: 'director' | 'shareholder' | 'address' | 'other'
+      // The client already knows exactly who this upload is for once a
+      // person row exists (e.g. a second document — KRA PIN right after
+      // the ID scan). Passing it lets mergeExtraction update that exact
+      // row directly instead of re-guessing via name/id_number matching,
+      // which a KRA PIN certificate can easily fail (it carries no
+      // national ID number to match on, and OCR name formatting can
+      // differ enough from the ID scan's reading to miss a name match
+      // too) — silently leaving kra_pin blank on the saved row even
+      // though the document itself uploaded and tagged fine (reported
+      // live, 2026-08-30).
+      personId?: string
     }
     if (!documentId) return NextResponse.json({ error: 'documentId required' }, { status: 400 })
 
@@ -735,6 +746,7 @@ export async function POST(request: Request) {
       orgId,
       progressId: progress.id,
       progressData,
+      personId,
     })
 
     await supabase.rpc('log_audit', {
@@ -1506,9 +1518,13 @@ async function mergeExtraction(
     orgId: string
     progressId: string
     progressData: ProgressData
+    // The row this upload is definitely for, when the client already
+    // knows it (see the comment on ocr_extract's personId param) — used
+    // to update that exact row instead of re-guessing by name/id_number.
+    personId?: string
   }
 ) {
-  const { fields, section, entityId, orgId, progressId, progressData } = ctx
+  const { fields, section, entityId, orgId, progressId, progressData, personId: knownPersonId } = ctx
   const created: { directors: number; shareholders: number } = { directors: 0, shareholders: 0 }
   // The matched-or-created row's id, handed back to the client so it can
   // adopt it into the open form — without this, saving the form after an
@@ -1528,11 +1544,13 @@ async function mergeExtraction(
           .select('id, full_name, id_number, kra_pin')
           .eq('entity_id', entityId)
 
-        const match = (existing ?? []).find(
-          (d) =>
-            (fields.id_number && d.id_number === fields.id_number) ||
-            (fields.full_name && d.full_name.toLowerCase() === fields.full_name.toLowerCase())
-        )
+        const match = knownPersonId
+          ? (existing ?? []).find((d) => d.id === knownPersonId)
+          : (existing ?? []).find(
+              (d) =>
+                (fields.id_number && d.id_number === fields.id_number) ||
+                (fields.full_name && d.full_name.toLowerCase() === fields.full_name.toLowerCase())
+            )
 
         if (match) {
           personId = match.id
@@ -1561,11 +1579,13 @@ async function mergeExtraction(
           .select('id, legal_name, id_or_reg_number, kra_pin')
           .eq('entity_id', entityId)
 
-        const match = (existing ?? []).find(
-          (s) =>
-            (fields.id_number && s.id_or_reg_number === fields.id_number) ||
-            (fields.full_name && s.legal_name.toLowerCase() === fields.full_name.toLowerCase())
-        )
+        const match = knownPersonId
+          ? (existing ?? []).find((s) => s.id === knownPersonId)
+          : (existing ?? []).find(
+              (s) =>
+                (fields.id_number && s.id_or_reg_number === fields.id_number) ||
+                (fields.full_name && s.legal_name.toLowerCase() === fields.full_name.toLowerCase())
+            )
 
         if (match) {
           personId = match.id
