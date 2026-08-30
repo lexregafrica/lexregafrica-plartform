@@ -1780,7 +1780,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; fields?: Record<string, unknown>; personId?: string }>
-  onExtracted: (fields: Record<string, unknown> | undefined, personId?: string) => void
+  onExtracted: (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean) => void
   setError: (e: string) => void
   // Lets a parent pre-fill "already uploaded" state when reopening an edit
   // form for a person who already has a document on file, so the control
@@ -1841,7 +1841,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
       setState('extracting')
       const result = await api({ action: 'ocr_extract', documentId: registered.id, section })
-      onExtracted(result.fields, result.personId)
+      onExtracted(result.fields, result.personId, replacing)
       setUploaded({ name: file.name, filePath: path })
       setReplacing(false)
     } catch (e) {
@@ -2337,7 +2337,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   // Inline OCR extracted fields — prefill the open "add new" form directly
   // rather than relying on the server's auto-created row, so there is
   // exactly one record once the user hits Save.
-  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     // Silent misses looked like a bug ("first try doesn't pick up the
@@ -2347,11 +2347,19 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
     if (!f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
     setForm((prev) => {
       if (!prev) return prev
-      // Editing an existing person and re-uploading is an explicit
-      // "replace this document" action (Charles, corporate-shareholder
-      // call) — overwrite rather than gap-fill. Adding a new person still
-      // gap-fills only, so it never clobbers something already typed.
-      const isReplace = !!prev.id
+      // Only the explicit "Replace" button on an already-uploaded
+      // document means overwrite — not just "this form has an id",
+      // which becomes true the moment OCR auto-creates the person from
+      // the FIRST document, before a second document (e.g. KRA PIN
+      // right after the ID scan) is even uploaded. Treating that as a
+      // replace let the KRA scan's own (possibly differently-ordered)
+      // name reading silently overwrite the name the ID scan had just
+      // filled in — which then drifted the name used to look up "already
+      // uploaded" documents, surfacing an unrelated stale upload tagged
+      // under that other spelling in the passport-photo slot (reported
+      // live, 2026-08-30: uploading a KRA PIN populated the photo field
+      // with someone else's old test photo).
+      const isReplace = !!wasReplace
       return {
         ...prev,
         // Adopt the server's matched-or-created row id so Save updates
@@ -2908,15 +2916,17 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
     }
   }
 
-  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean) => {
     if (!fields) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     if (!f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
     setForm((prev) => {
       if (!prev) return prev
-      // Editing + re-uploading is an explicit "replace this document"
-      // action — overwrite rather than gap-fill. New-add stays gap-fill.
-      const isReplace = !!prev.id
+      // Only the explicit "Replace" button means overwrite — see the
+      // matching comment in StepDirectors' handleExtracted for why
+      // `!!prev.id` was wrong (true the instant OCR auto-creates the
+      // person from the first document, well before any explicit replace).
+      const isReplace = !!wasReplace
       return {
         ...prev,
         // Adopt the server's matched-or-created row id — otherwise Save
