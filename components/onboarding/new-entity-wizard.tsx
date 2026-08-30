@@ -376,6 +376,20 @@ export function NewEntityWizard() {
     }
   }, [entityId, entityParam])
 
+  // The applicant step (and registered office) already captured this
+  // person's own phone/email/address — reused to seed the first
+  // shareholder/director form instead of asking again, since that first
+  // person is almost always the applicant themselves (reported live,
+  // 2026-08-30: "phone and email and the addresses I had put in earlier
+  // steps should also appear here"). Only a default for the auto-opened
+  // first-person form — never overwrites anything already typed.
+  const applicantDefaults = useMemo(() => ({
+    phone: wizard.applicantPhone ?? '',
+    email: wizard.applicantEmail ?? '',
+    physicalAddress: [wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', '),
+    postalAddress: wizard.postalAddress ?? '',
+  }), [wizard.applicantPhone, wizard.applicantEmail, wizard.buildingName, wizard.streetName, wizard.city, wizard.county, wizard.postalAddress])
+
   // Every write must target the same entity's onboarding_progress row —
   // a user can have several new-entity sessions going at once, so the
   // server can't just assume "the most recent one."
@@ -819,6 +833,7 @@ export function NewEntityWizard() {
               setError={setError}
               onExtracted={refresh}
               documents={documents}
+              applicant={applicantDefaults}
             />
           )
         )}
@@ -833,6 +848,7 @@ export function NewEntityWizard() {
             setError={setError}
             onExtracted={refresh}
             documents={documents}
+            applicant={applicantDefaults}
           />
         )}
         {step === 8 && (
@@ -2203,7 +2219,7 @@ export function CorporateFields({ value, onChange, context }: {
   )
 }
 
-function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, api, setError, onExtracted, documents }: {
+function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, api, setError, onExtracted, documents, applicant }: {
   entityType: EntityType
   directors: DirectorRow[]
   setDirectors: (d: DirectorRow[]) => void
@@ -2213,9 +2229,16 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   setError: (e: string) => void
   onExtracted: () => Promise<void>
   documents: DocumentRow[]
+  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
 }) {
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
-  const [form, setForm] = useState<DirectorForm | null>(directors.length === 0 ? { ...emptyDirector } : null)
+  const [form, setForm] = useState<DirectorForm | null>(directors.length === 0 ? {
+    ...emptyDirector,
+    phone: applicant?.phone ?? '',
+    email: applicant?.email ?? '',
+    physicalAddress: applicant?.physicalAddress ?? '',
+    postalAddress: applicant?.postalAddress ?? '',
+  } : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
   // Documents uploaded during this open form session, before the row has
@@ -2734,7 +2757,7 @@ const emptyShareholder: ShareholderForm = {
   isForeign: false, foreignAddress: '',
 }
 
-function StepShareholders({ entityType, shareholders, setShareholders, directors, setDirectors, totalShares, useMultipleShareClasses, orgId, entityId, api, setError, onExtracted, documents }: {
+function StepShareholders({ entityType, shareholders, setShareholders, directors, setDirectors, totalShares, useMultipleShareClasses, orgId, entityId, api, setError, onExtracted, documents, applicant }: {
   entityType: EntityType
   shareholders: ShareholderRow[]
   setShareholders: (s: ShareholderRow[]) => void
@@ -2748,9 +2771,16 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   setError: (e: string) => void
   onExtracted: () => Promise<void>
   documents: DocumentRow[]
+  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
 }) {
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
-  const [form, setForm] = useState<ShareholderForm | null>(shareholders.length === 0 ? { ...emptyShareholder } : null)
+  const [form, setForm] = useState<ShareholderForm | null>(shareholders.length === 0 ? {
+    ...emptyShareholder,
+    phone: applicant?.phone ?? '',
+    email: applicant?.email ?? '',
+    physicalAddress: applicant?.physicalAddress ?? '',
+    postalAddress: applicant?.postalAddress ?? '',
+  } : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
   const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
