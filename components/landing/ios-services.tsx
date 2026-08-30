@@ -3,14 +3,14 @@
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import {
-  PenNewSquare,
-  FolderWithFiles,
-  CaseMinimalistic,
-  Magnifer,
+  SquarePen,
+  FolderOpen,
+  Briefcase,
+  Search,
   Leaf,
   ArrowRight,
-  CheckCircle,
-} from '@solar-icons/react'
+  CircleCheckBig,
+} from 'lucide-react'
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
@@ -55,7 +55,7 @@ export function IosServices() {
           >
             <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
               <div className="max-w-sm">
-                <PenNewSquare weight="BoldDuotone" size={44} color="#800020" />
+                <SquarePen size={44} strokeWidth={2.25} color="#800020" />
                 <h3
                   className="mt-6 text-[26px] font-bold tracking-[-0.02em]"
                   style={{ color: '#1C1C1E' }}
@@ -71,7 +71,7 @@ export function IosServices() {
                   className="mt-6 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[14px] font-semibold transition-colors hover:bg-neutral-200"
                   style={{ background: '#F2F2F7', color: '#800020' }}
                 >
-                  Get started <ArrowRight weight="Linear" size={16} />
+                  Get started <ArrowRight size={16} strokeWidth={2} />
                 </Link>
               </div>
 
@@ -90,7 +90,7 @@ export function IosServices() {
                   className="flex items-center gap-1.5 rounded-xl px-4 py-3 text-[13px] font-bold text-white"
                   style={{ background: '#800020' }}
                 >
-                  <CheckCircle weight="Bold" size={15} /> IDP generated
+                  <CircleCheckBig size={15} strokeWidth={2.5} /> IDP generated
                 </div>
               </div>
             </div>
@@ -98,7 +98,7 @@ export function IosServices() {
 
           {/* Legal Audit — burgundy card */}
           <motion.div {...fadeUp(0.15)} className="rounded-3xl p-8 md:p-10" style={{ background: '#800020' }}>
-            <Magnifer weight="BoldDuotone" size={44} color="#FFFFFF" />
+            <Search size={44} strokeWidth={2.25} color="#FFFFFF" />
             <h3 className="mt-6 text-[24px] font-bold tracking-[-0.02em] text-white">Legal Audit</h3>
             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
               Full compliance review and risk report across statutory, tax,
@@ -115,13 +115,13 @@ export function IosServices() {
         <div className="mt-5 grid gap-5 md:grid-cols-3">
           {[
             {
-              icon: FolderWithFiles,
+              icon: FolderOpen,
               title: 'Existing Entity',
               body: 'Upload your documents. OCR fills in the rest.',
               cta: 'Upload & activate',
             },
             {
-              icon: CaseMinimalistic,
+              icon: Briefcase,
               title: 'Corporate Services',
               body: 'Board minutes, AGM notices, resolutions — generated.',
               cta: 'Explore',
@@ -134,7 +134,7 @@ export function IosServices() {
             },
           ].map((card, i) => (
             <motion.div key={card.title} {...fadeUp(0.1 + i * 0.08)} className="rounded-3xl bg-white p-8">
-              <card.icon weight="BoldDuotone" size={38} color="#800020" />
+              <card.icon size={38} strokeWidth={2.25} color="#800020" />
               <h3 className="mt-5 text-[20px] font-bold tracking-[-0.02em]" style={{ color: '#1C1C1E' }}>
                 {card.title}
               </h3>
@@ -146,7 +146,7 @@ export function IosServices() {
                 className="mt-5 inline-flex items-center gap-1 text-[14px] font-semibold"
                 style={{ color: '#800020' }}
               >
-                {card.cta} <ArrowRight weight="Linear" size={15} />
+                {card.cta} <ArrowRight size={15} strokeWidth={2} />
               </Link>
             </motion.div>
           ))}

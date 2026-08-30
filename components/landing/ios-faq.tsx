@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { AddCircle } from '@solar-icons/react'
+import { CirclePlus } from 'lucide-react'
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
@@ -62,7 +62,7 @@ function FaqItem({ item, index }: { item: (typeof FAQS)[number]; index: number }
           className="shrink-0"
           style={{ color: 'rgba(60,60,67,0.45)' }}
         >
-          <AddCircle weight="Linear" size={22} />
+          <CirclePlus size={22} strokeWidth={2} />
         </motion.span>
       </button>
       <AnimatePresence initial={false}>
