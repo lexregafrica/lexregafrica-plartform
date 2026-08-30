@@ -804,6 +804,7 @@ export function NewEntityWizard() {
               api={api}
               setError={setError}
               documents={documents}
+              applicant={applicantDefaults}
             />
           ) :
           entityType === 'society' ? <StepSocietyEligibility wizard={wizard} patch={patch} /> :
@@ -858,7 +859,7 @@ export function NewEntityWizard() {
           entityType === 'trust' ? (
             <StepTrustProperty wizard={wizard} patch={patch} />
           ) : entityType === 'society' ? (
-            <StepSocietyMembers members={shareholders} setMembers={setShareholders} api={api} setError={setError} />
+            <StepSocietyMembers members={shareholders} setMembers={setShareholders} api={api} setError={setError} applicant={applicantDefaults} />
           ) : (
             <StepBeneficialOwners
               shareholders={shareholders}
@@ -4120,7 +4121,7 @@ function emptySettlor(): SettlorForm {
   }
 }
 
-function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setError, documents }: {
+function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setError, documents, applicant }: {
   settlors: BeneficialOwnerRow[]
   setSettlors: (s: BeneficialOwnerRow[]) => void
   orgId: string | null
@@ -4128,8 +4129,19 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
   documents: DocumentRow[]
+  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
 }) {
-  const [form, setForm] = useState<SettlorForm | null>(settlors.length === 0 ? emptySettlor() : null)
+  // Settlor is the first person captured for a trust (step 5, ahead of
+  // beneficiaries/trustees) — the same "seed from the applicant" gap
+  // that shareholder/director had, just not caught until checking
+  // whether it was reinforced across every entity type (2026-08-30).
+  const [form, setForm] = useState<SettlorForm | null>(settlors.length === 0 ? {
+    ...emptySettlor(),
+    phone: applicant?.phone ?? '',
+    email: applicant?.email ?? '',
+    residentialAddress: applicant?.physicalAddress ?? '',
+    postalAddress: applicant?.postalAddress ?? '',
+  } : null)
   const [busy, setBusy] = useState(false)
   const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
 
@@ -4883,13 +4895,21 @@ function emptySocietyMember(): SocietyMemberForm {
   }
 }
 
-function StepSocietyMembers({ members, setMembers, api, setError }: {
+function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
   members: ShareholderRow[]
   setMembers: (m: ShareholderRow[]) => void
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
   setError: (e: string) => void
+  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
 }) {
-  const [form, setForm] = useState<SocietyMemberForm | null>(members.length === 0 ? emptySocietyMember() : null)
+  // First founding member captured for a society — same applicant-seed
+  // gap as shareholder/director/settlor (2026-08-30 audit).
+  const [form, setForm] = useState<SocietyMemberForm | null>(members.length === 0 ? {
+    ...emptySocietyMember(),
+    phone: applicant?.phone ?? '',
+    email: applicant?.email ?? '',
+    address: applicant?.physicalAddress ?? '',
+  } : null)
   const [busy, setBusy] = useState(false)
   const set = (partial: Partial<SocietyMemberForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
 
