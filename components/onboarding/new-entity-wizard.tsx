@@ -6522,6 +6522,26 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
   }
   const isActive = entityStatus === 'active'
   const [showHelp, setShowHelp] = useState(false)
+  const [servicePath, setServicePath] = useState<'self_service' | 'assisted' | 'lawyer_assisted' | null>(null)
+  const [savingPath, setSavingPath] = useState(false)
+
+  // Records which route the applicant picked (was previously never
+  // captured anywhere, so the IDP's "Service path" field always just
+  // said "Not yet selected" — reported live, 2026-08-30). Also
+  // regenerates the IDP so that field reflects the choice.
+  const handleSelectPath = async (path: 'self_service' | 'assisted' | 'lawyer_assisted') => {
+    setServicePath(path)
+    setSavingPath(true)
+    try {
+      await api({ action: 'set_service_path', servicePathChoice: path })
+      const result = await api({ action: 'regenerate_idp' })
+      if (result.idpUrl) setLocalIdpUrl(result.idpUrl)
+    } catch {
+      // non-fatal — the choice still drives which action shows below
+    } finally {
+      setSavingPath(false)
+    }
+  }
 
   if (isActive) {
     return (
@@ -6606,19 +6626,80 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
           <p className="text-ios-subhead font-semibold mb-2" style={{ color: 'var(--system-label)' }}>
             Getting registered
           </p>
-          <ol className="list-decimal pl-5 space-y-1.5 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-            <li><strong>Self-service</strong> — file the package yourself on the BRS eCitizen portal.</li>
-            <li><strong>Assisted</strong> — request LexReg Africa to handle filing for you.</li>
-            <li><strong>Lawyer-assisted</strong> — a LexReg lawyer reviews and files on your behalf.</li>
-          </ol>
-          <button
-            type="button"
-            onClick={() => setShowHelp(true)}
-            className="mt-3 w-full rounded-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#25D366' }}
-          >
-            Request assisted filing on WhatsApp
-          </button>
+          <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>
+            Pick how you&apos;d like to file — you can change this later.
+          </p>
+
+          <div className="space-y-2">
+            {(
+              [
+                { key: 'self_service' as const, title: 'Self-service', desc: 'File the package yourself on the BRS eCitizen portal.' },
+                { key: 'assisted' as const, title: 'Assisted', desc: 'Request LexReg Africa to handle filing for you.' },
+                { key: 'lawyer_assisted' as const, title: 'Lawyer-assisted', desc: 'A LexReg lawyer reviews and files on your behalf.' },
+              ]
+            ).map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => handleSelectPath(opt.key)}
+                className="w-full rounded-xl border p-3 text-left transition-colors"
+                style={servicePath === opt.key
+                  ? { borderColor: 'var(--brand-navy)', background: 'rgba(128,0,32,0.05)' }
+                  : { borderColor: 'var(--system-fill-3)' }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+                    style={servicePath === opt.key ? { borderColor: 'var(--brand-navy)' } : { borderColor: 'var(--system-fill-2, #d1d1d6)' }}
+                  >
+                    {servicePath === opt.key && <span className="h-2 w-2 rounded-full" style={{ background: 'var(--brand-navy)' }} />}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>{opt.title}</p>
+                    <p className="text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>{opt.desc}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {servicePath === 'self_service' && (
+            savingPath ? (
+              <p className="text-ios-footnote mt-3 text-center" style={{ color: 'var(--system-label-3)' }}>Preparing your package…</p>
+            ) : localIdpUrl ? (
+              <a
+                href={localIdpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 block w-full rounded-full py-2.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: 'var(--brand-navy)' }}
+              >
+                Download PDF
+              </a>
+            ) : null
+          )}
+
+          {servicePath === 'assisted' && (
+            <button
+              type="button"
+              onClick={() => setShowHelp(true)}
+              disabled={savingPath}
+              className="mt-3 w-full rounded-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ background: '#25D366' }}
+            >
+              Request assisted filing on WhatsApp
+            </button>
+          )}
+
+          {servicePath === 'lawyer_assisted' && (
+            <p
+              className="text-ios-footnote mt-3 rounded-xl p-3 text-center"
+              style={{ background: 'var(--system-bg-2)', color: 'var(--system-label-2)' }}
+            >
+              Lawyer-assisted filing isn&apos;t live yet — we&apos;ll let you know as soon as it launches. Your
+              choice has been recorded.
+            </p>
+          )}
         </div>
 
         <CertificateUpload orgId={orgId} entityId={entityId} api={api} onActivated={onActivated} />

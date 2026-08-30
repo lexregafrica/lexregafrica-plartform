@@ -17,6 +17,12 @@ import {
 // (lib/ocr/gemini.ts) — default serverless timeout would kill that mid-retry.
 export const maxDuration = 30
 
+const SERVICE_PATH_LABELS = {
+  self_service: 'Self-service (files on BRS eCitizen themselves)',
+  assisted: 'Assisted (LexReg Africa handles filing)',
+  lawyer_assisted: 'Lawyer-assisted (LexReg lawyer reviews and files)',
+} as const
+
 const TRUST_PROPERTY_CATEGORY_LABELS: Record<string, string> = {
   cash: 'Cash', land: 'Land', shares: 'Shares', investments: 'Investments',
   business_interests: 'Business interests', intellectual_property: 'Intellectual property',
@@ -1094,6 +1100,25 @@ export async function POST(request: Request) {
   }
 
   // ----------------------------------------------------------
+  // set_service_path — "Getting registered" screen on the post-submit
+  // confirmation page (self-service / assisted / lawyer-assisted). Only
+  // patches the wizard blob, unlike save_step — this runs after
+  // submission, so it must not touch onboarding_step or re-mirror wizard
+  // fields onto the entity row.
+  // ----------------------------------------------------------
+  if (action === 'set_service_path') {
+    const { servicePathChoice } = body as { servicePathChoice?: 'self_service' | 'assisted' | 'lawyer_assisted' }
+    if (!servicePathChoice) return NextResponse.json({ error: 'servicePathChoice required' }, { status: 400 })
+    const newData: ProgressData = { ...progressData, wizard: { ...progressData.wizard, servicePathChoice } }
+    const { error } = await supabase.from('onboarding_progress').update({ data: newData as Json }).eq('id', progress.id)
+    if (error) {
+      console.error('set_service_path error', error)
+      return NextResponse.json({ error: 'failed to save service path' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ----------------------------------------------------------
   // regenerate_idp — retry path if generation failed at submit time
   // (e.g. transient storage error). Awaited, same as submit.
   // ----------------------------------------------------------
@@ -1458,7 +1483,7 @@ async function generateAndStoreIdp(
       organisationName: org?.name ?? 'Your organisation',
       generatedAt: new Date(),
       matterReference: ctx.entityId.slice(0, 8).toUpperCase(),
-      servicePath: 'Not yet selected',
+      servicePath: SERVICE_PATH_LABELS[w.servicePathChoice as keyof typeof SERVICE_PATH_LABELS] ?? 'Not yet selected',
       onboardingType: 'New company registration',
 
       entityTypeLabel: ENTITY_TYPES.find((t) => t.value === ctx.entityType)?.label ?? ctx.entityType,

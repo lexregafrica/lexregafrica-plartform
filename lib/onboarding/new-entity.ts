@@ -510,6 +510,10 @@ export type WizardData = {
   signature?: string
   applicantRelationship?: Database['public']['Enums']['applicant_relationship']
   declarationDate?: string
+  // Post-submission — chosen on the "Getting registered" screen, not
+  // during the wizard itself. Feeds the IDP's "Service path" field,
+  // which otherwise always read the placeholder "Not yet selected".
+  servicePathChoice?: 'self_service' | 'assisted' | 'lawyer_assisted'
 }
 
 // Step order follows the LLC-Only Developer Implementation Spec screen
