@@ -64,11 +64,14 @@ function StatusBadge({ status }: { status: DashboardEntity['status'] }) {
   )
 }
 
-function StatTile({ label, value, tint }: { label: string; value: number; tint?: string }) {
+function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: tint ?? 'var(--system-bg)' }}>
+    <div
+      className="rounded-2xl p-4"
+      style={{ background: 'var(--system-bg)', border: '1px solid var(--system-fill-3)' }}
+    >
       <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>{label}</p>
-      <p className="mt-1 text-[30px] font-bold leading-none" style={{ color: 'var(--system-label)' }}>{value}</p>
+      <p className="mt-1 text-[28px] font-semibold leading-none" style={{ color: 'var(--system-label)', letterSpacing: '-0.02em' }}>{value}</p>
     </div>
   )
 }
@@ -175,9 +178,9 @@ export function EntityDashboard({
       <main className="px-4 py-6 md:px-8 md:py-7">
         {/* Stat tiles */}
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile label="Entities" value={entities.length} tint="rgba(128,0,32,0.06)" />
-          <StatTile label="Active" value={activeCount} tint="rgba(52,199,89,0.08)" />
-          <StatTile label="Pending" value={pendingCount} tint="rgba(255,149,0,0.08)" />
+          <StatTile label="Entities" value={entities.length} />
+          <StatTile label="Active" value={activeCount} />
+          <StatTile label="Pending" value={pendingCount} />
           <StatTile label="Documents" value={documentCount} />
         </div>
 

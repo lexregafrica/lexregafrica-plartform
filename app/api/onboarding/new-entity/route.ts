@@ -352,6 +352,7 @@ export async function POST(request: Request) {
   if (action === 'delete_director') {
     const { id } = body as { id: string }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    await retirePersonDocuments(supabase, entityId, id)
     const { error } = await supabase.from('directors').delete().eq('id', id).eq('entity_id', entityId)
     if (error) {
       console.error('director delete error', error)
@@ -466,6 +467,7 @@ export async function POST(request: Request) {
   if (action === 'delete_shareholder') {
     const { id } = body as { id: string }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    await retirePersonDocuments(supabase, entityId, id)
     const { error } = await supabase.from('shareholders').delete().eq('id', id).eq('entity_id', entityId)
     if (error) {
       console.error('shareholder delete error', error)
@@ -532,6 +534,7 @@ export async function POST(request: Request) {
   if (action === 'delete_beneficial_owner') {
     const { id } = body as { id: string }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    await retirePersonDocuments(supabase, entityId, id)
     const { error } = await supabase.from('beneficial_owners').delete().eq('id', id).eq('entity_id', entityId)
     if (error) {
       console.error('beneficial owner delete error', error)
@@ -1466,6 +1469,26 @@ async function generateAndStoreIdp(
   } catch (e) {
     console.error('idp generation failed', e)
     return null
+  }
+}
+
+// Removing a director/shareholder/beneficial owner leaves their tagged
+// documents (ID, KRA PIN, photo, etc.) behind untouched — they kept
+// counting toward the vault total and "missing documents" checklist for
+// a person who no longer exists, and re-adding the same person later
+// would sit alongside them as duplicates instead of replacing them.
+// Soft-delete on removal so both problems go away at the source.
+async function retirePersonDocuments(supabase: SupabaseServer, entityId: string, personId: string) {
+  const { data: docs } = await supabase
+    .from('documents')
+    .select('id, tags')
+    .eq('entity_id', entityId)
+    .is('deleted_at', null)
+  const tagged = (docs ?? []).filter((d) =>
+    (d.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === personId)
+  )
+  if (tagged.length > 0) {
+    await supabase.from('documents').update({ deleted_at: new Date().toISOString() }).in('id', tagged.map((d) => d.id))
   }
 }
 

@@ -1808,6 +1808,18 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   const [replacing, setReplacing] = useState(false)
   const [opening, setOpening] = useState(false)
 
+  // This control no longer remounts when the parent switches between
+  // people (that used to wipe an in-progress upload the instant OCR
+  // auto-created the person mid-form). But without a remount, `uploaded`
+  // never re-reads a changed initialUploaded prop on its own — so
+  // switching to a *different* person (e.g. closing one form and opening
+  // "add another") kept showing the previous person's file. Re-sync
+  // whenever the prop identifies a different (or no) document.
+  useEffect(() => {
+    setUploaded(initialUploaded ?? null)
+    setReplacing(false)
+  }, [initialUploaded?.filePath])
+
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0]
     if (!file || !orgId || !entityId) return
@@ -1907,6 +1919,13 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
   const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
   const [replacing, setReplacing] = useState(false)
   const [opening, setOpening] = useState(false)
+
+  // See matching comment in InlineOcrUpload — same stale-state risk now
+  // that this control doesn't remount between people.
+  useEffect(() => {
+    setUploaded(initialUploaded ?? null)
+    setReplacing(false)
+  }, [initialUploaded?.filePath])
 
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0]
