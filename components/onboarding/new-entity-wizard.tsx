@@ -6386,7 +6386,7 @@ function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) 
   return (
     <div className="flex justify-between gap-4 py-2 border-b last:border-0" style={{ borderColor: 'var(--system-fill-3)' }}>
       <span className="text-ios-footnote shrink-0" style={{ color: 'var(--system-label-2)' }}>{label}</span>
-      <span className="text-ios-footnote font-medium text-right" style={{ color: 'var(--system-label)' }}>{value}</span>
+      <span className="text-ios-footnote min-w-0 flex-1 break-words text-right font-medium" style={{ color: 'var(--system-label)' }}>{value}</span>
     </div>
   )
 }
