@@ -2361,7 +2361,17 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       ))}
 
       {form ? (
-        <div key={form.id ?? 'new-director'} className="ios-surface rounded-2xl p-4 space-y-3">
+        // No key={form.id} here deliberately — this used to be keyed by
+        // form.id, which forces a full remount (wiping every child's local
+        // state, including each InlineOcrUpload's "already uploaded"
+        // indicator) the instant OCR auto-creates the person mid-typing and
+        // form.id flips from undefined to a real id. The uploaded file was
+        // always fine in storage/DB — the UI just forgot it uploaded and
+        // showed the empty dropzone again (Charles call, 2026-08:
+        // reproduced live — uploaded ID/KRA docs "disappeared" from the
+        // shareholder form while the prefilled OCR fields stayed put).
+        // This div isn't in a list, so it never needed a key at all.
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
           <div className="flex rounded-xl p-1" style={{ background: 'var(--system-bg-2)' }}>
             {(['individual', 'corporate'] as const).map((opt) => (
               <button
@@ -2920,7 +2930,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       )}
 
       {form ? (
-        <div key={form.id ?? 'new-shareholder'} className="ios-surface rounded-2xl p-4 space-y-3">
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
           <div className="flex rounded-xl p-1" style={{ background: 'var(--system-bg-2)' }}>
             {(['individual', 'corporate'] as const).map((opt) => (
               <button
@@ -3353,7 +3363,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
       ))}
 
       {form ? (
-        <div key={form.id ?? 'new-bo'} className="ios-surface rounded-2xl p-4 space-y-3">
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
           <InlineOcrUpload
             section="other"
             documentType="beneficial_owner_id_copy"
@@ -4013,7 +4023,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
       ))}
 
       {form ? (
-        <div key={form.id ?? 'new-settlor'} className="ios-surface rounded-2xl p-4 space-y-3">
+        <div className="ios-surface rounded-2xl p-4 space-y-3">
           <InlineOcrUpload
             section="other"
             documentType="beneficial_owner_id_copy"
@@ -6128,33 +6138,35 @@ function StepDocuments({ entityType, wizard, orgId, entityId, documents, setDocu
 // ------------------------------------------------------------------
 // Step 11 — Declaration
 // ------------------------------------------------------------------
-function StepDeclaration({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
-  const today = new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })
-
-  const Check = ({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) => (
+function DeclarationCheck({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+  return (
     <label className="flex items-start gap-3 ios-surface rounded-2xl p-4 cursor-pointer">
       <input type="checkbox" className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span className="text-ios-footnote leading-relaxed" style={{ color: 'var(--system-label)' }}>{children}</span>
     </label>
   )
+}
+
+function StepDeclaration({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  const today = new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })
 
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
         Declaration &amp; consent
       </h1>
-      <Check checked={!!wizard.declared} onChange={(v) => patch({ declared: v })}>
+      <DeclarationCheck checked={!!wizard.declared} onChange={(v) => patch({ declared: v })}>
         I declare that all information provided is true and accurate.
-      </Check>
-      <Check checked={!!wizard.consented} onChange={(v) => patch({ consented: v })}>
+      </DeclarationCheck>
+      <DeclarationCheck checked={!!wizard.consented} onChange={(v) => patch({ consented: v })}>
         I consent to LexReg Africa processing my personal data for business registration purposes.
-      </Check>
-      <Check checked={!!wizard.agreedTerms} onChange={(v) => patch({ agreedTerms: v })}>
+      </DeclarationCheck>
+      <DeclarationCheck checked={!!wizard.agreedTerms} onChange={(v) => patch({ agreedTerms: v })}>
         I have read and agree to the{' '}
         <Link href="/legal/privacy" target="_blank" className="underline" style={{ color: 'var(--brand-navy)' }}>Privacy Policy</Link>
         {' '}and{' '}
         <Link href="/legal/terms" target="_blank" className="underline" style={{ color: 'var(--brand-navy)' }}>Terms and Conditions</Link>.
-      </Check>
+      </DeclarationCheck>
 
       <Field label="Signature — type your full legal name" required>
         <input
