@@ -9,6 +9,17 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type')
   const next = searchParams.get('next') ?? '/dashboard'
 
+  // Supabase redirects here with ?error=...&error_description=... when the
+  // provider-side exchange itself failed (e.g. Google client secret
+  // misconfigured, or the OAuth consent screen rejecting the request) —
+  // there's no `code` to exchange in that case, so it used to fall straight
+  // through to the generic "auth_callback_failed" with no trace of why.
+  const providerError = searchParams.get('error')
+  const providerErrorDescription = searchParams.get('error_description')
+  if (providerError) {
+    console.error('auth callback: provider returned an error', { providerError, providerErrorDescription })
+  }
+
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,6 +39,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) return NextResponse.redirect(`${origin}${next}`)
+    console.error('auth callback: exchangeCodeForSession failed', error.message)
   }
 
   if (tokenHash && type) {
@@ -36,6 +48,7 @@ export async function GET(request: NextRequest) {
       const redirectTo = type === 'invite' ? '/invite/set-password' : next
       return NextResponse.redirect(`${origin}${redirectTo}`)
     }
+    console.error('auth callback: verifyOtp failed', error.message)
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
