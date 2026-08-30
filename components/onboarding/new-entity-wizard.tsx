@@ -1224,9 +1224,30 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
         {entityType === 'trust' ? 'Trust basics' : entityType === 'society' ? 'Objects & registered office' : 'Company basics'}
       </h1>
 
-      <Field label={entityType === 'trust' ? 'Trust type' : entityType === 'society' ? 'Entity type' : 'Company type'}>
-        <input type="text" className={inputCls} style={{ ...inputStyle, opacity: 0.7 }} value={entityLabel} disabled readOnly />
-      </Field>
+      {entityType === 'trust' ? (
+        // Unlike company/society type (locked by design once chosen),
+        // family vs. charitable trust diverges the rest of this step's
+        // fields — previously only changeable by going all the way back
+        // to the entity-type picker, and this field just showed the
+        // generic "Trust" label regardless of which kind was actually
+        // picked there (reported live, 2026-08-30).
+        <Field label="Trust type">
+          <select
+            className={inputCls}
+            style={inputStyle}
+            value={wizard.trustKind ?? ''}
+            onChange={(e) => patch({ trustKind: e.target.value as WizardData['trustKind'] })}
+          >
+            {TRUST_KINDS.map((k) => (
+              <option key={k.value} value={k.value} disabled={!k.enabled}>{k.label}{!k.enabled ? ' (talk to us)' : ''}</option>
+            ))}
+          </select>
+        </Field>
+      ) : (
+        <Field label={entityType === 'society' ? 'Entity type' : 'Company type'}>
+          <input type="text" className={inputCls} style={{ ...inputStyle, opacity: 0.7 }} value={entityLabel} disabled readOnly />
+        </Field>
+      )}
 
       {entityType === 'society' && (
         <div className="space-y-4">
