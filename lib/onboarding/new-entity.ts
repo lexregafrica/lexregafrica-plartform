@@ -89,7 +89,7 @@ export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | '
     value: 'other',
     label: 'Other / Not sure',
     description: 'Non-charitable purpose trusts, discretionary trusts, testamentary trusts, and other specialised structures.',
-    enabled: false,
+    enabled: true,
   },
 ]
 
@@ -514,6 +514,11 @@ export type WizardData = {
   // during the wizard itself. Feeds the IDP's "Service path" field,
   // which otherwise always read the placeholder "Not yet selected".
   servicePathChoice?: 'self_service' | 'assisted' | 'lawyer_assisted'
+  // trustKind === 'other' — the guided flow only has legal-requirement
+  // logic for family/charitable trusts (step 4's extra-fields gating),
+  // so an "other" trust free-types what they need instead of being
+  // asked the family/charitable-specific questions.
+  trustOtherDescription?: string
 }
 
 // Step order follows the LLC-Only Developer Implementation Spec screen

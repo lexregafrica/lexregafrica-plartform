@@ -414,7 +414,7 @@ export function NewEntityWizard() {
         if (entityType === 'partnership' && wizard.partnershipKind !== 'general_partnership') {
           return 'Choose which type of partnership you want to establish.'
         }
-        if (entityType === 'trust' && wizard.trustKind !== 'family_trust' && wizard.trustKind !== 'charitable_trust') {
+        if (entityType === 'trust' && !wizard.trustKind) {
           return 'Choose what type of trust you want to establish.'
         }
         return null
@@ -458,6 +458,9 @@ export function NewEntityWizard() {
         }
         if (entityType === 'trust' && wizard.trustKind === 'charitable_trust') {
           if (!(wizard.trustCharitableObjects ?? []).some((o) => o.trim())) return 'List at least one charitable object.'
+        }
+        if (entityType === 'trust' && wizard.trustKind === 'other') {
+          if (!wizard.trustOtherDescription?.trim()) return 'Describe the type of trust you want to establish.'
         }
         if (entityType === 'society') {
           if (!wizard.socPrimaryObject?.trim()) return 'Describe the primary object of the Society.'
@@ -1009,7 +1012,7 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
   }
 
   // Trust spec section 3, "first user decision" — same pattern.
-  if (entityType === 'trust' && wizard.trustKind !== 'family_trust' && wizard.trustKind !== 'charitable_trust') {
+  if (entityType === 'trust' && !wizard.trustKind) {
     return (
       <div className="space-y-5">
         <button
@@ -1243,7 +1246,27 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
             ))}
           </select>
         </Field>
-      ) : (
+      ) : null}
+
+      {entityType === 'trust' && wizard.trustKind === 'other' && (
+        // The guided flow's legal-requirement questions (step 4's extra
+        // fields, IDP particulars) only cover family/charitable trusts —
+        // an "other" trust (discretionary, testamentary, purpose trust,
+        // etc.) needs its structure captured directly since there's no
+        // dedicated question set for it yet.
+        <Field label="Describe the type of trust you want to establish" required>
+          <textarea
+            className={inputCls}
+            style={inputStyle}
+            rows={3}
+            placeholder="e.g. a discretionary trust for..., a testamentary trust under my will that..."
+            value={wizard.trustOtherDescription ?? ''}
+            onChange={(e) => patch({ trustOtherDescription: e.target.value })}
+          />
+        </Field>
+      )}
+
+      {entityType !== 'trust' && (
         <Field label={entityType === 'society' ? 'Entity type' : 'Company type'}>
           <input type="text" className={inputCls} style={{ ...inputStyle, opacity: 0.7 }} value={entityLabel} disabled readOnly />
         </Field>
