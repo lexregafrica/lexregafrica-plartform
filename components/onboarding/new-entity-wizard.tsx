@@ -852,6 +852,7 @@ export function NewEntityWizard() {
               api={api}
               setError={setError}
               documents={documents}
+              onDocumentsCloned={refresh}
             />
           )
         )}
@@ -2817,6 +2818,12 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
           postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
+          // Typed into the form (phone/email inputs exist on this step)
+          // but never actually sent to the server — silently dropped on
+          // every save, so they never persisted (reported live,
+          // 2026-08-30: "phone, email... should be carried over").
+          phone: form.isCorporate ? undefined : form.phone || undefined,
+          email: form.isCorporate ? undefined : form.email || undefined,
         },
       })
       const updated: ShareholderRow = {
@@ -2935,6 +2942,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             targetRole: 'director',
             typeMap: { shareholder_id_copy: 'director_id_copy', shareholder_kra_pin_copy: 'director_kra_pin_copy' },
           })
+          await onExtracted()
         }
       }
 
@@ -3247,6 +3255,10 @@ type BeneficialOwnerForm = {
   natureOfControl: string
   dateBecameBo: string
   sharePercentage: string
+  // Set by prefillFrom — the shareholder this BO was copied from, so
+  // Save can also clone their ID/KRA PIN documents across once the BO
+  // row has a real id, the same way "also a director" does for directors.
+  sourceShareholderId?: string
 }
 
 function emptyBeneficialOwner(): BeneficialOwnerForm {
@@ -3257,7 +3269,7 @@ function emptyBeneficialOwner(): BeneficialOwnerForm {
   }
 }
 
-function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, orgId, entityId, api, setError, documents }: {
+function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwners, wizard, patch, orgId, entityId, api, setError, documents, onDocumentsCloned }: {
   shareholders: ShareholderRow[]
   beneficialOwners: BeneficialOwnerRow[]
   setBeneficialOwners: (b: BeneficialOwnerRow[]) => void
@@ -3268,6 +3280,13 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
   documents: DocumentRow[]
+  // Cloning a shareholder's documents across (see save()) writes new rows
+  // straight to the server — the local `documents` list has no idea they
+  // exist until something re-fetches it, so the freshly cloned ID/KRA PIN
+  // still looked missing the instant you reopened Edit in the same
+  // session (only a full page reload picked them up) (reported live,
+  // 2026-08-30).
+  onDocumentsCloned?: () => Promise<void>
 }) {
   const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
   const [busy, setBusy] = useState(false)
@@ -3330,6 +3349,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
       postalAddress: s.address?.postalAddress ?? '',
       sharePercentage: s.share_percentage != null ? String(s.share_percentage) : '',
       natureOfControl: `Shareholding of ${s.share_percentage ?? '—'}%`,
+      sourceShareholderId: s.id,
     })
   }
 
@@ -3380,6 +3400,21 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
       setBeneficialOwners(form.id ? beneficialOwners.map((b) => (b.id === form.id ? updated : b)) : [...beneficialOwners, updated])
       if (uploadedDocIds.length > 0) {
         await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: form.fullName.trim(), personRole: 'beneficial_owner' })
+      }
+      // Prefilled from a shareholder — their ID/KRA PIN documents are
+      // still shareholder-typed and tagged to the shareholder's own id,
+      // same gap "also a director" had (fixed 2026-08-30). Clone them
+      // across now that this BO row has a real id.
+      if (form.sourceShareholderId && result.id) {
+        await api({
+          action: 'clone_person_documents',
+          sourcePersonId: form.sourceShareholderId,
+          targetPersonId: result.id,
+          targetName: form.fullName.trim(),
+          targetRole: 'beneficial_owner',
+          typeMap: { shareholder_id_copy: 'beneficial_owner_id_copy', shareholder_kra_pin_copy: 'beneficial_owner_kra_pin_copy' },
+        })
+        await onDocumentsCloned?.()
       }
       setForm(null)
     } catch (e) {
