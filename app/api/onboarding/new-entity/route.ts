@@ -1484,7 +1484,11 @@ async function generateAndStoreIdp(
       generatedAt: new Date(),
       matterReference: ctx.entityId.slice(0, 8).toUpperCase(),
       servicePath: SERVICE_PATH_LABELS[w.servicePathChoice as keyof typeof SERVICE_PATH_LABELS] ?? 'Not yet selected',
-      onboardingType: 'New company registration',
+      onboardingType:
+        ctx.entityType === 'trust' ? 'New trust creation'
+        : ctx.entityType === 'society' ? 'New society registration'
+        : ctx.entityType === 'partnership' || ctx.entityType === 'sole_proprietorship' ? 'New business name registration'
+        : 'New company registration',
 
       entityTypeLabel: ENTITY_TYPES.find((t) => t.value === ctx.entityType)?.label ?? ctx.entityType,
       legalNameOptions: (entity.proposed_names as string[] | null) ?? [],
@@ -1537,6 +1541,10 @@ async function generateAndStoreIdp(
       societyGoverningBody: w.socHasGoverningBody ? { name: w.socGoverningBodyName ?? '—', quorum: w.socGoverningBodyQuorum ?? null } : null,
       societyProperty: (w.socPropertyItems ?? []).map((p) => ({ description: p.description, location: p.location })),
       hasConstitution: w.hasConstitution ?? null,
+
+      isPartnership: ctx.entityType === 'partnership',
+      isSoleProprietorship: ctx.entityType === 'sole_proprietorship',
+      hasPartnershipAgreement: w.hasPartnershipAgreement ?? null,
 
       certificateNextStepNote:
         ctx.entityType === 'trust'

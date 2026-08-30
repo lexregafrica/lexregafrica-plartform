@@ -161,6 +161,16 @@ export type IdpInput = {
   societyProperty?: Array<{ description: string; location: string }>
   hasConstitution?: boolean | null
 
+  // Partnership / sole proprietorship — reported live, 2026-08-30: every
+  // IDP, including these two, was written throughout as "a private
+  // company limited by shares" (title, notice, section labels, share
+  // capital, beneficial ownership, constitutional basis all assumed a
+  // company). Neither registers shares or has a beneficial-ownership
+  // register; both register a business name with BRS, not incorporate.
+  isPartnership?: boolean
+  isSoleProprietorship?: boolean
+  hasPartnershipAgreement?: boolean | null
+
   // Final "next steps" bullet — differs by what BRS (or the Registrar of
   // Societies) actually issues and what follow-up filings apply. Caught
   // via live testing, 2026-08: this used to be hardcoded company
@@ -178,9 +188,24 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
 
   const isTrust = !!input.isTrust
   const isSociety = !!input.isSociety
+  const isPartnership = !!input.isPartnership
+  const isSoleProprietorship = !!input.isSoleProprietorship
+  // No share capital, cap table, or beneficial-ownership register for
+  // either — both register a business name with BRS rather than
+  // incorporate a company.
+  const isBusinessName = isPartnership || isSoleProprietorship
+  // Everything that isn't a company (which alone gets "Company"-flavoured
+  // wording) shares the generic "Contact"/"Registered address" phrasing.
+  const isGenericEntity = isTrust || isSociety || isBusinessName
 
   // ---------- 1. Cover & matter summary ----------
-  ctx.title(isTrust ? 'TRUST FORMATION & GOVERNANCE SUMMARY' : isSociety ? 'SOCIETY REGISTRATION & GOVERNANCE SUMMARY' : 'COMPANY REGISTRATION & GOVERNANCE SUMMARY')
+  ctx.title(
+    isTrust ? 'TRUST FORMATION & GOVERNANCE SUMMARY'
+    : isSociety ? 'SOCIETY REGISTRATION & GOVERNANCE SUMMARY'
+    : isPartnership ? 'PARTNERSHIP REGISTRATION SUMMARY'
+    : isSoleProprietorship ? 'SOLE PROPRIETORSHIP REGISTRATION SUMMARY'
+    : 'COMPANY REGISTRATION & GOVERNANCE SUMMARY'
+  )
   ctx.subtitle(`Prepared for ${input.organisationName}  ·  ${formatDate(input.generatedAt)}`)
   ctx.rule(true)
   ctx.notice(
@@ -192,6 +217,10 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
       ? 'This document summarises the information provided to LexReg Africa for registration of a Society. It ' +
         'is not itself the Constitution or an official filing, but is intended as the review pack from which ' +
         'the Constitution and registration application are confirmed.'
+      : isBusinessName
+      ? `This document summarises the information provided to LexReg Africa for registration of a ${input.entityTypeLabel.toLowerCase()} ` +
+        'business name. It is not itself an official BRS form, but it is intended to be used as the review pack ' +
+        'from which statutory forms and filing information are confirmed.'
       : 'This document summarises the information provided to LexReg Africa for a private company limited by ' +
         'shares. It is not itself an official BRS form, but it is intended to be used as the review pack from ' +
         'which statutory forms and filing information are confirmed.'
@@ -201,28 +230,28 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.field('Onboarding type', input.onboardingType)
   ctx.field('Service path', input.servicePath)
 
-  // ---------- 2. Company overview ----------
-  ctx.section(isTrust ? 'Trust Overview' : isSociety ? 'Society Overview' : 'Company Overview')
-  ctx.field(isTrust ? 'Trust type' : isSociety ? 'Entity type' : 'Company type', input.entityTypeLabel)
+  // ---------- 2. Company / entity overview ----------
+  ctx.section(isTrust ? 'Trust Overview' : isSociety ? 'Society Overview' : isBusinessName ? 'Business Overview' : 'Company Overview')
+  ctx.field(isTrust ? 'Trust type' : isSociety ? 'Entity type' : isBusinessName ? 'Business type' : 'Company type', input.entityTypeLabel)
   const names = input.legalNameOptions.filter(Boolean)
-  ctx.field(isTrust ? 'Proposed trust name' : isSociety ? 'Proposed society name' : 'Proposed company name', names[0] ?? '—')
+  ctx.field(isTrust ? 'Proposed trust name' : isSociety ? 'Proposed society name' : isBusinessName ? 'Proposed business name' : 'Proposed company name', names[0] ?? '—')
   if (names.length > 1) ctx.field('Alternative names', names.slice(1).join('  •  '))
   if (!isTrust) ctx.field(isSociety ? 'Principal activities' : 'Nature of business', input.natureOfBusiness ?? '—')
   const addr = input.registeredAddress
-  ctx.field(isTrust || isSociety ? 'Registered / administrative address' : 'Registered office', addr ? [addr.line1, addr.city, addr.county, addr.postcode].filter(Boolean).join(', ') || '—' : '—')
+  ctx.field(isGenericEntity ? 'Registered / administrative address' : 'Registered office', addr ? [addr.line1, addr.city, addr.county, addr.postcode].filter(Boolean).join(', ') || '—' : '—')
   ctx.field('Postal address', input.postalAddress ?? '—')
-  ctx.field(isTrust || isSociety ? 'Contact email' : 'Company email', input.companyEmail ?? '—')
-  ctx.field(isTrust || isSociety ? 'Contact phone' : 'Company phone', input.companyPhone ?? '—')
+  ctx.field(isGenericEntity ? 'Contact email' : 'Company email', input.companyEmail ?? '—')
+  ctx.field(isGenericEntity ? 'Contact phone' : 'Company phone', input.companyPhone ?? '—')
 
   // ---------- 3. Applicant & primary contact ----------
   ctx.section('Applicant & Primary Contact')
   ctx.field('Applicant name', input.applicantName ?? '—')
-  ctx.field('Relationship to company', input.applicantRelationship ?? '—')
+  ctx.field(isGenericEntity ? 'Relationship to entity' : 'Relationship to company', input.applicantRelationship ?? '—')
   ctx.field('Applicant email', input.applicantEmail ?? '—')
   ctx.field('Applicant phone', input.applicantPhone ?? '—')
 
   // ---------- 4. Share capital summary ----------
-  if (!isTrust && !isSociety) {
+  if (!isTrust && !isSociety && !isBusinessName) {
     ctx.section('Share Capital Summary')
     ctx.field('Total number of shares', input.totalShares != null ? input.totalShares.toLocaleString() : '—')
     ctx.field('Authorised capital', input.authorisedCapital != null ? `KES ${input.authorisedCapital.toLocaleString()}` : '—')
@@ -233,8 +262,8 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
 
   // ---------- 5. Directors & officers / Trustees / Officers ----------
   if (input.directors.length > 0) {
-    if (isTrust || isSociety) {
-      ctx.section(isSociety ? 'Officers' : 'Trustees')
+    if (isTrust || isSociety || isBusinessName) {
+      ctx.section(isSociety ? 'Officers' : isPartnership ? 'Partners' : isSoleProprietorship ? 'Proprietor' : 'Trustees')
       ctx.table(
         ['Name', 'Role', 'Nationality', 'ID / Passport', 'KRA PIN'],
         [0.3, 0.14, 0.16, 0.2, 0.2],
@@ -302,7 +331,7 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
 
   // ---------- 7. Corporate party annex ----------
   if (input.corporateParties.length > 0) {
-    ctx.section('Corporate Shareholder / Director Annex')
+    ctx.section(isBusinessName ? 'Corporate Party Annex' : 'Corporate Shareholder / Director Annex')
     ctx.notice('Corporate participants are listed in full below rather than flattened into the person tables above.')
     for (const c of input.corporateParties) {
       ctx.subheading(c.registeredName)
@@ -321,9 +350,12 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   }
 
   // ---------- 8. Beneficial ownership / Settlors ----------
-  // Society has no beneficial-ownership concept at all (spec section
-  // 40) — the section is omitted entirely rather than shown empty.
-  if (isSociety) {
+  // Society, partnership, and sole proprietorship have no
+  // beneficial-ownership register at all (spec section 40 for Society;
+  // partnership/sole proprietorship register a business name, not a
+  // company, so the concept doesn't apply) — the section is omitted
+  // entirely rather than shown as an outstanding item.
+  if (isSociety || isBusinessName) {
     // intentionally no section rendered
   } else if (isTrust) {
     ctx.section('Settlors')
@@ -385,6 +417,13 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   } else if (isSociety) {
     ctx.section('Constitution')
     ctx.field('Status', input.hasConstitution ? 'Already exists — uploaded' : 'To be prepared')
+  } else if (isPartnership) {
+    ctx.section('Partnership Agreement')
+    ctx.field('Status', input.hasPartnershipAgreement ? 'Already exists — uploaded' : 'To be prepared')
+  } else if (isSoleProprietorship) {
+    // Sole proprietorship has no constitutional-document concept at all
+    // (matches isStepVisible's step-10 exclusion in the wizard) —
+    // omitted entirely rather than shown with company wording.
   } else {
     ctx.section('Constitutional & Registration Basis')
     ctx.field('Articles of association', input.articlesType === 'custom' ? 'Custom articles' : input.articlesType === 'standard' ? 'Standard model articles' : '—')
