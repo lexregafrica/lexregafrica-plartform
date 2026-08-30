@@ -147,7 +147,7 @@ another business registration document.
 Extract exactly these fields. Use null when a field is not present in the document.
 - document_kind: classify the document
 - full_name: the person's full legal name as printed (person documents only)
-- id_number: national ID number (7-8 digits) or passport number (person documents only)
+- id_number: national ID number (7-10 digits) or passport number (person documents only)
 - kra_pin: KRA PIN in format A123456789B (letter, 9 digits, letter) — for a KRA PIN
   certificate this may belong to a company rather than a person
 - date_of_birth: YYYY-MM-DD (person documents only)

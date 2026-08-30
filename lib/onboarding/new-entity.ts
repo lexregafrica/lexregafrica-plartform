@@ -224,7 +224,10 @@ export const APPLICANT_RELATIONSHIPS: Array<{ value: Database['public']['Enums']
 
 // Kenya KRA PIN format: A + 9 digits + 1 letter
 export const KRA_PIN_REGEX = /^[A-Z][0-9]{9}[A-Z]$/
-export const NATIONAL_ID_REGEX = /^[0-9]{7,8}$/
+// Old-format Kenyan national IDs run 7-8 digits; newer/next-gen IDs (and
+// the digital Huduma ID rollout) issue 9-10 digit numbers — 7-8 alone
+// rejected real IDs (reported live, 2026-08-30).
+export const NATIONAL_ID_REGEX = /^[0-9]{7,10}$/
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const KENYA_PHONE_REGEX = /^(?:\+254|0)([17][0-9]{8})$/
 

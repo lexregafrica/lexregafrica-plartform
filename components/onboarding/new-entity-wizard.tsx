@@ -2255,7 +2255,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
     }
     if (!f.fullName.trim()) return 'Full name is required.'
     if (!f.idNumber.trim()) return f.isForeign ? 'Passport number is required.' : 'ID number is required.'
-    if (!f.isForeign && !NATIONAL_ID_REGEX.test(f.idNumber)) return 'Kenyan national ID must be 7–8 digits.'
+    if (!f.isForeign && !NATIONAL_ID_REGEX.test(f.idNumber)) return 'Kenyan national ID must be 7–10 digits.'
     if (f.isForeign && !f.nationality.trim()) return 'Nationality is required for foreign directors.'
     if (!f.kraPin.trim()) return 'KRA PIN is required.'
     if (!KRA_PIN_REGEX.test(f.kraPin.trim().toUpperCase())) return 'KRA PIN format: A123456789B.'
