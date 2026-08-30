@@ -1712,6 +1712,49 @@ const emptyDirector: DirectorForm = {
   position: '', isRegistrationSignatory: false, termOfOffice: '', termExpiryDate: '',
 }
 
+// Human-readable label per document_type — shown alongside the person's
+// name right where a document is uploaded (director/shareholder/BO/
+// settlor forms, and the shared vault), not just the raw filename.
+// Charles call, 2026-08: once a KRA PIN or ID is uploaded it should read
+// as "Ian Love's KRA PIN", not a bare filename you have to click into.
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  director_id_copy: 'ID / Passport',
+  director_kra_pin_copy: 'KRA PIN Certificate',
+  shareholder_id_copy: 'ID / Passport',
+  shareholder_kra_pin_copy: 'KRA PIN Certificate',
+  beneficial_owner_id_copy: 'ID / Passport',
+  beneficial_owner_kra_pin_copy: 'KRA PIN Certificate',
+  passport_photo: 'Passport Photo',
+  proof_of_address: 'Proof of Address',
+  partnership_agreement: 'Partnership Agreement',
+  trust_deed: 'Trust Deed',
+  constitution: 'Constitution',
+  founding_minutes: 'Founding Meeting Records',
+  trust_property_document: 'Trust Property Document',
+  society_property_document: 'Property Document',
+  foreign_constitutional_documents: 'Foreign Constitutional Documents',
+  corporate_certificate_of_incorporation: 'Certificate of Incorporation',
+  corporate_authority_document: 'Board Resolution / Power of Attorney',
+  corporate_tax_certificate: 'Tax Certificate',
+  corporate_good_standing: 'Good Standing Certificate',
+  corporate_representative_id: 'Representative ID',
+}
+
+function documentTypeLabel(documentType?: string): string {
+  if (!documentType) return 'Document'
+  return DOCUMENT_TYPE_LABELS[documentType] ?? documentType.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+// Label shown for an already-uploaded document — "{person}'s {document
+// type}" when we know who it's for, just the document type otherwise.
+// The raw filename stays visible underneath so a person can still tell
+// two same-named files apart (Charles call, 2026-08).
+function uploadedDocLabel(personName: string | undefined, documentType: string | undefined): string {
+  const type = documentTypeLabel(documentType)
+  const name = personName?.trim()
+  return name ? `${name}’s ${type}` : type
+}
+
 // Shared inline OCR uploader — used inside the director/shareholder "add
 // new person" forms. Per Charles (2026-07-17): OCR should trigger as soon
 // as identity documents are uploaded, not batched at the final doc step.
@@ -1806,10 +1849,14 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
           type="button"
           onClick={async () => { setOpening(true); await openStoredDocument(uploaded.filePath, setError); setOpening(false) }}
           disabled={opening}
-          className="text-ios-footnote truncate text-left underline decoration-dotted flex-1 disabled:opacity-50"
-          style={{ color: 'var(--system-label)' }}
+          className="text-left flex-1 disabled:opacity-50"
         >
-          {opening ? 'Opening…' : uploaded.name}
+          <span className="block text-ios-footnote font-medium truncate underline decoration-dotted" style={{ color: 'var(--system-label)' }}>
+            {opening ? 'Opening…' : uploadedDocLabel(personName, documentType)}
+          </span>
+          <span className="block text-ios-caption1 truncate" style={{ color: 'var(--system-label-3)' }}>
+            {uploaded.name}
+          </span>
         </button>
         <button
           type="button"
@@ -1899,10 +1946,14 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
           type="button"
           onClick={async () => { setOpening(true); await openStoredDocument(uploaded.filePath, setError); setOpening(false) }}
           disabled={opening}
-          className="text-ios-caption1 truncate text-left underline decoration-dotted flex-1 disabled:opacity-50"
-          style={{ color: 'var(--system-label)' }}
+          className="text-left flex-1 disabled:opacity-50"
         >
-          {opening ? 'Opening…' : uploaded.name}
+          <span className="block text-ios-caption1 font-medium truncate underline decoration-dotted" style={{ color: 'var(--system-label)' }}>
+            {opening ? 'Opening…' : uploadedDocLabel(personName, 'passport_photo')}
+          </span>
+          <span className="block text-ios-caption1 truncate" style={{ color: 'var(--system-label-3)' }}>
+            {uploaded.name}
+          </span>
         </button>
         <button
           type="button"
@@ -6021,10 +6072,14 @@ function StepDocuments({ entityType, wizard, orgId, entityId, documents, setDocu
                         type="button"
                         onClick={() => openDocument(d)}
                         disabled={previewingId === d.id}
-                        className="text-ios-footnote truncate text-left underline decoration-dotted disabled:opacity-50"
-                        style={{ color: 'var(--system-label)' }}
+                        className="text-left disabled:opacity-50"
                       >
-                        {previewingId === d.id ? 'Opening…' : d.name}
+                        <span className="block text-ios-footnote truncate underline decoration-dotted" style={{ color: 'var(--system-label)' }}>
+                          {previewingId === d.id ? 'Opening…' : documentTypeLabel(d.document_type ?? undefined)}
+                        </span>
+                        <span className="block text-ios-caption1 truncate" style={{ color: 'var(--system-label-3)' }}>
+                          {d.name}
+                        </span>
                       </button>
                     </div>
                   )
