@@ -1841,6 +1841,27 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
       setState('extracting')
       const result = await api({ action: 'ocr_extract', documentId: registered.id, section })
+
+      // This document was registered before the person existed (personId
+      // prop was still undefined), tagged only by name at that instant —
+      // so it never carried the id OCR just matched-or-created. Relying on
+      // Save to retag it left it permanently untagged for anyone
+      // auto-created purely by OCR and never explicitly saved (Charles's
+      // by-design auto-create-on-OCR flow), which is exactly what made
+      // this person's own ID document vanish from the edit screen later
+      // (reported live, 2026-08-30). Retag it now, using the same id this
+      // upload's own extraction just resolved.
+      if (registered.id && result.personId && !personId) {
+        const f = result.fields as { full_name?: string } | undefined
+        void api({
+          action: 'retag_documents',
+          documentIds: [registered.id],
+          personId: result.personId,
+          personName: f?.full_name ?? personName,
+          personRole,
+        })
+      }
+
       onExtracted(result.fields, result.personId, replacing)
       setUploaded({ name: file.name, filePath: path })
       setReplacing(false)
