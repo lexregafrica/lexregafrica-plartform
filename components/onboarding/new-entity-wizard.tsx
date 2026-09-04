@@ -1952,7 +1952,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
           type="button"
           onClick={async () => { setOpening(true); await openStoredDocument(uploaded.filePath, setError); setOpening(false) }}
           disabled={opening}
-          className="text-left flex-1 disabled:opacity-50"
+          className="min-w-0 flex-1 text-left disabled:opacity-50"
         >
           <span className="block text-ios-footnote font-medium truncate underline decoration-dotted" style={{ color: 'var(--system-label)' }}>
             {opening ? 'Opening…' : uploadedDocLabel(personName, documentType)}
@@ -2056,7 +2056,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
           type="button"
           onClick={async () => { setOpening(true); await openStoredDocument(uploaded.filePath, setError); setOpening(false) }}
           disabled={opening}
-          className="text-left flex-1 disabled:opacity-50"
+          className="min-w-0 flex-1 text-left disabled:opacity-50"
         >
           <span className="block text-ios-caption1 font-medium truncate underline decoration-dotted" style={{ color: 'var(--system-label)' }}>
             {opening ? 'Opening…' : uploadedDocLabel(personName, 'passport_photo')}
