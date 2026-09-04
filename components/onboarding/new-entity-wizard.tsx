@@ -3524,7 +3524,11 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
       {candidateShareholders.length > 0 && !form && (
         <div className="ios-surface rounded-2xl p-4 space-y-2">
           <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>
-            These shareholders hold 10%+ — add them as beneficial owners?
+            These shareholders hold 10%+ — tap one below to add them as a beneficial owner
+          </p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            Their name, ID, KRA PIN, and uploaded documents carry over automatically — nothing to re-type or
+            re-upload.
           </p>
           {candidateShareholders.map((s) => (
             <button
@@ -3611,7 +3615,17 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             personRole="beneficial_owner"
             personId={form.id}
             onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
-            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_id_copy')}
+            initialUploaded={
+              findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_id_copy') ??
+              // Before Save, this BO has no id yet, so clone_person_documents
+              // hasn't run — the shareholder's own ID scan already exists
+              // under their id, just as a shareholder-typed document. Show
+              // it directly instead of leaving the upload box looking empty
+              // for a document that genuinely exists (reported live,
+              // 2026-08-31: "ID and passport upload fields were empty even
+              // though the passport was already uploaded").
+              (form.sourceShareholderId ? findPersonDocument(documents, form.sourceShareholderId, form.fullName, 'shareholder_id_copy') : null)
+            }
           />
           <InlineOcrUpload
             section="other"
@@ -3626,7 +3640,10 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             personRole="beneficial_owner"
             personId={form.id}
             onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
-            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_kra_pin_copy')}
+            initialUploaded={
+              findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_kra_pin_copy') ??
+              (form.sourceShareholderId ? findPersonDocument(documents, form.sourceShareholderId, form.fullName, 'shareholder_kra_pin_copy') : null)
+            }
           />
           <PhotoUpload
             orgId={orgId}
@@ -3638,7 +3655,13 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             personRole="beneficial_owner"
             personId={form.id}
             onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
-            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
+            initialUploaded={
+              findPersonDocument(documents, form.id, form.fullName, 'passport_photo') ??
+              // passport_photo's type is shared across roles, but the name
+              // fallback needs an exact case/word-order match — matching by
+              // the shareholder's own id here is exact regardless of that.
+              (form.sourceShareholderId ? findPersonDocument(documents, form.sourceShareholderId, form.fullName, 'passport_photo') : null)
+            }
           />
           {photoUploaded && (
             <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
