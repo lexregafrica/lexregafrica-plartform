@@ -1,8 +1,11 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { IconPlus, IconArrowRight } from '@tabler/icons-react'
 import { DashboardShell } from '@/components/dashboard/shell'
+import { DeleteEntityDialog } from '@/components/dashboard/delete-entity-dialog'
 
 export type DashboardEntity = {
   id: string
@@ -77,7 +80,13 @@ function StatTile({ label, value }: { label: string; value: number }) {
 }
 
 function EntityCard({ entity }: { entity: DashboardEntity }) {
+  const router = useRouter()
   const isActive = entity.status === 'active'
+  // Deletable only pre-activation — an active entity has a real BRS
+  // certificate on file, so "deleting" it here would just hide a live
+  // registered business from its own owner rather than dissolve it.
+  const isDeletable = entity.status === 'draft' || entity.status === 'pending_registration'
+  const [showDelete, setShowDelete] = useState(false)
 
   const card = (
     <div className={`rounded-2xl p-5 ${isActive ? 'transition-opacity hover:opacity-80 active:opacity-60' : ''}`} style={{ background: 'var(--system-bg)' }}>
@@ -145,12 +154,34 @@ function EntityCard({ entity }: { entity: DashboardEntity }) {
             Open dashboard <IconArrowRight size={14} stroke={2.5} />
           </span>
         )}
+
+        {isDeletable && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDelete(true) }}
+            className="rounded-full px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-70"
+            style={{ color: '#D70015' }}
+          >
+            Delete
+          </button>
+        )}
       </div>
     </div>
   )
 
-  if (isActive) return <Link href={`/dashboard/${entity.id}`}>{card}</Link>
-  return card
+  return (
+    <>
+      {isActive ? <Link href={`/dashboard/${entity.id}`}>{card}</Link> : card}
+      {showDelete && (
+        <DeleteEntityDialog
+          entityId={entity.id}
+          entityName={entity.displayName}
+          onClose={() => setShowDelete(false)}
+          onDeleted={() => { setShowDelete(false); router.refresh() }}
+        />
+      )}
+    </>
+  )
 }
 
 export function EntityDashboard({
