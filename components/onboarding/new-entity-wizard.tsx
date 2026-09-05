@@ -785,11 +785,6 @@ export function NewEntityWizard() {
             entityType={entityType}
             wizard={wizard}
             patch={patch}
-            orgId={orgId}
-            entityId={entityId}
-            api={api}
-            setError={setError}
-            onExtracted={refresh}
           />
         )}
         {step === 5 && (
@@ -1199,27 +1194,11 @@ function StepNames({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<W
 // not spec-required but the natural home for them now that step 1 no
 // longer captures activity/industry/employee-count.
 // ------------------------------------------------------------------
-function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, setError, onExtracted }: {
+function StepCompanyBasics({ entityType, wizard, patch }: {
   entityType: EntityType
   wizard: WizardData
   patch: (p: Partial<WizardData>) => void
-  orgId: string | null
-  entityId: string | null
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
-  setError: (e: string) => void
-  onExtracted: () => Promise<void>
 }) {
-  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
-    if (!fields) { onExtracted(); return }
-    const f = fields as { city?: string; county?: string; postal_code?: string }
-    patch({
-      city: wizard.city || f.city || undefined,
-      county: wizard.county || f.county || undefined,
-      postalCode: wizard.postalCode || f.postal_code || undefined,
-    })
-    onExtracted()
-  }
-
   const entityLabel = ENTITY_TYPES.find((t) => t.value === entityType)?.label ?? entityType
 
   return (
@@ -1391,16 +1370,6 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
         <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
           Registered office address
         </h2>
-        <InlineOcrUpload
-          section="address"
-          documentType="proof_of_address"
-          label="Upload proof of address to auto-fill →"
-          orgId={orgId}
-          entityId={entityId}
-          api={api}
-          onExtracted={handleExtracted}
-          setError={setError}
-        />
         <div className="grid grid-cols-2 gap-3">
           <Field label="Building name">
             <input type="text" className={inputCls} style={inputStyle} value={wizard.buildingName ?? ''} onChange={(e) => patch({ buildingName: e.target.value })} />
@@ -1438,8 +1407,7 @@ function StepCompanyBasics({ entityType, wizard, patch, orgId, entityId, api, se
           <input type="text" className={inputCls} style={inputStyle} value={wizard.country ?? 'Kenya'} onChange={(e) => patch({ country: e.target.value })} />
         </Field>
         <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-          Proof of address is optional — upload above to auto-fill the fields, type them yourself, or add the
-          document later from the review step if you don’t have one yet.
+          You can add a proof of address document later from the Document Vault step if you don’t have one yet.
         </p>
       </div>
 
