@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import { generateIdp } from '@/lib/documents/idp'
+import { formatAddress, type AddressData } from '@/components/onboarding/address-fields'
 import {
   ENTITY_TYPES,
   APPLICANT_RELATIONSHIPS,
@@ -289,11 +290,7 @@ export async function POST(request: Request) {
         }
         isForeign?: boolean
         foreignAddress?: string
-        physicalAddress?: string
-        postalAddress?: string
-        county?: string
-        postalCode?: string
-        postalAddressLine?: string
+        structuredAddress?: AddressData
         occupation?: string
         // Partnership only — General Partnership Formation Workflow
         // spec, 2026-08, GP-060/061.
@@ -331,11 +328,7 @@ export async function POST(request: Request) {
         foreignAddress: director.isForeign ? director.foreignAddress : undefined,
         isCorporate: director.isCorporate ?? false,
         corporate: director.isCorporate ? director.corporate : undefined,
-        physicalAddress: director.physicalAddress ?? undefined,
-        postalAddress: director.postalAddress ?? undefined,
-        county: director.county ?? undefined,
-        postalCode: director.postalCode ?? undefined,
-        postalAddressLine: director.postalAddressLine ?? undefined,
+        structuredAddress: director.structuredAddress ?? undefined,
         occupation: director.occupation ?? undefined,
         interestPercentage: director.interestPercentage ?? undefined,
         contributionType: director.contributionType ?? undefined,
@@ -390,15 +383,11 @@ export async function POST(request: Request) {
         }
         isForeign?: boolean
         foreignAddress?: string
-        physicalAddress?: string
-        postalAddress?: string
+        structuredAddress?: AddressData
         nationality?: string
         dateOfBirth?: string
         phone?: string
         email?: string
-        county?: string
-        postalCode?: string
-        postalAddressLine?: string
         occupation?: string
         // Society only — Society Formation Workflow spec, 2026-08, section 9.
         membershipClass?: string
@@ -424,14 +413,10 @@ export async function POST(request: Request) {
       address: {
         isForeign: shareholder.isForeign ?? false,
         foreignAddress: shareholder.isForeign ? shareholder.foreignAddress : undefined,
-        physicalAddress: shareholder.physicalAddress ?? undefined,
-        postalAddress: shareholder.postalAddress ?? undefined,
+        structuredAddress: shareholder.structuredAddress ?? undefined,
         nationality: shareholder.nationality ?? undefined,
         dateOfBirth: shareholder.dateOfBirth ?? undefined,
-        county: shareholder.county ?? undefined,
-        postalCode: shareholder.postalCode ?? undefined,
         occupation: shareholder.occupation ?? undefined,
-        postalAddressLine: shareholder.postalAddressLine ?? undefined,
         membershipClass: shareholder.membershipClass ?? undefined,
         isFoundingMember: shareholder.isFoundingMember ?? undefined,
         dateAdmitted: shareholder.dateAdmitted ?? undefined,
@@ -494,9 +479,8 @@ export async function POST(request: Request) {
         kraPin?: string
         nationality?: string
         dateOfBirth?: string
-        postalAddress?: string
         businessAddress?: string
-        residentialAddress?: string
+        structuredAddress?: AddressData
         phone?: string
         email?: string
         occupation?: string
@@ -518,9 +502,9 @@ export async function POST(request: Request) {
       kra_pin: beneficialOwner.kraPin ?? null,
       nationality: beneficialOwner.nationality ?? 'Kenyan',
       date_of_birth: beneficialOwner.dateOfBirth ?? null,
-      postal_address: beneficialOwner.postalAddress ? ({ text: beneficialOwner.postalAddress } as Json) : null,
+      postal_address: null,
       business_address: beneficialOwner.businessAddress ? ({ text: beneficialOwner.businessAddress } as Json) : null,
-      residential_address: beneficialOwner.residentialAddress ? ({ text: beneficialOwner.residentialAddress } as Json) : null,
+      residential_address: { structuredAddress: beneficialOwner.structuredAddress } as Json,
       phone: beneficialOwner.phone ?? null,
       email: beneficialOwner.email ?? null,
       occupation: beneficialOwner.occupation ?? null,
@@ -1320,7 +1304,7 @@ async function generateAndStoreIdp(
 
     // ---- directors table -----------------------------------------
     const idpDirectors = (directors ?? []).map((d) => {
-      const ra = d.residential_address as { isCorporate?: boolean; physicalAddress?: string; foreignAddress?: string; position?: string } | null
+      const ra = d.residential_address as { isCorporate?: boolean; physicalAddress?: string; foreignAddress?: string; position?: string; structuredAddress?: AddressData } | null
       return {
         fullName: d.full_name,
         role: ctx.entityType === 'partnership' ? (ra?.isCorporate ? 'Corporate partner' : 'Partner')
@@ -1333,7 +1317,7 @@ async function generateAndStoreIdp(
         kraPin: d.kra_pin,
         email: d.email,
         phone: d.phone,
-        address: ra?.physicalAddress ?? ra?.foreignAddress ?? null,
+        address: ra?.structuredAddress ? formatAddress(ra.structuredAddress) : (ra?.physicalAddress ?? ra?.foreignAddress ?? null),
         isAlsoShareholder: shareholderNamesLower.has(d.full_name.toLowerCase()),
         isAlsoBeneficialOwner: boNamesLower.has(d.full_name.toLowerCase()),
       }
@@ -1395,7 +1379,10 @@ async function generateAndStoreIdp(
     // ---- beneficial ownership ---------------------------------------
     const idpBeneficialOwners = (beneficialOwners ?? []).map((b) => ({
       fullName: b.full_name, nationality: b.nationality, idNumber: b.id_number, kraPin: b.kra_pin,
-      address: (b.residential_address as { text?: string } | null)?.text ?? null,
+      address: (() => {
+        const ra = b.residential_address as { text?: string; structuredAddress?: AddressData } | null
+        return ra?.structuredAddress ? formatAddress(ra.structuredAddress) : (ra?.text ?? null)
+      })(),
       phone: b.phone, email: b.email, natureOfControl: b.nature_of_control ?? '—',
       sharePercentage: b.share_percentage, dateBecameBo: b.date_became_bo,
     }))

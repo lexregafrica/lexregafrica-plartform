@@ -31,6 +31,7 @@ import {
   type ShareClass,
 } from '@/lib/onboarding/new-entity'
 import { HelpRequestSheet } from '@/components/onboarding/help-request-sheet'
+import { AddressFields, formatAddress, readLegacyAddress, type AddressData } from '@/components/onboarding/address-fields'
 
 // ------------------------------------------------------------------
 // Shared styles
@@ -181,6 +182,9 @@ type DirectorRow = {
     isCorporate?: boolean
     corporate?: CorporateParticipant
     foreignAddress?: string
+    structuredAddress?: AddressData
+    // Legacy scattered shape — read by readLegacyAddress() for rows
+    // saved before the shared AddressFields component existed.
     physicalAddress?: string
     postalAddress?: string
     county?: string
@@ -207,8 +211,11 @@ type ShareholderRow = {
   shares_held: number
   share_percentage: number | null
   address: {
-    isForeign?: boolean; foreignAddress?: string; physicalAddress?: string; postalAddress?: string
-    nationality?: string; dateOfBirth?: string; county?: string; occupation?: string; postalCode?: string; postalAddressLine?: string
+    isForeign?: boolean; foreignAddress?: string; structuredAddress?: AddressData
+    // Legacy scattered shape — read by readLegacyAddress() for rows saved
+    // before the shared AddressFields component existed.
+    physicalAddress?: string; postalAddress?: string; county?: string; postalCode?: string; postalAddressLine?: string
+    nationality?: string; dateOfBirth?: string; occupation?: string
     // Society only — Society Formation Workflow spec, 2026-08, section 9.
     membershipClass?: string
     isFoundingMember?: boolean
@@ -260,9 +267,11 @@ type BeneficialOwnerRow = {
   kra_pin: string | null
   nationality: string
   date_of_birth: string | null
+  // postal_address is legacy-only now — postalAddress lives inside
+  // residential_address.structuredAddress like every other address.
   postal_address: { text?: string } | null
   business_address: { text?: string } | null
-  residential_address: { text?: string } | null
+  residential_address: { text?: string; structuredAddress?: AddressData } | null
   phone: string | null
   email: string | null
   occupation: string | null
@@ -386,9 +395,11 @@ export function NewEntityWizard() {
   const applicantDefaults = useMemo(() => ({
     phone: wizard.applicantPhone ?? '',
     email: wizard.applicantEmail ?? '',
-    physicalAddress: [wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', '),
-    postalAddress: wizard.postalAddress ?? '',
-  }), [wizard.applicantPhone, wizard.applicantEmail, wizard.buildingName, wizard.streetName, wizard.city, wizard.county, wizard.postalAddress])
+    address: {
+      buildingName: wizard.buildingName, streetName: wizard.streetName, floorNumber: wizard.floorNumber, doorNumber: wizard.doorNumber,
+      city: wizard.city, county: wizard.county, postalCode: wizard.postalCode, postalAddress: wizard.postalAddress, country: wizard.country,
+    } as AddressData,
+  }), [wizard.applicantPhone, wizard.applicantEmail, wizard.buildingName, wizard.streetName, wizard.floorNumber, wizard.doorNumber, wizard.city, wizard.county, wizard.postalCode, wizard.postalAddress, wizard.country])
 
   // Every write must target the same entity's onboarding_progress row —
   // a user can have several new-entity sessions going at once, so the
@@ -1370,42 +1381,7 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
         <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
           Registered office address
         </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Building name">
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.buildingName ?? ''} onChange={(e) => patch({ buildingName: e.target.value })} />
-          </Field>
-          <Field label="Street name">
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.streetName ?? ''} onChange={(e) => patch({ streetName: e.target.value })} />
-          </Field>
-        </div>
-        <Field label="City / Town" required>
-          <input type="text" className={inputCls} style={inputStyle} value={wizard.city ?? ''} onChange={(e) => patch({ city: e.target.value })} />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Floor">
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.floorNumber ?? ''} onChange={(e) => patch({ floorNumber: e.target.value })} />
-          </Field>
-          <Field label="Door / unit number">
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.doorNumber ?? ''} onChange={(e) => patch({ doorNumber: e.target.value })} />
-          </Field>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Postal code" required>
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.postalCode ?? ''} onChange={(e) => patch({ postalCode: e.target.value })} />
-          </Field>
-          <Field label="Postal address" required>
-            <input type="text" className={inputCls} style={inputStyle} placeholder="P.O. Box" value={wizard.postalAddress ?? ''} onChange={(e) => patch({ postalAddress: e.target.value })} />
-          </Field>
-        </div>
-        <Field label="County" required>
-          <select className={inputCls} style={inputStyle} value={wizard.county ?? ''} onChange={(e) => patch({ county: e.target.value })}>
-            <option value="" disabled>Choose a county…</option>
-            {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </Field>
-        <Field label="Country">
-          <input type="text" className={inputCls} style={inputStyle} value={wizard.country ?? 'Kenya'} onChange={(e) => patch({ country: e.target.value })} />
-        </Field>
+        <AddressFields value={wizard} onChange={patch} />
         <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
           You can add a proof of address document later from the Document Vault step if you don’t have one yet.
         </p>
@@ -1690,18 +1666,13 @@ type DirectorForm = {
   dateOfBirth: string
   nationality: string
   occupation: string
-  county: string
-  postalCode: string
   phone: string
   email: string
   // Charles, corporate-shareholder call: CR8 needs a physical/postal
   // address per director, distinct from the entity's registered office.
-  physicalAddress: string
-  postalAddress: string
-  // Full mailing address line — distinct from the P.O. Box (postalAddress
-  // above); Charles wanted both captured, not one standing in for the
-  // other.
-  postalAddressLine: string
+  // Same canonical shape as every other address in the app — see
+  // components/onboarding/address-fields.tsx.
+  address: AddressData
   appointmentDate: string
   isCorporate: boolean
   corporate: CorporateParticipant
@@ -1733,8 +1704,8 @@ export const emptyCorporate: CorporateParticipant = {
 }
 
 const emptyDirector: DirectorForm = {
-  fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '', postalCode: '',
-  phone: '', email: '', physicalAddress: '', postalAddress: '', postalAddressLine: '',
+  fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '',
+  phone: '', email: '', address: {},
   appointmentDate: new Date().toISOString().slice(0, 10),
   isCorporate: false, corporate: { ...emptyCorporate },
   isForeign: false, foreignAddress: '',
@@ -2242,15 +2213,14 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   setError: (e: string) => void
   onExtracted: () => Promise<void>
   documents: DocumentRow[]
-  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
+  applicant?: { phone: string; email: string; address: AddressData }
 }) {
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
   const [form, setForm] = useState<DirectorForm | null>(directors.length === 0 ? {
     ...emptyDirector,
     phone: applicant?.phone ?? '',
     email: applicant?.email ?? '',
-    physicalAddress: applicant?.physicalAddress ?? '',
-    postalAddress: applicant?.postalAddress ?? '',
+    address: applicant?.address ?? {},
   } : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
@@ -2301,7 +2271,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
     if (!KENYA_PHONE_REGEX.test(f.phone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
     if (!f.email.trim()) return 'Email address is required.'
     if (!EMAIL_REGEX.test(f.email)) return 'Enter a valid email address.'
-    if (!f.physicalAddress.trim()) return 'Physical address is required.'
+    if (!f.address.city?.trim()) return 'City/Town is required.'
     return null
   }
 
@@ -2330,11 +2300,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           corporate: form.isCorporate ? form.corporate : undefined,
           isForeign: form.isForeign,
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
-          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
-          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
-          county: form.isCorporate ? undefined : form.county || undefined,
-          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
-          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
+          structuredAddress: form.isCorporate ? undefined : form.address,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
           interestPercentage: entityType === 'partnership' ? form.interestPercentage || undefined : undefined,
           contributionType: entityType === 'partnership' ? form.contributionType || undefined : undefined,
@@ -2361,11 +2327,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           isCorporate: form.isCorporate,
           corporate: form.isCorporate ? form.corporate : undefined,
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
-          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
-          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
-          county: form.isCorporate ? undefined : form.county || undefined,
-          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
-          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
+          structuredAddress: form.isCorporate ? undefined : form.address,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
           interestPercentage: entityType === 'partnership' ? form.interestPercentage || undefined : undefined,
           contributionType: entityType === 'partnership' ? form.contributionType || undefined : undefined,
@@ -2474,9 +2436,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 dateOfBirth: d.residential_address?.dateOfBirth ?? '',
                 nationality: d.residential_address?.isCorporate ? 'Kenyan' : d.nationality,
                 occupation: d.residential_address?.occupation ?? '',
-                county: d.residential_address?.county ?? '',
-                postalCode: d.residential_address?.postalCode ?? '',
-                postalAddressLine: d.residential_address?.postalAddressLine ?? '',
+                address: readLegacyAddress(d.residential_address, d.residential_address?.physicalAddress),
                 interestPercentage: d.residential_address?.interestPercentage ?? '',
                 contributionType: (d.residential_address?.contributionType ?? '') as DirectorForm['contributionType'],
                 contributionValue: d.residential_address?.contributionValue ?? '',
@@ -2491,8 +2451,6 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 corporate: d.residential_address?.corporate ?? { ...emptyCorporate },
                 isForeign: !!d.is_foreign,
                 foreignAddress: d.residential_address?.foreignAddress ?? '',
-                physicalAddress: d.residential_address?.physicalAddress ?? '',
-                postalAddress: d.residential_address?.postalAddress ?? '',
               }) }}
             >
               Edit
@@ -2617,26 +2575,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                   <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
                 </Field>
               </div>
-              <Field label="Physical address" required>
-                <input type="text" className={inputCls} style={inputStyle} placeholder="Street, building, ward" value={form.physicalAddress} onChange={(e) => set({ physicalAddress: e.target.value })} />
-              </Field>
-              <Field label="County">
-                <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
-                  <option value="">—</option>
-                  {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </Field>
-              <Field label="Postal address">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value, postalAddress: e.target.value })} />
-              </Field>
-              <Field label="Postal code">
-                <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
-                  <option value="">{form.county ? '—' : 'Choose county first'}</option>
-                  {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
-                    <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
-                  ))}
-                </select>
-              </Field>
+              <AddressFields value={form.address} onChange={(patch) => set({ address: { ...form.address, ...patch } })} />
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
               </Field>
@@ -2740,13 +2679,9 @@ type ShareholderForm = {
   dateOfBirth: string
   nationality: string
   occupation: string
-  county: string
-  postalCode: string
   phone: string
   email: string
-  physicalAddress: string
-  postalAddress: string
-  postalAddressLine: string
+  address: AddressData
   sharesHeld: string
   isNominee: boolean
   isCorporate: boolean
@@ -2763,9 +2698,8 @@ type ShareholderForm = {
 // beneficial-owner screens further down can gap-fill from this record
 // instead of re-asking for the same person.
 const emptyShareholder: ShareholderForm = {
-  legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '', county: '', postalCode: '',
-  phone: '', email: '',
-  physicalAddress: '', postalAddress: '', postalAddressLine: '',
+  legalName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', occupation: '',
+  phone: '', email: '', address: {},
   sharesHeld: '', isNominee: false, isCorporate: false, corporate: { ...emptyCorporate }, alsoDirector: false,
   isForeign: false, foreignAddress: '',
 }
@@ -2784,15 +2718,14 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
   setError: (e: string) => void
   onExtracted: () => Promise<void>
   documents: DocumentRow[]
-  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
+  applicant?: { phone: string; email: string; address: AddressData }
 }) {
   const roleLabel = ROLE_BY_TYPE[entityType] ?? 'Director'
   const [form, setForm] = useState<ShareholderForm | null>(shareholders.length === 0 ? {
     ...emptyShareholder,
     phone: applicant?.phone ?? '',
     email: applicant?.email ?? '',
-    physicalAddress: applicant?.physicalAddress ?? '',
-    postalAddress: applicant?.postalAddress ?? '',
+    address: applicant?.address ?? {},
   } : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
@@ -2824,7 +2757,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       if (!form.idNumber.trim()) { setError('National ID / registration number is required.'); return }
       if (!form.kraPin.trim()) { setError('KRA PIN is required.'); return }
       if (!KRA_PIN_REGEX.test(form.kraPin.trim().toUpperCase())) { setError('KRA PIN format: A123456789B.'); return }
-      if (!form.physicalAddress.trim()) { setError('Physical address is required.'); return }
+      if (!form.address.city?.trim()) { setError('City/Town is required.'); return }
     }
     const shares = parseInt(form.sharesHeld, 10)
     if (!shares || shares < 1) { setError('Enter the number of shares/units held.'); return }
@@ -2853,13 +2786,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           corporate: form.isCorporate ? form.corporate : undefined,
           isForeign: form.isForeign,
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
-          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
-          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
+          structuredAddress: form.isCorporate ? undefined : form.address,
           nationality: form.isCorporate ? undefined : form.nationality || undefined,
           dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
-          county: form.isCorporate ? undefined : form.county || undefined,
-          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
-          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
           // Typed into the form (phone/email inputs exist on this step)
           // but never actually sent to the server — silently dropped on
@@ -2881,13 +2810,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
         address: {
           isForeign: form.isForeign,
           foreignAddress: form.isForeign ? form.foreignAddress : undefined,
-          physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
-          postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
+          structuredAddress: form.isCorporate ? undefined : form.address,
           nationality: form.isCorporate ? undefined : form.nationality || undefined,
           dateOfBirth: form.isCorporate ? undefined : form.dateOfBirth || undefined,
-          county: form.isCorporate ? undefined : form.county || undefined,
-          postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
-          postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
           occupation: form.isCorporate ? undefined : form.occupation || undefined,
         },
         corporate_details: {
@@ -2936,9 +2861,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             nationality: form.nationality || undefined,
             phone: form.phone || undefined,
             email: form.email || undefined,
-            physicalAddress: form.physicalAddress || undefined,
-            postalAddress: form.postalAddress || undefined,
-            county: form.county || undefined,
+            structuredAddress: form.address,
             occupation: form.occupation || undefined,
             isForeign: form.isForeign,
             foreignAddress: form.isForeign ? form.foreignAddress : undefined,
@@ -2963,11 +2886,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
             isCorporate: form.isCorporate,
             corporate: form.isCorporate ? form.corporate : undefined,
             foreignAddress: form.isForeign ? form.foreignAddress : undefined,
-            physicalAddress: form.isCorporate ? undefined : form.physicalAddress || undefined,
-            postalAddress: form.isCorporate ? undefined : form.postalAddress || undefined,
-            county: form.isCorporate ? undefined : form.county || undefined,
-            postalCode: form.isCorporate ? undefined : form.postalCode || undefined,
-            postalAddressLine: form.isCorporate ? undefined : form.postalAddressLine || undefined,
+            structuredAddress: form.isCorporate ? undefined : form.address,
             occupation: form.isCorporate ? undefined : form.occupation || undefined,
           },
         }])
@@ -3069,13 +2988,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 dateOfBirth: s.address?.dateOfBirth ?? '',
                 nationality: s.address?.nationality ?? 'Kenyan',
                 occupation: s.address?.occupation ?? '',
-                county: s.address?.county ?? '',
-                postalCode: s.address?.postalCode ?? '',
-                postalAddressLine: s.address?.postalAddressLine ?? '',
                 phone: s.phone ?? '',
                 email: s.email ?? '',
-                physicalAddress: s.address?.physicalAddress ?? '',
-                postalAddress: s.address?.postalAddress ?? '',
+                address: readLegacyAddress(s.address, s.address?.physicalAddress),
                 sharesHeld: String(s.shares_held),
                 isNominee: !!s.corporate_details?.nominee,
                 isCorporate: !!s.corporate_details?.isCorporate,
@@ -3207,26 +3122,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                   <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
                 </Field>
               </div>
-              <Field label="Physical address" required>
-                <input type="text" className={inputCls} style={inputStyle} placeholder="Street, building, ward" value={form.physicalAddress} onChange={(e) => set({ physicalAddress: e.target.value })} />
-              </Field>
-              <Field label="County">
-                <select className={inputCls} style={inputStyle} value={form.county} onChange={(e) => set({ county: e.target.value, postalCode: '' })}>
-                  <option value="">—</option>
-                  {KENYA_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </Field>
-              <Field label="Postal address">
-                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddressLine} onChange={(e) => set({ postalAddressLine: e.target.value, postalAddress: e.target.value })} />
-              </Field>
-              <Field label="Postal code">
-                <select className={inputCls} style={inputStyle} value={form.postalCode} onChange={(e) => set({ postalCode: e.target.value })} disabled={!form.county}>
-                  <option value="">{form.county ? '—' : 'Choose county first'}</option>
-                  {KENYA_POSTAL_CODES.filter((p) => p.county === form.county).map((p) => (
-                    <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
-                  ))}
-                </select>
-              </Field>
+              <AddressFields value={form.address} onChange={(patch) => set({ address: { ...form.address, ...patch } })} />
               <Field label="Occupation">
                 <input type="text" className={inputCls} style={inputStyle} value={form.occupation} onChange={(e) => set({ occupation: e.target.value })} />
               </Field>
@@ -3289,9 +3185,8 @@ type BeneficialOwnerForm = {
   kraPin: string
   nationality: string
   dateOfBirth: string
-  postalAddress: string
   businessAddress: string
-  residentialAddress: string
+  address: AddressData
   phone: string
   email: string
   occupation: string
@@ -3307,7 +3202,7 @@ type BeneficialOwnerForm = {
 function emptyBeneficialOwner(): BeneficialOwnerForm {
   return {
     fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan', dateOfBirth: '',
-    postalAddress: '', businessAddress: '', residentialAddress: '', phone: '', email: '',
+    businessAddress: '', address: {}, phone: '', email: '',
     occupation: '', natureOfControl: '', dateBecameBo: new Date().toISOString().slice(0, 10), sharePercentage: '',
   }
 }
@@ -3388,8 +3283,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
       occupation: s.address?.occupation ?? '',
       phone: s.phone ?? '',
       email: s.email ?? '',
-      residentialAddress: s.address?.physicalAddress ?? '',
-      postalAddress: s.address?.postalAddress ?? '',
+      address: readLegacyAddress(s.address, s.address?.physicalAddress),
       sharePercentage: s.share_percentage != null ? String(s.share_percentage) : '',
       natureOfControl: `Shareholding of ${s.share_percentage ?? '—'}%`,
       sourceShareholderId: s.id,
@@ -3412,9 +3306,8 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
           kraPin: form.kraPin.trim().toUpperCase() || undefined,
           nationality: form.nationality || undefined,
           dateOfBirth: form.dateOfBirth || undefined,
-          postalAddress: form.postalAddress || undefined,
           businessAddress: form.businessAddress || undefined,
-          residentialAddress: form.residentialAddress || undefined,
+          structuredAddress: form.address,
           phone: form.phone || undefined,
           email: form.email || undefined,
           occupation: form.occupation || undefined,
@@ -3430,9 +3323,9 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
         kra_pin: form.kraPin.trim().toUpperCase() || null,
         nationality: form.nationality,
         date_of_birth: form.dateOfBirth || null,
-        postal_address: form.postalAddress ? { text: form.postalAddress } : null,
+        postal_address: null,
         business_address: form.businessAddress ? { text: form.businessAddress } : null,
-        residential_address: form.residentialAddress ? { text: form.residentialAddress } : null,
+        residential_address: { structuredAddress: form.address },
         phone: form.phone || null,
         email: form.email || null,
         occupation: form.occupation || null,
@@ -3548,9 +3441,15 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
                 kraPin: b.kra_pin ?? '',
                 nationality: b.nationality,
                 dateOfBirth: b.date_of_birth ?? '',
-                postalAddress: b.postal_address?.text ?? '',
                 businessAddress: b.business_address?.text ?? '',
-                residentialAddress: b.residential_address?.text ?? '',
+                // BO used to store address as two separate free-text
+                // columns (residential_address.text, postal_address.text)
+                // rather than the shared structured shape — combine both
+                // into the new form rather than losing either on reopen.
+                address: b.residential_address?.structuredAddress ?? {
+                  streetName: b.residential_address?.text || undefined,
+                  postalAddress: b.postal_address?.text || undefined,
+                },
                 phone: b.phone ?? '',
                 email: b.email ?? '',
                 occupation: b.occupation ?? '',
@@ -3668,17 +3567,17 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
               <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
             </Field>
           </div>
-          <Field label="Residential address">
-            <input type="text" className={inputCls} style={inputStyle} value={form.residentialAddress} onChange={(e) => set({ residentialAddress: e.target.value })} />
+          <AddressFields
+            value={form.address}
+            onChange={(patch) => set({ address: { ...form.address, ...patch } })}
+            requireCity={false}
+            requireCounty={false}
+            requirePostalCode={false}
+            requirePostalAddress={false}
+          />
+          <Field label="Business address">
+            <input type="text" className={inputCls} style={inputStyle} value={form.businessAddress} onChange={(e) => set({ businessAddress: e.target.value })} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Postal address">
-              <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
-            </Field>
-            <Field label="Business address">
-              <input type="text" className={inputCls} style={inputStyle} value={form.businessAddress} onChange={(e) => set({ businessAddress: e.target.value })} />
-            </Field>
-          </div>
           <Field label="Nature of ownership or control" required>
             <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 25% shareholding, or right to appoint directors" value={form.natureOfControl} onChange={(e) => set({ natureOfControl: e.target.value })} />
           </Field>
@@ -4098,8 +3997,7 @@ type SettlorForm = {
   kraPin: string
   nationality: string
   dateOfBirth: string
-  postalAddress: string
-  residentialAddress: string
+  address: AddressData
   phone: string
   email: string
   relationshipToBeneficiaries: string
@@ -4108,7 +4006,7 @@ type SettlorForm = {
 function emptySettlor(): SettlorForm {
   return {
     fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan', dateOfBirth: '',
-    postalAddress: '', residentialAddress: '', phone: '', email: '', relationshipToBeneficiaries: '',
+    address: {}, phone: '', email: '', relationshipToBeneficiaries: '',
   }
 }
 
@@ -4120,7 +4018,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
   documents: DocumentRow[]
-  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
+  applicant?: { phone: string; email: string; address: AddressData }
 }) {
   // Settlor is the first person captured for a trust (step 5, ahead of
   // beneficiaries/trustees) — the same "seed from the applicant" gap
@@ -4130,8 +4028,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
     ...emptySettlor(),
     phone: applicant?.phone ?? '',
     email: applicant?.email ?? '',
-    residentialAddress: applicant?.physicalAddress ?? '',
-    postalAddress: applicant?.postalAddress ?? '',
+    address: applicant?.address ?? {},
   } : null)
   const [busy, setBusy] = useState(false)
   const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
@@ -4167,8 +4064,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
           kraPin: form.kraPin.trim().toUpperCase(),
           nationality: form.nationality || undefined,
           dateOfBirth: form.dateOfBirth || undefined,
-          postalAddress: form.postalAddress || undefined,
-          residentialAddress: form.residentialAddress || undefined,
+          structuredAddress: form.address,
           phone: form.phone || undefined,
           email: form.email || undefined,
           natureOfControl: form.relationshipToBeneficiaries.trim() || 'Settlor',
@@ -4181,9 +4077,9 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
         kra_pin: form.kraPin.trim().toUpperCase(),
         nationality: form.nationality,
         date_of_birth: form.dateOfBirth || null,
-        postal_address: form.postalAddress ? { text: form.postalAddress } : null,
+        postal_address: null,
         business_address: null,
-        residential_address: form.residentialAddress ? { text: form.residentialAddress } : null,
+        residential_address: { structuredAddress: form.address },
         phone: form.phone || null,
         email: form.email || null,
         occupation: null,
@@ -4242,8 +4138,10 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
                 kraPin: s.kra_pin ?? '',
                 nationality: s.nationality ?? 'Kenyan',
                 dateOfBirth: s.date_of_birth ?? '',
-                postalAddress: s.postal_address?.text ?? '',
-                residentialAddress: s.residential_address?.text ?? '',
+                address: s.residential_address?.structuredAddress ?? {
+                  streetName: s.residential_address?.text || undefined,
+                  postalAddress: s.postal_address?.text || undefined,
+                },
                 phone: s.phone ?? '',
                 email: s.email ?? '',
                 relationshipToBeneficiaries: s.nature_of_control === 'Settlor' ? '' : (s.nature_of_control ?? ''),
@@ -4317,12 +4215,14 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
               <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
             </Field>
           </div>
-          <Field label="Residential address">
-            <input type="text" className={inputCls} style={inputStyle} value={form.residentialAddress} onChange={(e) => set({ residentialAddress: e.target.value })} />
-          </Field>
-          <Field label="Postal address">
-            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. P.O. Box 1234-00100, Nairobi" value={form.postalAddress} onChange={(e) => set({ postalAddress: e.target.value })} />
-          </Field>
+          <AddressFields
+            value={form.address}
+            onChange={(patch) => set({ address: { ...form.address, ...patch } })}
+            requireCity={false}
+            requireCounty={false}
+            requirePostalCode={false}
+            requirePostalAddress={false}
+          />
           <Field label="Relationship to proposed beneficiaries (if any)">
             <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Parent of the beneficiaries" value={form.relationshipToBeneficiaries} onChange={(e) => set({ relationshipToBeneficiaries: e.target.value })} />
           </Field>
@@ -4870,7 +4770,7 @@ type SocietyMemberForm = {
   fullName: string
   idNumber: string
   nationality: string
-  address: string
+  address: AddressData
   email: string
   phone: string
   membershipClass: string
@@ -4881,7 +4781,7 @@ type SocietyMemberForm = {
 
 function emptySocietyMember(): SocietyMemberForm {
   return {
-    fullName: '', idNumber: '', nationality: 'Kenyan', address: '', email: '', phone: '',
+    fullName: '', idNumber: '', nationality: 'Kenyan', address: {}, email: '', phone: '',
     membershipClass: '', isFoundingMember: true, dateAdmitted: new Date().toISOString().slice(0, 10), votingStatus: 'voting',
   }
 }
@@ -4891,7 +4791,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
   setMembers: (m: ShareholderRow[]) => void
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
   setError: (e: string) => void
-  applicant?: { phone: string; email: string; physicalAddress: string; postalAddress: string }
+  applicant?: { phone: string; email: string; address: AddressData }
 }) {
   // First founding member captured for a society — same applicant-seed
   // gap as shareholder/director/settlor (2026-08-30 audit).
@@ -4899,7 +4799,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
     ...emptySocietyMember(),
     phone: applicant?.phone ?? '',
     email: applicant?.email ?? '',
-    address: applicant?.physicalAddress ?? '',
+    address: applicant?.address ?? {},
   } : null)
   const [busy, setBusy] = useState(false)
   const set = (partial: Partial<SocietyMemberForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
@@ -4917,7 +4817,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
           legalName: form.fullName.trim(),
           idNumber: form.idNumber || undefined,
           sharesHeld: 1,
-          physicalAddress: form.address || undefined,
+          structuredAddress: form.address,
           nationality: form.nationality || undefined,
           phone: form.phone || undefined,
           email: form.email || undefined,
@@ -4937,7 +4837,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
         shares_held: 1,
         share_percentage: null,
         address: {
-          physicalAddress: form.address || undefined, nationality: form.nationality || undefined,
+          structuredAddress: form.address, nationality: form.nationality || undefined,
           membershipClass: form.membershipClass || undefined, isFoundingMember: form.isFoundingMember,
           dateAdmitted: form.dateAdmitted || undefined, votingStatus: form.votingStatus,
         },
@@ -4989,7 +4889,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
                 fullName: m.legal_name,
                 idNumber: m.id_or_reg_number ?? '',
                 nationality: m.address?.nationality ?? 'Kenyan',
-                address: m.address?.physicalAddress ?? '',
+                address: readLegacyAddress(m.address, m.address?.physicalAddress),
                 email: m.email ?? '',
                 phone: m.phone ?? '',
                 membershipClass: m.address?.membershipClass ?? '',
@@ -5020,9 +4920,14 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
               <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
             </Field>
           </div>
-          <Field label="Address">
-            <input type="text" className={inputCls} style={inputStyle} value={form.address} onChange={(e) => set({ address: e.target.value })} />
-          </Field>
+          <AddressFields
+            value={form.address}
+            onChange={(patch) => set({ address: { ...form.address, ...patch } })}
+            requireCity={false}
+            requireCounty={false}
+            requirePostalCode={false}
+            requirePostalAddress={false}
+          />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Email">
               <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
@@ -5357,7 +5262,7 @@ function StepSecretary({ entityType, wizard, patch }: {
   const isPlc = entityType === 'public_limited_company'
   const overThreshold = (wizard.authorisedShareCapital ?? 0) > SECRETARY_CAPITAL_THRESHOLD_KES
   const mandatory = isPlc || overThreshold
-  const secretary = wizard.secretary ?? { fullName: '', idNumber: '', kraPin: '', phone: '', email: '', address: '' }
+  const secretary = wizard.secretary ?? { fullName: '', idNumber: '', kraPin: '', phone: '', email: '', address: {} }
   const setSec = (partial: Partial<typeof secretary>) => patch({ secretary: { ...secretary, ...partial } })
 
   return (
@@ -5412,9 +5317,14 @@ function StepSecretary({ entityType, wizard, patch }: {
               <input type="email" className={inputCls} style={inputStyle} value={secretary.email} onChange={(e) => setSec({ email: e.target.value })} />
             </Field>
           </div>
-          <Field label="Address">
-            <input type="text" className={inputCls} style={inputStyle} value={secretary.address} onChange={(e) => setSec({ address: e.target.value })} />
-          </Field>
+          <AddressFields
+            value={secretary.address}
+            onChange={(patch) => setSec({ address: { ...secretary.address, ...patch } })}
+            requireCity={false}
+            requireCounty={false}
+            requirePostalCode={false}
+            requirePostalAddress={false}
+          />
         </div>
       )}
 
@@ -6469,7 +6379,10 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
         <ReviewRow label="Entity type" value={typeLabel} />
         <ReviewRow label="Applicant" value={wizard.applicantFullName ?? '—'} />
         <ReviewRow label={isTrust ? 'Proposed trust names' : isSociety ? 'Proposed society names' : 'Proposed names'} value={names.join(', ') || '—'} />
-        <ReviewRow label={isTrust || isSociety ? 'Registered / administrative address' : 'Registered office'} value={[wizard.buildingName, wizard.streetName, wizard.city, wizard.county].filter(Boolean).join(', ') || '—'} />
+        <ReviewRow label={isTrust || isSociety ? 'Registered / administrative address' : 'Registered office'} value={formatAddress({
+          buildingName: wizard.buildingName, streetName: wizard.streetName, floorNumber: wizard.floorNumber, doorNumber: wizard.doorNumber,
+          city: wizard.city, county: wizard.county, postalCode: wizard.postalCode, postalAddress: wizard.postalAddress, country: wizard.country,
+        })} />
         {!isTrust && <ReviewRow label={isSociety ? 'Principal activities' : 'Primary activity'} value={wizard.primaryActivity ?? '—'} />}
         {isSociety && <ReviewRow label="Primary object" value={wizard.socPrimaryObject ?? '—'} />}
         {!isTrust && !isSociety && <ReviewRow label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />}

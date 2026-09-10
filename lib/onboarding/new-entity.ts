@@ -2,6 +2,26 @@ import type { Database } from '@/types/database.types'
 
 export type EntityType = Database['public']['Enums']['entity_type']
 
+// Canonical address shape — every address captured anywhere in the app
+// (registered office, and every person: director, shareholder,
+// beneficial owner, settlor, society member, company secretary) uses
+// this same shape, field order, and the shared AddressFields component
+// (components/onboarding/address-fields.tsx) that renders it. Defined
+// here rather than in that component file so WizardData below can
+// reference it without a circular import (address-fields.tsx already
+// imports KENYA_COUNTIES/KENYA_POSTAL_CODES from this file).
+export type AddressData = {
+  buildingName?: string
+  streetName?: string
+  floorNumber?: string
+  doorNumber?: string
+  city?: string
+  county?: string
+  postalCode?: string
+  postalAddress?: string
+  country?: string
+}
+
 export type ShareClass = {
   id: string
   name: string
@@ -495,7 +515,7 @@ export type WizardData = {
   noBeneficialOwners?: boolean
   // Step 9
   hasCompanySecretary?: boolean
-  secretary?: { fullName: string; idNumber: string; kraPin: string; phone: string; email: string; address: string }
+  secretary?: { fullName: string; idNumber: string; kraPin: string; phone: string; email: string; address: AddressData }
   // Step 10 — Constitutional documents (LLC spec screen 9)
   articlesType?: 'standard' | 'custom'
   // Step 12
