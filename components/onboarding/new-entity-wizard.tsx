@@ -906,6 +906,7 @@ export function NewEntityWizard() {
           <StepDocuments
             entityType={entityType}
             wizard={wizard}
+            entityStatus={entityStatus}
             orgId={orgId}
             entityId={entityId}
             documents={documents}
@@ -5501,6 +5502,17 @@ type UploadSection = {
   hint: string
   documentType: string
   visible: (entityType: EntityType, wizard: WizardData) => boolean
+  // These are outputs of the BRS eCitizen filing itself (or the eIDP
+  // process) — a client working through registration for the first time
+  // doesn't have them yet and doesn't know what they are, so asking for
+  // them here only confuses (Charles, 2026-09-10: "requesting CR1 or CR2
+  // during onboarding will confuse clients who may not yet fully
+  // understand what they need"). They only make sense once the entity has
+  // actually been submitted and the client has been to BRS — at that
+  // point they're reachable again by reopening this same step from the
+  // dashboard ("Edit details"), which is effectively the dashboard's
+  // document vault for a not-yet-active entity.
+  postBrsOnly?: boolean
 }
 
 const UPLOAD_SECTIONS: UploadSection[] = [
@@ -5661,15 +5673,18 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     visible: () => true,
   },
   // Forms/package stage (LLC-Only Developer Implementation Spec upload
-  // timing matrix): these are generated from the data already entered,
-  // signed, then uploaded back — required at this stage, unlike the
-  // certificate of incorporation which doesn't exist until after approval.
+  // timing matrix): these are generated FROM the BRS eCitizen filing
+  // itself (or eIDP), so a first-time applicant can't have them yet and
+  // asking during registration only confuses (Charles, 2026-09-10) —
+  // postBrsOnly hides them until the entity has been submitted and the
+  // client reopens this step to file the actual documents back.
   {
     key: 'other',
     title: 'Signed CR1 (application for registration)',
     hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
     documentType: 'signed_cr1',
     visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust' && t !== 'society',
+    postBrsOnly: true,
   },
   {
     key: 'other',
@@ -5677,6 +5692,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'For companies limited by shares.',
     documentType: 'signed_cr2',
     visible: (t) => t === 'limited_company' || t === 'public_limited_company',
+    postBrsOnly: true,
   },
   {
     key: 'other',
@@ -5684,6 +5700,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'Lists all directors captured in this application.',
     documentType: 'signed_cr8',
     visible: (t) => t !== 'partnership' && t !== 'sole_proprietorship' && t !== 'trust' && t !== 'society',
+    postBrsOnly: true,
   },
   {
     key: 'other',
@@ -5691,6 +5708,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'Download and complete from the BRS eCitizen portal using the details you’ve entered, sign, then upload here.',
     documentType: 'signed_bn2',
     visible: (t) => t === 'partnership' || t === 'sole_proprietorship',
+    postBrsOnly: true,
   },
   {
     key: 'other',
@@ -5705,6 +5723,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'Matches the share capital entered in this application.',
     documentType: 'statement_of_nominal_capital',
     visible: (t) => t === 'limited_company' || t === 'public_limited_company',
+    postBrsOnly: true,
   },
   {
     key: 'other',
@@ -5712,6 +5731,7 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'Declares the natural persons who ultimately own or control the company.',
     documentType: 'signed_bof1',
     visible: (t) => SHAREHOLDER_TYPES.includes(t),
+    postBrsOnly: true,
   },
   {
     key: 'other',
@@ -5769,7 +5789,8 @@ const UPLOAD_SECTIONS: UploadSection[] = [
 // Step 10 — Constitutional documents & forms (LLC spec screen 9).
 // Standard vs custom articles, plus context on the forms generated from
 // data already entered — CR1/CR2/CR8 and statement of nominal capital
-// aren't asked for as uploads until the next step, once this data exists.
+// aren't asked for as uploads until after submission (postBrsOnly on the
+// Document Vault step), once the client has actually been to BRS.
 // ------------------------------------------------------------------
 function SimpleDocumentUpload({ orgId, entityId, api, setError, documentType, documents, onUploaded, label }: {
   orgId: string | null
@@ -5904,7 +5925,7 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
           </p>
           <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
             Using the details you&apos;ve entered, we generate BN2 (application for registration of a business
-            name). Download, sign, and upload it back on the next step.
+            name) — once you submit. Download, sign at BRS eCitizen, and upload it back from your dashboard.
           </p>
         </div>
       </div>
@@ -6082,7 +6103,8 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
         <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
           Using the company, share, and director details you&apos;ve already entered, we generate CR1 (application
           for registration), CR2 (memorandum of registration), CR8 (particulars of directors), and the statement
-          of nominal capital. Download, sign, and upload them back on the next step.
+          of nominal capital — once you submit. Download, sign at BRS eCitizen, and upload them back from your
+          dashboard.
         </p>
       </div>
       <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
@@ -6117,9 +6139,10 @@ type FileStatus = {
   sectionKey?: UploadSection['key']
 }
 
-function StepDocuments({ entityType, wizard, orgId, entityId, documents, setDocuments, api, setError, onExtracted }: {
+function StepDocuments({ entityType, wizard, entityStatus, orgId, entityId, documents, setDocuments, api, setError, onExtracted }: {
   entityType: EntityType
   wizard: WizardData
+  entityStatus: string | null
   orgId: string | null
   entityId: string | null
   documents: DocumentRow[]
@@ -6244,8 +6267,15 @@ function StepDocuments({ entityType, wizard, orgId, entityId, documents, setDocu
         for again below — we read documents automatically and cross-check what you entered. A full browsable
         view of every document on file lives on the entity dashboard once this application is submitted.
       </p>
+      {entityStatus !== 'pending_registration' && entityStatus !== 'active' && (
+        <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+          Signed registration forms (CR1, CR2, CR8, BN2, BOF1, statement of nominal capital) aren&apos;t asked
+          for here — they don&apos;t exist yet. Once you submit, we&apos;ll generate them for you to download,
+          sign at BRS eCitizen, and upload back from your dashboard.
+        </p>
+      )}
 
-      {UPLOAD_SECTIONS.filter((s) => s.visible(entityType, wizard)).map((section) => {
+      {UPLOAD_SECTIONS.filter((s) => s.visible(entityType, wizard) && (!s.postBrsOnly || entityStatus === 'pending_registration' || entityStatus === 'active')).map((section) => {
         const existing = documents.filter((d) => d.document_type === section.documentType)
         const showUploader = existing.length === 0 || expanded[section.title]
         return (
