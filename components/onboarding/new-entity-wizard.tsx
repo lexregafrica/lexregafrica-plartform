@@ -1345,14 +1345,14 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
         </div>
       )}
 
-      {entityType !== 'trust' && (
-        <Field label={entityType === 'society' ? 'Principal activities' : 'Nature of business / business activity'} required>
+      {entityType === 'society' && (
+        <Field label="Principal activities" required>
           <textarea
             className={inputCls}
             style={inputStyle}
             rows={3}
             maxLength={200}
-            placeholder={entityType === 'society' ? 'Briefly describe the Society’s principal activities…' : 'Briefly describe the business activity…'}
+            placeholder="Briefly describe the Society’s principal activities…"
             value={wizard.primaryActivity ?? ''}
             onChange={(e) => patch({ primaryActivity: e.target.value })}
           />
@@ -1360,6 +1360,39 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
             {(wizard.primaryActivity ?? '').length}/200
           </p>
         </Field>
+      )}
+
+      {entityType !== 'trust' && entityType !== 'society' && (
+        <>
+          <Field label="Primary business activity" required>
+            <textarea
+              className={inputCls}
+              style={inputStyle}
+              rows={3}
+              maxLength={200}
+              placeholder="Briefly describe the main business activity…"
+              value={wizard.primaryActivity ?? ''}
+              onChange={(e) => patch({ primaryActivity: e.target.value })}
+            />
+            <p className="text-ios-caption1 mt-1 text-right" style={{ color: 'var(--system-label-3)' }}>
+              {(wizard.primaryActivity ?? '').length}/200
+            </p>
+          </Field>
+          <Field label="Secondary business activity">
+            <textarea
+              className={inputCls}
+              style={inputStyle}
+              rows={3}
+              maxLength={200}
+              placeholder="Any other business activity, if applicable…"
+              value={wizard.secondaryActivities ?? ''}
+              onChange={(e) => patch({ secondaryActivities: e.target.value })}
+            />
+            <p className="text-ios-caption1 mt-1 text-right" style={{ color: 'var(--system-label-3)' }}>
+              {(wizard.secondaryActivities ?? '').length}/200
+            </p>
+          </Field>
+        </>
       )}
 
       <div className="space-y-4">
@@ -6541,6 +6574,7 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
           city: wizard.city, county: wizard.county, postalCode: wizard.postalCode, postalAddress: wizard.postalAddress, country: wizard.country,
         })} />
         {!isTrust && <ReviewRow label={isSociety ? 'Principal activities' : 'Primary activity'} value={wizard.primaryActivity ?? '—'} />}
+        {!isTrust && !isSociety && wizard.secondaryActivities?.trim() && <ReviewRow label="Secondary activity" value={wizard.secondaryActivities} />}
         {isSociety && <ReviewRow label="Primary object" value={wizard.socPrimaryObject ?? '—'} />}
         {!isTrust && !isSociety && <ReviewRow label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />}
         {isTrust && beneficialOwners.length > 0 && (
