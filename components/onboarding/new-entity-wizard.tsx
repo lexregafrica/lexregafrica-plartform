@@ -198,6 +198,8 @@ type DirectorRow = {
     isRegistrationSignatory?: boolean
     termOfOffice?: string
     termExpiryDate?: string
+    isSuccessorTrustee?: boolean
+    successorToName?: string
   } | null
 }
 
@@ -789,7 +791,7 @@ export function NewEntityWizard() {
         {step === 1 && (
           <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} recommendedType={recommendedType} />
         )}
-        {step === 2 && <StepApplicant wizard={wizard} patch={patch} />}
+        {step === 2 && <StepApplicant entityType={entityType} wizard={wizard} patch={patch} />}
         {step === 3 && <StepNames wizard={wizard} patch={patch} />}
         {step === 4 && (
           <StepCompanyBasics
@@ -1129,7 +1131,14 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
 // Step 2 — Applicant & primary contact (LLC spec screen 2). User-account
 // and matter-contact data, distinct from the entity profile below.
 // ------------------------------------------------------------------
-function StepApplicant({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+function StepApplicant({ entityType, wizard, patch }: { entityType: EntityType; wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  // For a trust, the primary contact is the trustee or the settlor — an
+  // advocate or authorised agent can also file on the trust's behalf, but
+  // "director"/"shareholder"/"promoter" etc. don't apply and only invited
+  // confusion (Charles, 2026-08-31).
+  const relationships = entityType === 'trust'
+    ? APPLICANT_RELATIONSHIPS.filter((r) => ['trustee', 'settlor', 'advocate', 'authorised_agent'].includes(r.value))
+    : APPLICANT_RELATIONSHIPS
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -1149,10 +1158,10 @@ function StepApplicant({ wizard, patch }: { wizard: WizardData; patch: (p: Parti
           <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={wizard.applicantPhone ?? ''} onChange={(e) => patch({ applicantPhone: e.target.value })} />
         </Field>
       </div>
-      <Field label="Relationship to company" required>
+      <Field label={entityType === 'trust' ? 'Relationship to trust' : 'Relationship to company'} required>
         <select className={inputCls} style={inputStyle} value={wizard.applicantRelationship ?? ''} onChange={(e) => patch({ applicantRelationship: e.target.value as WizardData['applicantRelationship'] })}>
           <option value="" disabled>Choose…</option>
-          {APPLICANT_RELATIONSHIPS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          {relationships.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </Field>
     </div>
@@ -1691,6 +1700,11 @@ type DirectorForm = {
   isRegistrationSignatory: boolean
   termOfOffice: string
   termExpiryDate: string
+  // Trust only (Charles, 2026-08-31) — a successor trustee steps in if a
+  // sitting trustee dies, resigns, or is incapacitated; naming them up
+  // front is contingency planning, not a separate governance role.
+  isSuccessorTrustee: boolean
+  successorToName: string
 }
 
 export const emptyCorporate: CorporateParticipant = {
@@ -1711,6 +1725,7 @@ const emptyDirector: DirectorForm = {
   isForeign: false, foreignAddress: '',
   interestPercentage: '', contributionType: '', contributionValue: '',
   position: '', isRegistrationSignatory: false, termOfOffice: '', termExpiryDate: '',
+  isSuccessorTrustee: false, successorToName: '',
 }
 
 // Human-readable label per document_type — shown alongside the person's
@@ -2239,6 +2254,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       if (!f.contributionType) return 'Choose what this partner is contributing.'
     }
     if (entityType === 'society' && !f.position.trim()) return 'Enter this officer’s position/title.'
+    if (entityType === 'trust' && f.isSuccessorTrustee && !f.successorToName.trim()) return 'Enter which trustee this person succeeds.'
     if (f.isCorporate) {
       const c = f.corporate
       if (!c.registeredName.trim()) return 'Registered company name is required.'
@@ -2309,6 +2325,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           isRegistrationSignatory: entityType === 'society' ? form.isRegistrationSignatory : undefined,
           termOfOffice: entityType === 'society' ? form.termOfOffice || undefined : undefined,
           termExpiryDate: entityType === 'society' ? form.termExpiryDate || undefined : undefined,
+          isSuccessorTrustee: entityType === 'trust' ? form.isSuccessorTrustee : undefined,
+          successorToName: entityType === 'trust' && form.isSuccessorTrustee ? form.successorToName || undefined : undefined,
         },
       })
       const updated: DirectorRow = {
@@ -2336,6 +2354,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
           isRegistrationSignatory: entityType === 'society' ? form.isRegistrationSignatory : undefined,
           termOfOffice: entityType === 'society' ? form.termOfOffice || undefined : undefined,
           termExpiryDate: entityType === 'society' ? form.termExpiryDate || undefined : undefined,
+          isSuccessorTrustee: entityType === 'trust' ? form.isSuccessorTrustee : undefined,
+          successorToName: entityType === 'trust' && form.isSuccessorTrustee ? form.successorToName || undefined : undefined,
         },
       }
       setDirectors(form.id ? directors.map((d) => (d.id === form.id ? updated : d)) : [...directors, updated])
@@ -2444,6 +2464,8 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 isRegistrationSignatory: !!d.residential_address?.isRegistrationSignatory,
                 termOfOffice: d.residential_address?.termOfOffice ?? '',
                 termExpiryDate: d.residential_address?.termExpiryDate ?? '',
+                isSuccessorTrustee: !!d.residential_address?.isSuccessorTrustee,
+                successorToName: d.residential_address?.successorToName ?? '',
                 phone: d.residential_address?.isCorporate ? '' : (d.phone ?? ''),
                 email: d.residential_address?.isCorporate ? '' : (d.email ?? ''),
                 appointmentDate: d.appointment_date ?? '',
@@ -2641,6 +2663,23 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 <input type="checkbox" checked={form.isRegistrationSignatory} onChange={(e) => set({ isRegistrationSignatory: e.target.checked })} />
                 This officer will sign the statutory registration documentation
               </label>
+            </>
+          )}
+
+          {entityType === 'trust' && (
+            <>
+              <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                <input type="checkbox" checked={form.isSuccessorTrustee} onChange={(e) => set({ isSuccessorTrustee: e.target.checked })} />
+                This is a successor trustee (steps in only if a sitting trustee can no longer serve)
+              </label>
+              {form.isSuccessorTrustee && (
+                <Field label="Successor to (which trustee)" required>
+                  <input
+                    type="text" className={inputCls} style={inputStyle} placeholder="Full name of the trustee this person succeeds"
+                    value={form.successorToName} onChange={(e) => set({ successorToName: e.target.value })}
+                  />
+                </Field>
+              )}
             </>
           )}
 
@@ -4472,7 +4511,10 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
           <div className="min-w-0">
             <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{i.description || TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label}</p>
             <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-              {TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label} · {i.isVested ? 'Vested / transferred' : 'Intended'}
+              {TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label}
+              {i.category === 'cash' && i.bankAccountNumber ? ` · A/C ${i.bankAccountNumber}` : ''}
+              {i.category === 'land' && i.landTitleReference ? ` · ${i.landTitleReference}` : ''}
+              {' · '}{i.isVested ? 'Vested / transferred' : 'Intended'}
             </p>
           </div>
           <div className="flex gap-3 shrink-0">
@@ -4503,9 +4545,34 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
           <Field label="Ownership before settlement">
             <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Held solely by the settlor" value={form.ownershipBefore ?? ''} onChange={(e) => setForm({ ...form, ownershipBefore: e.target.value })} />
           </Field>
-          <Field label="Registration / reference details">
-            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. title number, account number" value={form.registrationReference ?? ''} onChange={(e) => setForm({ ...form, registrationReference: e.target.value })} />
-          </Field>
+          {form.category === 'cash' ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Bank account name" required>
+                <input type="text" className={inputCls} style={inputStyle} value={form.bankAccountName ?? ''} onChange={(e) => setForm({ ...form, bankAccountName: e.target.value })} />
+              </Field>
+              <Field label="Bank account number" required>
+                <input type="text" className={inputCls} style={inputStyle} value={form.bankAccountNumber ?? ''} onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })} />
+              </Field>
+            </div>
+          ) : form.category === 'land' ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Acreage" required>
+                  <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 0.5 acres" value={form.landAcreage ?? ''} onChange={(e) => setForm({ ...form, landAcreage: e.target.value })} />
+                </Field>
+                <Field label="Title reference" required>
+                  <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Nairobi/Block1/123" value={form.landTitleReference ?? ''} onChange={(e) => setForm({ ...form, landTitleReference: e.target.value })} />
+                </Field>
+              </div>
+              <Field label="Location" required>
+                <input type="text" className={inputCls} style={inputStyle} value={form.landLocation ?? ''} onChange={(e) => setForm({ ...form, landLocation: e.target.value })} />
+              </Field>
+            </>
+          ) : (
+            <Field label="Registration / reference details">
+              <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. title number, account number" value={form.registrationReference ?? ''} onChange={(e) => setForm({ ...form, registrationReference: e.target.value })} />
+            </Field>
+          )}
           <Field label="Has this property actually been transferred to the trustees?" required>
             <div className="grid grid-cols-2 gap-2">
               {[{ v: true, label: 'Vested / transferred' }, { v: false, label: 'Intended only' }].map(({ v, label }) => (
@@ -4600,6 +4667,37 @@ function StepTrustProtector({ wizard, patch }: { wizard: WizardData; patch: (p: 
           <Field label="Replacement mechanism">
             <textarea className={inputCls} style={inputStyle} rows={2} placeholder="How is a replacement Protector/Enforcer appointed?" value={wizard.protectorReplacementMechanism ?? ''} onChange={(e) => patch({ protectorReplacementMechanism: e.target.value })} />
           </Field>
+
+          <Field label="Is there a named successor Protector/Enforcer?">
+            <div className="grid grid-cols-2 gap-2">
+              {[true, false].map((v) => (
+                <button
+                  key={String(v)} type="button" onClick={() => patch({ hasSuccessorProtector: v })}
+                  className="py-2.5 rounded-xl border text-sm font-medium"
+                  style={{
+                    borderColor: wizard.hasSuccessorProtector === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.hasSuccessorProtector === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {v ? 'Yes' : 'No'}
+                </button>
+              ))}
+            </div>
+          </Field>
+          {wizard.hasSuccessorProtector === true && (
+            <>
+              <Field label="Successor's full name" required>
+                <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorName ?? ''} onChange={(e) => patch({ successorProtectorName: e.target.value })} />
+              </Field>
+              <Field label="ID / registration information">
+                <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorIdInfo ?? ''} onChange={(e) => patch({ successorProtectorIdInfo: e.target.value })} />
+              </Field>
+              <Field label="Contact details">
+                <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorContact ?? ''} onChange={(e) => patch({ successorProtectorContact: e.target.value })} />
+              </Field>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -5342,19 +5440,28 @@ function StepSecretary({ entityType, wizard, patch }: {
 // Step 9 — Employees
 // ------------------------------------------------------------------
 function StepEmployees({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  // "Will the business have employees?" is already asked once, on the
+  // Company Basics step — asking again here with a permanent/casual
+  // breakdown was redundant and confusing (Charles, 2026-08-31: just
+  // "Are you going to have employees?", not a headcount split). Skip
+  // the registration/payroll detail entirely when the answer was no.
+  if (wizard.hasEmployees === false) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+          Employee information
+        </h1>
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          You told us this business won&apos;t have employees, so there&apos;s nothing else needed here.
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
         Employee information
       </h1>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Permanent employees">
-          <input type="number" min={0} className={inputCls} style={inputStyle} value={wizard.permanentEmployees ?? ''} onChange={(e) => patch({ permanentEmployees: parseInt(e.target.value, 10) || 0 })} />
-        </Field>
-        <Field label="Casual / temporary">
-          <input type="number" min={0} className={inputCls} style={inputStyle} value={wizard.casualEmployees ?? ''} onChange={(e) => patch({ casualEmployees: parseInt(e.target.value, 10) || 0 })} />
-        </Field>
-      </div>
       <Field label="Will you register employees for NSSF/SHA?" required>
         <div className="grid grid-cols-3 gap-2">
           {([['yes', 'Yes'], ['no', 'No'], ['already_registered', 'Already registered']] as const).map(([v, l]) => (
@@ -6557,45 +6664,12 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
         </div>
 
         <div className="ios-surface rounded-2xl p-4 mb-4">
-          <p className="text-ios-subhead font-semibold mb-1" style={{ color: 'var(--system-label)' }}>
-            Information document package
-          </p>
-          <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>
-            A summary of everything you provided — use it to file yourself, or hand it to your LexReg
-            representative.
-          </p>
-          {localIdpUrl ? (
-            <a
-              href={localIdpUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full text-center py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'var(--brand-navy)' }}
-            >
-              Download PDF
-            </a>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={handleRegenerate}
-                disabled={regenerating}
-                className="block w-full text-center py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ background: 'var(--brand-navy)' }}
-              >
-                {regenerating ? 'Generating…' : 'Generate document package'}
-              </button>
-              {regenerateError && <p className="text-xs text-red-500 mt-2 text-center">{regenerateError}</p>}
-            </>
-          )}
-        </div>
-
-        <div className="ios-surface rounded-2xl p-4 mb-4">
           <p className="text-ios-subhead font-semibold mb-2" style={{ color: 'var(--system-label)' }}>
             Getting registered
           </p>
           <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>
-            Pick how you&apos;d like to file — you can change this later.
+            Pick how you&apos;d like to file — you can change this later. Your document package is prepared
+            once you choose.
           </p>
 
           <div className="space-y-2">
@@ -6631,22 +6705,6 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
             ))}
           </div>
 
-          {servicePath === 'self_service' && (
-            savingPath ? (
-              <p className="text-ios-footnote mt-3 text-center" style={{ color: 'var(--system-label-3)' }}>Preparing your package…</p>
-            ) : localIdpUrl ? (
-              <a
-                href={localIdpUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 block w-full rounded-full py-2.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                style={{ background: 'var(--brand-navy)' }}
-              >
-                Download PDF
-              </a>
-            ) : null
-          )}
-
           {servicePath === 'assisted' && (
             <button
               type="button"
@@ -6669,6 +6727,44 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
             </p>
           )}
         </div>
+
+        {servicePath && (
+          <div className="ios-surface rounded-2xl p-4 mb-4">
+            <p className="text-ios-subhead font-semibold mb-1" style={{ color: 'var(--system-label)' }}>
+              Information document package
+            </p>
+            <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>
+              A summary of everything you provided — use it to file yourself, or hand it to your LexReg
+              representative.
+            </p>
+            {savingPath ? (
+              <p className="text-ios-footnote text-center" style={{ color: 'var(--system-label-3)' }}>Preparing your package…</p>
+            ) : localIdpUrl ? (
+              <a
+                href={localIdpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: 'var(--brand-navy)' }}
+              >
+                Download PDF
+              </a>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                  className="block w-full text-center py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{ background: 'var(--brand-navy)' }}
+                >
+                  {regenerating ? 'Generating…' : 'Generate document package'}
+                </button>
+                {regenerateError && <p className="text-xs text-red-500 mt-2 text-center">{regenerateError}</p>}
+              </>
+            )}
+          </div>
+        )}
 
         <CertificateUpload orgId={orgId} entityId={entityId} api={api} onActivated={onActivated} />
 

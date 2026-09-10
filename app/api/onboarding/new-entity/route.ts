@@ -302,6 +302,9 @@ export async function POST(request: Request) {
         isRegistrationSignatory?: boolean
         termOfOffice?: string
         termExpiryDate?: string
+        // Trust only — successor trustee contingency planning.
+        isSuccessorTrustee?: boolean
+        successorToName?: string
       }
     }
     if (!director?.fullName || !director?.idNumber) {
@@ -337,6 +340,8 @@ export async function POST(request: Request) {
         isRegistrationSignatory: director.isRegistrationSignatory ?? undefined,
         termOfOffice: director.termOfOffice ?? undefined,
         termExpiryDate: director.termExpiryDate ?? undefined,
+        isSuccessorTrustee: director.isSuccessorTrustee ?? undefined,
+        successorToName: director.successorToName ?? undefined,
       } as Json,
     }
 

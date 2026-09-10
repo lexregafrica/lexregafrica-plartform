@@ -202,7 +202,6 @@ export const KENYA_POSTAL_CODES: Array<{ code: string; area: string; county: str
   { code: '20300', area: 'Nanyuki', county: 'Laikipia' },
   { code: '20100', area: 'Nakuru', county: 'Nakuru' },
   { code: '20500', area: 'Narok', county: 'Narok' },
-  { code: '01100', area: 'Kajiado', county: 'Kajiado' },
   { code: '20200', area: 'Kericho', county: 'Kericho' },
   { code: '20400', area: 'Bomet', county: 'Bomet' },
   { code: '50100', area: 'Kakamega', county: 'Kakamega' },
@@ -431,6 +430,14 @@ export type WizardData = {
     dateSettled?: string
     registrationReference?: string
     isVested: boolean // Intended (false) vs Vested/Transferred (true) — spec section 16
+    // Category-specific detail (Charles, 2026-08-31: cash needs the bank
+    // account it sits in, land needs acreage/location/title — a single
+    // generic "registration/reference" field wasn't enough for either).
+    bankAccountName?: string
+    bankAccountNumber?: string
+    landAcreage?: string
+    landLocation?: string
+    landTitleReference?: string
   }>
   // Step 9 (repurposed for trust — Company Secretary doesn't apply) —
   // Protector/Enforcer, spec section 14. Single optional role, not a
@@ -442,6 +449,12 @@ export type WizardData = {
   protectorPowers?: string
   protectorAppointmentDate?: string
   protectorReplacementMechanism?: string
+  // Successor enforcer — contingency planning, same rationale as
+  // successor trustees (Charles, 2026-08-31).
+  hasSuccessorProtector?: boolean
+  successorProtectorName?: string
+  successorProtectorIdInfo?: string
+  successorProtectorContact?: string
   // Step 3 — proposed name for the incorporated trustees (a body
   // corporate distinct from the trust itself, Trust spec section 17).
   trusteeCorporateName?: string
@@ -519,8 +532,6 @@ export type WizardData = {
   // Step 10 — Constitutional documents (LLC spec screen 9)
   articlesType?: 'standard' | 'custom'
   // Step 12
-  permanentEmployees?: number
-  casualEmployees?: number
   nssfNhifStatus?: 'yes' | 'no' | 'already_registered'
   payrollFrequency?: string
   // Step 13
