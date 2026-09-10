@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -1807,14 +1807,14 @@ async function openStoredDocument(filePath: string, setError: (e: string) => voi
   window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
 }
 
-export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError, initialUploaded, personName, personRole, personId, onDocumentRegistered }: {
+export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgId, entityId, api, onExtracted, setError, initialUploaded, personName, personRole, personId, onDocumentRegistered, sessionToken }: {
   section: 'director' | 'shareholder' | 'address' | 'other'
   documentType?: string
   label?: string
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; fields?: Record<string, unknown>; personId?: string }>
-  onExtracted: (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean) => void
+  onExtracted: (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean, sessionToken?: string) => void
   setError: (e: string) => void
   // Lets a parent pre-fill "already uploaded" state when reopening an edit
   // form for a person who already has a document on file, so the control
@@ -1836,6 +1836,17 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   // after the name was edited post-upload, could tag with the wrong or
   // no personId/name and then never be found again).
   onDocumentRegistered?: (documentId: string) => void
+  // Identifies which "open form" this upload belongs to. This control
+  // deliberately doesn't remount when the parent switches to a different
+  // person (see the comment below) so an in-progress upload survives —
+  // but that means a slow OCR result can resolve AFTER the parent has
+  // closed this person's form and opened a blank one for someone else,
+  // and would otherwise get merged into that unrelated new person's
+  // fields (reported live, 2026-09-11: adding a second shareholder/
+  // director sometimes came back carrying the FIRST person's details).
+  // Captured at upload time and echoed back unchanged so the parent's
+  // onExtracted handler can tell a stale result apart from a current one.
+  sessionToken?: string
 }) {
   const [state, setState] = useState<'idle' | 'uploading' | 'extracting'>('idle')
   const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
@@ -1904,7 +1915,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
         })
       }
 
-      onExtracted(result.fields, result.personId, replacing)
+      onExtracted(result.fields, result.personId, replacing, sessionToken)
       setUploaded({ name: file.name, filePath: path })
       setReplacing(false)
     } catch (e) {
@@ -2255,6 +2266,11 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
     email: applicant?.email ?? '',
     address: applicant?.address ?? {},
   } : null)
+  // Identifies which open form an in-flight OCR upload belongs to — see
+  // InlineOcrUpload's sessionToken doc comment. A ref (not state) so
+  // handleExtracted, even if called from a stale closure, always reads
+  // the token of whichever form is open right now.
+  const formTokenRef = useRef<string | null>(directors.length === 0 ? crypto.randomUUID() : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
   // Documents uploaded during this open form session, before the row has
@@ -2403,8 +2419,15 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
   // Inline OCR extracted fields — prefill the open "add new" form directly
   // rather than relying on the server's auto-created row, so there is
   // exactly one record once the user hits Save.
-  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean, sessionToken?: string) => {
     if (!fields) { onExtracted(); return }
+    // This result belongs to a form that isn't open anymore (the user
+    // saved/cancelled it and opened a different person while the scan was
+    // still processing) — applying it now would write this person's
+    // details into whoever is currently open (reported live, 2026-09-11).
+    // The upload itself already completed and got tagged server-side, so
+    // nothing is lost by discarding the merge here.
+    if (sessionToken !== formTokenRef.current) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     // Silent misses looked like a bug ("first try doesn't pick up the
     // name, have to replace and redo it") when it was really the scan
@@ -2466,7 +2489,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({
+              onClick={() => { formTokenRef.current = crypto.randomUUID(); setPhotoUploaded(null); setUploadedDocIds([]); setForm({
                 id: d.id,
                 fullName: d.residential_address?.isCorporate ? '' : d.full_name,
                 idNumber: d.residential_address?.isCorporate ? '' : d.id_number,
@@ -2542,6 +2565,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 entityId={entityId}
                 api={api}
                 onExtracted={handleExtracted}
+                sessionToken={formTokenRef.current ?? undefined}
                 setError={setError}
                 personName={form.fullName}
                 personRole="director"
@@ -2557,6 +2581,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
                 entityId={entityId}
                 api={api}
                 onExtracted={handleExtracted}
+                sessionToken={formTokenRef.current ?? undefined}
                 setError={setError}
                 personName={form.fullName}
                 personRole="director"
@@ -2712,7 +2737,7 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       ) : entityType === 'sole_proprietorship' && directors.length >= 1 ? null : (
         <button
           type="button"
-          onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({ ...emptyDirector }) }}
+          onClick={() => { formTokenRef.current = crypto.randomUUID(); setPhotoUploaded(null); setUploadedDocIds([]); setForm({ ...emptyDirector }) }}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -2784,6 +2809,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
     email: applicant?.email ?? '',
     address: applicant?.address ?? {},
   } : null)
+  // See StepDirectors' matching comment — same stale-OCR-result risk here.
+  const formTokenRef = useRef<string | null>(shareholders.length === 0 ? crypto.randomUUID() : null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
   const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
@@ -2987,8 +3014,12 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
     }
   }
 
-  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean, sessionToken?: string) => {
     if (!fields) { onExtracted(); return }
+    // See matching comment in StepDirectors' handleExtracted — a slow OCR
+    // result for a form that isn't open anymore must not merge into
+    // whichever different person is open now.
+    if (sessionToken !== formTokenRef.current) { onExtracted(); return }
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     if (!f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
     setForm((prev) => {
@@ -3037,7 +3068,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({
+              onClick={() => { formTokenRef.current = crypto.randomUUID(); setPhotoUploaded(null); setUploadedDocIds([]); setForm({
                 id: s.id,
                 legalName: s.corporate_details?.isCorporate ? '' : s.legal_name,
                 idNumber: s.corporate_details?.isCorporate ? '' : (s.id_or_reg_number ?? ''),
@@ -3106,6 +3137,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 entityId={entityId}
                 api={api}
                 onExtracted={handleExtracted}
+                sessionToken={formTokenRef.current ?? undefined}
                 setError={setError}
                 personName={form.legalName}
                 personRole="shareholder"
@@ -3121,6 +3153,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 entityId={entityId}
                 api={api}
                 onExtracted={handleExtracted}
+                sessionToken={formTokenRef.current ?? undefined}
                 setError={setError}
                 personName={form.legalName}
                 personRole="shareholder"
@@ -3218,7 +3251,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       ) : (
         <button
           type="button"
-          onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({ ...emptyShareholder }) }}
+          onClick={() => { formTokenRef.current = crypto.randomUUID(); setPhotoUploaded(null); setUploadedDocIds([]); setForm({ ...emptyShareholder }) }}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -3284,6 +3317,8 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   onDocumentsCloned?: () => Promise<void>
 }) {
   const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
+  // See StepDirectors' matching comment — same stale-OCR-result risk here.
+  const formTokenRef = useRef<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState<string | null>(null)
   const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
@@ -3295,8 +3330,12 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   // conclusions (ownership %, control basis) must always be user-entered
   // and confirmed, never inferred from OCR (spec: never auto-decide BO
   // status from a document).
-  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, _wasReplace?: boolean, sessionToken?: string) => {
     if (!fields) return
+    // See matching comment in StepDirectors' handleExtracted — a slow OCR
+    // result for a form that isn't open anymore must not merge into
+    // whichever different person is open now.
+    if (sessionToken !== formTokenRef.current) return
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     setForm((prev) => (prev ? {
       ...prev,
@@ -3329,6 +3368,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   // carry across to here when it's the same person.
   const prefillFrom = (s: ShareholderRow) => {
     patch({ noBeneficialOwners: false })
+    formTokenRef.current = crypto.randomUUID()
     setUploadedDocIds([])
     setForm({
       ...emptyBeneficialOwner(),
@@ -3491,7 +3531,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => { setPhotoUploaded(null); setUploadedDocIds([]); setForm({
+              onClick={() => { formTokenRef.current = crypto.randomUUID(); setPhotoUploaded(null); setUploadedDocIds([]); setForm({
                 id: b.id,
                 fullName: b.full_name,
                 idNumber: b.id_number ?? '',
@@ -3534,6 +3574,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             entityId={entityId}
             api={api}
             onExtracted={handleExtracted}
+            sessionToken={formTokenRef.current ?? undefined}
             setError={setError}
             personName={form.fullName}
             personRole="beneficial_owner"
@@ -3559,6 +3600,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             entityId={entityId}
             api={api}
             onExtracted={handleExtracted}
+            sessionToken={formTokenRef.current ?? undefined}
             setError={setError}
             personName={form.fullName}
             personRole="beneficial_owner"
@@ -3655,7 +3697,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
         <>
           <button
             type="button"
-            onClick={() => { patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()); setPhotoUploaded(null); setUploadedDocIds([]) }}
+            onClick={() => { formTokenRef.current = crypto.randomUUID(); patch({ noBeneficialOwners: false }); setForm(emptyBeneficialOwner()); setPhotoUploaded(null); setUploadedDocIds([]) }}
             className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
             style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
           >
@@ -4087,13 +4129,16 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
     email: applicant?.email ?? '',
     address: applicant?.address ?? {},
   } : null)
+  // See StepDirectors' matching comment — same stale-OCR-result risk here.
+  const formTokenRef = useRef<string | null>(settlors.length === 0 ? crypto.randomUUID() : null)
   const [busy, setBusy] = useState(false)
   const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
 
   const set = (partial: Partial<SettlorForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
 
-  const handleExtracted = (fields: Record<string, unknown> | undefined) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, _wasReplace?: boolean, sessionToken?: string) => {
     if (!fields) return
+    if (sessionToken !== formTokenRef.current) return
     const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
     setForm((prev) => (prev ? {
       ...prev,
@@ -4188,7 +4233,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => { setUploadedDocIds([]); setForm({
+              onClick={() => { formTokenRef.current = crypto.randomUUID(); setUploadedDocIds([]); setForm({
                 id: s.id,
                 fullName: s.full_name,
                 idNumber: s.id_number ?? '',
@@ -4223,6 +4268,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
             entityId={entityId}
             api={api}
             onExtracted={handleExtracted}
+            sessionToken={formTokenRef.current ?? undefined}
             setError={setError}
             personName={form.fullName}
             personRole="beneficial_owner"
@@ -4238,6 +4284,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
             entityId={entityId}
             api={api}
             onExtracted={handleExtracted}
+            sessionToken={formTokenRef.current ?? undefined}
             setError={setError}
             personName={form.fullName}
             personRole="beneficial_owner"
@@ -4291,7 +4338,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
       ) : (
         <button
           type="button"
-          onClick={() => { setUploadedDocIds([]); setForm(emptySettlor()) }}
+          onClick={() => { formTokenRef.current = crypto.randomUUID(); setUploadedDocIds([]); setForm(emptySettlor()) }}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
