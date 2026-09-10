@@ -5949,11 +5949,12 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
         )}
         <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
           <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
-            Form we&apos;ll generate for you
+            Form you&apos;ll complete on BRS eCitizen
           </p>
           <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-            Using the details you&apos;ve entered, we generate BN2 (application for registration of a business
-            name) — once you submit. Download, sign at BRS eCitizen, and upload it back from your dashboard.
+            Once you submit, use the details you&apos;ve entered here as reference to fill in BN2 (application
+            for registration of a business name) on the BRS eCitizen portal. Download the completed form, sign
+            it, and upload it back from your dashboard.
           </p>
         </div>
       </div>
@@ -6145,13 +6146,13 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
       )}
       <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
         <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
-          Forms we&apos;ll generate for you
+          Forms you&apos;ll complete on BRS eCitizen
         </p>
         <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-          Using the company, share, and director details you&apos;ve already entered, we generate CR1 (application
-          for registration), CR2 (memorandum of registration), CR8 (particulars of directors), and the statement
-          of nominal capital — once you submit. Download, sign at BRS eCitizen, and upload them back from your
-          dashboard.
+          Once you submit, use the company, share, and director details you&apos;ve already entered here as
+          reference to fill in CR1 (application for registration), CR2 (memorandum of registration), CR8
+          (particulars of directors), and the statement of nominal capital on the BRS eCitizen portal. Download
+          the completed forms, sign them, and upload them back from your dashboard.
         </p>
       </div>
       <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
@@ -6317,8 +6318,8 @@ function StepDocuments({ entityType, wizard, entityStatus, orgId, entityId, docu
       {entityStatus !== 'pending_registration' && entityStatus !== 'active' && (
         <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
           Signed registration forms (CR1, CR2, CR8, BN2, BOF1, statement of nominal capital) aren&apos;t asked
-          for here — they don&apos;t exist yet. Once you submit, we&apos;ll generate them for you to download,
-          sign at BRS eCitizen, and upload back from your dashboard.
+          for here — they don&apos;t exist yet. Once you submit, you&apos;ll complete them on the BRS eCitizen
+          portal, sign them, and upload them back from your dashboard.
         </p>
       )}
 
