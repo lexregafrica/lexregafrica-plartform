@@ -1746,6 +1746,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   partnership_agreement: 'Partnership Agreement',
   trust_deed: 'Trust Deed',
   constitution: 'Constitution',
+  custom_articles: 'Custom Articles',
   founding_minutes: 'Founding Meeting Records',
   trust_property_document: 'Trust Property Document',
   society_property_document: 'Property Document',
@@ -6091,10 +6092,29 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
           ))}
         </div>
       </Field>
-      {wizard.articlesType === 'custom' && (
+      {wizard.articlesType === 'standard' && (
         <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
-          Custom articles require legal drafting — our team will follow up once you submit.
+          Standard model articles referenced — you don&apos;t need to upload anything here. Charles will send you
+          the document.
         </p>
+      )}
+      {wizard.articlesType === 'custom' && (
+        <div className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(128,0,32,0.08)' }}>
+          <p className="text-ios-footnote" style={{ color: 'var(--brand-navy)' }}>
+            Custom articles require legal drafting. If you already have a draft or final version, upload it below
+            — otherwise our team will follow up once you submit.
+          </p>
+          <SimpleDocumentUpload
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            setError={setError}
+            documentType="custom_articles"
+            documents={documents}
+            onUploaded={onExtracted}
+            label="Upload custom articles →"
+          />
+        </div>
       )}
       <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
         <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
