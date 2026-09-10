@@ -455,7 +455,6 @@ export function NewEntityWizard() {
         if (!wizard.postalAddress?.trim()) return 'Postal address is required.'
         if (entityType !== 'trust' && entityType !== 'society') {
           if (!wizard.turnoverRange) return 'Choose an expected turnover range.'
-          if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
         }
         if (entityType === 'sole_proprietorship') {
           if (wizard.hasAdditionalLocations === undefined) return 'Tell us whether the business has additional locations.'
@@ -661,8 +660,11 @@ export function NewEntityWizard() {
         // bill yet at registration time.
         return null
       case 12:
-        if (wizard.nssfNhifStatus === undefined) return 'Tell us about NSSF/NHIF registration.'
-        if (!wizard.payrollFrequency) return 'Choose a payroll frequency.'
+        if (wizard.hasEmployees === undefined) return 'Tell us whether the business will have employees.'
+        if (wizard.hasEmployees === true) {
+          if (wizard.nssfNhifStatus === undefined) return 'Tell us about NSSF/NHIF registration.'
+          if (!wizard.payrollFrequency) return 'Choose a payroll frequency.'
+        }
         return null
       case 13:
         if (!wizard.declared || !wizard.consented || !wizard.agreedTerms) return 'All three declarations are required.'
@@ -1433,32 +1435,13 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
       {entityType !== 'trust' && entityType !== 'society' && (
         <div className="space-y-4">
           <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-            Turnover & employment
+            Turnover
           </h2>
           <Field label="Expected annual turnover (KES)" required>
             <select className={inputCls} style={inputStyle} value={wizard.turnoverRange ?? ''} onChange={(e) => patch({ turnoverRange: e.target.value })}>
               <option value="" disabled>Choose a range…</option>
               {TURNOVER_RANGES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-          </Field>
-          <Field label="Will the business have employees?" required>
-            <div className="grid grid-cols-2 gap-2">
-              {[true, false].map((v) => (
-                <button
-                  key={String(v)}
-                  type="button"
-                  onClick={() => patch({ hasEmployees: v })}
-                  className="py-2.5 rounded-xl border text-sm font-medium"
-                  style={{
-                    borderColor: wizard.hasEmployees === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                    background: wizard.hasEmployees === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                    color: 'var(--system-label)',
-                  }}
-                >
-                  {v ? 'Yes' : 'No'}
-                </button>
-              ))}
-            </div>
           </Field>
         </div>
       )}
@@ -5475,51 +5458,62 @@ function StepSecretary({ entityType, wizard, patch }: {
 // Step 9 — Employees
 // ------------------------------------------------------------------
 function StepEmployees({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
-  // "Will the business have employees?" is already asked once, on the
-  // Company Basics step — asking again here with a permanent/casual
-  // breakdown was redundant and confusing (Charles, 2026-08-31: just
-  // "Are you going to have employees?", not a headcount split). Skip
-  // the registration/payroll detail entirely when the answer was no.
-  if (wizard.hasEmployees === false) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-          Employee information
-        </h1>
-        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-          You told us this business won&apos;t have employees, so there&apos;s nothing else needed here.
-        </p>
-      </div>
-    )
-  }
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
         Employee information
       </h1>
-      <Field label="Will you register employees for NSSF/SHA?" required>
-        <div className="grid grid-cols-3 gap-2">
-          {([['yes', 'Yes'], ['no', 'No'], ['already_registered', 'Already registered']] as const).map(([v, l]) => (
+      <Field label="Will the business have employees?" required>
+        <div className="grid grid-cols-2 gap-2">
+          {[true, false].map((v) => (
             <button
-              key={v} type="button" onClick={() => patch({ nssfNhifStatus: v })}
-              className="py-2.5 rounded-xl border text-xs font-medium"
+              key={String(v)}
+              type="button"
+              onClick={() => patch({ hasEmployees: v })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
               style={{
-                borderColor: wizard.nssfNhifStatus === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                background: wizard.nssfNhifStatus === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                borderColor: wizard.hasEmployees === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.hasEmployees === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
                 color: 'var(--system-label)',
               }}
             >
-              {l}
+              {v ? 'Yes' : 'No'}
             </button>
           ))}
         </div>
       </Field>
-      <Field label="Expected payroll frequency" required>
-        <select className={inputCls} style={inputStyle} value={wizard.payrollFrequency ?? ''} onChange={(e) => patch({ payrollFrequency: e.target.value })}>
-          <option value="" disabled>Choose…</option>
-          {PAYROLL_FREQUENCIES.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-      </Field>
+      {wizard.hasEmployees === false && (
+        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+          Nothing else needed here.
+        </p>
+      )}
+      {wizard.hasEmployees === true && (
+        <>
+          <Field label="Will you register employees for NSSF/SHA?" required>
+            <div className="grid grid-cols-3 gap-2">
+              {([['yes', 'Yes'], ['no', 'No'], ['already_registered', 'Already registered']] as const).map(([v, l]) => (
+                <button
+                  key={v} type="button" onClick={() => patch({ nssfNhifStatus: v })}
+                  className="py-2.5 rounded-xl border text-xs font-medium"
+                  style={{
+                    borderColor: wizard.nssfNhifStatus === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: wizard.nssfNhifStatus === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Expected payroll frequency" required>
+            <select className={inputCls} style={inputStyle} value={wizard.payrollFrequency ?? ''} onChange={(e) => patch({ payrollFrequency: e.target.value })}>
+              <option value="" disabled>Choose…</option>
+              {PAYROLL_FREQUENCIES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </Field>
+        </>
+      )}
     </div>
   )
 }

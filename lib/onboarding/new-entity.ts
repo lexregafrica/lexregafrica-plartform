@@ -592,8 +592,13 @@ export function isStepVisible(step: number, entityType: EntityType, data: Wizard
       // concept at all (spec section 26) so this step is skipped entirely
       // rather than repurposed.
       return entityType !== 'sole_proprietorship'
-    case 12: // Employee Info
-      return data.hasEmployees === true
+    case 12: // Employee Info — the "will you have employees?" question
+      // itself lives here now (Charles, 2026-09-11: consolidate every
+      // employment question into one step instead of splitting it from
+      // Company Basics), so this step's own visibility can't depend on
+      // hasEmployees — same entity types that used to see it on Company
+      // Basics.
+      return entityType !== 'trust' && entityType !== 'society'
     default:
       return true
   }
