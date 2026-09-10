@@ -85,21 +85,7 @@ export function AddressFields({
         </select>
       </AddressField>
       <div className="grid grid-cols-2 gap-3">
-        <AddressField label="Postal code" required={requirePostalCode}>
-          <select
-            className={inputCls}
-            style={inputStyle}
-            value={value.postalCode ?? ''}
-            onChange={(e) => onChange({ postalCode: e.target.value })}
-            disabled={!value.county}
-          >
-            <option value="">{value.county ? '—' : 'Choose county first'}</option>
-            {KENYA_POSTAL_CODES.filter((p) => p.county === value.county).map((p) => (
-              <option key={p.code} value={p.code}>{p.code} — {p.area}</option>
-            ))}
-          </select>
-        </AddressField>
-        <AddressField label="Postal address" required={requirePostalAddress}>
+        <AddressField label="P.O. Box" required={requirePostalAddress}>
           <input
             type="text"
             className={inputCls}
@@ -108,6 +94,19 @@ export function AddressFields({
             value={value.postalAddress ?? ''}
             onChange={(e) => onChange({ postalAddress: e.target.value })}
           />
+        </AddressField>
+        <AddressField label="Postal code" required={requirePostalCode}>
+          <select
+            className={inputCls}
+            style={inputStyle}
+            value={value.postalCode ?? ''}
+            onChange={(e) => onChange({ postalCode: e.target.value })}
+          >
+            <option value="">—</option>
+            {(value.county ? KENYA_POSTAL_CODES.filter((p) => p.county === value.county) : KENYA_POSTAL_CODES).map((p) => (
+              <option key={`${p.code}-${p.area}`} value={p.code}>{p.code} — {p.area}{value.county ? '' : ` (${p.county})`}</option>
+            ))}
+          </select>
         </AddressField>
       </div>
       <AddressField label="Country">
@@ -149,8 +148,8 @@ export function formatAddress(a: AddressData | null | undefined): string {
     line2 || null,
     a.city ?? null,
     a.county ?? null,
-    a.postalCode ?? null,
     a.postalAddress ?? null,
+    a.postalCode ?? null,
     a.country && a.country.toLowerCase() !== 'kenya' ? a.country : null,
   ].filter((p): p is string => !!p)
   return parts.length > 0 ? parts.join(', ') : '—'
