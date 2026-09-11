@@ -9,9 +9,10 @@
 // bare free-text line — different field order, different labels, no
 // county-before-postcode consistency. One shape, one order, one look,
 // everywhere (2026-09-10).
-import { KENYA_COUNTIES, KENYA_POSTAL_CODES, type AddressData } from '@/lib/onboarding/new-entity'
+import { KENYA_COUNTIES, KENYA_POSTAL_CODES, readLegacyAddress, formatAddress, type AddressData } from '@/lib/onboarding/new-entity'
 
 export type { AddressData }
+export { readLegacyAddress, formatAddress }
 
 const inputCls =
   'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
@@ -114,43 +115,4 @@ export function AddressFields({
       </AddressField>
     </>
   )
-}
-
-// Reads an AddressData out of a saved jsonb blob that might still be in
-// the old scattered shape (a bare free-text line plus county/postalCode/
-// postalAddress siblings, no building/street/floor/door split) rather
-// than the new nested `address` object — so switching to the shared
-// component doesn't blank out or lose anyone's already-saved address.
-// The old free-text line (physicalAddress / residentialAddress /
-// businessAddress, whichever that record used) lands in streetName —
-// not a perfect split, but nothing is discarded, and it's editable.
-export function readLegacyAddress(raw: Record<string, unknown> | null | undefined, legacyFreeText?: string | null): AddressData {
-  const nested = raw?.structuredAddress
-  if (nested && typeof nested === 'object') return nested as AddressData
-  if (!raw && !legacyFreeText) return {}
-  return {
-    streetName: legacyFreeText || undefined,
-    city: typeof raw?.city === 'string' ? raw.city : undefined,
-    county: typeof raw?.county === 'string' ? raw.county : undefined,
-    postalCode: typeof raw?.postalCode === 'string' ? raw.postalCode : undefined,
-    postalAddress: typeof raw?.postalAddress === 'string' ? raw.postalAddress : (typeof raw?.postalAddressLine === 'string' ? raw.postalAddressLine : undefined),
-  }
-}
-
-// Single-line read-only rendering — review screens, IDP, dashboard cards.
-// Same field order as the form above, minus empty fields.
-export function formatAddress(a: AddressData | null | undefined): string {
-  if (!a) return '—'
-  const line1 = [a.buildingName, a.streetName].filter(Boolean).join(', ')
-  const line2 = [a.floorNumber ? `Floor ${a.floorNumber}` : null, a.doorNumber ? `Door ${a.doorNumber}` : null].filter(Boolean).join(', ')
-  const parts = [
-    line1 || null,
-    line2 || null,
-    a.city ?? null,
-    a.county ?? null,
-    a.postalAddress ?? null,
-    a.postalCode ?? null,
-    a.country && a.country.toLowerCase() !== 'kenya' ? a.country : null,
-  ].filter((p): p is string => !!p)
-  return parts.length > 0 ? parts.join(', ') : '—'
 }

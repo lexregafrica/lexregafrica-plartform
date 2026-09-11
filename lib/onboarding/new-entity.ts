@@ -22,6 +22,48 @@ export type AddressData = {
   country?: string
 }
 
+// Reads an AddressData out of a saved jsonb blob that might still be in
+// the old scattered shape (a bare free-text line plus county/postalCode/
+// postalAddress siblings, no building/street/floor/door split) rather
+// than the new nested `address` object — so switching to the shared
+// component doesn't blank out or lose anyone's already-saved address.
+// The old free-text line (physicalAddress / residentialAddress /
+// businessAddress, whichever that record used) lands in streetName —
+// not a perfect split, but nothing is discarded, and it's editable.
+// Lives here (not in components/onboarding/address-fields.tsx) — that
+// file is 'use client', and app/api/onboarding/new-entity/route.ts (a
+// server route) needs to call this too.
+export function readLegacyAddress(raw: Record<string, unknown> | null | undefined, legacyFreeText?: string | null): AddressData {
+  const nested = raw?.structuredAddress
+  if (nested && typeof nested === 'object') return nested as AddressData
+  if (!raw && !legacyFreeText) return {}
+  return {
+    streetName: legacyFreeText || undefined,
+    city: typeof raw?.city === 'string' ? raw.city : undefined,
+    county: typeof raw?.county === 'string' ? raw.county : undefined,
+    postalCode: typeof raw?.postalCode === 'string' ? raw.postalCode : undefined,
+    postalAddress: typeof raw?.postalAddress === 'string' ? raw.postalAddress : (typeof raw?.postalAddressLine === 'string' ? raw.postalAddressLine : undefined),
+  }
+}
+
+// Single-line read-only rendering — review screens, IDP, dashboard cards.
+// Same field order as the AddressFields form, minus empty fields.
+export function formatAddress(a: AddressData | null | undefined): string {
+  if (!a) return '—'
+  const line1 = [a.buildingName, a.streetName].filter(Boolean).join(', ')
+  const line2 = [a.floorNumber ? `Floor ${a.floorNumber}` : null, a.doorNumber ? `Door ${a.doorNumber}` : null].filter(Boolean).join(', ')
+  const parts = [
+    line1 || null,
+    line2 || null,
+    a.city ?? null,
+    a.county ?? null,
+    a.postalAddress ?? null,
+    a.postalCode ?? null,
+    a.country && a.country.toLowerCase() !== 'kenya' ? a.country : null,
+  ].filter((p): p is string => !!p)
+  return parts.length > 0 ? parts.join(', ') : '—'
+}
+
 export type ShareClass = {
   id: string
   name: string

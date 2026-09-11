@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import { generateIdp } from '@/lib/documents/idp'
-import { formatAddress, type AddressData } from '@/components/onboarding/address-fields'
+import { formatAddress, type AddressData } from '@/lib/onboarding/new-entity'
 import {
   ENTITY_TYPES,
   APPLICANT_RELATIONSHIPS,
