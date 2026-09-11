@@ -1134,14 +1134,32 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
 // Step 2 — Applicant & primary contact (LLC spec screen 2). User-account
 // and matter-contact data, distinct from the entity profile below.
 // ------------------------------------------------------------------
+// Which "relationship to entity" options actually apply to each entity
+// type — showing every role for every type (director/shareholder options
+// on a trust application, settlor/trustee on a company one) only invited
+// confusion. Advocate and authorised agent can file on anyone's behalf,
+// so both stay available everywhere (Charles, 2026-09-11, same call that
+// narrowed this for trusts on 2026-08-31).
+const APPLICANT_RELATIONSHIP_VALUES_BY_TYPE: Partial<Record<EntityType, string[]>> = {
+  trust: ['trustee', 'settlor', 'advocate', 'authorised_agent'],
+  society: ['member', 'officer', 'advocate', 'authorised_agent'],
+  partnership: ['partner', 'advocate', 'authorised_agent'],
+  sole_proprietorship: ['proprietor', 'advocate', 'authorised_agent'],
+  limited_liability_partnership: ['partner', 'advocate', 'authorised_agent'],
+}
+
 function StepApplicant({ entityType, wizard, patch }: { entityType: EntityType; wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
-  // For a trust, the primary contact is the trustee or the settlor — an
-  // advocate or authorised agent can also file on the trust's behalf, but
-  // "director"/"shareholder"/"promoter" etc. don't apply and only invited
-  // confusion (Charles, 2026-08-31).
-  const relationships = entityType === 'trust'
-    ? APPLICANT_RELATIONSHIPS.filter((r) => ['trustee', 'settlor', 'advocate', 'authorised_agent'].includes(r.value))
-    : APPLICANT_RELATIONSHIPS
+  const allowedValues = APPLICANT_RELATIONSHIP_VALUES_BY_TYPE[entityType]
+    // Default — company-shaped entities (limited company, PLC, cooperative,
+    // company limited by guarantee).
+    ?? ['promoter', 'director', 'shareholder', 'advocate', 'authorised_agent']
+  const relationships = APPLICANT_RELATIONSHIPS.filter((r) => allowedValues.includes(r.value))
+  const relationshipLabel =
+    entityType === 'trust' ? 'Relationship to trust'
+    : entityType === 'society' ? 'Relationship to society'
+    : entityType === 'partnership' || entityType === 'limited_liability_partnership' ? 'Relationship to partnership'
+    : entityType === 'sole_proprietorship' ? 'Relationship to business'
+    : 'Relationship to company'
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -1161,7 +1179,7 @@ function StepApplicant({ entityType, wizard, patch }: { entityType: EntityType; 
           <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={wizard.applicantPhone ?? ''} onChange={(e) => patch({ applicantPhone: e.target.value })} />
         </Field>
       </div>
-      <Field label={entityType === 'trust' ? 'Relationship to trust' : 'Relationship to company'} required>
+      <Field label={relationshipLabel} required>
         <select className={inputCls} style={inputStyle} value={wizard.applicantRelationship ?? ''} onChange={(e) => patch({ applicantRelationship: e.target.value as WizardData['applicantRelationship'] })}>
           <option value="" disabled>Choose…</option>
           {relationships.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
