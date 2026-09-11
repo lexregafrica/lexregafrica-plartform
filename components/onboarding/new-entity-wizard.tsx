@@ -856,6 +856,8 @@ export function NewEntityWizard() {
             entityType={entityType}
             directors={directors}
             setDirectors={setDirectors}
+            shareholders={shareholders}
+            setShareholders={setShareholders}
             orgId={orgId}
             entityId={entityId}
             api={api}
@@ -2265,10 +2267,15 @@ export function CorporateFields({ value, onChange, context }: {
   )
 }
 
-function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, api, setError, onExtracted, documents, applicant }: {
+function StepDirectors({ entityType, directors, setDirectors, shareholders, setShareholders, orgId, entityId, api, setError, onExtracted, documents, applicant }: {
   entityType: EntityType
   directors: DirectorRow[]
   setDirectors: (d: DirectorRow[]) => void
+  // Only used to keep a shareholder-who-is-also-a-director's shared fields
+  // (phone, email, address, occupation, …) in sync when edited from this
+  // side — see the matching sync block in StepShareholders' save().
+  shareholders: ShareholderRow[]
+  setShareholders: (s: ShareholderRow[]) => void
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
@@ -2414,6 +2421,62 @@ function StepDirectors({ entityType, directors, setDirectors, orgId, entityId, a
       if (uploadedDocIds.length > 0) {
         await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: displayName, personRole: 'director' })
       }
+
+      // Mirror image of StepShareholders' own sync block — if this
+      // director is also a shareholder, push the shared fields onto that
+      // row too, preserving its shareholding/nomination/membership
+      // fields rather than overwriting them (reported live, 2026-09-12:
+      // editing under one side never reached the other).
+      if (!form.isCorporate) {
+        const linkedShareholder = shareholders.find((s) =>
+          s.legal_name.trim().toLowerCase() === displayName.toLowerCase() || (!!form.idNumber.trim() && s.id_or_reg_number === form.idNumber.trim())
+        )
+        if (linkedShareholder) {
+          const sa = linkedShareholder.address ?? {}
+          await api({
+            action: 'upsert_shareholder',
+            shareholder: {
+              id: linkedShareholder.id,
+              legalName: displayName,
+              idNumber: form.idNumber.trim() || undefined,
+              kraPin: form.kraPin.trim().toUpperCase() || undefined,
+              sharesHeld: linkedShareholder.shares_held,
+              isNominee: linkedShareholder.corporate_details?.nominee,
+              isCorporate: false,
+              isForeign: form.isForeign,
+              foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+              structuredAddress: form.address,
+              nationality: form.nationality || undefined,
+              dateOfBirth: form.dateOfBirth || undefined,
+              occupation: form.occupation || undefined,
+              phone: form.phone || undefined,
+              email: form.email || undefined,
+              membershipClass: sa.membershipClass,
+              isFoundingMember: sa.isFoundingMember,
+              dateAdmitted: sa.dateAdmitted,
+              votingStatus: sa.votingStatus,
+            },
+          })
+          setShareholders(shareholders.map((s) => (s.id === linkedShareholder.id ? {
+            ...s,
+            legal_name: displayName,
+            id_or_reg_number: form.idNumber.trim() || null,
+            kra_pin: form.kraPin.trim().toUpperCase() || null,
+            phone: form.phone || null,
+            email: form.email || null,
+            address: {
+              ...sa,
+              isForeign: form.isForeign,
+              foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+              structuredAddress: form.address,
+              nationality: form.nationality || undefined,
+              dateOfBirth: form.dateOfBirth || undefined,
+              occupation: form.occupation || undefined,
+            },
+          } : s)))
+        }
+      }
+
       setForm(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.')
@@ -2935,12 +2998,69 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       // identity into a director profile instead of re-typing it
       // (Charles, 2026-07-17; extended to corporate parties 2026-07-24;
       // enabled on edit too 2026-08 — someone can realize this later and
-      // go back). Guard against a duplicate row if they're already
-      // migrated across (by matching name or ID/reg number).
-      const alreadyADirector = directors.some((d) =>
+      // go back). Matches an existing director row by name or ID/reg
+      // number so a later edit here can push updates onto it too.
+      const linkedDirector = directors.find((d) =>
         d.full_name.trim().toLowerCase() === displayName.toLowerCase() || (!!idOrReg && d.id_number === idOrReg)
       )
-      if (form.alsoDirector && !alreadyADirector) {
+      if (form.alsoDirector && linkedDirector && !form.isCorporate) {
+        // The copy above only ran once, at the moment "also a director"
+        // was first ticked — editing this shareholder afterward (phone,
+        // email, address, occupation) never reached the already-linked
+        // director row, so those fields drifted out of sync and had to
+        // be retyped there too (reported live, 2026-09-12). Push the
+        // shared fields across on every save now, preserving the
+        // director-only fields (position, term, successor trustee, …)
+        // already on that row rather than blanking them.
+        const ra = linkedDirector.residential_address ?? {}
+        await api({
+          action: 'upsert_director',
+          director: {
+            id: linkedDirector.id,
+            fullName: displayName,
+            idNumber: form.idNumber.trim(),
+            kraPin: form.kraPin.trim().toUpperCase() || undefined,
+            dateOfBirth: form.dateOfBirth || undefined,
+            nationality: form.nationality || undefined,
+            phone: form.phone || undefined,
+            email: form.email || undefined,
+            structuredAddress: form.address,
+            occupation: form.occupation || undefined,
+            isForeign: form.isForeign,
+            foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+            role: roleLabel.toLowerCase().replace(' ', '_'),
+            appointmentDate: linkedDirector.appointment_date ?? undefined,
+            isCorporate: false,
+            interestPercentage: ra.interestPercentage,
+            contributionType: ra.contributionType,
+            contributionValue: ra.contributionValue,
+            position: ra.position,
+            isRegistrationSignatory: ra.isRegistrationSignatory,
+            termOfOffice: ra.termOfOffice,
+            termExpiryDate: ra.termExpiryDate,
+            isSuccessorTrustee: ra.isSuccessorTrustee,
+            successorToName: ra.successorToName,
+          },
+        })
+        setDirectors(directors.map((d) => (d.id === linkedDirector.id ? {
+          ...d,
+          full_name: displayName,
+          id_number: form.idNumber.trim(),
+          kra_pin: form.kraPin.trim().toUpperCase() || null,
+          phone: form.phone || null,
+          email: form.email || null,
+          nationality: form.nationality || d.nationality,
+          is_foreign: form.isForeign,
+          residential_address: {
+            ...ra,
+            dateOfBirth: form.dateOfBirth,
+            structuredAddress: form.address,
+            occupation: form.occupation || undefined,
+            foreignAddress: form.isForeign ? form.foreignAddress : undefined,
+          },
+        } : d)))
+      }
+      if (form.alsoDirector && !linkedDirector) {
         const dirResult = await api({
           action: 'upsert_director',
           director: form.isCorporate ? {
