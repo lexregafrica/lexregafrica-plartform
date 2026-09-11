@@ -643,10 +643,7 @@ export function NewEntityWizard() {
           if (wizard.hasPartnershipAgreement === undefined) return 'Tell us whether you already have a Partnership Agreement.'
           return null
         }
-        if (entityType === 'trust') {
-          if (wizard.hasTrustDeed === undefined) return 'Tell us whether you already have a Trust Deed.'
-          return null
-        }
+        if (entityType === 'trust') return null
         if (entityType === 'society') {
           if (wizard.hasConstitution === undefined) return 'Tell us whether you already have a Constitution.'
           return null
@@ -6156,45 +6153,29 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
           The Trust Deed is the constitutive instrument that actually creates the trust — distinct from any
           later incorporation of the trustees.
         </p>
-        <Field label="Do you already have a Trust Deed?" required>
-          <div className="grid grid-cols-2 gap-2">
-            {[{ v: true, label: 'Yes, I have one' }, { v: false, label: 'No, prepare one' }].map(({ v, label }) => (
-              <button
-                key={String(v)} type="button" onClick={() => patch({ hasTrustDeed: v })}
-                className="py-2.5 rounded-xl border text-sm font-medium"
-                style={{
-                  borderColor: wizard.hasTrustDeed === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                  background: wizard.hasTrustDeed === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                  color: 'var(--system-label)',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </Field>
-        {wizard.hasTrustDeed === true && (
-          <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
-            <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>Upload your Trust Deed</p>
-            <SimpleDocumentUpload
-              orgId={orgId}
-              entityId={entityId}
-              api={api}
-              setError={setError}
-              documentType="trust_deed"
-              documents={documents}
-              onUploaded={onExtracted}
-              label="Upload Trust Deed →"
-            />
-          </div>
-        )}
-        {wizard.hasTrustDeed === false && (
-          <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+        {/* Registering a brand-new trust — the Deed is what creates it, so a
+            first-time applicant here can't already have an executed one.
+            Asking "do you have one?" only confused people (Charles,
+            2026-09-12). Assume no deed exists yet; still take an upload in
+            case there's an existing draft. */}
+        <div className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(128,0,32,0.08)' }}>
+          <p className="text-ios-footnote" style={{ color: 'var(--brand-navy)' }}>
             We&apos;ll prepare a draft Trust Deed from the settlor, trustee, beneficiary, and governance answers
-            you&apos;ve already provided. Given the legal significance of the deed, professional review is
-            required before execution — our team will follow up once you submit.
+            you&apos;ve already provided. If you already have a draft or final version, upload it below —
+            otherwise our team will follow up once you submit. Given the legal significance of the deed,
+            professional review is required before execution.
           </p>
-        )}
+          <SimpleDocumentUpload
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            setError={setError}
+            documentType="trust_deed"
+            documents={documents}
+            onUploaded={onExtracted}
+            label="Upload existing Trust Deed →"
+          />
+        </div>
         <Field label="Proposed name for the incorporated trustees (if seeking incorporation)">
           <input
             type="text" className={inputCls} style={inputStyle}
@@ -6779,7 +6760,7 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
           <ReviewRow label="Protector / Enforcer" value={wizard.hasProtector ? (wizard.protectorName || 'Yes') : 'None'} />
         )}
         {isTrust && (
-          <ReviewRow label="Trust Deed" value={wizard.hasTrustDeed ? 'Uploaded' : 'To be prepared'} />
+          <ReviewRow label="Trust Deed" value={documents.some((d) => d.document_type === 'trust_deed') ? 'Uploaded' : 'To be prepared'} />
         )}
         {isSociety && shareholders.length > 0 && (
           <ReviewRow label="Founding members" value={`${shareholders.length} recorded`} />

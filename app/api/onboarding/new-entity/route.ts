@@ -946,9 +946,6 @@ export async function POST(request: Request) {
       if ((count ?? 0) < 1) {
         return NextResponse.json({ error: 'at least one settlor required' }, { status: 400 })
       }
-      if (wizard.hasTrustDeed === undefined) {
-        return NextResponse.json({ error: 'confirm whether a Trust Deed already exists' }, { status: 400 })
-      }
       if (wizard.hasProtector === undefined) {
         return NextResponse.json({ error: 'confirm whether the trust will have a Protector or Enforcer' }, { status: 400 })
       }
@@ -1483,7 +1480,6 @@ async function generateAndStoreIdp(
       if ((beneficialOwners ?? []).length === 0) exceptions.push('No settlor captured.')
       if (w.trustKind !== 'charitable_trust' && (shareholders ?? []).length === 0) exceptions.push('No beneficiaries captured.')
       if (w.trustKind === 'charitable_trust' && !(w.trustCharitableObjects ?? []).some((o) => o.trim())) exceptions.push('No charitable objects listed.')
-      if (w.hasTrustDeed === undefined) exceptions.push('Trust Deed status not yet confirmed.')
       if (w.hasProtector === undefined) exceptions.push('Protector/Enforcer status not yet confirmed.')
     } else if (ctx.entityType === 'society') {
       if ((directors ?? []).length === 0) exceptions.push('No officers captured.')
@@ -1561,7 +1557,7 @@ async function generateAndStoreIdp(
         approxValue: p.approxValue ?? null, isVested: p.isVested,
       })),
       protector: w.hasProtector ? { name: w.protectorName ?? '—', powers: w.protectorPowers ?? null } : null,
-      hasTrustDeed: w.hasTrustDeed ?? null,
+      hasTrustDeed: docTypes.has('trust_deed'),
 
       isSociety: ctx.entityType === 'society',
       societyGoverningBody: w.socHasGoverningBody ? { name: w.socGoverningBodyName ?? '—', quorum: w.socGoverningBodyQuorum ?? null } : null,
