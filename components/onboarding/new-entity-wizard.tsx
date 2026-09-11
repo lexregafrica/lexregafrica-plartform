@@ -794,7 +794,7 @@ export function NewEntityWizard() {
           <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} recommendedType={recommendedType} />
         )}
         {step === 2 && <StepApplicant entityType={entityType} wizard={wizard} patch={patch} />}
-        {step === 3 && <StepNames wizard={wizard} patch={patch} />}
+        {step === 3 && <StepNames entityType={entityType} wizard={wizard} patch={patch} />}
         {step === 4 && (
           <StepCompanyBasics
             entityType={entityType}
@@ -1174,7 +1174,7 @@ function StepApplicant({ entityType, wizard, patch }: { entityType: EntityType; 
 // ------------------------------------------------------------------
 // Step 3 — Proposed names
 // ------------------------------------------------------------------
-function StepNames({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+function StepNames({ entityType, wizard, patch }: { entityType: EntityType; wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
   const names = wizard.proposedNames ?? ['', '', '', '', '', '']
   const setName = (i: number, value: string) => {
     const next = [...names]
@@ -1185,7 +1185,7 @@ function StepNames({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<W
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Proposed business names
+        {entityType === 'trust' ? 'Proposed trust names' : entityType === 'society' ? 'Proposed society names' : 'Proposed business names'}
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
         List names in order of preference. BRS checks availability during registration — we store your options

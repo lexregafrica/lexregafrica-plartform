@@ -9,7 +9,7 @@ const EASE = [0.16, 1, 0.3, 1] as const
 const FAQS = [
   {
     q: 'How does company registration work without a BRS API?',
-    a: 'BRS has no public API. LexReg generates all required documents — CR1, CR8, board resolutions — then guides you through the hybrid filing process. You upload the signed forms, we track status, and you upload the certificate once issued. Nothing falls through the cracks.',
+    a: 'BRS has no public API. LexReg captures every detail you need — for directors, shareholders, share capital, and more — then guides you through completing CR1, CR8, and board resolutions on the BRS eCitizen portal itself. You upload the signed forms, we track status, and you upload the certificate once issued. Nothing falls through the cracks.',
   },
   {
     q: 'What happens to my documents if I stop midway through onboarding?',

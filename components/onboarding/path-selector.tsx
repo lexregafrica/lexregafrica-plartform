@@ -42,7 +42,7 @@ const paths: Array<{
     label: 'Register New Entity',
     sublabel: 'Not registered',
     description:
-      'Haven’t registered your business with BRS yet? We’ll walk you through a structured questionnaire covering your proposed company names, directors, shareholders, and share capital. LexReg then generates the registration documents you need — CR1, CR2, CR8, and the Memorandum & Articles — ready for filing. Because BRS has no public API, you’ll file these documents yourself and upload your certificate once it’s issued; we guide you through every step so nothing gets lost along the way.',
+      'Haven’t registered your business with BRS yet? We’ll walk you through a structured questionnaire covering your proposed company names, directors, shareholders, and share capital. Because BRS has no public API, you’ll take those details to the BRS eCitizen portal yourself to complete CR1, CR2, CR8, and the Memorandum & Articles, sign them, and upload your certificate once it’s issued — we guide you through every step so nothing gets lost along the way.',
   },
   {
     id: 'informal',
