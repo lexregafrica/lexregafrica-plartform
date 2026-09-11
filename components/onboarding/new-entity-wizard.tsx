@@ -1444,9 +1444,6 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
           Registered office address
         </h2>
         <AddressFields value={wizard} onChange={patch} />
-        <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-          You can add a proof of address document later from the Document Vault step if you don’t have one yet.
-        </p>
       </div>
 
       {entityType !== 'trust' && entityType !== 'society' && (
@@ -5874,13 +5871,6 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     hint: 'Title/reference documents for property listed on the Objects & Registered Office step.',
     documentType: 'society_property_document',
     visible: (t) => t === 'society',
-  },
-  {
-    key: 'address',
-    title: 'Proof of registered office (optional)',
-    hint: 'Utility bill, bank/mobile money statement, signed lease, landlord letter, or official correspondence showing the address — issued within the last 3 months where applicable. Upload later if you don’t have one yet.',
-    documentType: 'proof_of_address',
-    visible: () => true,
   },
   // Forms/package stage (LLC-Only Developer Implementation Spec upload
   // timing matrix): these are generated FROM the BRS eCitizen filing
