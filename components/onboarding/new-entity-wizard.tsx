@@ -90,6 +90,59 @@ function SecondaryButton({ children, onClick }: { children: React.ReactNode; onC
   )
 }
 
+// Plain-language explainers for trust-specific terms a first-time
+// applicant likely hasn't encountered before — Charles's meeting on
+// "Understanding Family Trusts in Kenya", 2026-09-12: wanted as
+// tooltips (hover on desktop, tap on mobile), with a dotted underline
+// marking a term as explainable.
+const TERM_DEFINITIONS = {
+  settlor: 'The person (or persons) who creates the trust. They decide its purpose, who benefits, what property goes into it, and who the trustees are — all recorded in the Trust Deed. A settlor can also be one of the beneficiaries.',
+  trustee: 'The person or body entrusted with holding and administering the trust property, in line with the Trust Deed and the law — not for their own personal benefit. A trustee can also be a beneficiary, but the two roles stay legally distinct.',
+  beneficiary: 'The person, or class of people (e.g. "children of the settlor"), the trust is set up to benefit. What they’re actually entitled to — income, capital, or both — depends on the Trust Deed, not just on being named.',
+  enforcer: 'An optional oversight role that monitors the trustees and can step in if the trust isn’t being administered properly — inspecting records, flagging breaches, or taking legal action if needed. The same person can’t be both trustee and enforcer.',
+  trustDeed: 'The core legal document that creates the trust and sets its rules — who the parties are, what property it holds, how trustees decide things, and how benefits are distributed. Executing it is what actually brings the trust into existence.',
+  successorTrustee: 'A trustee named in advance to step in only if a sitting trustee can no longer serve — because of death, resignation, or incapacity.',
+} as const
+
+// Dotted-underline term with a definition that shows on hover (desktop)
+// or tap (mobile/touch) — click toggles so it also works as a tap, and
+// a document-level listener closes it when tapping elsewhere.
+function Term({ term, children }: { term: keyof typeof TERM_DEFINITIONS; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [open])
+
+  return (
+    <span
+      ref={ref}
+      className="relative inline-block cursor-help"
+      style={{ borderBottom: '1px dashed var(--system-label-3)' }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}
+    >
+      {children}
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-1/2 top-full z-50 mt-1.5 block w-64 max-w-[80vw] -translate-x-1/2 rounded-xl border p-3 text-left text-ios-caption1 font-normal normal-case shadow-lg"
+          style={{ borderColor: 'var(--system-fill-3)', background: 'var(--system-bg)', color: 'var(--system-label-2)' }}
+        >
+          {TERM_DEFINITIONS[term]}
+        </span>
+      )}
+    </span>
+  )
+}
+
 // Simple growable list of free-text entries — charitable trust objects
 // (Trust spec section 7, "permit multiple objects"), Society membership
 // classes, etc. Always keeps at least one (possibly empty) row visible.
@@ -2546,7 +2599,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        {roleLabel} details
+        {entityType === 'trust' ? <Term term="trustee">{roleLabel}</Term> : roleLabel} details
       </h1>
 
       {directors.map((d) => (
@@ -4348,7 +4401,7 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Settlor details
+        <Term term="settlor">Settlor</Term> details
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
         The person or persons establishing the trust. A trust may have one settlor, or several joint settlors.
@@ -4583,7 +4636,7 @@ function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Beneficiaries
+        <Term term="beneficiary">Beneficiaries</Term>
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
         Add named beneficiaries, or a class such as &quot;children of the settlor&quot; or &quot;future
@@ -4820,7 +4873,7 @@ function StepTrustProtector({ wizard, patch }: { wizard: WizardData; patch: (p: 
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Protector / Enforcer
+        Protector / <Term term="enforcer">Enforcer</Term>
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
         Not every trust needs this role — it&apos;s someone appointed to supervise or monitor aspects of trust
@@ -6137,7 +6190,7 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
     return (
       <div className="space-y-5">
         <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-          Trust Deed
+          <Term term="trustDeed">Trust Deed</Term>
         </h1>
         <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
           The Trust Deed is the constitutive instrument that actually creates the trust — distinct from any
@@ -6688,7 +6741,7 @@ function StepDeclaration({ wizard, patch }: { wizard: WizardData; patch: (p: Par
 // ------------------------------------------------------------------
 // Step 12 — Review
 // ------------------------------------------------------------------
-function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) {
+function ReviewRow({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 py-2 border-b last:border-0" style={{ borderColor: 'var(--system-fill-3)' }}>
       <span className="text-ios-footnote shrink-0" style={{ color: 'var(--system-label-2)' }}>{label}</span>
@@ -6729,16 +6782,16 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
         {isSociety && <ReviewRow label="Primary object" value={wizard.socPrimaryObject ?? '—'} />}
         {!isTrust && !isSociety && <ReviewRow label="Turnover range" value={wizard.turnoverRange ? `KES ${wizard.turnoverRange}` : '—'} />}
         {isTrust && beneficialOwners.length > 0 && (
-          <ReviewRow label="Settlor(s)" value={beneficialOwners.map((s) => s.full_name).join(', ')} />
+          <ReviewRow label={<Term term="settlor">Settlor(s)</Term>} value={beneficialOwners.map((s) => s.full_name).join(', ')} />
         )}
         {directors.length > 0 && (
           <ReviewRow
-            label={isTrust ? 'Trustees' : isSociety ? 'Officers' : entityType === 'sole_proprietorship' ? 'Proprietor' : 'Directors/partners'}
+            label={isTrust ? <Term term="trustee">Trustees</Term> : isSociety ? 'Officers' : entityType === 'sole_proprietorship' ? 'Proprietor' : 'Directors/partners'}
             value={directors.map((d) => d.full_name).join(', ')}
           />
         )}
         {isTrust && wizard.trustKind === 'family_trust' && shareholders.length > 0 && (
-          <ReviewRow label="Beneficiaries" value={shareholders.map((s) => s.legal_name).join(', ')} />
+          <ReviewRow label={<Term term="beneficiary">Beneficiaries</Term>} value={shareholders.map((s) => s.legal_name).join(', ')} />
         )}
         {isTrust && wizard.trustKind === 'charitable_trust' && (
           <ReviewRow label="Charitable objects" value={(wizard.trustCharitableObjects ?? []).filter((o) => o.trim()).join(', ') || '—'} />
@@ -6747,10 +6800,10 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
           <ReviewRow label="Trust property" value={`${(wizard.trustPropertyItems ?? []).length} item(s)`} />
         )}
         {isTrust && (
-          <ReviewRow label="Protector / Enforcer" value={wizard.hasProtector ? (wizard.protectorName || 'Yes') : 'None'} />
+          <ReviewRow label={<>Protector / <Term term="enforcer">Enforcer</Term></>} value={wizard.hasProtector ? (wizard.protectorName || 'Yes') : 'None'} />
         )}
         {isTrust && (
-          <ReviewRow label="Trust Deed" value={documents.some((d) => d.document_type === 'trust_deed') ? 'Uploaded' : 'To be prepared'} />
+          <ReviewRow label={<Term term="trustDeed">Trust Deed</Term>} value={documents.some((d) => d.document_type === 'trust_deed') ? 'Uploaded' : 'To be prepared'} />
         )}
         {isSociety && shareholders.length > 0 && (
           <ReviewRow label="Founding members" value={`${shareholders.length} recorded`} />
