@@ -128,8 +128,43 @@ export async function GET(request: Request) {
   })
 }
 
+// Turns a raw Postgres/PostgREST error into something a client can
+// actually act on, instead of a bare "failed to X" — the specific bug
+// this was built for (2026-09-12: submission always failing, no clue
+// why) turned out to be an enum missing a value ('22P02'), which this
+// would have surfaced as "one of your answers isn't recognized" instead
+// of a dead-end generic message.
+function describeDbError(error: { code?: string; message?: string; details?: string } | null | undefined, requestId: string): string {
+  if (!error) return `Something went wrong saving that (ref: ${requestId}).`
+  switch (error.code) {
+    case '42501': // insufficient_privilege — RLS denied the write
+      return `Your session may have expired or lost access to this entity. Please refresh the page and sign in again, then retry (ref: ${requestId}).`
+    case '22P02': // invalid_text_representation — value not in an enum/type
+      return `One of your answers isn’t recognized by the system yet (${error.message ?? 'invalid value'}). Please contact support with reference ${requestId}.`
+    case '23502': // not_null_violation
+      return `A required field is missing${error.details ? ` (${error.details})` : ''} — please check your entries and try again (ref: ${requestId}).`
+    case '23505': // unique_violation
+      return `This conflicts with an existing record. Please contact support with reference ${requestId}.`
+    default:
+      return `Something went wrong saving that (ref: ${requestId}). Please try again — if it keeps happening, share that reference with support.`
+  }
+}
+
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}))
+  // Every action below returns early on success or on a known error
+  // condition — this outer try/catch exists only for the unexpected case
+  // (a thrown exception rather than a returned error). Without it, Next.js's
+  // default handling of an uncaught route-handler exception is a plain-text
+  // 500 with no JSON body — the client's api() helper's `res.json().catch(()
+  // => ({}))` then silently swallows that into an empty object, so whatever
+  // actually went wrong is reported to the user as the generic "Request
+  // failed" with zero diagnostic value, and never reaches the server logs
+  // with any context (entity, action, user) attached. Reported live,
+  // 2026-09-12: submission failing with no way to tell why.
+  const requestId = crypto.randomUUID().slice(0, 8)
+  let body: Record<string, unknown> = {}
+  try {
+  body = await request.json().catch(() => ({}))
   const { action, entityId: requestedEntityId } = body as { action: string; entityId?: string }
 
   const supabase = await createClient()
@@ -164,8 +199,8 @@ export async function POST(request: Request) {
         onboarding_data: { wizard: (wizard ?? {}) as Json } as Json,
       })
       if (entityError) {
-        console.error('entity create error', entityError)
-        return NextResponse.json({ error: 'failed to create entity' }, { status: 500 })
+        console.error(`[${requestId}] entity create error`, { orgId, entityType, userId: user.id, entityError })
+        return NextResponse.json({ error: describeDbError(entityError, requestId) }, { status: 500 })
       }
     } else {
       // Entity type changed on step 1 of an existing draft
@@ -174,8 +209,8 @@ export async function POST(request: Request) {
         .update({ entity_type: entityType })
         .eq('id', entityId)
       if (updateError) {
-        console.error('entity type update error', updateError)
-        return NextResponse.json({ error: 'failed to update entity' }, { status: 500 })
+        console.error(`[${requestId}] entity type update error`, { entityId, entityType, userId: user.id, updateError })
+        return NextResponse.json({ error: describeDbError(updateError, requestId) }, { status: 500 })
       }
     }
 
@@ -186,8 +221,8 @@ export async function POST(request: Request) {
       .eq('id', progress.id)
 
     if (progressError) {
-      console.error('progress update error', progressError)
-      return NextResponse.json({ error: 'failed to save progress' }, { status: 500 })
+      console.error(`[${requestId}] progress update error`, { entityId, orgId, userId: user.id, progressError })
+      return NextResponse.json({ error: describeDbError(progressError, requestId) }, { status: 500 })
     }
 
     await supabase.rpc('log_audit', {
@@ -254,8 +289,8 @@ export async function POST(request: Request) {
     ])
 
     if (entityError || progressError) {
-      console.error('save_step error', entityError, progressError)
-      return NextResponse.json({ error: 'failed to save progress' }, { status: 500 })
+      console.error(`[${requestId}] save_step error`, { entityId, orgId, step, userId: user.id, entityError, progressError })
+      return NextResponse.json({ error: describeDbError(entityError ?? progressError, requestId) }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })
@@ -994,8 +1029,11 @@ export async function POST(request: Request) {
     ])
 
     if (entityError || progressError) {
-      console.error('submit error', entityError, progressError)
-      return NextResponse.json({ error: 'failed to submit' }, { status: 500 })
+      console.error(`[${requestId}] submit error`, {
+        entityId, orgId, entityType, userId: user.id,
+        entityError, progressError,
+      })
+      return NextResponse.json({ error: describeDbError(entityError ?? progressError, requestId) }, { status: 500 })
     }
 
     await supabase.rpc('log_audit', {
@@ -1151,6 +1189,14 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
+  } catch (e) {
+    console.error(`[${requestId}] onboarding/new-entity unhandled error`, {
+      action: body.action,
+      entityId: body.entityId,
+      error: e,
+    })
+    return NextResponse.json({ error: `Something went wrong on our end (ref: ${requestId}). Please try again — if it keeps happening, share that reference with support.` }, { status: 500 })
+  }
 }
 
 // ------------------------------------------------------------------
