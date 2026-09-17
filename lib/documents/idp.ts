@@ -93,6 +93,10 @@ export type IdpInput = {
   entityTypeLabel: string
   legalNameOptions: string[]
   natureOfBusiness: string | null
+  // Split from natureOfBusiness on Company Basics (Charles, 2026-09-11 —
+  // matches how BRS's own CR1 form distinguishes primary from secondary
+  // business activity). Optional, so only shown when actually provided.
+  secondaryBusinessActivity?: string | null
   registeredAddress: { line1: string | null; city: string | null; county: string | null; postcode: string | null } | null
   postalAddress: string | null
   companyEmail: string | null
@@ -237,6 +241,7 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.field(isTrust ? 'Proposed trust name' : isSociety ? 'Proposed society name' : isBusinessName ? 'Proposed business name' : 'Proposed company name', names[0] ?? '—')
   if (names.length > 1) ctx.field('Alternative names', names.slice(1).join('  •  '))
   if (!isTrust) ctx.field(isSociety ? 'Principal activities' : 'Nature of business', input.natureOfBusiness ?? '—')
+  if (!isTrust && !isSociety && input.secondaryBusinessActivity) ctx.field('Secondary business activity', input.secondaryBusinessActivity)
   const addr = input.registeredAddress
   ctx.field(isGenericEntity ? 'Registered / administrative address' : 'Registered office', addr ? [addr.line1, addr.city, addr.county, addr.postcode].filter(Boolean).join(', ') || '—' : '—')
   ctx.field('Postal address', input.postalAddress ?? '—')

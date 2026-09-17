@@ -161,14 +161,14 @@ export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | '
 // service stays an optional upsell rather than a mandatory field.
 export const SECRETARY_CAPITAL_THRESHOLD_KES = 5_000_000
 
-export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description: string }> = [
+export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description: string; guideUrl?: string }> = [
   { value: 'limited_company', label: 'Limited Company', description: 'Separate legal entity, limited liability, most common' },
   { value: 'sole_proprietorship', label: 'Sole Proprietorship', description: 'Single owner, unlimited liability, simplest structure' },
   { value: 'partnership', label: 'Partnership', description: 'Two or more partners, shared liability' },
   { value: 'public_limited_company', label: 'Public Limited Company', description: 'Can offer shares to public, complex governance' },
   { value: 'company_limited_by_guarantee', label: 'NGO / Non-Profit', description: 'Charitable or social purpose, no profit distribution' },
-  { value: 'trust', label: 'Trust', description: 'Property held for beneficiaries, fiduciary arrangement' },
-  { value: 'society', label: 'Society', description: 'Membership-based organisation — residents’, welfare, alumni, or professional associations' },
+  { value: 'trust', label: 'Trust', description: 'Property held for beneficiaries, fiduciary arrangement', guideUrl: '/docs/understanding-family-trusts-kenya.pdf' },
+  { value: 'society', label: 'Society', description: 'Membership-based organisation — residents’, welfare, alumni, or professional associations', guideUrl: '/docs/understanding-societies-kenya.pdf' },
   { value: 'cooperative', label: 'Cooperative', description: 'Member-owned, democratic control, profit-sharing' },
   { value: 'limited_liability_partnership', label: 'LLP', description: 'Limited Liability Partnership, hybrid structure' },
 ]

@@ -1495,7 +1495,7 @@ async function generateAndStoreIdp(
       { label: 'KRA PIN certificates', types: ['director_kra_pin_copy', 'shareholder_kra_pin_copy', 'beneficial_owner_kra_pin_copy'] },
       { label: 'Passport photos', types: ['passport_photo'] },
       { label: 'Proof of registered office', types: ['proof_of_address'] },
-      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_representative_id', 'foreign_constitutional_documents'] },
+      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_company_search', 'corporate_representative_id', 'foreign_constitutional_documents'] },
       { label: 'Registration forms', types: formDefs.map((f) => f.type) },
     ].map((g) => ({
       label: g.label,
@@ -1561,6 +1561,7 @@ async function generateAndStoreIdp(
       entityTypeLabel: ENTITY_TYPES.find((t) => t.value === ctx.entityType)?.label ?? ctx.entityType,
       legalNameOptions: (entity.proposed_names as string[] | null) ?? [],
       natureOfBusiness: entity.nature_of_business,
+      secondaryBusinessActivity: w.secondaryActivities ?? null,
       registeredAddress: address ? { line1: address.line1 ?? null, city: address.city ?? null, county: address.county ?? null, postcode: address.postcode ?? null } : null,
       postalAddress: (entity.postal_address as { address?: string } | null)?.address ?? null,
       companyEmail: entity.email,

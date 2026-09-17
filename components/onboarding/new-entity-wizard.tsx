@@ -1141,16 +1141,19 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
           const recommended = recommendedType === t.value
           const available = PHASE1_ENTITY_TYPES.includes(t.value)
           return (
-            <button
+            <div
               key={t.value}
-              type="button"
-              disabled={!available}
+              role="button"
+              tabIndex={available ? 0 : -1}
+              aria-disabled={!available}
               onClick={() => { if (!available) return; setEntityType(t.value); patch({ partnershipKind: t.value === 'partnership' ? wizard.partnershipKind : undefined, trustKind: t.value === 'trust' ? wizard.trustKind : undefined }) }}
-              className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
+              onKeyDown={(e) => { if (available && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setEntityType(t.value); patch({ partnershipKind: t.value === 'partnership' ? wizard.partnershipKind : undefined, trustKind: t.value === 'trust' ? wizard.trustKind : undefined }) } }}
+              className="w-full text-left rounded-xl border p-4 transition-colors cursor-pointer disabled:cursor-not-allowed"
               style={{
                 borderColor: selected || recommended ? 'var(--brand-navy)' : 'var(--system-fill-3)',
                 background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
                 opacity: available ? 1 : 0.45,
+                cursor: available ? 'pointer' : 'not-allowed',
               }}
             >
               <span className="flex items-center gap-2">
@@ -1168,10 +1171,22 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
                   </span>
                 )}
               </span>
-              <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+              <span className="text-ios-footnote block" style={{ color: 'var(--system-label-2)' }}>
                 {t.description}
               </span>
-            </button>
+              {t.guideUrl && (
+                <a
+                  href={t.guideUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-ios-caption1 font-semibold underline mt-1 inline-block"
+                  style={{ color: 'var(--brand-navy)' }}
+                >
+                  What is a {t.label.toLowerCase()}? →
+                </a>
+              )}
+            </div>
           )
         })}
       </div>
@@ -1838,6 +1853,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   corporate_authority_document: 'Board Resolution / Power of Attorney',
   corporate_tax_certificate: 'Tax Certificate',
   corporate_good_standing: 'Good Standing Certificate',
+  corporate_company_search: 'Company Search (CR12)',
   corporate_representative_id: 'Representative ID',
 }
 
@@ -2168,13 +2184,118 @@ const AUTHORITY_BASIS_OPTIONS: Array<{ value: CorporateParticipant['basisOfAutho
   { value: 'other', label: 'Other' },
 ]
 
-export function CorporateFields({ value, onChange, context }: {
+// Merges Gemini's company-document extraction (certificate of
+// incorporation, KRA PIN certificate, CR12 company search) into a
+// corporate shareholder/director's sub-form — the company-shaped
+// counterpart of the individual full_name/id_number merge in
+// StepDirectors/StepShareholders' handleExtracted.
+function mergeCorporateExtraction(
+  prev: CorporateParticipant,
+  f: {
+    business_name?: string
+    registration_number?: string
+    date_of_incorporation?: string
+    kra_pin?: string
+    address_line1?: string
+    county?: string
+    city?: string
+    locality?: string
+    postal_code?: string
+  },
+  isReplace: boolean
+): CorporateParticipant {
+  const addr = [f.address_line1, f.city ?? f.locality, f.county].filter(Boolean).join(', ')
+  const kraPinRaw = (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin
+  return {
+    ...prev,
+    registeredName: (isReplace ? f.business_name : prev.registeredName || f.business_name) || prev.registeredName,
+    regNumber: (isReplace ? f.registration_number : prev.regNumber || f.registration_number) || prev.regNumber,
+    incorporationDate: (isReplace ? f.date_of_incorporation : prev.incorporationDate || f.date_of_incorporation) || prev.incorporationDate,
+    kraPin: kraPinRaw.trim().toUpperCase(),
+    registeredOfficeAddress: (isReplace ? addr : prev.registeredOfficeAddress || addr) || prev.registeredOfficeAddress,
+    postalAddress: (isReplace ? f.postal_code : prev.postalAddress || f.postal_code) || prev.postalAddress,
+  }
+}
+
+export function CorporateFields({ value, onChange, context, orgId, entityId, api, setError, onExtracted, sessionToken, personId, documents, onDocumentRegistered }: {
   value: CorporateParticipant
   onChange: (p: Partial<CorporateParticipant>) => void
   context: 'director' | 'shareholder'
+  // OCR auto-fill wiring — optional since existing-entity-wizard.tsx reuses
+  // this component without it and just asks for manual entry there.
+  orgId?: string | null
+  entityId?: string | null
+  api?: (p: Record<string, unknown>) => Promise<{ ok: boolean; fields?: Record<string, unknown>; personId?: string }>
+  setError?: (e: string) => void
+  onExtracted?: (fields: Record<string, unknown> | undefined, personId?: string, wasReplace?: boolean, sessionToken?: string) => void
+  sessionToken?: string
+  personId?: string
+  documents?: DocumentRow[]
+  // A company document uploaded before the registered-name field has been
+  // typed (the whole point of OCR auto-fill — see the parent's
+  // uploadedDocIds comment) gets tagged with an empty person name and can
+  // never be found again on reopen unless Save's retag pass reaches it
+  // too — same "unfindable on reopen" bug already fixed once for
+  // individual ID scans, now closed for company documents the same way.
+  onDocumentRegistered?: (documentId: string) => void
 }) {
   return (
     <div className="space-y-3 rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
+      {api && setError && onExtracted && (
+      <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg)' }}>
+        <p className="text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
+          Upload the company&apos;s own registration documents to auto-fill the details below.
+        </p>
+        <InlineOcrUpload
+          section={context}
+          documentType="corporate_certificate_of_incorporation"
+          label="Upload Certificate of Incorporation →"
+          orgId={orgId ?? null}
+          entityId={entityId ?? null}
+          api={api}
+          onExtracted={onExtracted}
+          sessionToken={sessionToken}
+          setError={setError}
+          personName={value.registeredName}
+          personRole="corporate_party"
+          personId={personId}
+          onDocumentRegistered={onDocumentRegistered}
+          initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_certificate_of_incorporation')}
+        />
+        <InlineOcrUpload
+          section={context}
+          documentType="corporate_tax_certificate"
+          label="Upload company KRA PIN certificate →"
+          orgId={orgId ?? null}
+          entityId={entityId ?? null}
+          api={api}
+          onExtracted={onExtracted}
+          sessionToken={sessionToken}
+          setError={setError}
+          personName={value.registeredName}
+          personRole="corporate_party"
+          personId={personId}
+          onDocumentRegistered={onDocumentRegistered}
+          initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_tax_certificate')}
+        />
+        <InlineOcrUpload
+          section={context}
+          documentType="corporate_company_search"
+          label="Upload Company Search (CR12) →"
+          orgId={orgId ?? null}
+          entityId={entityId ?? null}
+          api={api}
+          onExtracted={onExtracted}
+          sessionToken={sessionToken}
+          setError={setError}
+          personName={value.registeredName}
+          personRole="corporate_party"
+          personId={personId}
+          onDocumentRegistered={onDocumentRegistered}
+          initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_company_search')}
+        />
+      </div>
+      )}
       <Field label="Registered company name" required>
         <input type="text" className={inputCls} style={inputStyle} value={value.registeredName} onChange={(e) => onChange({ registeredName: e.target.value })} />
       </Field>
@@ -2307,8 +2428,7 @@ export function CorporateFields({ value, onChange, context }: {
         <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Appointed by board resolution dated…" value={value.repAuthorityCapacity} onChange={(e) => onChange({ repAuthorityCapacity: e.target.value })} />
       </Field>
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        Upload the certificate of incorporation, board resolution or power of attorney, tax certificate, and
-        representative ID in the document step.
+        Upload the board resolution or power of attorney, and the representative&apos;s own ID, in the document step.
       </p>
     </div>
   )
@@ -2556,12 +2676,21 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
     // The upload itself already completed and got tagged server-side, so
     // nothing is lost by discarding the merge here.
     if (sessionToken !== formTokenRef.current) { onExtracted(); return }
-    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
+    const f = fields as {
+      full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string
+      // Company-document fields — present when this upload was one of the
+      // corporate sub-form's certificate/PIN-cert/CR12 uploads instead of
+      // a personal ID scan.
+      business_name?: string; registration_number?: string; date_of_incorporation?: string
+      address_line1?: string; county?: string; city?: string; locality?: string; postal_code?: string
+    }
     // Silent misses looked like a bug ("first try doesn't pick up the
     // name, have to replace and redo it") when it was really the scan
     // just not reading a name — Charles call, 2026-08. Say so instead of
-    // leaving the field blank with no explanation.
-    if (!f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
+    // leaving the field blank with no explanation. Company documents
+    // never carry a person's name, so this warning only applies to the
+    // individual (non-corporate) upload fields.
+    if (!form?.isCorporate && !f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
     setForm((prev) => {
       if (!prev) return prev
       // Only the explicit "Replace" button on an already-uploaded
@@ -2577,6 +2706,9 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
       // live, 2026-08-30: uploading a KRA PIN populated the photo field
       // with someone else's old test photo).
       const isReplace = !!wasReplace
+      if (prev.isCorporate) {
+        return { ...prev, corporate: mergeCorporateExtraction(prev.corporate, f, isReplace) }
+      }
       return {
         ...prev,
         // Adopt the server's matched-or-created row id so Save updates
@@ -2682,7 +2814,20 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
           </div>
 
           {form.isCorporate ? (
-            <CorporateFields value={form.corporate} onChange={setCorporate} context="director" />
+            <CorporateFields
+              value={form.corporate}
+              onChange={setCorporate}
+              context="director"
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              onExtracted={handleExtracted}
+              sessionToken={formTokenRef.current ?? undefined}
+              personId={form.id}
+              documents={documents}
+              onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            />
           ) : (
             <>
               <InlineOcrUpload
@@ -3205,8 +3350,14 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
     // result for a form that isn't open anymore must not merge into
     // whichever different person is open now.
     if (sessionToken !== formTokenRef.current) { onExtracted(); return }
-    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
-    if (!f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
+    const f = fields as {
+      full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string
+      business_name?: string; registration_number?: string; date_of_incorporation?: string
+      address_line1?: string; county?: string; city?: string; locality?: string; postal_code?: string
+    }
+    // Company documents never carry a person's name — that warning only
+    // applies to the individual (non-corporate) upload fields.
+    if (!form?.isCorporate && !f.full_name) setError('Couldn’t read a name off that document — please enter it manually.')
     setForm((prev) => {
       if (!prev) return prev
       // Only the explicit "Replace" button means overwrite — see the
@@ -3214,6 +3365,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       // `!!prev.id` was wrong (true the instant OCR auto-creates the
       // person from the first document, well before any explicit replace).
       const isReplace = !!wasReplace
+      if (prev.isCorporate) {
+        return { ...prev, corporate: mergeCorporateExtraction(prev.corporate, f, isReplace) }
+      }
       return {
         ...prev,
         // Adopt the server's matched-or-created row id — otherwise Save
@@ -3311,7 +3465,20 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
           </div>
 
           {form.isCorporate ? (
-            <CorporateFields value={form.corporate} onChange={setCorporate} context="shareholder" />
+            <CorporateFields
+              value={form.corporate}
+              onChange={setCorporate}
+              context="shareholder"
+              orgId={orgId}
+              entityId={entityId}
+              api={api}
+              setError={setError}
+              onExtracted={handleExtracted}
+              sessionToken={formTokenRef.current ?? undefined}
+              personId={form.id}
+              documents={documents}
+              onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            />
           ) : (
             <>
               <InlineOcrUpload
@@ -6009,6 +6176,13 @@ const UPLOAD_SECTIONS: UploadSection[] = [
   },
   {
     key: 'other',
+    title: 'Corporate party — company search (CR12)',
+    hint: 'Confirms the corporate shareholder or director’s own current directors and shareholders.',
+    documentType: 'corporate_company_search',
+    visible: () => true,
+  },
+  {
+    key: 'other',
     title: 'Corporate party — good standing certificate (foreign only)',
     hint: 'Required only if the corporate shareholder or director is registered outside Kenya.',
     documentType: 'corporate_good_standing',
@@ -6026,6 +6200,13 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Foreign company constitutional documents (optional)',
     hint: 'For a foreign corporate shareholder or director — their memorandum and articles under their own jurisdiction, since these won’t match the Kenyan standard-model/custom-articles split.',
     documentType: 'foreign_constitutional_documents',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Passport-size photos',
+    hint: 'Captured for each director, shareholder, trustee, settlor, or member while filling in their own details.',
+    documentType: 'passport_photo',
     visible: () => true,
   },
   {
@@ -6331,8 +6512,15 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
       </Field>
       {wizard.articlesType === 'standard' && (
         <p className="text-ios-footnote rounded-xl p-3" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
-          Standard model articles referenced — you don&apos;t need to upload anything here. Charles will send you
-          the document.
+          Standard model articles referenced — you don&apos;t need to upload anything here.{' '}
+          <a
+            href="/docs/model-articles-fourth-schedule.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline font-medium"
+          >
+            View the Fourth Schedule model articles →
+          </a>
         </p>
       )}
       {wizard.articlesType === 'custom' && (
