@@ -303,6 +303,34 @@ type DocumentRow = {
 // name and could never be found again on reopen (Charles call, 2026-08:
 // reproduced live — ID showed on edit, photo didn't). personId comes from
 // the actual saved row, so it can't drift.
+// An ID/passport scan is the authoritative source for who a person is, so
+// its name/ID number/date of birth overwrite whatever is already in the
+// form — which may not have been typed by the user at all: browser
+// autofill drops the saved profile name into an empty "Full name" field
+// (Charles, 2026-09-25: adding a second trustee kept showing his own name
+// against Angie's ID number and PIN until he re-uploaded via Replace).
+// Other documents (e.g. a KRA PIN certificate, whose name reading can be
+// formatted differently) still only fill blanks.
+function isIdentityDocument(documentKind: string | undefined): boolean {
+  return documentKind === 'national_id' || documentKind === 'passport'
+}
+
+function mergePersonExtraction<T extends { fullName: string; idNumber: string; kraPin: string; dateOfBirth: string }>(
+  prev: T,
+  f: { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string; document_kind?: string },
+  isReplace: boolean
+): T {
+  const identity = isReplace || isIdentityDocument(f.document_kind)
+  const pinAuthoritative = isReplace || f.document_kind === 'kra_pin_certificate'
+  return {
+    ...prev,
+    fullName: (identity ? f.full_name : prev.fullName || f.full_name) || prev.fullName,
+    idNumber: (identity ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
+    kraPin: ((pinAuthoritative ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin).trim().toUpperCase(),
+    dateOfBirth: (identity ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
+  }
+}
+
 function findPersonDocument(documents: DocumentRow[], personId: string | undefined, personName: string, documentType: string): { name: string; filePath: string } | null {
   const byId = personId
     ? [...documents].reverse().find((d) => d.document_type === documentType && d.tags?.some((t) => t.personId === personId))
@@ -2677,7 +2705,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
     // nothing is lost by discarding the merge here.
     if (sessionToken !== formTokenRef.current) { onExtracted(); return }
     const f = fields as {
-      full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string
+      full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string; document_kind?: string
       // Company-document fields — present when this upload was one of the
       // corporate sub-form's certificate/PIN-cert/CR12 uploads instead of
       // a personal ID scan.
@@ -2709,6 +2737,8 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
       if (prev.isCorporate) {
         return { ...prev, corporate: mergeCorporateExtraction(prev.corporate, f, isReplace) }
       }
+      const identity = isReplace || isIdentityDocument(f.document_kind)
+      const pinAuthoritative = isReplace || f.document_kind === 'kra_pin_certificate'
       return {
         ...prev,
         // Adopt the server's matched-or-created row id so Save updates
@@ -2717,10 +2747,10 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
         // call, 2026-08: reproduced live, "created yet another Charles
         // Adede").
         id: prev.id ?? personId,
-        fullName: (isReplace ? f.full_name : prev.fullName || f.full_name) || prev.fullName,
-        idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
-        kraPin: ((isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin)?.trim().toUpperCase(),
-        dateOfBirth: (isReplace ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
+        fullName: (identity ? f.full_name : prev.fullName || f.full_name) || prev.fullName,
+        idNumber: (identity ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
+        kraPin: ((pinAuthoritative ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin)?.trim().toUpperCase(),
+        dateOfBirth: (identity ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
       }
     })
     // The server may also have auto-created a person row from this
@@ -2878,7 +2908,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
-                <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
               </Field>
               <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
                 <input type="checkbox" checked={form.isForeign} onChange={(e) => set({ isForeign: e.target.checked, nationality: e.target.checked ? '' : 'Kenyan' })} />
@@ -2886,10 +2916,10 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={form.isForeign ? 'Passport number' : 'National ID number'} required>
-                  <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                 </Field>
                 <Field label="KRA PIN" required>
-                  <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -3351,7 +3381,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
     // whichever different person is open now.
     if (sessionToken !== formTokenRef.current) { onExtracted(); return }
     const f = fields as {
-      full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string
+      full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string; document_kind?: string
       business_name?: string; registration_number?: string; date_of_incorporation?: string
       address_line1?: string; county?: string; city?: string; locality?: string; postal_code?: string
     }
@@ -3368,6 +3398,8 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       if (prev.isCorporate) {
         return { ...prev, corporate: mergeCorporateExtraction(prev.corporate, f, isReplace) }
       }
+      const identity = isReplace || isIdentityDocument(f.document_kind)
+      const pinAuthoritative = isReplace || f.document_kind === 'kra_pin_certificate'
       return {
         ...prev,
         // Adopt the server's matched-or-created row id — otherwise Save
@@ -3375,10 +3407,10 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
         // (Charles call, 2026-08: reproduced live, duplicate row + shares
         // total not updating).
         id: prev.id ?? personId,
-        legalName: (isReplace ? f.full_name : prev.legalName || f.full_name) || prev.legalName,
-        idNumber: (isReplace ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
-        kraPin: ((isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin)?.trim().toUpperCase(),
-        dateOfBirth: (isReplace ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
+        legalName: (identity ? f.full_name : prev.legalName || f.full_name) || prev.legalName,
+        idNumber: (identity ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
+        kraPin: ((pinAuthoritative ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin)?.trim().toUpperCase(),
+        dateOfBirth: (identity ? f.date_of_birth : prev.dateOfBirth || f.date_of_birth) || prev.dateOfBirth,
       }
     })
     onExtracted()
@@ -3529,7 +3561,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
-                <input type="text" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
+                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
               </Field>
               <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
                 <input type="checkbox" checked={form.isForeign} onChange={(e) => set({ isForeign: e.target.checked })} />
@@ -3537,10 +3569,10 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={form.isForeign ? 'Passport number' : 'National ID number'} required>
-                  <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                 </Field>
                 <Field label="KRA PIN" required>
-                  <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
                 </Field>
               </div>
               {form.isForeign && (
@@ -3682,20 +3714,14 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
   // conclusions (ownership %, control basis) must always be user-entered
   // and confirmed, never inferred from OCR (spec: never auto-decide BO
   // status from a document).
-  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, _wasReplace?: boolean, sessionToken?: string) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, wasReplace?: boolean, sessionToken?: string) => {
     if (!fields) return
     // See matching comment in StepDirectors' handleExtracted — a slow OCR
     // result for a form that isn't open anymore must not merge into
     // whichever different person is open now.
     if (sessionToken !== formTokenRef.current) return
-    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
-    setForm((prev) => (prev ? {
-      ...prev,
-      fullName: prev.fullName || f.full_name || '',
-      idNumber: prev.idNumber || f.id_number || '',
-      kraPin: prev.kraPin || f.kra_pin || '',
-      dateOfBirth: prev.dateOfBirth || f.date_of_birth || '',
-    } : prev))
+    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string; document_kind?: string }
+    setForm((prev) => prev ? mergePersonExtraction(prev, f, !!wasReplace) : prev)
   }
 
   // Shareholders holding 10%+ who aren't already recorded as a BO —
@@ -3989,14 +4015,14 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             percentage of control, before saving.
           </p>
           <Field label="Full name" required>
-            <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+            <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="ID / passport number">
-              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
             <Field label="KRA PIN">
-              <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -4488,17 +4514,11 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
 
   const set = (partial: Partial<SettlorForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
 
-  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, _wasReplace?: boolean, sessionToken?: string) => {
+  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, wasReplace?: boolean, sessionToken?: string) => {
     if (!fields) return
     if (sessionToken !== formTokenRef.current) return
-    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string }
-    setForm((prev) => (prev ? {
-      ...prev,
-      fullName: prev.fullName || f.full_name || '',
-      idNumber: prev.idNumber || f.id_number || '',
-      kraPin: prev.kraPin || f.kra_pin || '',
-      dateOfBirth: prev.dateOfBirth || f.date_of_birth || '',
-    } : prev))
+    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string; document_kind?: string }
+    setForm((prev) => prev ? mergePersonExtraction(prev, f, !!wasReplace) : prev)
   }
 
   const save = async () => {
@@ -4645,14 +4665,14 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_kra_pin_copy')}
           />
           <Field label="Full legal name" required>
-            <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+            <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="National ID / passport number" required>
-              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
             <Field label="KRA PIN" required>
-              <input type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -5425,11 +5445,11 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
       {form ? (
         <div className="ios-surface rounded-2xl p-4 space-y-3">
           <Field label="Full name" required>
-            <input type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+            <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="ID / passport">
-              <input type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
             <Field label="Nationality">
               <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
