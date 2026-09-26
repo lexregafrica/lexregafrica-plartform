@@ -527,6 +527,9 @@ export type WizardData = {
   socMembershipEligibility?: string
   socHasMembershipClasses?: boolean
   socMembershipClasses?: string[]
+  // Per-class description incl. voting rights (Charles, 2026-09-25);
+  // socMembershipClasses is kept in step with the names.
+  socMembershipClassDetails?: Array<{ name: string; rights: string }>
   socAdmissionProcess?: string
   socMembershipFees?: string
   socVotingRights?: string

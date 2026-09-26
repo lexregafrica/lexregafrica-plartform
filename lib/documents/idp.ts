@@ -101,6 +101,7 @@ export type IdpInput = {
   postalAddress: string | null
   companyEmail: string | null
   companyPhone: string | null
+  website?: string | null
 
   // 3. Applicant & primary contact
   applicantName: string | null
@@ -247,6 +248,7 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   ctx.field('Postal address', input.postalAddress ?? '—')
   ctx.field(isGenericEntity ? 'Contact email' : 'Company email', input.companyEmail ?? '—')
   ctx.field(isGenericEntity ? 'Contact phone' : 'Company phone', input.companyPhone ?? '—')
+  if (input.website) ctx.field('Website', input.website)
 
   // ---------- 3. Applicant & primary contact ----------
   ctx.section('Applicant & Primary Contact')

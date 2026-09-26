@@ -41,6 +41,7 @@ export type ExtractedFields = {
   kra_pin: string | null
   date_of_birth: string | null // YYYY-MM-DD
   phone: string | null
+  email: string | null
   occupation: string | null
   // Structured Kenyan address — county/district/locality are administrative
   // divisions distinct from the free-text street/building lines.
@@ -50,6 +51,7 @@ export type ExtractedFields = {
   locality: string | null // town/estate/ward
   city: string | null
   postal_code: string | null
+  postal_address: string | null // full P.O. Box line, e.g. "P.O. Box 19118-00100, Nairobi"
   business_name: string | null
   registration_number: string | null // company registration / incorporation number
   date_of_incorporation: string | null // YYYY-MM-DD
@@ -87,6 +89,7 @@ const RESPONSE_SCHEMA = {
     kra_pin: { type: 'STRING', nullable: true },
     date_of_birth: { type: 'STRING', nullable: true },
     phone: { type: 'STRING', nullable: true },
+    email: { type: 'STRING', nullable: true },
     occupation: { type: 'STRING', nullable: true },
     address_line1: { type: 'STRING', nullable: true },
     county: { type: 'STRING', nullable: true },
@@ -94,6 +97,7 @@ const RESPONSE_SCHEMA = {
     locality: { type: 'STRING', nullable: true },
     city: { type: 'STRING', nullable: true },
     postal_code: { type: 'STRING', nullable: true },
+    postal_address: { type: 'STRING', nullable: true },
     business_name: { type: 'STRING', nullable: true },
     registration_number: { type: 'STRING', nullable: true },
     date_of_incorporation: { type: 'STRING', nullable: true },
@@ -151,18 +155,29 @@ Extract exactly these fields. Use null when a field is not present in the docume
 - kra_pin: KRA PIN in format A123456789B (letter, 9 digits, letter) — for a KRA PIN
   certificate this may belong to a company rather than a person
 - date_of_birth: YYYY-MM-DD (person documents only)
-- phone: telephone/mobile number as printed, if shown
+- phone: telephone/mobile number as printed, if shown (for a CR12 this is the
+  registered office telephone)
+- email: email address as printed, if shown (for a CR12 this is the registered
+  office email; for a KRA PIN certificate, the taxpayer email)
 - occupation: the person's stated occupation, if shown (CR8, CR12, BOF1)
-- address_line1: building/street/plot line only, not the administrative divisions below
+- address_line1: building and street/road only (e.g. "Ngei Phase Two, Extension Way"),
+  not the administrative divisions below. For company documents this is the
+  REGISTERED OFFICE address (CR12 "Registered office", KRA PIN certificate
+  "Registered address")
 - county: Kenyan county
 - district: district, if shown separately from county
 - locality: town/estate/ward/locality, if shown separately from city
 - city: city/town line as printed on the document
-- postal_code: postal code / P.O. Box
-- business_name: the company's registered name (company documents only)
+- postal_code: the 5-digit Kenyan postal code only (e.g. "00100"), if shown
+- postal_address: the full P.O. Box line as printed (e.g. "P.O. Box 19118-00100, Nairobi"
+  or "P.O BOX 19118 G.P.O NAIROBI"); for a KRA PIN certificate combine its separate
+  P.O. Box and postal code fields into this one line
+- business_name: the company's registered name (company documents only; on a
+  KRA PIN certificate this is the "Taxpayer Name" when it is a company)
 - registration_number: company registration / incorporation number, e.g. PVT-XXXXXXX
   or C.XXXXX (company documents only)
-- date_of_incorporation: YYYY-MM-DD (certificate of incorporation only)
+- date_of_incorporation: YYYY-MM-DD (certificate of incorporation, or the CR12
+  "Date of registration")
 - nominal_share_capital: total nominal share capital in KES (CR2, Statement of
   Nominal Capital)
 - share_classes: every share class listed (CR2, Statement of Nominal Capital) —

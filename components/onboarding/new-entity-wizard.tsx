@@ -637,6 +637,14 @@ export function NewEntityWizard() {
         if (entityType === 'society') {
           if (!wizard.socMembershipEligibility?.trim()) return 'Describe who is eligible to become a member.'
           if (wizard.socHasMembershipClasses === undefined) return 'Tell us whether there are different classes of membership.'
+          if (wizard.socHasMembershipClasses) {
+            const classes = societyMembershipClasses(wizard)
+            if (!classes.some((c) => c.name.trim())) return 'Name at least one membership class.'
+            for (const c of classes) {
+              if (!c.name.trim() && c.rights.trim()) return 'Give every membership class a name.'
+              if (c.name.trim() && !c.rights.trim()) return `Describe the rights and voting for the ${c.name.trim()} class.`
+            }
+          }
           if (!wizard.socAdmissionProcess?.trim()) return 'Describe the admission process.'
           if (!wizard.socTerminationRules?.trim()) return 'Describe the termination/resignation/expulsion rules.'
           return null
@@ -701,6 +709,7 @@ export function NewEntityWizard() {
         if (entityType === 'trust') {
           if (wizard.hasProtector === undefined) return 'Tell us whether the trust will have a Protector or Enforcer.'
           if (wizard.hasProtector && !wizard.protectorName?.trim()) return 'Enter the Protector/Enforcer’s name.'
+          if (wizard.hasProtector && wizard.hasSuccessorProtector && !wizard.successorProtectorName?.trim()) return 'Enter the successor Protector/Enforcer’s name.'
           return null
         }
         if (entityType === 'society') {
@@ -1427,8 +1436,8 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
               <Field label="Organisation name">
                 <input type="text" className={inputCls} style={inputStyle} value={wizard.socAffiliationName ?? ''} onChange={(e) => patch({ socAffiliationName: e.target.value })} />
               </Field>
-              <Field label="Jurisdiction">
-                <input type="text" className={inputCls} style={inputStyle} value={wizard.socAffiliationJurisdiction ?? ''} onChange={(e) => patch({ socAffiliationJurisdiction: e.target.value })} />
+              <Field label="Area of operation">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Langata, Nairobi County, or all of Kenya" value={wizard.socAffiliationJurisdiction ?? ''} onChange={(e) => patch({ socAffiliationJurisdiction: e.target.value })} />
               </Field>
               <Field label="Nature of affiliation">
                 <input type="text" className={inputCls} style={inputStyle} value={wizard.socAffiliationNature ?? ''} onChange={(e) => patch({ socAffiliationNature: e.target.value })} />
@@ -1522,6 +1531,12 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
             <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={wizard.entityPhone ?? ''} onChange={(e) => patch({ entityPhone: e.target.value })} />
           </Field>
         </div>
+        <Field label="Website (if any)">
+          <input
+            type="url" inputMode="url" className={inputCls} style={inputStyle} placeholder="e.g. www.example.co.ke"
+            value={wizard.businessWebsite ?? ''} onChange={(e) => patch({ businessWebsite: e.target.value })}
+          />
+        </Field>
         <Field label="Contact person" required>
           <input type="text" className={inputCls} style={inputStyle} value={wizard.contactPersonName ?? ''} onChange={(e) => patch({ contactPersonName: e.target.value })} />
         </Field>
@@ -1683,14 +1698,6 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
               </div>
             </Field>
           ))}
-          {wizard.isOnlineBusiness === true && (
-            <Field label="Website (if any)">
-              <input
-                type="text" className={inputCls} style={inputStyle} placeholder="e.g. www.example.co.ke"
-                value={wizard.businessWebsite ?? ''} onChange={(e) => patch({ businessWebsite: e.target.value })}
-              />
-            </Field>
-          )}
         </div>
       )}
 
@@ -2228,20 +2235,36 @@ function mergeCorporateExtraction(
     county?: string
     city?: string
     locality?: string
+    district?: string
     postal_code?: string
+    postal_address?: string
+    phone?: string
+    email?: string
   },
   isReplace: boolean
 ): CorporateParticipant {
-  const addr = [f.address_line1, f.city ?? f.locality, f.county].filter(Boolean).join(', ')
-  const kraPinRaw = (isReplace ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin
+  const pick = (current: string, extracted: string | undefined) =>
+    (isReplace ? extracted : current || extracted) || current
+  const addr = [f.address_line1, f.locality, f.district, f.city, f.county]
+    .filter((part, i, all): part is string => !!part && all.findIndex((p) => p?.toLowerCase() === part.toLowerCase()) === i)
+    .join(', ')
+  const postal = f.postal_address || f.postal_code
+  const date = f.date_of_incorporation && /^\d{4}-\d{2}-\d{2}$/.test(f.date_of_incorporation) ? f.date_of_incorporation : undefined
+  const reg = (f.registration_number ?? '').toUpperCase()
+  // BRS registration numbers carry the company type as a prefix.
+  const inferredType: CorporateParticipant['corporateEntityType'] | undefined =
+    reg.startsWith('PVT-') ? 'private_company' : reg.startsWith('PUB-') ? 'public_company' : reg.startsWith('LLP-') ? 'llp' : undefined
   return {
     ...prev,
-    registeredName: (isReplace ? f.business_name : prev.registeredName || f.business_name) || prev.registeredName,
-    regNumber: (isReplace ? f.registration_number : prev.regNumber || f.registration_number) || prev.regNumber,
-    incorporationDate: (isReplace ? f.date_of_incorporation : prev.incorporationDate || f.date_of_incorporation) || prev.incorporationDate,
-    kraPin: kraPinRaw.trim().toUpperCase(),
-    registeredOfficeAddress: (isReplace ? addr : prev.registeredOfficeAddress || addr) || prev.registeredOfficeAddress,
-    postalAddress: (isReplace ? f.postal_code : prev.postalAddress || f.postal_code) || prev.postalAddress,
+    registeredName: pick(prev.registeredName, f.business_name),
+    regNumber: pick(prev.regNumber, f.registration_number),
+    corporateEntityType: prev.corporateEntityType || inferredType || '',
+    incorporationDate: pick(prev.incorporationDate, date),
+    kraPin: pick(prev.kraPin, f.kra_pin).trim().toUpperCase(),
+    registeredOfficeAddress: pick(prev.registeredOfficeAddress, addr || undefined),
+    postalAddress: pick(prev.postalAddress, postal),
+    corporatePhone: pick(prev.corporatePhone, f.phone),
+    corporateEmail: pick(prev.corporateEmail, f.email?.toLowerCase()),
   }
 }
 
@@ -3367,6 +3390,9 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
       const next = shareholders.filter((s) => s.id !== id)
       const newTotal = next.reduce((s, x) => s + x.shares_held, 0)
       setShareholders(next.map((s) => ({ ...s, share_percentage: newTotal > 0 ? Math.round((s.shares_held / newTotal) * 10000) / 100 : null })))
+      // The server also drops their share-based beneficial-owner entry —
+      // reload so the Beneficial Ownership step reflects it.
+      await onExtracted()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete.')
     } finally {
@@ -4921,12 +4947,29 @@ const TRUST_PROPERTY_CATEGORIES: Array<{ value: NonNullable<WizardData['trustPro
   { value: 'other', label: 'Other' },
 ]
 
+function trustPropertyTitle(i: NonNullable<WizardData['trustPropertyItems']>[number]): string {
+  const category = TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label ?? 'Property'
+  if (i.category === 'land') return [i.landLocation, i.landAcreage].filter(Boolean).join(' · ') || i.description || category
+  if (i.category === 'cash') return i.bankAccountName || i.description || category
+  return i.description || category
+}
+
 function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
   const items = wizard.trustPropertyItems ?? []
   const [form, setForm] = useState<NonNullable<WizardData['trustPropertyItems']>[number] | null>(null)
 
+  const [formError, setFormError] = useState('')
+
   const save = () => {
     if (!form) return
+    const missing =
+      form.category === 'cash'
+        ? (!form.bankAccountName?.trim() && 'the bank account name') || (!form.bankAccountNumber?.trim() && 'the bank account number')
+        : form.category === 'land'
+        ? (!form.landTitleReference?.trim() && 'the title reference') || (!form.landAcreage?.trim() && 'the acreage') || (!form.landLocation?.trim() && 'the location')
+        : !form.description.trim() && 'a description'
+    if (missing) { setFormError(`Enter ${missing}.`); return }
+    setFormError('')
     const next = items.some((i) => i.id === form.id) ? items.map((i) => (i.id === form.id ? form : i)) : [...items, form]
     patch({ trustPropertyItems: next })
     setForm(null)
@@ -4946,7 +4989,7 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
       {items.map((i) => (
         <div key={i.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{i.description || TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label}</p>
+            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{trustPropertyTitle(i)}</p>
             <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
               {TRUST_PROPERTY_CATEGORIES.find((c) => c.value === i.category)?.label}
               {i.category === 'cash' && i.bankAccountNumber ? ` · A/C ${i.bankAccountNumber}` : ''}
@@ -4968,20 +5011,6 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
               {TRUST_PROPERTY_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </Field>
-          <Field label="Description" required>
-            <input type="text" className={inputCls} style={inputStyle} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Approximate value (KES)">
-              <input type="text" className={inputCls} style={inputStyle} value={form.approxValue ?? ''} onChange={(e) => setForm({ ...form, approxValue: e.target.value })} />
-            </Field>
-            <Field label="Date settled / transferred">
-              <input type="date" className={inputCls} style={inputStyle} value={form.dateSettled ?? ''} onChange={(e) => setForm({ ...form, dateSettled: e.target.value })} />
-            </Field>
-          </div>
-          <Field label="Ownership before settlement">
-            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Held solely by the settlor" value={form.ownershipBefore ?? ''} onChange={(e) => setForm({ ...form, ownershipBefore: e.target.value })} />
-          </Field>
           {form.category === 'cash' ? (
             <div className="grid grid-cols-2 gap-3">
               <Field label="Bank account name" required>
@@ -4994,22 +5023,38 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
           ) : form.category === 'land' ? (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Acreage" required>
-                  <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 0.5 acres" value={form.landAcreage ?? ''} onChange={(e) => setForm({ ...form, landAcreage: e.target.value })} />
-                </Field>
                 <Field label="Title reference" required>
                   <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Nairobi/Block1/123" value={form.landTitleReference ?? ''} onChange={(e) => setForm({ ...form, landTitleReference: e.target.value })} />
                 </Field>
+                <Field label="Acreage" required>
+                  <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. 0.5 acres" value={form.landAcreage ?? ''} onChange={(e) => setForm({ ...form, landAcreage: e.target.value })} />
+                </Field>
               </div>
               <Field label="Location" required>
-                <input type="text" className={inputCls} style={inputStyle} value={form.landLocation ?? ''} onChange={(e) => setForm({ ...form, landLocation: e.target.value })} />
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Karen, Nairobi County" value={form.landLocation ?? ''} onChange={(e) => setForm({ ...form, landLocation: e.target.value })} />
               </Field>
             </>
           ) : (
-            <Field label="Registration / reference details">
-              <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. title number, account number" value={form.registrationReference ?? ''} onChange={(e) => setForm({ ...form, registrationReference: e.target.value })} />
-            </Field>
+            <>
+              <Field label="Description" required>
+                <input type="text" className={inputCls} style={inputStyle} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </Field>
+              <Field label="Registration / reference details">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. certificate number, account number" value={form.registrationReference ?? ''} onChange={(e) => setForm({ ...form, registrationReference: e.target.value })} />
+              </Field>
+            </>
           )}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Approximate value (KES)">
+              <input type="text" className={inputCls} style={inputStyle} value={form.approxValue ?? ''} onChange={(e) => setForm({ ...form, approxValue: e.target.value })} />
+            </Field>
+            <Field label="Date settled / transferred">
+              <input type="date" className={inputCls} style={inputStyle} value={form.dateSettled ?? ''} onChange={(e) => setForm({ ...form, dateSettled: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Ownership before settlement">
+            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Held solely by the settlor" value={form.ownershipBefore ?? ''} onChange={(e) => setForm({ ...form, ownershipBefore: e.target.value })} />
+          </Field>
           <Field label="Has this property actually been transferred to the trustees?" required>
             <div className="grid grid-cols-2 gap-2">
               {[{ v: true, label: 'Vested / transferred' }, { v: false, label: 'Intended only' }].map(({ v, label }) => (
@@ -5027,9 +5072,22 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
               ))}
             </div>
           </Field>
+          {(form.category === 'cash' || form.category === 'land') && (
+            <Field label="Other details">
+              <textarea
+                className={inputCls}
+                style={inputStyle}
+                rows={2}
+                placeholder={form.category === 'land' ? 'Anything else about this land, e.g. developed with a 5-storey building' : 'Anything else about this account or money'}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </Field>
+          )}
+          {formError && <p className="text-ios-footnote text-red-600">{formError}</p>}
           <div className="flex gap-2">
             <PrimaryButton onClick={save}>{items.some((i) => i.id === form.id) ? 'Update' : 'Add property'}</PrimaryButton>
-            <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>
+            <SecondaryButton onClick={() => { setForm(null); setFormError('') }}>Cancel</SecondaryButton>
           </div>
         </div>
       ) : (
@@ -5242,6 +5300,13 @@ function StepSocietyEligibility({ wizard, patch }: { wizard: WizardData; patch: 
 // slot, spec section 8, SOC-030–035). Settings only — the founding
 // member list itself is a separate step (Initial Members).
 // ------------------------------------------------------------------
+// Applications saved before per-class rights existed only have the names.
+function societyMembershipClasses(wizard: WizardData): Array<{ name: string; rights: string }> {
+  if (wizard.socMembershipClassDetails?.length) return wizard.socMembershipClassDetails
+  const names = wizard.socMembershipClasses?.length ? wizard.socMembershipClasses : ['']
+  return names.map((name) => ({ name, rights: '' }))
+}
+
 function StepSocietyMembershipStructure({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
   return (
     <div className="space-y-5">
@@ -5268,22 +5333,71 @@ function StepSocietyMembershipStructure({ wizard, patch }: { wizard: WizardData;
           ))}
         </div>
       </Field>
-      {wizard.socHasMembershipClasses === true && (
-        <Field label="Membership classes">
-          <p className="text-ios-caption1 mb-2" style={{ color: 'var(--system-label-3)' }}>e.g. Ordinary, Associate, Honorary, Corporate, Life</p>
-          <StringListEditor values={wizard.socMembershipClasses ?? ['']} onChange={(values) => patch({ socMembershipClasses: values })} placeholder="e.g. Ordinary Member" />
-        </Field>
-      )}
-      <Field label="Admission process">
+      {wizard.socHasMembershipClasses === true && (() => {
+        const classes = societyMembershipClasses(wizard)
+        const update = (next: Array<{ name: string; rights: string }>) =>
+          patch({ socMembershipClassDetails: next, socMembershipClasses: next.map((c) => c.name) })
+        return (
+          <Field label="Membership classes" required>
+            <p className="text-ios-caption1 mb-2" style={{ color: 'var(--system-label-3)' }}>
+              For each class, describe what that member can do — including how they vote.
+            </p>
+            <div className="space-y-2">
+              {classes.map((c, i) => (
+                <div key={i} className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg-2)' }}>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className={inputCls}
+                      style={inputStyle}
+                      placeholder="Class name, e.g. Ordinary, Associate, Honorary, Life"
+                      value={c.name}
+                      onChange={(e) => update(classes.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                    />
+                    {classes.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => update(classes.filter((_, j) => j !== i))}
+                        className="text-ios-footnote font-medium text-red-500 shrink-0"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    className={inputCls}
+                    style={inputStyle}
+                    rows={2}
+                    placeholder="Rights and voting, e.g. one vote at general meetings; may stand for office"
+                    value={c.rights}
+                    onChange={(e) => update(classes.map((x, j) => (j === i ? { ...x, rights: e.target.value } : x)))}
+                  />
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => update([...classes, { name: '', rights: '' }])}
+              className="mt-2 text-ios-footnote font-semibold"
+              style={{ color: 'var(--brand-navy)' }}
+            >
+              + Add another class
+            </button>
+          </Field>
+        )
+      })()}
+      <Field label="Admission process" required>
         <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socAdmissionProcess ?? ''} onChange={(e) => patch({ socAdmissionProcess: e.target.value })} />
       </Field>
       <Field label="Membership fees / subscriptions">
         <input type="text" className={inputCls} style={inputStyle} value={wizard.socMembershipFees ?? ''} onChange={(e) => patch({ socMembershipFees: e.target.value })} />
       </Field>
-      <Field label="Voting rights by class">
-        <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socVotingRights ?? ''} onChange={(e) => patch({ socVotingRights: e.target.value })} />
-      </Field>
-      <Field label="Termination / resignation / expulsion rules">
+      {wizard.socHasMembershipClasses !== true && (
+        <Field label="Voting rights">
+          <textarea className={inputCls} style={inputStyle} rows={2} placeholder="e.g. One member, one vote at general meetings" value={wizard.socVotingRights ?? ''} onChange={(e) => patch({ socVotingRights: e.target.value })} />
+        </Field>
+      )}
+      <Field label="Termination / resignation / expulsion rules" required>
         <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.socTerminationRules ?? ''} onChange={(e) => patch({ socTerminationRules: e.target.value })} />
       </Field>
     </div>
