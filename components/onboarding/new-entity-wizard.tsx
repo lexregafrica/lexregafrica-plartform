@@ -9,6 +9,10 @@ import {
   PHASE1_ENTITY_TYPES,
   PARTNERSHIP_KINDS,
   TRUST_KINDS,
+  TRUST_FORMATION_ROUTES,
+  trustRouteNote,
+  trusteeRuleError,
+  ageOn,
   SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
   KENYA_POSTAL_CODES,
@@ -525,6 +529,7 @@ export function NewEntityWizard() {
       }
       case 4:
         if (entityType !== 'trust' && !wizard.primaryActivity?.trim()) return 'Describe the business activity.'
+        if (entityType === 'trust' && !wizard.trustFormationRoute) return 'Choose whether the trust will be registered or incorporated.'
         if (!wizard.entityEmail?.trim()) return 'Company email is required.'
         if (!EMAIL_REGEX.test(wizard.entityEmail)) return 'Enter a valid company email address.'
         if (!wizard.entityPhone?.trim()) return 'Entity phone is required.'
@@ -680,6 +685,16 @@ export function NewEntityWizard() {
           if (!d.residential_address?.dateOfBirth) return `Add a date of birth for ${d.full_name}.`
           if (!d.phone) return `Add a phone number for ${d.full_name}.`
           if (!d.email) return `Add an email address for ${d.full_name}.`
+        }
+        if (entityType === 'trust') {
+          const trusteeError = trusteeRuleError(wizard.trustKind, directors.map((d) => ({
+            name: d.full_name,
+            isCorporate: !!d.residential_address?.isCorporate,
+            dateOfBirth: d.residential_address?.dateOfBirth,
+            nationality: d.nationality,
+            notResidentInKenya: d.is_foreign,
+          })))
+          if (trusteeError) return trusteeError
         }
         // GP-060: percentage interest across all partners must total 100%.
         if (entityType === 'partnership') {
@@ -976,7 +991,7 @@ export function NewEntityWizard() {
           )
         )}
         {step === 9 && (
-          entityType === 'trust' ? <StepTrustProtector wizard={wizard} patch={patch} /> :
+          entityType === 'trust' ? <StepTrustProtector wizard={wizard} patch={patch} trusteeNames={directors.map((d) => d.full_name)} /> :
           entityType === 'society' ? <StepSocietyGoverningCommittee wizard={wizard} patch={patch} /> :
           <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />
         )}
@@ -1372,6 +1387,34 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
           </select>
         </Field>
       ) : null}
+
+      {entityType === 'trust' && (
+        <Field label="How will the trust be set up?" required>
+          <div className="space-y-2">
+            {TRUST_FORMATION_ROUTES.map((r) => {
+              const selected = wizard.trustFormationRoute === r.value
+              return (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => patch({ trustFormationRoute: r.value })}
+                  className="w-full text-left rounded-xl border p-3 transition-colors"
+                  style={{
+                    borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                  }}
+                >
+                  <span className="block text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{r.label}</span>
+                  <span className="block text-ios-footnote mt-0.5" style={{ color: 'var(--system-label-2)' }}>{r.description}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>
+            Not sure? Registration is the simpler starting point — a registered trust can apply to be incorporated later.
+          </p>
+        </Field>
+      )}
 
       {entityType === 'trust' && wizard.trustKind === 'other' && (
         // The guided flow's legal-requirement questions (step 4's extra
@@ -2560,6 +2603,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
     if (!f.kraPin.trim()) return 'KRA PIN is required.'
     if (!KRA_PIN_REGEX.test(f.kraPin.trim().toUpperCase())) return 'KRA PIN format: A123456789B.'
     if (!f.dateOfBirth) return 'Date of birth is required.'
+    if (entityType === 'trust' && ageOn(f.dateOfBirth, new Date()) < 18) return 'A trustee must be at least 18 years old.'
     if (!f.phone.trim()) return 'Phone number is required.'
     if (!KENYA_PHONE_REGEX.test(f.phone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
     if (!f.email.trim()) return 'Email address is required.'
@@ -5114,7 +5158,9 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
 // role, not a repeating register, so it's captured as wizard fields
 // rather than its own table.
 // ------------------------------------------------------------------
-function StepTrustProtector({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+function StepTrustProtector({ wizard, patch, trusteeNames }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void; trusteeNames: string[] }) {
+  const isTrustee = (name: string | undefined) =>
+    !!name?.trim() && trusteeNames.some((t) => t.trim().toLowerCase() === name.trim().toLowerCase())
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
@@ -5147,6 +5193,13 @@ function StepTrustProtector({ wizard, patch }: { wizard: WizardData; patch: (p: 
           <Field label="Full name" required>
             <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorName ?? ''} onChange={(e) => patch({ protectorName: e.target.value })} />
           </Field>
+          {isTrustee(wizard.protectorName) && (
+            <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
+              {wizard.protectorName?.trim()} is also a trustee. Under the Trust Administration Act, 2026 (s. 15), an
+              enforcer who is also a trustee cannot carry out the enforcer&apos;s supervisory functions — consider
+              appointing someone independent.
+            </p>
+          )}
           <Field label="ID / registration information">
             <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorIdInfo ?? ''} onChange={(e) => patch({ protectorIdInfo: e.target.value })} />
           </Field>
@@ -5185,6 +5238,12 @@ function StepTrustProtector({ wizard, patch }: { wizard: WizardData; patch: (p: 
               <Field label="Successor's full name" required>
                 <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorName ?? ''} onChange={(e) => patch({ successorProtectorName: e.target.value })} />
               </Field>
+              {isTrustee(wizard.successorProtectorName) && (
+                <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
+                  {wizard.successorProtectorName?.trim()} is also a trustee — as successor enforcer they could not carry
+                  out the enforcer&apos;s supervisory functions (s. 15).
+                </p>
+              )}
               <Field label="ID / registration information">
                 <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorIdInfo ?? ''} onChange={(e) => patch({ successorProtectorIdInfo: e.target.value })} />
               </Field>
@@ -6534,21 +6593,12 @@ function StepConstitutional({ entityType, wizard, patch, orgId, entityId, api, s
             label="Upload existing Trust Deed →"
           />
         </div>
-        <Field label="Proposed name for the incorporated trustees (if seeking incorporation)">
-          <input
-            type="text" className={inputCls} style={inputStyle}
-            placeholder="May differ from the trust name itself"
-            value={wizard.trusteeCorporateName ?? ''} onChange={(e) => patch({ trusteeCorporateName: e.target.value })}
-          />
-        </Field>
         <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
           <p className="text-ios-footnote font-medium mb-1" style={{ color: 'var(--system-label)' }}>
-            Trust creation vs. trustee incorporation
+            {wizard.trustFormationRoute === 'incorporation' ? 'Incorporating the trust' : 'Registering the trust'}
           </p>
           <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-            Executing the Trust Deed creates the trust. Incorporating the trustees under the Trustees (Perpetual
-            Succession) Act — giving them a body corporate with perpetual succession — is a separate, later step
-            our team will guide you through once the trust itself is created.
+            {trustRouteNote(wizard.trustFormationRoute)}
           </p>
         </div>
       </div>
@@ -7093,6 +7143,9 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
 
       <div className="ios-surface rounded-2xl p-4">
         <ReviewRow label="Entity type" value={typeLabel} />
+        {isTrust && (
+          <ReviewRow label="Formation route" value={TRUST_FORMATION_ROUTES.find((r) => r.value === wizard.trustFormationRoute)?.label ?? 'Not yet chosen'} />
+        )}
         <ReviewRow label="Applicant" value={wizard.applicantFullName ?? '—'} />
         <ReviewRow label={isTrust ? 'Proposed trust names' : isSociety ? 'Proposed society names' : 'Proposed names'} value={names.join(', ') || '—'} />
         <ReviewRow label={isTrust || isSociety ? 'Registered / administrative address' : 'Registered office'} value={formatAddress({
@@ -7157,7 +7210,7 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
           <li>We compile your information into a document package for BRS registration.</li>
           <li>You choose: register yourself on eCitizen with our guidance, or have LexReg assist with filing.</li>
           {isTrust ? (
-            <li>Executing the Trust Deed creates the trust. Incorporating the trustees under the Trustees (Perpetual Succession) Act is a separate, later step.</li>
+            <li>{trustRouteNote(wizard.trustFormationRoute)}</li>
           ) : isSociety ? (
             <li>Once the Registrar of Societies issues your Certificate of Registration, upload it back here.</li>
           ) : entityType === 'partnership' || entityType === 'sole_proprietorship' ? (

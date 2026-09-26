@@ -134,6 +134,68 @@ export const PARTNERSHIP_KINDS: Array<{ value: 'general_partnership' | 'llp' | '
 // PARTNERSHIP_KINDS: selecting Trust asks which kind before launching the
 // questionnaire. "Other/Not sure" stays disabled and routes to assisted
 // legal onboarding rather than a self-serve flow, per the spec.
+export const TRUST_FORMATION_ROUTES: Array<{ value: 'registration' | 'incorporation'; label: string; description: string }> = [
+  {
+    value: 'registration',
+    label: 'Registered Trust',
+    description:
+      'The trust is registered with the Registrar but does not become a separate legal person — property and contracts stay in the trustees’ names.',
+  },
+  {
+    value: 'incorporation',
+    label: 'Incorporated Trust',
+    description:
+      'The trust becomes a body corporate that continues regardless of changes in trustees — it can own property, sign contracts and go to court in its own name. Requires name reservation.',
+  },
+]
+
+export type TrusteeForRules = {
+  name: string
+  isCorporate: boolean
+  dateOfBirth?: string | null
+  nationality?: string | null
+  notResidentInKenya?: boolean | null
+}
+
+export function ageOn(dateOfBirth: string, today: Date): number {
+  const dob = new Date(dateOfBirth)
+  let age = today.getFullYear() - dob.getFullYear()
+  const beforeBirthday = today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
+  if (beforeBirthday) age -= 1
+  return age
+}
+
+// Trust Administration Act 2026, s. 11 and s. 36: a charitable trust needs
+// three natural-person trustees or one corporate trustee (a family trust
+// needs one); natural-person trustees must be adults, and at least one of
+// them a Kenyan citizen or resident.
+export function trusteeRuleError(
+  trustKind: WizardData['trustKind'],
+  trustees: TrusteeForRules[],
+  today: Date = new Date()
+): string | null {
+  const individuals = trustees.filter((t) => !t.isCorporate)
+  const corporates = trustees.filter((t) => t.isCorporate)
+  if (trustees.length === 0) return 'Add at least one trustee.'
+  if (trustKind === 'charitable_trust' && individuals.length < 3 && corporates.length === 0) {
+    return `A charitable trust needs at least three individual trustees, or one corporate trustee — currently ${individuals.length} individual trustee${individuals.length === 1 ? '' : 's'}.`
+  }
+  for (const t of individuals) {
+    if (t.dateOfBirth && ageOn(t.dateOfBirth, today) < 18) return `${t.name} must be at least 18 to act as a trustee.`
+  }
+  if (individuals.length > 0) {
+    const hasKenyan = individuals.some((t) => !t.notResidentInKenya || (t.nationality ?? '').trim().toLowerCase() === 'kenyan')
+    if (!hasKenyan) return 'At least one individual trustee must be a Kenyan citizen or resident in Kenya.'
+  }
+  return null
+}
+
+export function trustRouteNote(route: 'registration' | 'incorporation' | undefined): string {
+  return route === 'incorporation'
+    ? 'Once the Trust Deed is executed, the trust is filed for incorporation under the Trust Administration Act, 2026. The Registrar issues a certificate marked “Incorporated Trust”, and the trust becomes a body corporate that can hold property and contract in its own name.'
+    : 'Once the Trust Deed is executed, it is lodged with the Registrar for registration under the Trust Administration Act, 2026. The certificate is marked “Registered Trust” — the trust does not become a separate legal person, and can apply to be incorporated later.'
+}
+
 export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | 'other'; label: string; description: string; enabled: boolean }> = [
   {
     value: 'family_trust',
@@ -441,6 +503,10 @@ export type WizardData = {
   // Step 1 — which kind of trust (Trust spec section 3's "first user
   // decision"); only family_trust/charitable_trust have a working flow.
   trustKind?: 'family_trust' | 'charitable_trust' | 'other'
+  // Trust Administration Act 2026, ss. 24–33: a written trust is either
+  // registered (unincorporated, no legal personality) or incorporated
+  // (body corporate with perpetual succession).
+  trustFormationRoute?: 'registration' | 'incorporation'
   // Step 4 (repurposed for trust — Company Basics' turnover/employee
   // fields don't apply) — Purpose Check, FT-001–004 for a family trust or
   // the charitable-objects list for a charitable trust (Trust spec

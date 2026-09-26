@@ -156,6 +156,7 @@ export type IdpInput = {
   trustProperty?: Array<{ description: string; category: string; approxValue: string | null; isVested: boolean }>
   protector?: { name: string; powers: string | null } | null
   hasTrustDeed?: boolean | null
+  trustFormationRoute?: string | null
 
   // Society Formation Workflow spec, 2026-08 — when set, the summary
   // uses membership-organisation terminology (Officers/Members/
@@ -217,7 +218,7 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
     isTrust
       ? 'This document summarises the information provided to LexReg Africa for the creation of a trust. It ' +
         'is not itself the Trust Deed, but is intended as the review pack from which the deed and any ' +
-        'trustee-incorporation filing are confirmed.'
+        'registration or incorporation filing under the Trust Administration Act, 2026 are confirmed.'
       : isSociety
       ? 'This document summarises the information provided to LexReg Africa for registration of a Society. It ' +
         'is not itself the Constitution or an official filing, but is intended as the review pack from which ' +
@@ -238,6 +239,7 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   // ---------- 2. Company / entity overview ----------
   ctx.section(isTrust ? 'Trust Overview' : isSociety ? 'Society Overview' : isBusinessName ? 'Business Overview' : 'Company Overview')
   ctx.field(isTrust ? 'Trust type' : isSociety ? 'Entity type' : isBusinessName ? 'Business type' : 'Company type', input.entityTypeLabel)
+  if (isTrust) ctx.field('Formation route', input.trustFormationRoute ?? 'Not yet chosen')
   const names = input.legalNameOptions.filter(Boolean)
   ctx.field(isTrust ? 'Proposed trust name' : isSociety ? 'Proposed society name' : isBusinessName ? 'Proposed business name' : 'Proposed company name', names[0] ?? '—')
   if (names.length > 1) ctx.field('Alternative names', names.slice(1).join('  •  '))

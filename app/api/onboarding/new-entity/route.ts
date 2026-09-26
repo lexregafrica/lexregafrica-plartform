@@ -10,6 +10,9 @@ import {
   SHAREHOLDER_TYPES,
   isStepVisible,
   TOTAL_STEPS,
+  TRUST_FORMATION_ROUTES,
+  trustRouteNote,
+  trusteeRuleError,
   type EntityType,
   type WizardData,
 } from '@/lib/onboarding/new-entity'
@@ -915,6 +918,23 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: `at least 3 officers must be marked as registration signatories (currently ${signatories})` }, { status: 400 })
         }
       }
+      if (entityType === 'trust') {
+        const { data: trustees } = await supabase
+          .from('directors')
+          .select('full_name, nationality, is_foreign, residential_address')
+          .eq('entity_id', entityId)
+        const trusteeError = trusteeRuleError(wizard.trustKind, (trustees ?? []).map((t) => {
+          const ra = t.residential_address as { isCorporate?: boolean; dateOfBirth?: string } | null
+          return {
+            name: t.full_name,
+            isCorporate: !!ra?.isCorporate,
+            dateOfBirth: ra?.dateOfBirth,
+            nationality: t.nationality,
+            notResidentInKenya: t.is_foreign,
+          }
+        }))
+        if (trusteeError) return NextResponse.json({ error: trusteeError }, { status: 400 })
+      }
     }
 
     // Step 6 slot means genuinely different things per entity type — only
@@ -1515,6 +1535,7 @@ async function generateAndStoreIdp(
       if (w.trustKind !== 'charitable_trust' && (shareholders ?? []).length === 0) exceptions.push('No beneficiaries captured.')
       if (w.trustKind === 'charitable_trust' && !(w.trustCharitableObjects ?? []).some((o) => o.trim())) exceptions.push('No charitable objects listed.')
       if (w.hasProtector === undefined) exceptions.push('Protector/Enforcer status not yet confirmed.')
+      if (!w.trustFormationRoute) exceptions.push('Registration vs. incorporation not yet chosen.')
     } else if (ctx.entityType === 'society') {
       if ((directors ?? []).length === 0) exceptions.push('No officers captured.')
       const signatories = (directors ?? []).filter((d) => (d.residential_address as { isRegistrationSignatory?: boolean } | null)?.isRegistrationSignatory).length
@@ -1600,6 +1621,7 @@ async function generateAndStoreIdp(
       })),
       protector: w.hasProtector ? { name: w.protectorName ?? '—', powers: w.protectorPowers ?? null } : null,
       hasTrustDeed: docTypes.has('trust_deed'),
+      trustFormationRoute: TRUST_FORMATION_ROUTES.find((r) => r.value === w.trustFormationRoute)?.label ?? null,
 
       isSociety: ctx.entityType === 'society',
       societyGoverningBody: w.socHasGoverningBody ? { name: w.socGoverningBodyName ?? '—', quorum: w.socGoverningBodyQuorum ?? null } : null,
@@ -1612,7 +1634,7 @@ async function generateAndStoreIdp(
 
       certificateNextStepNote:
         ctx.entityType === 'trust'
-          ? 'Once the Trust Deed is executed, the trust is created. If you’re incorporating the trustees, upload the Certificate of Incorporation of Trustees once the Registrar issues it, to activate your entity.'
+          ? `${trustRouteNote(w.trustFormationRoute)} Upload that certificate on your dashboard once issued, to activate your entity.`
           : ctx.entityType === 'society'
           ? 'Once the Registrar of Societies issues your Certificate of Registration, upload it back on your dashboard to activate your entity.'
           : ctx.entityType === 'partnership' || ctx.entityType === 'sole_proprietorship'
