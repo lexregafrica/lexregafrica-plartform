@@ -149,6 +149,52 @@ export const TRUST_FORMATION_ROUTES: Array<{ value: 'registration' | 'incorporat
   },
 ]
 
+export type CharitableObjectCategory =
+  | 'relief_of_poverty'
+  | 'advancement_of_education'
+  | 'advancement_of_religion'
+  | 'human_rights'
+  | 'environment'
+  | 'other_public_benefit'
+
+export type CharitableObject = {
+  category: CharitableObjectCategory
+  description: string // what the trust will do and who will benefit
+  publicBenefit?: string // "other" only: how it benefits the public or a section of it
+  legalReviewStatus: 'pending' | 'approved'
+}
+
+export const CHARITABLE_OBJECT_CATEGORIES: Array<{ value: CharitableObjectCategory; label: string; example: string }> = [
+  { value: 'relief_of_poverty', label: 'Relief of poverty', example: 'e.g. Provide monthly food parcels to elderly people living alone in Kibera.' },
+  { value: 'advancement_of_education', label: 'Advancement of education', example: 'e.g. Provide secondary-school scholarships to students from low-income households in Kisumu County.' },
+  { value: 'advancement_of_religion', label: 'Advancement of religion', example: 'e.g. Build and maintain a place of worship open to the public in Machakos town.' },
+  { value: 'human_rights', label: 'Advancement of human rights and fundamental freedoms', example: 'e.g. Provide free legal aid to survivors of gender-based violence in Nairobi.' },
+  { value: 'environment', label: 'Protection of the environment', example: 'e.g. Restore degraded forest land through community tree-planting in the Mau.' },
+  { value: 'other_public_benefit', label: 'Other purpose beneficial to the general public', example: 'e.g. Run free health screening camps in rural Turkana.' },
+]
+
+export const CHARITABLE_ACTIVITY_LOCATIONS: Array<{ value: NonNullable<WizardData['charitableActivityLocation']>; label: string }> = [
+  { value: 'kenya', label: 'In Kenya' },
+  { value: 'outside_kenya', label: 'Other countries' },
+  { value: 'both', label: 'Both' },
+]
+
+export const CHARITABLE_OBJECT_MIN_DESCRIPTION = 15
+
+export function charitableObjectsError(w: WizardData): string | null {
+  const objects = w.charitableObjects ?? []
+  if (objects.length === 0) return 'Choose at least one charitable object.'
+  for (const o of objects) {
+    const label = CHARITABLE_OBJECT_CATEGORIES.find((c) => c.value === o.category)?.label ?? o.category
+    if (o.description.trim().length < CHARITABLE_OBJECT_MIN_DESCRIPTION) return `Describe what the trust will do under “${label}”, and who will benefit.`
+    if (o.category === 'other_public_benefit' && !o.publicBenefit?.trim()) return 'Explain how the “other” purpose benefits the general public or a section of it.'
+  }
+  if (!w.charitableActivityLocation) return 'Tell us where the trust’s activities will take place.'
+  if (w.charitableActivityLocation !== 'kenya' && !w.charitableActivityCountries?.trim()) return 'List the countries outside Kenya where the trust will operate.'
+  if (!w.charitableObjectsConfirmed) return 'Review and confirm the charitable objects.'
+  return null
+}
+
 export type TrusteeForRules = {
   name: string
   isCorporate: boolean
@@ -516,7 +562,15 @@ export type WizardData = {
   ftCreatedDuringLifetime?: boolean
   ftSettlorAlsoBeneficiary?: boolean
   ftConductsTrading?: boolean
-  trustCharitableObjects?: string[]
+  trustCharitableObjects?: string[] // legacy free-text list, superseded by charitableObjects
+  // Charitable objects (Charles, 2026-09-25; Trust Administration Act s. 8).
+  // Each category stays paired with its description so the deed can be
+  // drafted from it — the descriptions inform the objects clause, they
+  // don't become it, and every entry is held for legal review.
+  charitableObjects?: CharitableObject[]
+  charitableActivityLocation?: 'kenya' | 'outside_kenya' | 'both'
+  charitableActivityCountries?: string
+  charitableObjectsConfirmed?: boolean
   // Step 6 (repurposed for trust — Shareholders doesn't apply) —
   // Charitable Trust beneficiary model, spec section 13. Family trust
   // beneficiaries are captured as person records instead (shareholders

@@ -13,6 +13,9 @@ import {
   TRUST_FORMATION_ROUTES,
   trustRouteNote,
   trusteeRuleError,
+  charitableObjectsError,
+  CHARITABLE_OBJECT_CATEGORIES,
+  CHARITABLE_ACTIVITY_LOCATIONS,
   type EntityType,
   type WizardData,
 } from '@/lib/onboarding/new-entity'
@@ -1533,7 +1536,13 @@ async function generateAndStoreIdp(
     } else if (ctx.entityType === 'trust') {
       if ((beneficialOwners ?? []).length === 0) exceptions.push('No settlor captured.')
       if (w.trustKind !== 'charitable_trust' && (shareholders ?? []).length === 0) exceptions.push('No beneficiaries captured.')
-      if (w.trustKind === 'charitable_trust' && !(w.trustCharitableObjects ?? []).some((o) => o.trim())) exceptions.push('No charitable objects listed.')
+      if (w.trustKind === 'charitable_trust') {
+        const objectsError = charitableObjectsError(w)
+        if (objectsError) exceptions.push(objectsError.replace(/\.$/, '') + ' — outstanding.')
+        if ((w.charitableObjects ?? []).some((o) => o.legalReviewStatus !== 'approved')) {
+          exceptions.push('Proposed charitable objects are pending legal review before the Trust Deed is finalised.')
+        }
+      }
       if (w.hasProtector === undefined) exceptions.push('Protector/Enforcer status not yet confirmed.')
       if (!w.trustFormationRoute) exceptions.push('Registration vs. incorporation not yet chosen.')
     } else if (ctx.entityType === 'society') {
@@ -1622,6 +1631,14 @@ async function generateAndStoreIdp(
       protector: w.hasProtector ? { name: w.protectorName ?? '—', powers: w.protectorPowers ?? null } : null,
       hasTrustDeed: docTypes.has('trust_deed'),
       trustFormationRoute: TRUST_FORMATION_ROUTES.find((r) => r.value === w.trustFormationRoute)?.label ?? null,
+      charitableObjects: (w.charitableObjects ?? []).map((o) => ({
+        category: CHARITABLE_OBJECT_CATEGORIES.find((c) => c.value === o.category)?.label ?? o.category,
+        description: o.description.trim(),
+        publicBenefit: o.publicBenefit?.trim() || null,
+      })),
+      charitableActivityArea:
+        [CHARITABLE_ACTIVITY_LOCATIONS.find((l) => l.value === w.charitableActivityLocation)?.label, w.charitableActivityLocation !== 'kenya' ? w.charitableActivityCountries?.trim() : undefined]
+          .filter(Boolean).join(' — ') || null,
 
       isSociety: ctx.entityType === 'society',
       societyGoverningBody: w.socHasGoverningBody ? { name: w.socGoverningBodyName ?? '—', quorum: w.socGoverningBodyQuorum ?? null } : null,

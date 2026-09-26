@@ -157,6 +157,10 @@ export type IdpInput = {
   protector?: { name: string; powers: string | null } | null
   hasTrustDeed?: boolean | null
   trustFormationRoute?: string | null
+  // Charitable trust objects — the applicant's proposals, which inform
+  // (but are not) the deed's objects clause; all pending legal review.
+  charitableObjects?: Array<{ category: string; description: string; publicBenefit: string | null }>
+  charitableActivityArea?: string | null
 
   // Society Formation Workflow spec, 2026-08 — when set, the summary
   // uses membership-organisation terminology (Officers/Members/
@@ -318,6 +322,22 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   } else if (isSociety) {
     ctx.section('Founding Members')
     ctx.field('Declaration', 'Not yet confirmed — outstanding before filing.')
+  }
+
+  // ---------- Charitable objects (charitable trust only) ----------
+  if (isTrust && (input.charitableObjects ?? []).length > 0) {
+    ctx.section('Charitable Objects (Proposed)')
+    ctx.notice(
+      'Proposed by the applicant to guide the drafting of the objects clause — not its final wording. ' +
+      'Every proposed object is subject to legal review before the Trust Deed is finalised.'
+    )
+    for (const o of input.charitableObjects ?? []) {
+      ctx.subheading(o.category)
+      ctx.field('Activity & beneficiaries', o.description)
+      if (o.publicBenefit) ctx.field('Public benefit', o.publicBenefit)
+      ctx.field('Legal review', 'Pending')
+    }
+    ctx.field('Activities take place in', input.charitableActivityArea ?? '—')
   }
 
   // ---------- Governing committee & property (society only) ----------

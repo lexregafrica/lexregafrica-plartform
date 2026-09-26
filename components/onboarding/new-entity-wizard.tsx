@@ -13,6 +13,11 @@ import {
   trustRouteNote,
   trusteeRuleError,
   ageOn,
+  CHARITABLE_OBJECT_CATEGORIES,
+  CHARITABLE_ACTIVITY_LOCATIONS,
+  charitableObjectsError,
+  type CharitableObject,
+  type CharitableObjectCategory,
   SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
   KENYA_POSTAL_CODES,
@@ -555,7 +560,8 @@ export function NewEntityWizard() {
           if (wizard.ftConductsTrading === undefined) return 'Tell us whether the trust will conduct ordinary trading activities.'
         }
         if (entityType === 'trust' && wizard.trustKind === 'charitable_trust') {
-          if (!(wizard.trustCharitableObjects ?? []).some((o) => o.trim())) return 'List at least one charitable object.'
+          const objectsError = charitableObjectsError(wizard)
+          if (objectsError) return objectsError
         }
         if (entityType === 'trust' && wizard.trustKind === 'other') {
           if (!wizard.trustOtherDescription?.trim()) return 'Describe the type of trust you want to establish.'
@@ -1692,18 +1698,7 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
 
       {entityType === 'trust' && wizard.trustKind === 'charitable_trust' && (
         <div className="space-y-4">
-          <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-            Charitable objects
-          </h2>
-          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-            List each intended charitable object — e.g. relief of poverty, education, religion, health,
-            environmental protection, community development. You can list more than one.
-          </p>
-          <StringListEditor
-            values={wizard.trustCharitableObjects ?? ['']}
-            onChange={(values) => patch({ trustCharitableObjects: values })}
-            placeholder="e.g. Education"
-          />
+          <CharitableObjectsEditor wizard={wizard} patch={patch} />
         </div>
       )}
 
@@ -1772,6 +1767,165 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
               onChange={(items) => patch({ socPropertyItems: items })}
             />
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CharitableObjectsEditor({ wizard, patch }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void }) {
+  const objects = wizard.charitableObjects ?? []
+  // Any edit after confirming means the summary the user confirmed is stale.
+  const edit = (p: Partial<WizardData>) => patch({ ...p, charitableObjectsConfirmed: false })
+  const setObjects = (next: CharitableObject[]) => edit({ charitableObjects: next })
+  const toggle = (category: CharitableObjectCategory) =>
+    setObjects(
+      objects.some((o) => o.category === category)
+        ? objects.filter((o) => o.category !== category)
+        : [...objects, { category, description: '', legalReviewStatus: 'pending' } as CharitableObject].sort(
+            (a, b) => CHARITABLE_OBJECT_CATEGORIES.findIndex((c) => c.value === a.category) - CHARITABLE_OBJECT_CATEGORIES.findIndex((c) => c.value === b.category)
+          )
+    )
+  const update = (category: CharitableObjectCategory, p: Partial<CharitableObject>) =>
+    setObjects(objects.map((o) => (o.category === category ? { ...o, ...p } : o)))
+  const legacy = (wizard.trustCharitableObjects ?? []).filter((o) => o.trim())
+  const readyToConfirm = !charitableObjectsError({ ...wizard, charitableObjectsConfirmed: true })
+  const locationLabel = CHARITABLE_ACTIVITY_LOCATIONS.find((l) => l.value === wizard.charitableActivityLocation)?.label
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-ios-headline font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
+        Objects of the trust
+      </h2>
+      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+        A charitable trust must exist only for charitable purposes. Choose every category that applies, then
+        describe what the trust will do under each one and who will benefit.
+      </p>
+      {objects.length === 0 && legacy.length > 0 && (
+        <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
+          You previously listed: {legacy.join(', ')}. Please choose the matching categories below and add a short description for each.
+        </p>
+      )}
+
+      <Field label="Charitable objects" required>
+        <div className="space-y-2">
+          {CHARITABLE_OBJECT_CATEGORIES.map((c) => {
+            const entry = objects.find((o) => o.category === c.value)
+            return (
+              <div
+                key={c.value}
+                className="rounded-xl border"
+                style={{ borderColor: entry ? 'var(--brand-navy)' : 'var(--system-fill-3)', background: entry ? 'var(--system-bg-2)' : 'var(--system-bg)' }}
+              >
+                <button type="button" role="checkbox" aria-checked={!!entry} onClick={() => toggle(c.value)} className="w-full flex items-start gap-3 p-3 text-left">
+                  <span
+                    className="mt-0.5 w-5 h-5 shrink-0 rounded-md border flex items-center justify-center"
+                    style={{ borderColor: entry ? 'var(--brand-navy)' : 'var(--system-fill-2, #d1d1d6)', background: entry ? 'var(--brand-navy)' : 'transparent' }}
+                  >
+                    {entry && (
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    )}
+                  </span>
+                  <span className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{c.label}</span>
+                </button>
+                {entry && (
+                  <div className="px-3 pb-3 space-y-2">
+                    <label className="block text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
+                      What will the trust do, and who will benefit? <span style={{ color: '#dc2626' }}>*</span>
+                    </label>
+                    <textarea
+                      className={inputCls}
+                      style={inputStyle}
+                      rows={2}
+                      maxLength={500}
+                      placeholder={c.example}
+                      value={entry.description}
+                      onChange={(e) => update(c.value, { description: e.target.value })}
+                    />
+                    {c.value === 'other_public_benefit' && (
+                      <>
+                        <label className="block text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
+                          How does this benefit the general public, or a section of it? <span style={{ color: '#dc2626' }}>*</span>
+                        </label>
+                        <textarea
+                          className={inputCls}
+                          style={inputStyle}
+                          rows={2}
+                          maxLength={500}
+                          placeholder="e.g. Free screening is open to every resident of the sub-county, not a closed group."
+                          value={entry.publicBenefit ?? ''}
+                          onChange={(e) => update(c.value, { publicBenefit: e.target.value })}
+                        />
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </Field>
+
+      <Field label="Where will the trust’s activities take place?" required>
+        <div className="grid grid-cols-3 gap-2">
+          {CHARITABLE_ACTIVITY_LOCATIONS.map((l) => (
+            <button
+              key={l.value}
+              type="button"
+              onClick={() => edit({ charitableActivityLocation: l.value })}
+              className="py-2.5 rounded-xl border text-sm font-medium"
+              style={{
+                borderColor: wizard.charitableActivityLocation === l.value ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                background: wizard.charitableActivityLocation === l.value ? 'var(--system-bg-2)' : 'var(--system-bg)',
+                color: 'var(--system-label)',
+              }}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </Field>
+      {(wizard.charitableActivityLocation === 'outside_kenya' || wizard.charitableActivityLocation === 'both') && (
+        <Field label="Which countries outside Kenya?" required>
+          <input
+            type="text" className={inputCls} style={inputStyle} placeholder="e.g. Uganda, Tanzania"
+            value={wizard.charitableActivityCountries ?? ''} onChange={(e) => edit({ charitableActivityCountries: e.target.value })}
+          />
+        </Field>
+      )}
+
+      <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+        Your descriptions guide how the objects clause in the Trust Deed is drafted — they don&apos;t become the final
+        wording automatically. Every proposed object is reviewed by our legal team before the deed is finalised.
+      </p>
+
+      {readyToConfirm && (
+        <div className="rounded-xl border p-3 space-y-3" style={{ borderColor: 'var(--system-fill-3)' }}>
+          <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>Please confirm</p>
+          {objects.map((o) => (
+            <div key={o.category}>
+              <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>
+                {CHARITABLE_OBJECT_CATEGORIES.find((c) => c.value === o.category)?.label}
+              </p>
+              <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{o.description.trim()}</p>
+              {o.publicBenefit?.trim() && (
+                <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>Public benefit: {o.publicBenefit.trim()}</p>
+              )}
+            </div>
+          ))}
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            <span className="font-semibold" style={{ color: 'var(--system-label)' }}>Where: </span>
+            {locationLabel}{wizard.charitableActivityLocation !== 'kenya' && wizard.charitableActivityCountries?.trim() ? ` — ${wizard.charitableActivityCountries.trim()}` : ''}
+          </p>
+          <label className="flex items-start gap-2 text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={!!wizard.charitableObjectsConfirmed}
+              onChange={(e) => patch({ charitableObjectsConfirmed: e.target.checked })}
+            />
+            These objects reflect what the trust intends to do.
+          </label>
         </div>
       )}
     </div>
@@ -7168,9 +7322,16 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
         {isTrust && wizard.trustKind === 'family_trust' && shareholders.length > 0 && (
           <ReviewRow label={<Term term="beneficiary">Beneficiaries</Term>} value={shareholders.map((s) => s.legal_name).join(', ')} />
         )}
-        {isTrust && wizard.trustKind === 'charitable_trust' && (
-          <ReviewRow label="Charitable objects" value={(wizard.trustCharitableObjects ?? []).filter((o) => o.trim()).join(', ') || '—'} />
-        )}
+        {isTrust && wizard.trustKind === 'charitable_trust' && (<>
+          <ReviewRow
+            label="Charitable objects"
+            value={(wizard.charitableObjects ?? []).map((o) => CHARITABLE_OBJECT_CATEGORIES.find((c) => c.value === o.category)?.label ?? o.category).join(', ') || '—'}
+          />
+          <ReviewRow
+            label="Activities in"
+            value={[CHARITABLE_ACTIVITY_LOCATIONS.find((l) => l.value === wizard.charitableActivityLocation)?.label, wizard.charitableActivityLocation !== 'kenya' ? wizard.charitableActivityCountries?.trim() : undefined].filter(Boolean).join(' — ') || '—'}
+          />
+        </>)}
         {isTrust && (
           <ReviewRow label="Trust property" value={`${(wizard.trustPropertyItems ?? []).length} item(s)`} />
         )}
