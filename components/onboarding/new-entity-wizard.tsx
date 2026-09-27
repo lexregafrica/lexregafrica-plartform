@@ -17,6 +17,11 @@ import {
   CHARITABLE_ACTIVITY_LOCATIONS,
   charitableObjectsError,
   type CharitableObject,
+  type TrustBeneficiaryDetails,
+  type TrustEnforcer,
+  trustEnforcers,
+  emptyEnforcer,
+  enforcerError,
   type CharitableObjectCategory,
   SECRETARY_CAPITAL_THRESHOLD_KES,
   KENYA_COUNTIES,
@@ -286,6 +291,7 @@ type ShareholderRow = {
     dateAdmitted?: string
     votingStatus?: string
     memberStatus?: string
+    beneficiary?: TrustBeneficiaryDetails
   } | null
   corporate_details: {
     nominee?: boolean
@@ -643,6 +649,10 @@ export function NewEntityWizard() {
             return null
           }
           if (shareholders.length < 1) return 'Add at least one beneficiary or class of beneficiaries.'
+          for (const b of shareholders) {
+            const extra = b.address?.beneficiary
+            if (!extra?.isClass && extra?.isMinor === undefined) return `Open ${b.legal_name} and tell us whether they are an adult or a child.`
+          }
           return null
         }
         if (entityType === 'society') {
@@ -729,8 +739,14 @@ export function NewEntityWizard() {
       case 9: {
         if (entityType === 'trust') {
           if (wizard.hasProtector === undefined) return 'Tell us whether the trust will have a Protector or Enforcer.'
-          if (wizard.hasProtector && !wizard.protectorName?.trim()) return 'Enter the Protector/Enforcer’s name.'
-          if (wizard.hasProtector && wizard.hasSuccessorProtector && !wizard.successorProtectorName?.trim()) return 'Enter the successor Protector/Enforcer’s name.'
+          if (wizard.hasProtector) {
+            const enforcers = trustEnforcers(wizard)
+            if (!enforcers.some((e) => !e.isSuccessor)) return 'Add at least one enforcer, or choose No.'
+            for (const e of enforcers) {
+              const err = enforcerError(e)
+              if (err) return err
+            }
+          }
           return null
         }
         if (entityType === 'society') {
@@ -938,6 +954,10 @@ export function NewEntityWizard() {
               setBeneficiaries={setShareholders}
               api={api}
               setError={setError}
+              orgId={orgId}
+              entityId={entityId}
+              documents={documents}
+              onExtracted={refresh}
             />
           ) :
           entityType === 'society' ? <StepSocietyMembershipStructure wizard={wizard} patch={patch} /> : (
@@ -979,7 +999,7 @@ export function NewEntityWizard() {
           entityType === 'trust' ? (
             <StepTrustProperty wizard={wizard} patch={patch} />
           ) : entityType === 'society' ? (
-            <StepSocietyMembers members={shareholders} setMembers={setShareholders} api={api} setError={setError} applicant={applicantDefaults} />
+            <StepSocietyMembers members={shareholders} setMembers={setShareholders} api={api} setError={setError} applicant={applicantDefaults} orgId={orgId} entityId={entityId} documents={documents} onExtracted={refresh} wizard={wizard} />
           ) : (
             <StepBeneficialOwners
               shareholders={shareholders}
@@ -997,7 +1017,7 @@ export function NewEntityWizard() {
           )
         )}
         {step === 9 && (
-          entityType === 'trust' ? <StepTrustProtector wizard={wizard} patch={patch} trusteeNames={directors.map((d) => d.full_name)} /> :
+          entityType === 'trust' ? <StepTrustProtector wizard={wizard} patch={patch} trusteeNames={directors.map((d) => d.full_name)} orgId={orgId} entityId={entityId} api={api} setError={setError} documents={documents} /> :
           entityType === 'society' ? <StepSocietyGoverningCommittee wizard={wizard} patch={patch} /> :
           <StepSecretary entityType={entityType} wizard={wizard} patch={patch} />
         )}
@@ -2087,6 +2107,9 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   corporate_good_standing: 'Good Standing Certificate',
   corporate_company_search: 'Company Search (CR12)',
   corporate_representative_id: 'Representative ID',
+  corporate_representative_kra_pin: 'Representative KRA PIN',
+  enforcer_id_copy: 'ID / Passport',
+  enforcer_kra_pin_copy: 'KRA PIN Certificate',
 }
 
 function documentTypeLabel(documentType?: string): string {
@@ -2138,7 +2161,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
   // Tags the document with who it's for, so the document vault can group
   // by person instead of just by type (Charles call, 2026-08).
   personName?: string
-  personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+  personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
   // Tags by the saved row's own id when there is one — name-only tagging
   // raced with typing (Charles call, 2026-08: photo uploaded right after
   // the ID scan got tagged before the OCR-filled name had landed in form
@@ -2300,7 +2323,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
   setError: (e: string) => void
   initialUploaded?: { name: string; filePath: string } | null
   personName?: string
-  personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+  personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
   personId?: string
   onDocumentRegistered?: (documentId: string) => void
 }) {
@@ -2437,11 +2460,35 @@ function mergeCorporateExtraction(
     postal_address?: string
     phone?: string
     email?: string
+    full_name?: string
+    id_number?: string
+    document_kind?: string
+    // Set by CorporateFields on the representative's own uploads, so a
+    // person's ID/PIN fills the representative fields, not the company's.
+    __target?: 'representative'
   },
   isReplace: boolean
 ): CorporateParticipant {
   const pick = (current: string, extracted: string | undefined) =>
     (isReplace ? extracted : current || extracted) || current
+  if (f.__target === 'representative') {
+    if (isIdentityDocument(f.document_kind)) {
+      const kenyanId = f.document_kind === 'national_id'
+      return {
+        ...prev,
+        repName: f.full_name || prev.repName,
+        repIdNumber: f.id_number || prev.repIdNumber,
+        repIdType: kenyanId ? 'kenyan_id' : 'passport',
+        repNationality: kenyanId ? 'Kenyan' : prev.repNationality,
+        repKraPin: pick(prev.repKraPin, f.kra_pin).trim().toUpperCase(),
+      }
+    }
+    return {
+      ...prev,
+      repKraPin: ((isReplace || f.document_kind === 'kra_pin_certificate' ? f.kra_pin : prev.repKraPin || f.kra_pin) || prev.repKraPin).trim().toUpperCase(),
+      repName: prev.repName || f.full_name || '',
+    }
+  }
   const addr = [f.address_line1, f.locality, f.district, f.city, f.county]
     .filter((part, i, all): part is string => !!part && all.findIndex((p) => p?.toLowerCase() === part.toLowerCase()) === i)
     .join(', ')
@@ -2487,6 +2534,9 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
   // individual ID scans, now closed for company documents the same way.
   onDocumentRegistered?: (documentId: string) => void
 }) {
+  const onRepresentativeExtracted: typeof onExtracted = onExtracted
+    ? (fields, pid, wasReplace, token) => onExtracted(fields ? { ...fields, __target: 'representative' } : fields, pid, wasReplace, token)
+    : undefined
   return (
     <div className="space-y-3 rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
       {api && setError && onExtracted && (
@@ -2639,6 +2689,48 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
       <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
         Authorised representative (natural person who acts for this company)
       </p>
+      {api && setError && onRepresentativeExtracted && (
+        <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg)' }}>
+          <p className="text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
+            Upload the representative&apos;s ID or passport and KRA PIN certificate to fill in their details.
+          </p>
+          {/* section "other": read-only extraction — "director"/"shareholder"
+              would make the server auto-create a person row for the
+              representative, who isn't a director or shareholder. */}
+          <InlineOcrUpload
+            section="other"
+            documentType="corporate_representative_id"
+            label="Upload representative’s ID/passport →"
+            orgId={orgId ?? null}
+            entityId={entityId ?? null}
+            api={api}
+            onExtracted={onRepresentativeExtracted}
+            sessionToken={sessionToken}
+            setError={setError}
+            personName={value.registeredName}
+            personRole="corporate_party"
+            personId={personId}
+            onDocumentRegistered={onDocumentRegistered}
+            initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_representative_id')}
+          />
+          <InlineOcrUpload
+            section="other"
+            documentType="corporate_representative_kra_pin"
+            label="Upload representative’s KRA PIN certificate →"
+            orgId={orgId ?? null}
+            entityId={entityId ?? null}
+            api={api}
+            onExtracted={onRepresentativeExtracted}
+            sessionToken={sessionToken}
+            setError={setError}
+            personName={value.registeredName}
+            personRole="corporate_party"
+            personId={personId}
+            onDocumentRegistered={onDocumentRegistered}
+            initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_representative_kra_pin')}
+          />
+        </div>
+      )}
       <Field label="Representative full name" required>
         <input type="text" className={inputCls} style={inputStyle} value={value.repName} onChange={(e) => onChange({ repName: e.target.value })} />
       </Field>
@@ -2676,7 +2768,7 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
         <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Appointed by board resolution dated…" value={value.repAuthorityCapacity} onChange={(e) => onChange({ repAuthorityCapacity: e.target.value })} />
       </Field>
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        Upload the board resolution or power of attorney, and the representative&apos;s own ID, in the document step.
+        Upload the board resolution or power of attorney in the document step.
       </p>
     </div>
   )
@@ -4959,23 +5051,111 @@ type BeneficiaryForm = {
   name: string
   relationship: string
   dateOfBirth: string
-  status: 'named' | 'future_unborn'
+  // undefined until chosen — adults are identified like any other party;
+  // for a child we record a guardian to reach instead.
+  isMinor?: boolean
+  idNumber: string
+  kraPin: string
+  nationality: string
+  phone: string
+  email: string
+  address: AddressData
+  guardianName: string
+  guardianRelationship: string
+  guardianPhone: string
+  guardianEmail: string
 }
 
 function emptyBeneficiary(): BeneficiaryForm {
-  return { isClass: false, name: '', relationship: '', dateOfBirth: '', status: 'named' }
+  return {
+    isClass: false, name: '', relationship: '', dateOfBirth: '', idNumber: '', kraPin: '', nationality: 'Kenyan',
+    phone: '', email: '', address: {}, guardianName: '', guardianRelationship: '', guardianPhone: '', guardianEmail: '',
+  }
 }
 
-function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries, api, setError }: {
+function beneficiaryFormFrom(b: ShareholderRow): BeneficiaryForm {
+  const extra = b.address?.beneficiary ?? {}
+  return {
+    id: b.id,
+    isClass: !!extra.isClass,
+    name: b.legal_name,
+    relationship: extra.relationship ?? '',
+    dateOfBirth: b.address?.dateOfBirth ?? '',
+    isMinor: extra.isMinor,
+    idNumber: b.id_or_reg_number ?? '',
+    kraPin: b.kra_pin ?? '',
+    nationality: b.address?.nationality ?? 'Kenyan',
+    phone: b.phone ?? '',
+    email: b.email ?? '',
+    address: readLegacyAddress(b.address, b.address?.physicalAddress),
+    guardianName: extra.guardianName ?? '',
+    guardianRelationship: extra.guardianRelationship ?? '',
+    guardianPhone: extra.guardianPhone ?? '',
+    guardianEmail: extra.guardianEmail ?? '',
+  }
+}
+
+function beneficiaryFormError(f: BeneficiaryForm): string | null {
+  if (!f.name.trim()) return f.isClass ? 'Describe the class of beneficiaries.' : 'Beneficiary name is required.'
+  if (f.isClass) return null
+  if (f.isMinor === undefined) return 'Tell us whether this beneficiary is an adult or a child.'
+  if (f.dateOfBirth) {
+    const age = ageOn(f.dateOfBirth, new Date())
+    if (f.isMinor && age >= 18) return 'The date of birth shows this beneficiary is an adult — choose Adult.'
+    if (!f.isMinor && age < 18) return 'The date of birth shows this beneficiary is under 18 — choose Child.'
+  }
+  if (f.isMinor) {
+    if (!f.dateOfBirth) return 'Enter the child’s date of birth.'
+    if (!f.guardianName.trim()) return 'Enter the name of the child’s parent or guardian.'
+    if (!f.guardianPhone.trim() && !f.guardianEmail.trim()) return 'Enter a phone number or email for the parent or guardian.'
+    if (f.guardianPhone.trim() && !KENYA_PHONE_REGEX.test(f.guardianPhone)) return 'Guardian phone must be +2547XXXXXXXX or 07XXXXXXXX.'
+    if (f.guardianEmail.trim() && !EMAIL_REGEX.test(f.guardianEmail)) return 'Enter a valid email for the parent or guardian.'
+    return null
+  }
+  if (!f.idNumber.trim()) return 'Enter the beneficiary’s ID or passport number.'
+  if (f.kraPin.trim() && !KRA_PIN_REGEX.test(f.kraPin.trim().toUpperCase())) return 'KRA PIN format: A123456789B.'
+  if (!f.phone.trim() && !f.email.trim()) return 'Enter a phone number or email so the beneficiary can be reached.'
+  if (f.phone.trim() && !KENYA_PHONE_REGEX.test(f.phone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
+  if (f.email.trim() && !EMAIL_REGEX.test(f.email)) return 'Enter a valid email address.'
+  return null
+}
+
+function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries, api, setError, orgId, entityId, documents, onExtracted }: {
   wizard: WizardData
   patch: (p: Partial<WizardData>) => void
   beneficiaries: ShareholderRow[]
   setBeneficiaries: (s: ShareholderRow[]) => void
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
+  orgId: string | null
+  entityId: string | null
+  documents: DocumentRow[]
+  onExtracted: () => Promise<void>
 }) {
   const [form, setForm] = useState<BeneficiaryForm | null>(null)
   const [busy, setBusy] = useState(false)
+  // See StepDirectors' matching comment — stale-OCR-result guard.
+  const formTokenRef = useRef<string | null>(null)
+  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
+  const set = (p: Partial<BeneficiaryForm>) => setForm((prev) => (prev ? { ...prev, ...p } : prev))
+  const openForm = (f: BeneficiaryForm) => { formTokenRef.current = crypto.randomUUID(); setUploadedDocIds([]); setForm(f) }
+
+  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, wasReplace?: boolean, sessionToken?: string) => {
+    if (!fields || sessionToken !== formTokenRef.current) return
+    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string; document_kind?: string }
+    setForm((prev) => {
+      if (!prev) return prev
+      const merged = mergePersonExtraction({ fullName: prev.name, idNumber: prev.idNumber, kraPin: prev.kraPin, dateOfBirth: prev.dateOfBirth }, f, !!wasReplace)
+      return {
+        ...prev,
+        name: merged.fullName,
+        idNumber: merged.idNumber,
+        kraPin: merged.kraPin,
+        dateOfBirth: merged.dateOfBirth,
+        nationality: f.document_kind === 'national_id' ? 'Kenyan' : prev.nationality,
+      }
+    })
+  }
 
   if (wizard.trustKind === 'charitable_trust') {
     return (
@@ -5005,25 +5185,63 @@ function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries
 
   const save = async () => {
     if (!form) return
-    if (!form.name.trim()) { setError(form.isClass ? 'Describe the class of beneficiaries.' : 'Beneficiary name is required.'); return }
+    const err = beneficiaryFormError(form)
+    if (err) { setError(err); return }
     setError('')
     setBusy(true)
+    const adult = !form.isClass && form.isMinor === false
+    const extra: TrustBeneficiaryDetails = {
+      isClass: form.isClass,
+      relationship: form.relationship.trim() || undefined,
+      isMinor: form.isClass ? undefined : form.isMinor,
+      ...(form.isMinor && !form.isClass
+        ? {
+            guardianName: form.guardianName.trim(),
+            guardianRelationship: form.guardianRelationship.trim() || undefined,
+            guardianPhone: form.guardianPhone.trim() || undefined,
+            guardianEmail: form.guardianEmail.trim() || undefined,
+          }
+        : {}),
+    }
     try {
       const result = await api({
         action: 'upsert_shareholder',
-        shareholder: { id: form.id, legalName: form.name.trim(), sharesHeld: 1, dateOfBirth: form.dateOfBirth || undefined },
+        shareholder: {
+          id: form.id,
+          legalName: form.name.trim(),
+          sharesHeld: 1,
+          dateOfBirth: form.isClass ? undefined : form.dateOfBirth || undefined,
+          idNumber: adult ? form.idNumber.trim() : undefined,
+          kraPin: adult ? form.kraPin.trim().toUpperCase() || undefined : undefined,
+          nationality: form.isClass ? undefined : form.nationality || undefined,
+          phone: adult ? form.phone.trim() || undefined : undefined,
+          email: adult ? form.email.trim() || undefined : undefined,
+          structuredAddress: adult ? form.address : undefined,
+          beneficiary: extra,
+        },
       })
       const updated: ShareholderRow = {
         id: result.id!,
         legal_name: form.name.trim(),
-        id_or_reg_number: null,
-        kra_pin: null,
+        id_or_reg_number: adult ? form.idNumber.trim() : null,
+        kra_pin: adult ? form.kraPin.trim().toUpperCase() || null : null,
+        phone: adult ? form.phone.trim() || null : null,
+        email: adult ? form.email.trim() || null : null,
         shares_held: 1,
         share_percentage: null,
-        address: { dateOfBirth: form.dateOfBirth || undefined },
+        address: {
+          dateOfBirth: form.isClass ? undefined : form.dateOfBirth || undefined,
+          nationality: form.isClass ? undefined : form.nationality || undefined,
+          structuredAddress: adult ? form.address : undefined,
+          beneficiary: extra,
+        },
         corporate_details: { isCorporate: false },
       }
       setBeneficiaries(form.id ? beneficiaries.map((b) => (b.id === form.id ? updated : b)) : [...beneficiaries, updated])
+      if (uploadedDocIds.length > 0) {
+        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: form.name.trim(), personRole: 'shareholder' })
+        await onExtracted()
+      }
       setForm(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.')
@@ -5044,26 +5262,38 @@ function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries
     }
   }
 
+  const describe = (b: ShareholderRow) => {
+    const extra = b.address?.beneficiary
+    if (extra?.isClass) return 'Class of beneficiaries'
+    const parts = [extra?.isMinor ? 'Child' : extra?.isMinor === false ? 'Adult' : null, extra?.relationship, extra?.isMinor && extra.guardianName ? `Guardian: ${extra.guardianName}` : null]
+    return parts.filter(Boolean).join(' · ')
+  }
+
+  const toggleButton = (active: boolean) => ({
+    borderColor: active ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+    background: active ? 'var(--system-bg-2)' : 'var(--system-bg)',
+    color: 'var(--system-label)',
+  })
+
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
         <Term term="beneficiary">Beneficiaries</Term>
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        Add named beneficiaries, or a class such as &quot;children of the settlor&quot; or &quot;future
-        descendants&quot; — minors and unborn beneficiaries are fine, no contact details are forced.
+        Add each named beneficiary, or a class such as &quot;children of the settlor&quot; or &quot;future
+        descendants&quot;. Beneficiaries should be clearly identifiable — for adults we capture their ID and contact
+        details; for children, a parent or guardian to reach.
       </p>
 
       {beneficiaries.map((b) => (
         <div key={b.id} className="ios-surface rounded-2xl p-4 flex items-start justify-between gap-3">
-          <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{b.legal_name}</p>
+          <div className="min-w-0">
+            <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{b.legal_name}</p>
+            {describe(b) && <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{describe(b)}</p>}
+          </div>
           <div className="flex gap-3 shrink-0">
-            <button
-              type="button"
-              className="text-ios-footnote font-medium"
-              style={{ color: 'var(--brand-navy)' }}
-              onClick={() => setForm({ id: b.id, isClass: false, name: b.legal_name, relationship: '', dateOfBirth: (b.address as { dateOfBirth?: string } | null)?.dateOfBirth ?? '', status: 'named' })}
-            >
+            <button type="button" className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }} onClick={() => openForm(beneficiaryFormFrom(b))}>
               Edit
             </button>
             <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(b.id)} disabled={busy}>
@@ -5078,37 +5308,148 @@ function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries
           <Field label="Named beneficiary, or a class?" required>
             <div className="grid grid-cols-2 gap-2">
               {[{ v: false, label: 'Named person' }, { v: true, label: 'Class of beneficiaries' }].map(({ v, label }) => (
-                <button
-                  key={String(v)} type="button" onClick={() => setForm((prev) => (prev ? { ...prev, isClass: v } : prev))}
-                  className="py-2.5 rounded-xl border text-sm font-medium"
-                  style={{
-                    borderColor: form.isClass === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                    background: form.isClass === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                    color: 'var(--system-label)',
-                  }}
-                >
+                <button key={String(v)} type="button" onClick={() => set({ isClass: v })} className="py-2.5 rounded-xl border text-sm font-medium" style={toggleButton(form.isClass === v)}>
                   {label}
                 </button>
               ))}
             </div>
           </Field>
-          <Field label={form.isClass ? 'Describe the class' : 'Full name'} required>
-            <input
-              type="text" className={inputCls} style={inputStyle}
-              placeholder={form.isClass ? 'e.g. Children of the settlor' : undefined}
-              value={form.name} onChange={(e) => setForm((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
-            />
-          </Field>
-          {!form.isClass && (
+
+          {form.isClass ? (
+            <Field label="Describe the class" required>
+              <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Children of the settlor" value={form.name} onChange={(e) => set({ name: e.target.value })} />
+            </Field>
+          ) : (
             <>
-              <Field label="Relationship to settlor">
-                <input type="text" className={inputCls} style={inputStyle} value={form.relationship} onChange={(e) => setForm((prev) => (prev ? { ...prev, relationship: e.target.value } : prev))} />
+              <Field label="Is this beneficiary an adult or a child?" required>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ v: false, label: 'Adult (18+)' }, { v: true, label: 'Child (under 18)' }].map(({ v, label }) => (
+                    <button key={String(v)} type="button" onClick={() => set({ isMinor: v })} className="py-2.5 rounded-xl border text-sm font-medium" style={toggleButton(form.isMinor === v)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </Field>
-              <Field label="Date of birth (if known)">
-                <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => setForm((prev) => (prev ? { ...prev, dateOfBirth: e.target.value } : prev))} />
+
+              {form.isMinor === false && (
+                <>
+                  <InlineOcrUpload
+                    section="other"
+                    documentType="shareholder_id_copy"
+                    label={form.id ? 'Upload a replacement ID/passport →' : 'Upload ID/passport to auto-fill →'}
+                    orgId={orgId}
+                    entityId={entityId}
+                    api={api}
+                    onExtracted={handleExtracted}
+                    sessionToken={formTokenRef.current ?? undefined}
+                    setError={setError}
+                    personName={form.name}
+                    personRole="shareholder"
+                    personId={form.id}
+                    onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+                    initialUploaded={findPersonDocument(documents, form.id, form.name, 'shareholder_id_copy')}
+                  />
+                  <InlineOcrUpload
+                    section="other"
+                    documentType="shareholder_kra_pin_copy"
+                    label="Upload KRA PIN certificate to auto-fill →"
+                    orgId={orgId}
+                    entityId={entityId}
+                    api={api}
+                    onExtracted={handleExtracted}
+                    sessionToken={formTokenRef.current ?? undefined}
+                    setError={setError}
+                    personName={form.name}
+                    personRole="shareholder"
+                    personId={form.id}
+                    onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+                    initialUploaded={findPersonDocument(documents, form.id, form.name, 'shareholder_kra_pin_copy')}
+                  />
+                  <PhotoUpload
+                    orgId={orgId}
+                    entityId={entityId}
+                    api={api}
+                    onUploaded={() => {}}
+                    setError={setError}
+                    personName={form.name}
+                    personRole="shareholder"
+                    personId={form.id}
+                    onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+                    initialUploaded={findPersonDocument(documents, form.id, form.name, 'passport_photo')}
+                  />
+                </>
+              )}
+
+              <Field label="Full name" required>
+                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.name} onChange={(e) => set({ name: e.target.value })} />
               </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Relationship to settlor">
+                  <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Daughter" value={form.relationship} onChange={(e) => set({ relationship: e.target.value })} />
+                </Field>
+                <Field label="Date of birth" required={form.isMinor === true}>
+                  <input type="date" className={inputCls} style={inputStyle} value={form.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
+                </Field>
+              </div>
+
+              {form.isMinor === false && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="ID / passport number" required>
+                      <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                    </Field>
+                    <Field label="KRA PIN">
+                      <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
+                    </Field>
+                  </div>
+                  <Field label="Nationality">
+                    <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Phone">
+                      <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+                    </Field>
+                    <Field label="Email">
+                      <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
+                    </Field>
+                  </div>
+                  <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>At least one of phone or email is required.</p>
+                  <AddressFields
+                    value={form.address}
+                    onChange={(p) => set({ address: { ...form.address, ...p } })}
+                    requireCity={false}
+                    requireCounty={false}
+                    requirePostalCode={false}
+                    requirePostalAddress={false}
+                  />
+                </>
+              )}
+
+              {form.isMinor === true && (
+                <div className="rounded-xl p-3 space-y-3" style={{ background: 'var(--system-bg-2)' }}>
+                  <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>Parent or guardian</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Full name" required>
+                      <input type="text" className={inputCls} style={inputStyle} value={form.guardianName} onChange={(e) => set({ guardianName: e.target.value })} />
+                    </Field>
+                    <Field label="Relationship to child">
+                      <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Mother" value={form.guardianRelationship} onChange={(e) => set({ guardianRelationship: e.target.value })} />
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Phone">
+                      <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.guardianPhone} onChange={(e) => set({ guardianPhone: e.target.value })} />
+                    </Field>
+                    <Field label="Email">
+                      <input type="email" className={inputCls} style={inputStyle} value={form.guardianEmail} onChange={(e) => set({ guardianEmail: e.target.value })} />
+                    </Field>
+                  </div>
+                  <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>At least one of phone or email is required.</p>
+                </div>
+              )}
             </>
           )}
+
           <div className="flex gap-2">
             <PrimaryButton onClick={save} disabled={busy}>{busy ? 'Saving…' : form.id ? 'Update' : 'Add beneficiary'}</PrimaryButton>
             <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>
@@ -5117,7 +5458,7 @@ function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries
       ) : (
         <button
           type="button"
-          onClick={() => setForm(emptyBeneficiary())}
+          onClick={() => openForm(emptyBeneficiary())}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -5312,30 +5653,88 @@ function StepTrustProperty({ wizard, patch }: { wizard: WizardData; patch: (p: P
 // role, not a repeating register, so it's captured as wizard fields
 // rather than its own table.
 // ------------------------------------------------------------------
-function StepTrustProtector({ wizard, patch, trusteeNames }: { wizard: WizardData; patch: (p: Partial<WizardData>) => void; trusteeNames: string[] }) {
+function StepTrustProtector({ wizard, patch, trusteeNames, orgId, entityId, api, setError, documents }: {
+  wizard: WizardData
+  patch: (p: Partial<WizardData>) => void
+  trusteeNames: string[]
+  orgId: string | null
+  entityId: string | null
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
+  setError: (e: string) => void
+  documents: DocumentRow[]
+}) {
+  const enforcers = trustEnforcers(wizard)
+  const principals = enforcers.filter((e) => !e.isSuccessor)
+  const [form, setForm] = useState<TrustEnforcer | null>(null)
+  const [formError, setFormError] = useState('')
+  // See StepDirectors' matching comment — stale-OCR-result guard.
+  const formTokenRef = useRef<string | null>(null)
+  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
   const isTrustee = (name: string | undefined) =>
     !!name?.trim() && trusteeNames.some((t) => t.trim().toLowerCase() === name.trim().toLowerCase())
+  const nameOf = (id: string | undefined) => enforcers.find((e) => e.id === id)?.fullName
+  const set = (p: Partial<TrustEnforcer>) => setForm((prev) => (prev ? { ...prev, ...p } : prev))
+  const openForm = (e: TrustEnforcer) => { formTokenRef.current = crypto.randomUUID(); setUploadedDocIds([]); setFormError(''); setForm(e) }
+
+  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, wasReplace?: boolean, sessionToken?: string) => {
+    if (!fields || sessionToken !== formTokenRef.current) return
+    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; document_kind?: string }
+    setForm((prev) => {
+      if (!prev) return prev
+      const merged = mergePersonExtraction({ fullName: prev.fullName, idNumber: prev.idNumber, kraPin: prev.kraPin, dateOfBirth: '' }, f, !!wasReplace)
+      return {
+        ...prev,
+        fullName: merged.fullName,
+        idNumber: merged.idNumber,
+        kraPin: merged.kraPin,
+        nationality: f.document_kind === 'national_id' ? 'Kenyan' : prev.nationality,
+      }
+    })
+  }
+
+  const save = async () => {
+    if (!form) return
+    const err = enforcerError(form)
+    if (err) { setFormError(err); return }
+    const clean = { ...form, fullName: form.fullName.trim(), idNumber: form.idNumber.trim(), kraPin: form.kraPin.trim().toUpperCase(), email: form.email.trim(), phone: form.phone.trim() }
+    const next = enforcers.some((e) => e.id === clean.id) ? enforcers.map((e) => (e.id === clean.id ? clean : e)) : [...enforcers, clean]
+    patch({ enforcers: next, hasProtector: true })
+    if (uploadedDocIds.length > 0) {
+      await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: clean.id, personName: clean.fullName, personRole: 'enforcer' }).catch(() => undefined)
+    }
+    setForm(null)
+  }
+
+  const remove = (id: string) =>
+    patch({ enforcers: enforcers.filter((e) => e.id !== id).map((e) => (e.successorToId === id ? { ...e, successorToId: undefined } : e)) })
+
+  const trusteeWarning = (name: string, isSuccessor: boolean) => (
+    <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
+      {name.trim()} is also a trustee. Under the Trust Administration Act, 2026 (s. 15), an enforcer who is also a
+      trustee cannot carry out the enforcer&apos;s supervisory functions{isSuccessor ? ' if they step in' : ''} — consider
+      appointing someone independent.
+    </p>
+  )
+
+  const toggleStyle = (active: boolean) => ({
+    borderColor: active ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+    background: active ? 'var(--system-bg-2)' : 'var(--system-bg)',
+    color: 'var(--system-label)',
+  })
+
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
         Protector / <Term term="enforcer">Enforcer</Term>
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        Not every trust needs this role — it&apos;s someone appointed to supervise or monitor aspects of trust
-        administration.
+        Not every trust needs this role — it&apos;s someone appointed to supervise how the trust is run. You can
+        appoint more than one, and name successors who step in if an enforcer can no longer act.
       </p>
       <Field label="Will the trust have a Protector or Enforcer?" required>
         <div className="grid grid-cols-2 gap-2">
           {[true, false].map((v) => (
-            <button
-              key={String(v)} type="button" onClick={() => patch({ hasProtector: v })}
-              className="py-2.5 rounded-xl border text-sm font-medium"
-              style={{
-                borderColor: wizard.hasProtector === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                background: wizard.hasProtector === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                color: 'var(--system-label)',
-              }}
-            >
+            <button key={String(v)} type="button" onClick={() => patch({ hasProtector: v })} className="py-2.5 rounded-xl border text-sm font-medium" style={toggleStyle(wizard.hasProtector === v)}>
               {v ? 'Yes' : 'No'}
             </button>
           ))}
@@ -5343,70 +5742,160 @@ function StepTrustProtector({ wizard, patch, trusteeNames }: { wizard: WizardDat
       </Field>
 
       {wizard.hasProtector === true && (
-        <div className="ios-surface rounded-2xl p-4 space-y-3">
-          <Field label="Full name" required>
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorName ?? ''} onChange={(e) => patch({ protectorName: e.target.value })} />
-          </Field>
-          {isTrustee(wizard.protectorName) && (
-            <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
-              {wizard.protectorName?.trim()} is also a trustee. Under the Trust Administration Act, 2026 (s. 15), an
-              enforcer who is also a trustee cannot carry out the enforcer&apos;s supervisory functions — consider
-              appointing someone independent.
+        <>
+          {enforcers.map((e) => (
+            <div key={e.id} className="ios-surface rounded-2xl p-4 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{e.fullName}</p>
+                  <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                    {e.isSuccessor ? `Successor enforcer — replaces ${nameOf(e.successorToId) ?? 'any enforcer'}` : 'Enforcer'}
+                    {e.idNumber ? ` · ID ${e.idNumber}` : ''}
+                  </p>
+                </div>
+                <div className="flex gap-3 shrink-0">
+                  <button type="button" className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }} onClick={() => openForm(e)}>Edit</button>
+                  <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => remove(e.id)}>Remove</button>
+                </div>
+              </div>
+              {enforcerError(e) && (
+                <p className="text-ios-caption1 text-red-600">Missing details — open Edit to complete.</p>
+              )}
+              {isTrustee(e.fullName) && trusteeWarning(e.fullName, e.isSuccessor)}
+            </div>
+          ))}
+
+          {form ? (
+            <div className="ios-surface rounded-2xl p-4 space-y-3">
+              <Field label="Role" required>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ v: false, label: 'Enforcer' }, { v: true, label: 'Successor enforcer' }].map(({ v, label }) => (
+                    <button key={String(v)} type="button" onClick={() => set({ isSuccessor: v, successorToId: v ? form.successorToId : undefined })} className="py-2.5 rounded-xl border text-sm font-medium" style={toggleStyle(form.isSuccessor === v)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {form.isSuccessor && principals.filter((p) => p.id !== form.id).length > 0 && (
+                <Field label="Steps in for">
+                  <select className={inputCls} style={inputStyle} value={form.successorToId ?? ''} onChange={(e) => set({ successorToId: e.target.value || undefined })}>
+                    <option value="">Any enforcer who can no longer act</option>
+                    {principals.filter((p) => p.id !== form.id).map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+                  </select>
+                </Field>
+              )}
+              <InlineOcrUpload
+                section="other"
+                documentType="enforcer_id_copy"
+                label="Upload ID/passport to auto-fill →"
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onExtracted={handleExtracted}
+                sessionToken={formTokenRef.current ?? undefined}
+                setError={setError}
+                personName={form.fullName}
+                personRole="enforcer"
+                personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+                initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'enforcer_id_copy')}
+              />
+              <InlineOcrUpload
+                section="other"
+                documentType="enforcer_kra_pin_copy"
+                label="Upload KRA PIN certificate to auto-fill →"
+                orgId={orgId}
+                entityId={entityId}
+                api={api}
+                onExtracted={handleExtracted}
+                sessionToken={formTokenRef.current ?? undefined}
+                setError={setError}
+                personName={form.fullName}
+                personRole="enforcer"
+                personId={form.id}
+                onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+                initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'enforcer_kra_pin_copy')}
+              />
+              <Field label="Full name" required>
+                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+              </Field>
+              {isTrustee(form.fullName) && trusteeWarning(form.fullName, form.isSuccessor)}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="ID / passport number" required>
+                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                </Field>
+                <Field label="KRA PIN">
+                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
+                </Field>
+              </div>
+              <Field label="Nationality">
+                <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Phone" required>
+                  <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+                </Field>
+                <Field label="Email" required>
+                  <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={(e) => set({ email: e.target.value })} />
+                </Field>
+              </div>
+              <AddressFields
+                value={form.address}
+                onChange={(p) => set({ address: { ...form.address, ...p } })}
+                requireCity={false}
+                requireCounty={false}
+                requirePostalCode={false}
+                requirePostalAddress={false}
+              />
+              {!form.isSuccessor && (
+                <>
+                  <Field label="Powers">
+                    <textarea className={inputCls} style={inputStyle} rows={2} placeholder="e.g. Approve changes to the Trust Deed; require the trustees to account" value={form.powers} onChange={(e) => set({ powers: e.target.value })} />
+                  </Field>
+                  <Field label="Appointment date">
+                    <input type="date" className={inputCls} style={inputStyle} value={form.appointmentDate} onChange={(e) => set({ appointmentDate: e.target.value })} />
+                  </Field>
+                </>
+              )}
+              {formError && <p className="text-ios-footnote text-red-600">{formError}</p>}
+              <div className="flex gap-2">
+                <PrimaryButton onClick={save}>{enforcers.some((e) => e.id === form.id) ? 'Update' : form.isSuccessor ? 'Add successor' : 'Add enforcer'}</PrimaryButton>
+                <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => openForm(emptyEnforcer(false))}
+                className="py-2.5 rounded-xl border border-dashed text-sm font-medium"
+                style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+              >
+                + Add {principals.length > 0 ? 'another enforcer' : 'enforcer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => openForm(emptyEnforcer(true))}
+                disabled={principals.length === 0}
+                className="py-2.5 rounded-xl border border-dashed text-sm font-medium disabled:opacity-40"
+                style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
+              >
+                + Add successor
+              </button>
+            </div>
+          )}
+
+          {principals.length > 0 && !enforcers.some((e) => e.isSuccessor) && !form && (
+            <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+              We recommend naming a successor enforcer, so the role isn&apos;t left empty if an enforcer dies or can no
+              longer act.
             </p>
           )}
-          <Field label="ID / registration information">
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorIdInfo ?? ''} onChange={(e) => patch({ protectorIdInfo: e.target.value })} />
-          </Field>
-          <Field label="Contact details">
-            <input type="text" className={inputCls} style={inputStyle} value={wizard.protectorContact ?? ''} onChange={(e) => patch({ protectorContact: e.target.value })} />
-          </Field>
-          <Field label="Powers">
-            <textarea className={inputCls} style={inputStyle} rows={2} value={wizard.protectorPowers ?? ''} onChange={(e) => patch({ protectorPowers: e.target.value })} />
-          </Field>
-          <Field label="Appointment date">
-            <input type="date" className={inputCls} style={inputStyle} value={wizard.protectorAppointmentDate ?? ''} onChange={(e) => patch({ protectorAppointmentDate: e.target.value })} />
-          </Field>
-          <Field label="Replacement mechanism">
-            <textarea className={inputCls} style={inputStyle} rows={2} placeholder="How is a replacement Protector/Enforcer appointed?" value={wizard.protectorReplacementMechanism ?? ''} onChange={(e) => patch({ protectorReplacementMechanism: e.target.value })} />
-          </Field>
 
-          <Field label="Is there a named successor Protector/Enforcer?">
-            <div className="grid grid-cols-2 gap-2">
-              {[true, false].map((v) => (
-                <button
-                  key={String(v)} type="button" onClick={() => patch({ hasSuccessorProtector: v })}
-                  className="py-2.5 rounded-xl border text-sm font-medium"
-                  style={{
-                    borderColor: wizard.hasSuccessorProtector === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                    background: wizard.hasSuccessorProtector === v ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                    color: 'var(--system-label)',
-                  }}
-                >
-                  {v ? 'Yes' : 'No'}
-                </button>
-              ))}
-            </div>
+          <Field label="How is a replacement enforcer appointed?">
+            <textarea className={inputCls} style={inputStyle} rows={2} placeholder="e.g. The remaining enforcers appoint a replacement within 30 days" value={wizard.protectorReplacementMechanism ?? ''} onChange={(e) => patch({ protectorReplacementMechanism: e.target.value })} />
           </Field>
-          {wizard.hasSuccessorProtector === true && (
-            <>
-              <Field label="Successor's full name" required>
-                <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorName ?? ''} onChange={(e) => patch({ successorProtectorName: e.target.value })} />
-              </Field>
-              {isTrustee(wizard.successorProtectorName) && (
-                <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
-                  {wizard.successorProtectorName?.trim()} is also a trustee — as successor enforcer they could not carry
-                  out the enforcer&apos;s supervisory functions (s. 15).
-                </p>
-              )}
-              <Field label="ID / registration information">
-                <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorIdInfo ?? ''} onChange={(e) => patch({ successorProtectorIdInfo: e.target.value })} />
-              </Field>
-              <Field label="Contact details">
-                <input type="text" className={inputCls} style={inputStyle} value={wizard.successorProtectorContact ?? ''} onChange={(e) => patch({ successorProtectorContact: e.target.value })} />
-              </Field>
-            </>
-          )}
-        </div>
+        </>
       )}
     </div>
   )
@@ -5631,6 +6120,7 @@ type SocietyMemberForm = {
   id?: string
   fullName: string
   idNumber: string
+  kraPin: string
   nationality: string
   address: AddressData
   email: string
@@ -5643,18 +6133,24 @@ type SocietyMemberForm = {
 
 function emptySocietyMember(): SocietyMemberForm {
   return {
-    fullName: '', idNumber: '', nationality: 'Kenyan', address: {}, email: '', phone: '',
+    fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan', address: {}, email: '', phone: '',
     membershipClass: '', isFoundingMember: true, dateAdmitted: new Date().toISOString().slice(0, 10), votingStatus: 'voting',
   }
 }
 
-function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
+function StepSocietyMembers({ members, setMembers, api, setError, applicant, orgId, entityId, documents, onExtracted, wizard }: {
   members: ShareholderRow[]
   setMembers: (m: ShareholderRow[]) => void
-  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
+  api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown> }>
   setError: (e: string) => void
   applicant?: { phone: string; email: string; address: AddressData }
+  orgId: string | null
+  entityId: string | null
+  documents: DocumentRow[]
+  onExtracted: () => Promise<void>
+  wizard: WizardData
 }) {
+  const classNames = wizard.socHasMembershipClasses ? societyMembershipClasses(wizard).map((c) => c.name.trim()).filter(Boolean) : []
   // First founding member captured for a society — same applicant-seed
   // gap as shareholder/director/settlor (2026-08-30 audit).
   const [form, setForm] = useState<SocietyMemberForm | null>(members.length === 0 ? {
@@ -5664,11 +6160,33 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
     address: applicant?.address ?? {},
   } : null)
   const [busy, setBusy] = useState(false)
+  // See StepDirectors' matching comment — stale-OCR-result guard.
+  const formTokenRef = useRef<string | null>(members.length === 0 ? crypto.randomUUID() : null)
+  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([])
   const set = (partial: Partial<SocietyMemberForm>) => setForm((prev) => (prev ? { ...prev, ...partial } : prev))
+  const openForm = (f: SocietyMemberForm) => { formTokenRef.current = crypto.randomUUID(); setUploadedDocIds([]); setForm(f) }
+
+  const handleExtracted = (fields: Record<string, unknown> | undefined, _personId?: string, wasReplace?: boolean, sessionToken?: string) => {
+    if (!fields || sessionToken !== formTokenRef.current) return
+    const f = fields as { full_name?: string; id_number?: string; kra_pin?: string; document_kind?: string }
+    setForm((prev) => {
+      if (!prev) return prev
+      const identity = !!wasReplace || isIdentityDocument(f.document_kind)
+      const pinAuthoritative = !!wasReplace || f.document_kind === 'kra_pin_certificate'
+      return {
+        ...prev,
+        fullName: (identity ? f.full_name : prev.fullName || f.full_name) || prev.fullName,
+        idNumber: (identity ? f.id_number : prev.idNumber || f.id_number) || prev.idNumber,
+        kraPin: ((pinAuthoritative ? f.kra_pin : prev.kraPin || f.kra_pin) || prev.kraPin).trim().toUpperCase(),
+        nationality: f.document_kind === 'national_id' ? 'Kenyan' : prev.nationality,
+      }
+    })
+  }
 
   const save = async () => {
     if (!form) return
     if (!form.fullName.trim()) { setError('Full name is required.'); return }
+    if (form.kraPin.trim() && !KRA_PIN_REGEX.test(form.kraPin.trim().toUpperCase())) { setError('KRA PIN format: A123456789B.'); return }
     setError('')
     setBusy(true)
     try {
@@ -5678,6 +6196,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
           id: form.id,
           legalName: form.fullName.trim(),
           idNumber: form.idNumber || undefined,
+          kraPin: form.kraPin.trim().toUpperCase() || undefined,
           sharesHeld: 1,
           structuredAddress: form.address,
           nationality: form.nationality || undefined,
@@ -5693,7 +6212,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
         id: result.id!,
         legal_name: form.fullName.trim(),
         id_or_reg_number: form.idNumber || null,
-        kra_pin: null,
+        kra_pin: form.kraPin.trim().toUpperCase() || null,
         phone: form.phone || null,
         email: form.email || null,
         shares_held: 1,
@@ -5706,6 +6225,10 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
         corporate_details: { isCorporate: false },
       }
       setMembers(form.id ? members.map((m) => (m.id === form.id ? updated : m)) : [...members, updated])
+      if (uploadedDocIds.length > 0) {
+        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: form.fullName.trim(), personRole: 'shareholder' })
+        await onExtracted()
+      }
       setForm(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.')
@@ -5746,10 +6269,11 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
               type="button"
               className="text-ios-footnote font-medium"
               style={{ color: 'var(--brand-navy)' }}
-              onClick={() => setForm({
+              onClick={() => openForm({
                 id: m.id,
                 fullName: m.legal_name,
                 idNumber: m.id_or_reg_number ?? '',
+                kraPin: m.kra_pin ?? '',
                 nationality: m.address?.nationality ?? 'Kenyan',
                 address: readLegacyAddress(m.address, m.address?.physicalAddress),
                 email: m.email ?? '',
@@ -5771,6 +6295,40 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
 
       {form ? (
         <div className="ios-surface rounded-2xl p-4 space-y-3">
+          {/* section "other": read-only extraction; the member row is
+              created by Save and the documents retagged to it then. */}
+          <InlineOcrUpload
+            section="other"
+            documentType="shareholder_id_copy"
+            label={form.id ? 'Upload a replacement ID/passport →' : 'Upload ID/passport to auto-fill →'}
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onExtracted={handleExtracted}
+            sessionToken={formTokenRef.current ?? undefined}
+            setError={setError}
+            personName={form.fullName}
+            personRole="shareholder"
+            personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'shareholder_id_copy')}
+          />
+          <InlineOcrUpload
+            section="other"
+            documentType="shareholder_kra_pin_copy"
+            label="Upload KRA PIN certificate to auto-fill →"
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onExtracted={handleExtracted}
+            sessionToken={formTokenRef.current ?? undefined}
+            setError={setError}
+            personName={form.fullName}
+            personRole="shareholder"
+            personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'shareholder_kra_pin_copy')}
+          />
           <Field label="Full name" required>
             <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
@@ -5778,10 +6336,13 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
             <Field label="ID / passport">
               <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
-            <Field label="Nationality">
-              <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+            <Field label="KRA PIN">
+              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
             </Field>
           </div>
+          <Field label="Nationality">
+            <input type="text" className={inputCls} style={inputStyle} value={form.nationality} onChange={(e) => set({ nationality: e.target.value })} />
+          </Field>
           <AddressFields
             value={form.address}
             onChange={(patch) => set({ address: { ...form.address, ...patch } })}
@@ -5799,7 +6360,15 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
             </Field>
           </div>
           <Field label="Membership class">
-            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Ordinary Member" value={form.membershipClass} onChange={(e) => set({ membershipClass: e.target.value })} />
+            {classNames.length > 0 ? (
+              <select className={inputCls} style={inputStyle} value={form.membershipClass} onChange={(e) => set({ membershipClass: e.target.value })}>
+                <option value="">Choose…</option>
+                {classNames.map((c) => <option key={c} value={c}>{c}</option>)}
+                {form.membershipClass && !classNames.includes(form.membershipClass) && <option value={form.membershipClass}>{form.membershipClass}</option>}
+              </select>
+            ) : (
+              <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Ordinary Member" value={form.membershipClass} onChange={(e) => set({ membershipClass: e.target.value })} />
+            )}
           </Field>
           <Field label="Date admitted">
             <input type="date" className={inputCls} style={inputStyle} value={form.dateAdmitted} onChange={(e) => set({ dateAdmitted: e.target.value })} />
@@ -5833,7 +6402,7 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant }: {
       ) : (
         <button
           type="button"
-          onClick={() => setForm(emptySocietyMember())}
+          onClick={() => openForm(emptySocietyMember())}
           className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
           style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
         >
@@ -6385,6 +6954,20 @@ const UPLOAD_SECTIONS: UploadSection[] = [
   },
   {
     key: 'other',
+    title: 'Enforcer documents — ID or passport',
+    hint: 'IDs or passports for each enforcer and successor enforcer.',
+    documentType: 'enforcer_id_copy',
+    visible: (t, w) => t === 'trust' && !!w.hasProtector,
+  },
+  {
+    key: 'other',
+    title: 'Enforcer documents — KRA PIN (optional)',
+    hint: 'KRA PIN certificates for each enforcer and successor enforcer.',
+    documentType: 'enforcer_kra_pin_copy',
+    visible: (t, w) => t === 'trust' && !!w.hasProtector,
+  },
+  {
+    key: 'other',
     title: 'Trust Deed',
     hint: 'Whatever was uploaded or prepared on the previous step lives here too.',
     documentType: 'trust_deed',
@@ -6416,6 +6999,13 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Member documents — ID or passport (optional)',
     hint: 'IDs or passports for founding members who can reasonably provide one.',
     documentType: 'shareholder_id_copy',
+    visible: (t) => t === 'society',
+  },
+  {
+    key: 'shareholder',
+    title: 'Member documents — KRA PIN (optional)',
+    hint: 'KRA PIN certificates for founding members who can reasonably provide one.',
+    documentType: 'shareholder_kra_pin_copy',
     visible: (t) => t === 'society',
   },
   {
@@ -6540,6 +7130,13 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Corporate party — representative ID',
     hint: 'National ID or passport of the person representing the corporate shareholder or director.',
     documentType: 'corporate_representative_id',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Corporate party — representative KRA PIN',
+    hint: 'KRA PIN certificate of the person representing the corporate shareholder or director.',
+    documentType: 'corporate_representative_kra_pin',
     visible: () => true,
   },
   {
@@ -7336,7 +7933,7 @@ function StepReview({ entityType, wizard, directors, shareholders, beneficialOwn
           <ReviewRow label="Trust property" value={`${(wizard.trustPropertyItems ?? []).length} item(s)`} />
         )}
         {isTrust && (
-          <ReviewRow label={<>Protector / <Term term="enforcer">Enforcer</Term></>} value={wizard.hasProtector ? (wizard.protectorName || 'Yes') : 'None'} />
+          <ReviewRow label={<>Protector / <Term term="enforcer">Enforcer</Term></>} value={wizard.hasProtector ? (trustEnforcers(wizard).map((e) => (e.isSuccessor ? `${e.fullName} (successor)` : e.fullName)).join(', ') || 'Yes') : 'None'} />
         )}
         {isTrust && (
           <ReviewRow label={<Term term="trustDeed">Trust Deed</Term>} value={documents.some((d) => d.document_type === 'trust_deed') ? 'Uploaded' : 'To be prepared'} />

@@ -47,6 +47,9 @@ export type IdpShareholder = {
   sharesHeld: number
   sharePercentage: number | null
   isNominee: boolean
+  // Trust beneficiaries / society members: short free-text detail column
+  // (adult/child, contact or guardian; membership class).
+  details?: string | null
 }
 
 export type IdpCorporateParty = {
@@ -154,7 +157,7 @@ export type IdpInput = {
   // company-registration framing the rest of this document defaults to.
   isTrust?: boolean
   trustProperty?: Array<{ description: string; category: string; approxValue: string | null; isVested: boolean }>
-  protector?: { name: string; powers: string | null } | null
+  enforcers?: Array<{ name: string; role: string; idNumber: string | null; contact: string | null; powers: string | null }>
   hasTrustDeed?: boolean | null
   trustFormationRoute?: string | null
   // Charitable trust objects — the applicant's proposals, which inform
@@ -301,9 +304,9 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
     if (isTrust || isSociety) {
       ctx.section(isSociety ? 'Founding Members' : 'Beneficiaries')
       ctx.table(
-        [isSociety ? 'Name' : 'Name / class', 'ID / Passport (if applicable)'],
-        [0.6, 0.4],
-        input.shareholders.map((s) => [s.legalName, s.idOrRegNumber ?? '—'])
+        [isSociety ? 'Name' : 'Name / class', 'ID / Passport', 'Details'],
+        [0.32, 0.2, 0.48],
+        input.shareholders.map((s) => [s.legalName, s.idOrRegNumber ?? '—', s.details ?? '—'])
       )
     } else {
       ctx.section('Shareholders & Cap Table')
@@ -432,10 +435,15 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
       ctx.field('Declaration', 'No trust property recorded yet.')
     }
     ctx.section('Protector / Enforcer')
-    ctx.field('Appointed', input.protector ? 'Yes' : 'No')
-    if (input.protector) {
-      ctx.field('Name', input.protector.name)
-      ctx.field('Powers', input.protector.powers ?? '—')
+    const enforcers = input.enforcers ?? []
+    ctx.field('Appointed', enforcers.length > 0 ? 'Yes' : 'No')
+    if (enforcers.length > 0) {
+      ctx.table(
+        ['Name', 'Role', 'ID / Passport', 'Contact'],
+        [0.26, 0.26, 0.18, 0.3],
+        enforcers.map((e) => [e.name, e.role, e.idNumber ?? '—', e.contact ?? '—'])
+      )
+      for (const e of enforcers) if (e.powers) ctx.field(`Powers — ${e.name}`, e.powers)
     }
   }
 

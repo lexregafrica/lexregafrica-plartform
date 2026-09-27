@@ -13,11 +13,14 @@ import {
   TRUST_FORMATION_ROUTES,
   trustRouteNote,
   trusteeRuleError,
+  trustEnforcers,
+  enforcerError,
   charitableObjectsError,
   CHARITABLE_OBJECT_CATEGORIES,
   CHARITABLE_ACTIVITY_LOCATIONS,
   type EntityType,
   type WizardData,
+  type TrustBeneficiaryDetails,
 } from '@/lib/onboarding/new-entity'
 
 // OCR extraction retries up to twice on 503/429 with growing backoff
@@ -440,6 +443,8 @@ export async function POST(request: Request) {
         isFoundingMember?: boolean
         dateAdmitted?: string
         votingStatus?: string
+        // Trust only — beneficiary extras (adult/child, guardian, class).
+        beneficiary?: TrustBeneficiaryDetails
       }
     }
     if (!shareholder?.legalName || !shareholder?.sharesHeld) {
@@ -467,6 +472,7 @@ export async function POST(request: Request) {
         isFoundingMember: shareholder.isFoundingMember ?? undefined,
         dateAdmitted: shareholder.dateAdmitted ?? undefined,
         votingStatus: shareholder.votingStatus ?? undefined,
+        beneficiary: shareholder.beneficiary ?? undefined,
       } as Json,
       corporate_details: {
         nominee: shareholder.isNominee || undefined,
@@ -613,7 +619,7 @@ export async function POST(request: Request) {
         // grouping) and a category label — Charles call, 2026-08: tag docs
         // by who/what they're for, not just their type, since there's no
         // per-person FK on this table.
-        personName?: string; personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+        personName?: string; personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
         // The saved row's own id, when there is one — preferred over
         // name matching, which can race with the name itself still
         // landing in form state (Charles call, 2026-08: a photo
@@ -702,7 +708,7 @@ export async function POST(request: Request) {
       documentIds?: string[]
       personId?: string
       personName?: string
-      personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+      personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
     }
     if (!documentIds?.length || !targetPersonId) return NextResponse.json({ ok: true })
 
@@ -734,7 +740,7 @@ export async function POST(request: Request) {
       sourcePersonId?: string
       targetPersonId?: string
       targetName?: string
-      targetRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'entity'
+      targetRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
       typeMap?: Record<string, string>
     }
     if (!sourcePersonId || !targetPersonId || !typeMap) return NextResponse.json({ ok: true })
@@ -1429,6 +1435,18 @@ async function generateAndStoreIdp(
         sharesHeld: s.shares_held,
         sharePercentage: s.share_percentage,
         isNominee: !!cd && !!(cd as { nominee?: boolean }).nominee,
+        details: (() => {
+          const a = s.address as { beneficiary?: TrustBeneficiaryDetails; membershipClass?: string } | null
+          if (ctx.entityType === 'society') return a?.membershipClass ?? null
+          if (ctx.entityType !== 'trust') return null
+          const b = a?.beneficiary
+          if (!b) return null
+          if (b.isClass) return 'Class of beneficiaries'
+          const contact = (phone?: string | null, email?: string | null) => [phone, email].filter(Boolean).join(', ')
+          return b.isMinor
+            ? ['Child', b.relationship, b.guardianName && `Guardian: ${b.guardianName}${b.guardianRelationship ? ` (${b.guardianRelationship})` : ''}`, contact(b.guardianPhone, b.guardianEmail)].filter(Boolean).join(' · ')
+            : ['Adult', b.relationship, contact(s.phone, s.email)].filter(Boolean).join(' · ')
+        })(),
       }
     })
 
@@ -1506,7 +1524,8 @@ async function generateAndStoreIdp(
       { label: 'KRA PIN certificates', types: ['director_kra_pin_copy', 'shareholder_kra_pin_copy', 'beneficial_owner_kra_pin_copy'] },
       { label: 'Passport photos', types: ['passport_photo'] },
       { label: 'Proof of registered office', types: ['proof_of_address'] },
-      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_company_search', 'corporate_representative_id', 'foreign_constitutional_documents'] },
+      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_company_search', 'corporate_representative_id', 'corporate_representative_kra_pin', 'foreign_constitutional_documents'] },
+      ...(ctx.entityType === 'trust' && w.hasProtector ? [{ label: 'Enforcer documents', types: ['enforcer_id_copy', 'enforcer_kra_pin_copy'] }] : []),
       { label: 'Registration forms', types: formDefs.map((f) => f.type) },
     ].map((g) => ({
       label: g.label,
@@ -1544,6 +1563,10 @@ async function generateAndStoreIdp(
         }
       }
       if (w.hasProtector === undefined) exceptions.push('Protector/Enforcer status not yet confirmed.')
+      if (w.hasProtector) {
+        const incomplete = trustEnforcers(w).filter((e) => enforcerError(e)).map((e) => e.fullName || 'unnamed enforcer')
+        if (incomplete.length > 0) exceptions.push(`Enforcer details incomplete: ${incomplete.join(', ')}.`)
+      }
       if (!w.trustFormationRoute) exceptions.push('Registration vs. incorporation not yet chosen.')
     } else if (ctx.entityType === 'society') {
       if ((directors ?? []).length === 0) exceptions.push('No officers captured.')
@@ -1628,7 +1651,15 @@ async function generateAndStoreIdp(
         category: TRUST_PROPERTY_CATEGORY_LABELS[p.category] ?? p.category,
         approxValue: p.approxValue ?? null, isVested: p.isVested,
       })),
-      protector: w.hasProtector ? { name: w.protectorName ?? '—', powers: w.protectorPowers ?? null } : null,
+      enforcers: w.hasProtector
+        ? trustEnforcers(w).map((e, _i, all) => ({
+            name: e.fullName,
+            role: e.isSuccessor ? `Successor — replaces ${all.find((x) => x.id === e.successorToId)?.fullName ?? 'any enforcer'}` : 'Enforcer',
+            idNumber: e.idNumber || null,
+            contact: [e.phone, e.email].filter(Boolean).join(', ') || null,
+            powers: e.powers?.trim() || null,
+          }))
+        : [],
       hasTrustDeed: docTypes.has('trust_deed'),
       trustFormationRoute: TRUST_FORMATION_ROUTES.find((r) => r.value === w.trustFormationRoute)?.label ?? null,
       charitableObjects: (w.charitableObjects ?? []).map((o) => ({

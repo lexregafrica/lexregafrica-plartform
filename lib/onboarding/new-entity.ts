@@ -195,6 +195,76 @@ export function charitableObjectsError(w: WizardData): string | null {
   return null
 }
 
+// Trust beneficiary extras, stored on the shareholders row's address
+// jsonb (beneficiaries reuse that table). Adults are identified like any
+// other party; for a child we record who to reach instead (Charles,
+// 2026-09-25).
+export type TrustBeneficiaryDetails = {
+  isClass?: boolean
+  relationship?: string
+  isMinor?: boolean
+  guardianName?: string
+  guardianRelationship?: string
+  guardianPhone?: string
+  guardianEmail?: string
+}
+
+export type TrustEnforcer = {
+  id: string
+  isSuccessor: boolean
+  successorToId?: string // the enforcer this person replaces; unset = any
+  fullName: string
+  idNumber: string
+  kraPin: string
+  nationality: string
+  phone: string
+  email: string
+  address: AddressData
+  powers: string
+  appointmentDate: string
+}
+
+export function emptyEnforcer(isSuccessor = false): TrustEnforcer {
+  return {
+    id: crypto.randomUUID(), isSuccessor, fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan',
+    phone: '', email: '', address: {}, powers: '', appointmentDate: '',
+  }
+}
+
+// Reads the enforcer list, converting drafts saved with the old single
+// protector/successor fields so nothing already entered is lost.
+export function trustEnforcers(w: WizardData): TrustEnforcer[] {
+  if (w.enforcers) return w.enforcers
+  const fromLegacy = (name: string | undefined, idInfo: string | undefined, contact: string | undefined, isSuccessor: boolean, id: string): TrustEnforcer | null => {
+    if (!name?.trim()) return null
+    const c = contact?.trim() ?? ''
+    return {
+      ...emptyEnforcer(isSuccessor),
+      id,
+      fullName: name.trim(),
+      idNumber: idInfo?.trim() ?? '',
+      email: c.includes('@') ? c : '',
+      phone: c.includes('@') ? '' : c,
+      powers: isSuccessor ? '' : w.protectorPowers ?? '',
+      appointmentDate: isSuccessor ? '' : w.protectorAppointmentDate ?? '',
+    }
+  }
+  return [
+    fromLegacy(w.protectorName, w.protectorIdInfo, w.protectorContact, false, 'legacy-enforcer'),
+    w.hasSuccessorProtector ? fromLegacy(w.successorProtectorName, w.successorProtectorIdInfo, w.successorProtectorContact, true, 'legacy-successor') : null,
+  ].filter((e): e is TrustEnforcer => !!e)
+}
+
+export function enforcerError(e: TrustEnforcer): string | null {
+  const who = e.fullName.trim() || (e.isSuccessor ? 'the successor enforcer' : 'the enforcer')
+  if (!e.fullName.trim()) return `Enter the full name of ${who}.`
+  if (!e.idNumber.trim()) return `Enter the ID or passport number for ${who}.`
+  if (e.kraPin.trim() && !KRA_PIN_REGEX.test(e.kraPin.trim().toUpperCase())) return `KRA PIN for ${who} must be in the format A123456789B.`
+  if (!e.phone.trim() || !KENYA_PHONE_REGEX.test(e.phone)) return `Enter a valid phone number for ${who} (07XXXXXXXX or +2547XXXXXXXX).`
+  if (!e.email.trim() || !EMAIL_REGEX.test(e.email)) return `Enter a valid email address for ${who}.`
+  return null
+}
+
 export type TrusteeForRules = {
   name: string
   isCorporate: boolean
@@ -617,6 +687,11 @@ export type WizardData = {
   successorProtectorName?: string
   successorProtectorIdInfo?: string
   successorProtectorContact?: string
+  // Replaces the single protector*/successorProtector* fields above
+  // (kept only so older drafts can be read — see trustEnforcers()). A
+  // trust may have more than one enforcer at a time, plus named
+  // successors (Charles, 2026-09-25).
+  enforcers?: TrustEnforcer[]
   // Step 3 — proposed name for the incorporated trustees (a body
   // corporate distinct from the trust itself, Trust spec section 17).
   trusteeCorporateName?: string
