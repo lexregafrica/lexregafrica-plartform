@@ -231,6 +231,58 @@ export type CorporateParticipant = {
   // acting as a director (table D)
   serviceAddressForNotices: string
   basisOfAuthorityToAct: 'board_resolution' | 'power_of_attorney' | 'constitutional_document' | 'other' | ''
+  // Corporate trustee only (Charles's "Corporate Entities which can be
+  // trustees" table, 2026-09-26; Trust Administration Act s. 36).
+  trusteeType?: CorporateTrusteeType
+  legalBasis?: string // other body corporate: constituting statute/instrument
+  authorisedOfficers?: string // other body corporate
+  appointmentDetails?: string // Public Trustee
+  repResidentInKenya?: boolean // s. 36: resident Kenyan natural-person contact
+}
+
+export type CorporateTrusteeType = 'company_limited_by_shares' | 'company_limited_by_guarantee' | 'llp' | 'public_trustee' | 'other_body_corporate'
+
+const CORPORATE_TRUSTEE_TYPES: Array<{ value: CorporateTrusteeType; label: string; entityType: CorporateParticipant['corporateEntityType'] }> = [
+  { value: 'company_limited_by_shares', label: 'Company limited by shares', entityType: 'private_company' },
+  { value: 'company_limited_by_guarantee', label: 'Company limited by guarantee', entityType: 'other' },
+  { value: 'llp', label: 'Limited liability partnership (LLP)', entityType: 'llp' },
+  { value: 'public_trustee', label: 'Public Trustee', entityType: 'other' },
+  { value: 'other_body_corporate', label: 'Other body corporate', entityType: 'other' },
+]
+
+// The directors table needs an identifier; a Public Trustee or an
+// unregistered body corporate has no registration number.
+function corporateIdentifier(c: CorporateParticipant): string {
+  return c.regNumber.trim() || (c.trusteeType === 'public_trustee' ? 'Public Trustee' : 'Not registered')
+}
+
+type CorporateUpload = { documentType: string; label: string }
+
+function corporateUploads(isTrustee: boolean, trusteeType: CorporateTrusteeType | undefined): CorporateUpload[] {
+  const cert = { documentType: 'corporate_certificate_of_incorporation', label: 'Upload Certificate of Incorporation →' }
+  const pin = { documentType: 'corporate_tax_certificate', label: 'Upload company KRA PIN certificate →' }
+  const cr12 = { documentType: 'corporate_company_search', label: 'Upload Company Search (CR12) →' }
+  if (!isTrustee || trusteeType === 'company_limited_by_shares') return [cert, pin, cr12]
+  switch (trusteeType) {
+    case 'company_limited_by_guarantee':
+      return [cert, pin, cr12, { documentType: 'corporate_constitution', label: 'Upload constitution (for review) →' }]
+    case 'llp':
+      return [cert, pin, { documentType: 'corporate_company_search', label: 'Upload registry record / search →' }, { documentType: 'corporate_llp_agreement', label: 'Upload LLP agreement (for review) →' }]
+    case 'public_trustee':
+      return [
+        { documentType: 'public_trustee_appointment', label: 'Upload appointment / acceptance document →' },
+        { documentType: 'trust_instrument', label: 'Upload the relevant trust instrument →' },
+      ]
+    case 'other_body_corporate':
+      return [
+        { documentType: 'corporate_constituting_document', label: 'Upload constituting statute or incorporation document →' },
+        { documentType: 'corporate_officeholders', label: 'Upload evidence of current officeholders →' },
+        { documentType: 'corporate_tax_certificate', label: 'Upload KRA PIN certificate (if any) →' },
+        { documentType: 'corporate_authority_document', label: 'Upload proof of authority to accept this trusteeship →' },
+      ]
+    default:
+      return []
+  }
 }
 
 type DirectorRow = {
@@ -653,6 +705,12 @@ export function NewEntityWizard() {
             const extra = b.address?.beneficiary
             if (!extra?.isClass && extra?.isMinor === undefined) return `Open ${b.legal_name} and tell us whether they are an adult or a child.`
           }
+          // s. 12(3): a settlor may be a beneficiary but not the sole one.
+          const isSettlor = (b: ShareholderRow) =>
+            beneficialOwners.some((so) => samePerson({ name: so.full_name, id: so.id_number }, { name: b.legal_name, id: b.id_or_reg_number }))
+          if (!shareholders.some((b) => b.address?.beneficiary?.isClass || !isSettlor(b))) {
+            return 'A settlor can’t be the only beneficiary of their own trust — add at least one other beneficiary or a class.'
+          }
           return null
         }
         if (entityType === 'society') {
@@ -939,6 +997,10 @@ export function NewEntityWizard() {
               setError={setError}
               documents={documents}
               applicant={applicantDefaults}
+              trustKind={wizard.trustKind}
+              beneficiaries={shareholders}
+              trustees={directors}
+              onLinkedChanged={refresh}
             />
           ) :
           entityType === 'society' ? <StepSocietyEligibility wizard={wizard} patch={patch} /> :
@@ -1171,17 +1233,21 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
         <div className="space-y-2">
           {TRUST_KINDS.map((k) => {
             const selected = wizard.trustKind === k.value
+            const choose = () => { if (k.enabled) patch({ trustKind: k.value }) }
             return (
-              <button
+              <div
                 key={k.value}
-                type="button"
-                disabled={!k.enabled}
-                onClick={() => k.enabled && patch({ trustKind: k.value })}
-                className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
+                role="button"
+                tabIndex={k.enabled ? 0 : -1}
+                aria-disabled={!k.enabled}
+                onClick={choose}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose() } }}
+                className="w-full text-left rounded-xl border p-4 transition-colors"
                 style={{
                   borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
                   background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
                   opacity: k.enabled ? 1 : 0.45,
+                  cursor: k.enabled ? 'pointer' : 'not-allowed',
                 }}
               >
                 <span className="flex items-center gap-2">
@@ -1192,8 +1258,20 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
                     </span>
                   )}
                 </span>
-                <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{k.description}</span>
-              </button>
+                <span className="block text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{k.description}</span>
+                {k.guideUrl && (
+                  <a
+                    href={k.guideUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-ios-caption1 font-semibold underline mt-1 inline-block"
+                    style={{ color: 'var(--brand-navy)' }}
+                  >
+                    What is a {k.label.toLowerCase()}? →
+                  </a>
+                )}
+              </div>
             )
           })}
         </div>
@@ -1252,17 +1330,22 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
               <span className="text-ios-footnote block" style={{ color: 'var(--system-label-2)' }}>
                 {t.description}
               </span>
-              {t.guideUrl && (
-                <a
-                  href={t.guideUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-ios-caption1 font-semibold underline mt-1 inline-block"
-                  style={{ color: 'var(--brand-navy)' }}
-                >
-                  What is a {t.label.toLowerCase()}? →
-                </a>
+              {t.guides && (
+                <span className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                  {t.guides.map((g) => (
+                    <a
+                      key={g.url}
+                      href={g.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-ios-caption1 font-semibold underline"
+                      style={{ color: 'var(--brand-navy)' }}
+                    >
+                      {g.label} →
+                    </a>
+                  ))}
+                </span>
               )}
             </div>
           )
@@ -2108,6 +2191,12 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   corporate_company_search: 'Company Search (CR12)',
   corporate_representative_id: 'Representative ID',
   corporate_representative_kra_pin: 'Representative KRA PIN',
+  corporate_constitution: 'Constitution',
+  corporate_llp_agreement: 'LLP Agreement',
+  public_trustee_appointment: 'Appointment / Acceptance',
+  trust_instrument: 'Trust Instrument',
+  corporate_constituting_document: 'Constituting Document',
+  corporate_officeholders: 'Current Officeholders',
   enforcer_id_copy: 'ID / Passport',
   enforcer_kra_pin_copy: 'KRA PIN Certificate',
 }
@@ -2515,7 +2604,7 @@ function mergeCorporateExtraction(
 export function CorporateFields({ value, onChange, context, orgId, entityId, api, setError, onExtracted, sessionToken, personId, documents, onDocumentRegistered }: {
   value: CorporateParticipant
   onChange: (p: Partial<CorporateParticipant>) => void
-  context: 'director' | 'shareholder'
+  context: 'director' | 'shareholder' | 'trustee'
   // OCR auto-fill wiring — optional since existing-entity-wizard.tsx reuses
   // this component without it and just asks for manual entry there.
   orgId?: string | null
@@ -2537,158 +2626,213 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
   const onRepresentativeExtracted: typeof onExtracted = onExtracted
     ? (fields, pid, wasReplace, token) => onExtracted(fields ? { ...fields, __target: 'representative' } : fields, pid, wasReplace, token)
     : undefined
+  const isTrustee = context === 'trustee'
+  const trusteeType = value.trusteeType
+  const isPublicTrustee = isTrustee && trusteeType === 'public_trustee'
+  const isOtherBody = isTrustee && trusteeType === 'other_body_corporate'
+  // Company-document uploads: "director"/"shareholder" OCR sections are
+  // harmless here (company documents carry no person name to auto-create
+  // from), and match what the rest of this form already used.
+  const ocrSection = context === 'shareholder' ? 'shareholder' : 'director'
+  const uploads = corporateUploads(isTrustee, trusteeType)
+  const showDetails = !isTrustee || !!trusteeType
   return (
     <div className="space-y-3 rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
-      {api && setError && onExtracted && (
-      <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg)' }}>
-        <p className="text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
-          Upload the company&apos;s own registration documents to auto-fill the details below.
-        </p>
-        <InlineOcrUpload
-          section={context}
-          documentType="corporate_certificate_of_incorporation"
-          label="Upload Certificate of Incorporation →"
-          orgId={orgId ?? null}
-          entityId={entityId ?? null}
-          api={api}
-          onExtracted={onExtracted}
-          sessionToken={sessionToken}
-          setError={setError}
-          personName={value.registeredName}
-          personRole="corporate_party"
-          personId={personId}
-          onDocumentRegistered={onDocumentRegistered}
-          initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_certificate_of_incorporation')}
-        />
-        <InlineOcrUpload
-          section={context}
-          documentType="corporate_tax_certificate"
-          label="Upload company KRA PIN certificate →"
-          orgId={orgId ?? null}
-          entityId={entityId ?? null}
-          api={api}
-          onExtracted={onExtracted}
-          sessionToken={sessionToken}
-          setError={setError}
-          personName={value.registeredName}
-          personRole="corporate_party"
-          personId={personId}
-          onDocumentRegistered={onDocumentRegistered}
-          initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_tax_certificate')}
-        />
-        <InlineOcrUpload
-          section={context}
-          documentType="corporate_company_search"
-          label="Upload Company Search (CR12) →"
-          orgId={orgId ?? null}
-          entityId={entityId ?? null}
-          api={api}
-          onExtracted={onExtracted}
-          sessionToken={sessionToken}
-          setError={setError}
-          personName={value.registeredName}
-          personRole="corporate_party"
-          personId={personId}
-          onDocumentRegistered={onDocumentRegistered}
-          initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_company_search')}
-        />
-      </div>
-      )}
-      <Field label="Registered company name" required>
-        <input type="text" className={inputCls} style={inputStyle} value={value.registeredName} onChange={(e) => onChange({ registeredName: e.target.value })} />
-      </Field>
-      <Field label="Trade name (if different)">
-        <input type="text" className={inputCls} style={inputStyle} value={value.tradeName} onChange={(e) => onChange({ tradeName: e.target.value })} />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Entity type" required>
-          <select className={inputCls} style={inputStyle} value={value.corporateEntityType} onChange={(e) => onChange({ corporateEntityType: e.target.value as CorporateParticipant['corporateEntityType'] })}>
+      {isTrustee && (
+        <Field label="Type of corporate trustee" required>
+          <select
+            className={inputCls}
+            style={inputStyle}
+            value={trusteeType ?? ''}
+            onChange={(e) => {
+              const t = CORPORATE_TRUSTEE_TYPES.find((x) => x.value === e.target.value)
+              if (t) onChange({ trusteeType: t.value, corporateEntityType: t.entityType })
+            }}
+          >
             <option value="" disabled>Choose…</option>
-            {CORPORATE_ENTITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {CORPORATE_TRUSTEE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </Field>
-        <Field label="Registration number" required>
-          <input type="text" className={inputCls} style={inputStyle} value={value.regNumber} onChange={(e) => onChange({ regNumber: e.target.value })} />
-        </Field>
+      )}
+      {isTrustee && trusteeType === 'company_limited_by_guarantee' && (
+        <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+          A company limited by guarantee has members or guarantors instead of shareholders — no share percentages are needed.
+        </p>
+      )}
+      {isOtherBody && (
+        <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
+          This type of trustee is sent for professional review before the trust is filed.
+        </p>
+      )}
+      {showDetails && api && setError && onExtracted && uploads.length > 0 && (
+      <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg)' }}>
+        <p className="text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
+          {isPublicTrustee ? 'Upload the appointment documents for this trusteeship.' : 'Upload the organisation’s own documents to auto-fill the details below.'}
+        </p>
+        {uploads.map((u) => (
+          <InlineOcrUpload
+            key={u.documentType + u.label}
+            section={ocrSection}
+            documentType={u.documentType}
+            label={u.label}
+            orgId={orgId ?? null}
+            entityId={entityId ?? null}
+            api={api}
+            onExtracted={onExtracted}
+            sessionToken={sessionToken}
+            setError={setError}
+            personName={value.registeredName}
+            personRole="corporate_party"
+            personId={personId}
+            onDocumentRegistered={onDocumentRegistered}
+            initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, u.documentType)}
+          />
+        ))}
       </div>
-      <Field label="Is this company local (Kenyan) or foreign?" required>
-        <div className="grid grid-cols-2 gap-2">
-          {[{ v: false, label: 'Kenyan' }, { v: true, label: 'Foreign' }].map(({ v, label }) => (
-            <button
-              key={String(v)}
-              type="button"
-              onClick={() => onChange({ isForeign: v })}
-              className="py-2 rounded-xl border text-xs font-medium"
-              style={{
-                borderColor: value.isForeign === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                background: value.isForeign === v ? 'var(--system-bg)' : 'var(--system-bg-2)',
-                color: 'var(--system-label)',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      )}
+      {showDetails && (<>
+      <Field label={isPublicTrustee ? 'Office name' : 'Registered name'} required>
+        <input type="text" className={inputCls} style={inputStyle} placeholder={isPublicTrustee ? 'e.g. The Public Trustee, Nairobi' : undefined} value={value.registeredName} onChange={(e) => onChange({ registeredName: e.target.value })} />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Country of incorporation" required>
-          <input type="text" className={inputCls} style={inputStyle} value={value.countryOfIncorporation} onChange={(e) => onChange({ countryOfIncorporation: e.target.value })} />
+      {isPublicTrustee ? (
+        <Field label="Appointment details" required>
+          <textarea className={inputCls} style={inputStyle} rows={2} placeholder="e.g. Appointed under the trust instrument dated …; acceptance dated …" value={value.appointmentDetails ?? ''} onChange={(e) => onChange({ appointmentDetails: e.target.value })} />
         </Field>
-        <Field label="Date of incorporation">
-          <input type="date" className={inputCls} style={inputStyle} value={value.incorporationDate} onChange={(e) => onChange({ incorporationDate: e.target.value })} />
-        </Field>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={value.isForeign ? 'Foreign tax ID' : 'Company KRA PIN'} required>
-          <input type="text" className={inputCls} style={inputStyle} value={value.isForeign ? value.foreignTaxId : value.kraPin} onChange={(e) => onChange(value.isForeign ? { foreignTaxId: e.target.value } : { kraPin: e.target.value.toUpperCase() })} />
-        </Field>
-        {value.isForeign && (
-          <Field label="Good standing status">
-            <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Active / Certificate on file" value={value.goodStandingStatus} onChange={(e) => onChange({ goodStandingStatus: e.target.value })} />
+      ) : (
+        <>
+          <Field label="Trade name (if different)">
+            <input type="text" className={inputCls} style={inputStyle} value={value.tradeName} onChange={(e) => onChange({ tradeName: e.target.value })} />
           </Field>
-        )}
-      </div>
-      <Field label="Registered office address" required>
+          {isOtherBody && (
+            <>
+              <Field label="Legal basis" required>
+                <input type="text" className={inputCls} style={inputStyle} placeholder="The statute or instrument that constitutes it" value={value.legalBasis ?? ''} onChange={(e) => onChange({ legalBasis: e.target.value })} />
+              </Field>
+              <Field label="Authorised officers" required>
+                <textarea className={inputCls} style={inputStyle} rows={2} placeholder="Names and offices of those authorised to act for it" value={value.authorisedOfficers ?? ''} onChange={(e) => onChange({ authorisedOfficers: e.target.value })} />
+              </Field>
+            </>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            {!isTrustee && (
+              <Field label="Entity type" required>
+                <select className={inputCls} style={inputStyle} value={value.corporateEntityType} onChange={(e) => onChange({ corporateEntityType: e.target.value as CorporateParticipant['corporateEntityType'] })}>
+                  <option value="" disabled>Choose…</option>
+                  {CORPORATE_ENTITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </Field>
+            )}
+            <Field label={isOtherBody ? 'Registration number (if any)' : 'Registration number'} required={!isOtherBody}>
+              <input type="text" className={inputCls} style={inputStyle} value={value.regNumber} onChange={(e) => onChange({ regNumber: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Is this organisation local (Kenyan) or foreign?" required>
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: false, label: 'Kenyan' }, { v: true, label: 'Foreign' }].map(({ v, label }) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => onChange({ isForeign: v })}
+                  className="py-2 rounded-xl border text-xs font-medium"
+                  style={{
+                    borderColor: value.isForeign === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                    background: value.isForeign === v ? 'var(--system-bg)' : 'var(--system-bg-2)',
+                    color: 'var(--system-label)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Country of incorporation" required>
+              <input type="text" className={inputCls} style={inputStyle} value={value.countryOfIncorporation} onChange={(e) => onChange({ countryOfIncorporation: e.target.value })} />
+            </Field>
+            <Field label="Date of incorporation">
+              <input type="date" className={inputCls} style={inputStyle} value={value.incorporationDate} onChange={(e) => onChange({ incorporationDate: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={value.isForeign ? 'Foreign tax ID' : isOtherBody ? 'KRA PIN (if any)' : 'KRA PIN'} required={!isOtherBody}>
+              <input type="text" className={inputCls} style={inputStyle} value={value.isForeign ? value.foreignTaxId : value.kraPin} onChange={(e) => onChange(value.isForeign ? { foreignTaxId: e.target.value } : { kraPin: e.target.value.toUpperCase() })} />
+            </Field>
+            {value.isForeign && (
+              <Field label="Good standing status">
+                <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Active / Certificate on file" value={value.goodStandingStatus} onChange={(e) => onChange({ goodStandingStatus: e.target.value })} />
+              </Field>
+            )}
+          </div>
+        </>
+      )}
+      <Field label={isPublicTrustee ? 'Office address' : 'Registered office address'} required={!isPublicTrustee}>
         <input type="text" className={inputCls} style={inputStyle} value={value.registeredOfficeAddress} onChange={(e) => onChange({ registeredOfficeAddress: e.target.value })} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Postal address">
           <input type="text" className={inputCls} style={inputStyle} value={value.postalAddress} onChange={(e) => onChange({ postalAddress: e.target.value })} />
         </Field>
-        <Field label="Company email">
+        <Field label="Email">
           <input type="email" className={inputCls} style={inputStyle} value={value.corporateEmail} onChange={(e) => onChange({ corporateEmail: e.target.value })} />
         </Field>
       </div>
-      <Field label="Company phone">
+      <Field label="Phone">
         <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={value.corporatePhone} onChange={(e) => onChange({ corporatePhone: e.target.value })} />
       </Field>
 
-      {context === 'director' && (
+      {(context === 'director' || (isTrustee && !isPublicTrustee)) && (
         <>
           <div className="h-px" style={{ background: 'var(--system-fill-3)' }} />
           <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
-            Director-specific
+            {isTrustee ? 'Trustee-specific' : 'Director-specific'}
           </p>
           <Field label="Service address for notices" required>
             <input type="text" className={inputCls} style={inputStyle} value={value.serviceAddressForNotices} onChange={(e) => onChange({ serviceAddressForNotices: e.target.value })} />
           </Field>
-          <Field label="Basis of authority to act as director" required>
+          <Field label={isTrustee ? 'Basis of authority to act as trustee' : 'Basis of authority to act as director'} required>
             <select className={inputCls} style={inputStyle} value={value.basisOfAuthorityToAct} onChange={(e) => onChange({ basisOfAuthorityToAct: e.target.value as CorporateParticipant['basisOfAuthorityToAct'] })}>
               <option value="" disabled>Choose…</option>
               {AUTHORITY_BASIS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
-            A corporate director is flagged for legal review before filing — our team will confirm the authority
-            document before this application is submitted to BRS.
+            {isTrustee
+              ? 'A corporate trustee is flagged for legal review before filing — our team will confirm its authority to accept this trusteeship.'
+              : 'A corporate director is flagged for legal review before filing — our team will confirm the authority document before this application is submitted to BRS.'}
           </p>
         </>
       )}
 
       <div className="h-px" style={{ background: 'var(--system-fill-3)' }} />
       <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
-        Authorised representative (natural person who acts for this company)
+        {isTrustee ? 'Contact person (natural person who acts for this trustee)' : 'Authorised representative (natural person who acts for this company)'}
       </p>
+      {isTrustee && (
+        <Field label="Is this contact person resident in Kenya?" required>
+          <div className="grid grid-cols-2 gap-2">
+            {[true, false].map((v) => (
+              <button
+                key={String(v)}
+                type="button"
+                onClick={() => onChange({ repResidentInKenya: v })}
+                className="py-2 rounded-xl border text-xs font-medium"
+                style={{
+                  borderColor: value.repResidentInKenya === v ? 'var(--brand-navy)' : 'var(--system-fill-3)',
+                  background: value.repResidentInKenya === v ? 'var(--system-bg)' : 'var(--system-bg-2)',
+                  color: 'var(--system-label)',
+                }}
+              >
+                {v ? 'Yes' : 'No'}
+              </button>
+            ))}
+          </div>
+          {value.repResidentInKenya === false && (
+            <p className="text-ios-caption1 mt-1 text-red-600">
+              A corporate trustee must have a contact person who is resident in Kenya (Trust Administration Act, 2026, s. 36).
+            </p>
+          )}
+        </Field>
+      )}
       {api && setError && onRepresentativeExtracted && (
         <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg)' }}>
           <p className="text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
@@ -2767,9 +2911,12 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
       <Field label="Authority / capacity to act">
         <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Appointed by board resolution dated…" value={value.repAuthorityCapacity} onChange={(e) => onChange({ repAuthorityCapacity: e.target.value })} />
       </Field>
-      <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        Upload the board resolution or power of attorney in the document step.
-      </p>
+      {!isTrustee && (
+        <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+          Upload the board resolution or power of attorney in the document step.
+        </p>
+      )}
+      </>)}
     </div>
   )
 }
@@ -2821,6 +2968,33 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
     }
     if (entityType === 'society' && !f.position.trim()) return 'Enter this officer’s position/title.'
     if (entityType === 'trust' && f.isSuccessorTrustee && !f.successorToName.trim()) return 'Enter which trustee this person succeeds.'
+    if (f.isCorporate && entityType === 'trust') {
+      const c = f.corporate
+      if (!c.trusteeType) return 'Choose the type of corporate trustee.'
+      if (!c.registeredName.trim()) return c.trusteeType === 'public_trustee' ? 'Enter the office name.' : 'Registered name is required.'
+      if (c.trusteeType === 'public_trustee') {
+        if (!c.appointmentDetails?.trim()) return 'Enter the appointment details.'
+      } else {
+        if (c.trusteeType === 'other_body_corporate') {
+          if (!c.legalBasis?.trim()) return 'Enter the legal basis (the statute or instrument that constitutes it).'
+          if (!c.authorisedOfficers?.trim()) return 'List the authorised officers.'
+        } else {
+          if (!c.regNumber.trim()) return 'Registration number is required.'
+          if (c.isForeign ? !c.foreignTaxId.trim() : !c.kraPin.trim()) return c.isForeign ? 'Foreign tax ID is required.' : 'KRA PIN is required.'
+        }
+        if (!c.countryOfIncorporation.trim()) return 'Country of incorporation is required.'
+        if (!c.registeredOfficeAddress.trim()) return 'Registered office address is required.'
+        if (!c.serviceAddressForNotices.trim()) return 'Service address for notices is required.'
+        if (!c.basisOfAuthorityToAct) return 'Choose the basis of authority to act as trustee.'
+      }
+      if (!c.repName.trim()) return 'Contact person’s name is required.'
+      if (c.repResidentInKenya !== true) return 'A corporate trustee must have a contact person resident in Kenya.'
+      if (!c.repIdType) return 'Choose the contact person’s ID type.'
+      if (!c.repIdNumber.trim()) return 'Contact person’s ID number is required.'
+      if (!c.repEmail.trim() || !EMAIL_REGEX.test(c.repEmail)) return 'Enter a valid email for the contact person.'
+      if (!c.repPhone.trim() || !KENYA_PHONE_REGEX.test(c.repPhone)) return 'Enter a valid phone for the contact person.'
+      return null
+    }
     if (f.isCorporate) {
       const c = f.corporate
       if (!c.registeredName.trim()) return 'Registered company name is required.'
@@ -2871,7 +3045,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
         director: {
           id: form.id,
           fullName: displayName,
-          idNumber: form.isCorporate ? form.corporate.regNumber.trim() : form.idNumber.trim(),
+          idNumber: form.isCorporate ? corporateIdentifier(form.corporate) : form.idNumber.trim(),
           kraPin: form.kraPin.trim().toUpperCase() || undefined,
           dateOfBirth: form.dateOfBirth || undefined,
           nationality: form.isCorporate ? form.corporate.countryOfIncorporation : form.nationality,
@@ -2899,7 +3073,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
       const updated: DirectorRow = {
         id: result.id!,
         full_name: displayName,
-        id_number: form.isCorporate ? form.corporate.regNumber.trim() : form.idNumber.trim(),
+        id_number: form.isCorporate ? corporateIdentifier(form.corporate) : form.idNumber.trim(),
         kra_pin: form.kraPin.trim().toUpperCase() || null,
         phone: (form.isCorporate ? form.corporate.repPhone : form.phone) || null,
         email: (form.isCorporate ? form.corporate.repEmail : form.email) || null,
@@ -3160,7 +3334,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
             <CorporateFields
               value={form.corporate}
               onChange={setCorporate}
-              context="director"
+              context={entityType === 'trust' ? 'trustee' : 'director'}
               orgId={orgId}
               entityId={entityId}
               api={api}
@@ -4794,16 +4968,23 @@ type SettlorForm = {
   phone: string
   email: string
   relationshipToBeneficiaries: string
+  // Trust Administration Act 2026, s. 12(3): a settlor may also be a
+  // beneficiary or trustee — ticking these copies the details across.
+  alsoBeneficiary: boolean
+  alsoTrustee: boolean
 }
 
 function emptySettlor(): SettlorForm {
   return {
     fullName: '', idNumber: '', kraPin: '', nationality: 'Kenyan', dateOfBirth: '',
-    address: {}, phone: '', email: '', relationshipToBeneficiaries: '',
+    address: {}, phone: '', email: '', relationshipToBeneficiaries: '', alsoBeneficiary: false, alsoTrustee: false,
   }
 }
 
-function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setError, documents, applicant }: {
+const samePerson = (a: { name: string; id?: string | null }, b: { name: string; id?: string | null }) =>
+  a.name.trim().toLowerCase() === b.name.trim().toLowerCase() || (!!a.id && !!b.id && a.id.trim() === b.id.trim())
+
+function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setError, documents, applicant, trustKind, beneficiaries, trustees, onLinkedChanged }: {
   settlors: BeneficialOwnerRow[]
   setSettlors: (s: BeneficialOwnerRow[]) => void
   orgId: string | null
@@ -4812,7 +4993,14 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
   setError: (e: string) => void
   documents: DocumentRow[]
   applicant?: { phone: string; email: string; address: AddressData }
+  trustKind: WizardData['trustKind']
+  beneficiaries: ShareholderRow[]
+  trustees: DirectorRow[]
+  onLinkedChanged: () => Promise<void>
 }) {
+  const canBeBeneficiary = trustKind !== 'charitable_trust'
+  const beneficiaryFor = (name: string, id: string) => beneficiaries.find((b) => !b.address?.beneficiary?.isClass && samePerson({ name: b.legal_name, id: b.id_or_reg_number }, { name, id }))
+  const trusteeFor = (name: string, id: string) => trustees.find((d) => !d.residential_address?.isCorporate && samePerson({ name: d.full_name, id: d.id_number }, { name, id }))
   // Settlor is the first person captured for a trust (step 5, ahead of
   // beneficiaries/trustees) — the same "seed from the applicant" gap
   // that shareholder/director had, just not caught until checking
@@ -4842,6 +5030,12 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
     if (!form.fullName.trim()) { setError('Full name is required.'); return }
     if (!form.idNumber.trim()) { setError('ID / passport number is required.'); return }
     if (!form.kraPin.trim()) { setError('KRA PIN is required.'); return }
+    if (form.alsoTrustee) {
+      if (!form.dateOfBirth) { setError('Add the settlor’s date of birth — trustees need one.'); return }
+      if (ageOn(form.dateOfBirth, new Date()) < 18) { setError('A trustee must be at least 18 years old.'); return }
+      if (!KENYA_PHONE_REGEX.test(form.phone)) { setError('Add a valid phone number — trustees need one.'); return }
+      if (!EMAIL_REGEX.test(form.email)) { setError('Add a valid email address — trustees need one.'); return }
+    }
     setError('')
     setBusy(true)
     try {
@@ -4881,6 +5075,56 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
       if (uploadedDocIds.length > 0) {
         await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: result.id, personName: form.fullName.trim(), personRole: 'beneficial_owner' })
       }
+
+      const name = form.fullName.trim()
+      const idNumber = form.idNumber.trim()
+      const shared = {
+        idNumber,
+        kraPin: form.kraPin.trim().toUpperCase(),
+        dateOfBirth: form.dateOfBirth || undefined,
+        nationality: form.nationality || undefined,
+        phone: form.phone.trim() || undefined,
+        email: form.email.trim() || undefined,
+        structuredAddress: form.address,
+      }
+      // Match on the settlor's previous name/ID too, so renaming the
+      // settlor updates their linked records instead of duplicating them.
+      const previous = form.id ? settlors.find((s) => s.id === form.id) : undefined
+      let linked = false
+      if (canBeBeneficiary && form.alsoBeneficiary) {
+        const existing = beneficiaryFor(name, idNumber) ?? (previous ? beneficiaryFor(previous.full_name, previous.id_number ?? '') : undefined)
+        await api({
+          action: 'upsert_shareholder',
+          shareholder: {
+            id: existing?.id,
+            legalName: name,
+            sharesHeld: 1,
+            ...shared,
+            beneficiary: { ...(existing?.address?.beneficiary ?? {}), isClass: false, isMinor: false, relationship: existing?.address?.beneficiary?.relationship || 'Settlor' },
+          },
+        })
+        linked = true
+      }
+      if (form.alsoTrustee) {
+        const existing = trusteeFor(name, idNumber) ?? (previous ? trusteeFor(previous.full_name, previous.id_number ?? '') : undefined)
+        const ra = existing?.residential_address ?? {}
+        await api({
+          action: 'upsert_director',
+          director: {
+            id: existing?.id,
+            fullName: name,
+            ...shared,
+            role: 'trustee',
+            appointmentDate: existing?.appointment_date ?? new Date().toISOString().slice(0, 10),
+            isCorporate: false,
+            occupation: ra.occupation,
+            isSuccessorTrustee: ra.isSuccessorTrustee,
+            successorToName: ra.successorToName,
+          },
+        })
+        linked = true
+      }
+      if (linked) await onLinkedChanged()
       setForm(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.')
@@ -4935,6 +5179,8 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
                 phone: s.phone ?? '',
                 email: s.email ?? '',
                 relationshipToBeneficiaries: s.nature_of_control === 'Settlor' ? '' : (s.nature_of_control ?? ''),
+                alsoBeneficiary: canBeBeneficiary && !!beneficiaryFor(s.full_name, s.id_number ?? ''),
+                alsoTrustee: !!trusteeFor(s.full_name, s.id_number ?? ''),
               }) }}
             >
               Edit
@@ -5018,6 +5264,28 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
           <Field label="Relationship to proposed beneficiaries (if any)">
             <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Parent of the beneficiaries" value={form.relationshipToBeneficiaries} onChange={(e) => set({ relationshipToBeneficiaries: e.target.value })} />
           </Field>
+          <div className="space-y-2">
+            {canBeBeneficiary && (
+              <label className="flex items-start gap-2 text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
+                <input type="checkbox" className="mt-0.5" checked={form.alsoBeneficiary} onChange={(e) => set({ alsoBeneficiary: e.target.checked })} />
+                This settlor is also a beneficiary — copy these details across
+              </label>
+            )}
+            <label className="flex items-start gap-2 text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
+              <input type="checkbox" className="mt-0.5" checked={form.alsoTrustee} onChange={(e) => set({ alsoTrustee: e.target.checked })} />
+              This settlor is also a trustee — copy these details across
+            </label>
+            {form.alsoBeneficiary && canBeBeneficiary && (
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                A settlor can&apos;t be the only beneficiary of their own trust — you&apos;ll need at least one other beneficiary.
+              </p>
+            )}
+            {form.alsoTrustee && (
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                Trustees need a date of birth, phone and email — fill them in above.
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <PrimaryButton onClick={save} disabled={busy}>{busy ? 'Saving…' : form.id ? 'Update' : 'Add settlor'}</PrimaryButton>
             {settlors.length > 0 && <SecondaryButton onClick={() => setForm(null)}>Cancel</SecondaryButton>}
@@ -6950,6 +7218,48 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Settlor documents — KRA PIN',
     hint: 'KRA PIN certificates — one file per settlor.',
     documentType: 'beneficial_owner_kra_pin_copy',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Corporate trustee — constitution',
+    hint: 'For a company limited by guarantee acting as trustee — reviewed by our team.',
+    documentType: 'corporate_constitution',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Corporate trustee — LLP agreement',
+    hint: 'For an LLP acting as trustee — reviewed by our team.',
+    documentType: 'corporate_llp_agreement',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Public Trustee — appointment / acceptance',
+    hint: 'Where the Public Trustee is appointed as trustee.',
+    documentType: 'public_trustee_appointment',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Public Trustee — trust instrument',
+    hint: 'The instrument under which the Public Trustee is appointed.',
+    documentType: 'trust_instrument',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Corporate trustee — constituting document',
+    hint: 'For any other body corporate: its constituting statute or incorporation document.',
+    documentType: 'corporate_constituting_document',
+    visible: (t) => t === 'trust',
+  },
+  {
+    key: 'other',
+    title: 'Corporate trustee — current officeholders',
+    hint: 'For any other body corporate: evidence of who currently holds office.',
+    documentType: 'corporate_officeholders',
     visible: (t) => t === 'trust',
   },
   {

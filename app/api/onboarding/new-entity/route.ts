@@ -159,6 +159,14 @@ function describeDbError(error: { code?: string; message?: string; details?: str
   }
 }
 
+const CORPORATE_TRUSTEE_TYPE_LABELS: Record<string, string> = {
+  company_limited_by_shares: 'company limited by shares',
+  company_limited_by_guarantee: 'company limited by guarantee',
+  llp: 'LLP',
+  public_trustee: 'Public Trustee',
+  other_body_corporate: 'other body corporate',
+}
+
 export async function POST(request: Request) {
   // Every action below returns early on success or on a known error
   // condition — this outer try/catch exists only for the unexpected case
@@ -1464,7 +1472,10 @@ async function generateAndStoreIdp(
         registeredName: c.registeredName, jurisdiction: c.countryOfIncorporation ?? null,
         regNumber: c.regNumber ?? null, kraPinOrTaxId: (c.isForeign ? c.foreignTaxId : c.kraPin) ?? null,
         registeredOfficeAddress: c.registeredOfficeAddress ?? null, email: c.corporateEmail ?? null, phone: c.corporatePhone ?? null,
-        role: 'Director', repName: c.repName ?? null, repTitle: c.repTitle ?? null, repEmail: c.repEmail ?? null,
+        role: ctx.entityType === 'trust'
+          ? `Corporate trustee${CORPORATE_TRUSTEE_TYPE_LABELS[c.trusteeType] ? ` — ${CORPORATE_TRUSTEE_TYPE_LABELS[c.trusteeType]}` : ''}`
+          : 'Director',
+        repName: c.repName ?? null, repTitle: c.repTitle ?? null, repEmail: c.repEmail ?? null,
         repPhone: c.repPhone ?? null, authorityBasis: c.basisOfAuthorityToAct ?? null,
       })
     }
@@ -1524,7 +1535,7 @@ async function generateAndStoreIdp(
       { label: 'KRA PIN certificates', types: ['director_kra_pin_copy', 'shareholder_kra_pin_copy', 'beneficial_owner_kra_pin_copy'] },
       { label: 'Passport photos', types: ['passport_photo'] },
       { label: 'Proof of registered office', types: ['proof_of_address'] },
-      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_company_search', 'corporate_representative_id', 'corporate_representative_kra_pin', 'foreign_constitutional_documents'] },
+      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_company_search', 'corporate_representative_id', 'corporate_representative_kra_pin', 'foreign_constitutional_documents', ...(ctx.entityType === 'trust' ? ['corporate_constitution', 'corporate_llp_agreement', 'public_trustee_appointment', 'trust_instrument', 'corporate_constituting_document', 'corporate_officeholders'] : [])] },
       ...(ctx.entityType === 'trust' && w.hasProtector ? [{ label: 'Enforcer documents', types: ['enforcer_id_copy', 'enforcer_kra_pin_copy'] }] : []),
       { label: 'Registration forms', types: formDefs.map((f) => f.type) },
     ].map((g) => ({
@@ -1555,6 +1566,15 @@ async function generateAndStoreIdp(
     } else if (ctx.entityType === 'trust') {
       if ((beneficialOwners ?? []).length === 0) exceptions.push('No settlor captured.')
       if (w.trustKind !== 'charitable_trust' && (shareholders ?? []).length === 0) exceptions.push('No beneficiaries captured.')
+      if (w.trustKind !== 'charitable_trust' && (shareholders ?? []).length > 0) {
+        const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
+        const onlySettlors = (shareholders ?? []).every((b) => {
+          const extra = (b.address as { beneficiary?: TrustBeneficiaryDetails } | null)?.beneficiary
+          if (extra?.isClass) return false
+          return (beneficialOwners ?? []).some((so) => same(so.full_name, b.legal_name) || (!!so.id_number && so.id_number === b.id_or_reg_number))
+        })
+        if (onlySettlors) exceptions.push('The settlor is the only beneficiary — a settlor cannot be the sole beneficiary of their own trust (s. 12(3)).')
+      }
       if (w.trustKind === 'charitable_trust') {
         const objectsError = charitableObjectsError(w)
         if (objectsError) exceptions.push(objectsError.replace(/\.$/, '') + ' — outstanding.')
@@ -1584,6 +1604,14 @@ async function generateAndStoreIdp(
       if ((beneficialOwners ?? []).length === 0 && !w.noBeneficialOwners) exceptions.push('Beneficial ownership not yet confirmed.')
     }
     for (const f of forms) if (!f.uploaded) exceptions.push(`${f.label} not yet uploaded.`)
+    if (ctx.entityType === 'trust') {
+      for (const d of directors ?? []) {
+        const ra = d.residential_address as { isCorporate?: boolean; corporate?: Record<string, string | boolean> } | null
+        if (!ra?.isCorporate || !ra.corporate) continue
+        if (ra.corporate.trusteeType === 'other_body_corporate') exceptions.push(`${d.full_name} (other body corporate) requires professional review before filing.`)
+        if (ra.corporate.repResidentInKenya !== true) exceptions.push(`${d.full_name} needs a contact person resident in Kenya (s. 36).`)
+      }
+    }
     if (corporateParties.length > 0 && !hasDoc('corporate_authority_document')) {
       exceptions.push('Corporate party authority document (board resolution / power of attorney) not yet uploaded.')
     }

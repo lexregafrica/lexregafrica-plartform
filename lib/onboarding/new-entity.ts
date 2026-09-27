@@ -312,18 +312,20 @@ export function trustRouteNote(route: 'registration' | 'incorporation' | undefin
     : 'Once the Trust Deed is executed, it is lodged with the Registrar for registration under the Trust Administration Act, 2026. The certificate is marked “Registered Trust” — the trust does not become a separate legal person, and can apply to be incorporated later.'
 }
 
-export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | 'other'; label: string; description: string; enabled: boolean }> = [
+export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | 'other'; label: string; description: string; enabled: boolean; guideUrl?: string }> = [
   {
     value: 'family_trust',
     label: 'Family Trust',
     description: 'Established principally for estate planning, preservation, or creation of wealth for beneficiaries and future generations.',
     enabled: true,
+    guideUrl: '/docs/understanding-family-trusts-kenya.pdf',
   },
   {
     value: 'charitable_trust',
     label: 'Charitable Trust',
     description: 'Established for legally recognised charitable purposes, governed for the benefit of those objects rather than private profit.',
     enabled: true,
+    guideUrl: '/docs/understanding-charitable-trusts-kenya.pdf',
   },
   {
     value: 'other',
@@ -339,14 +341,14 @@ export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | '
 // service stays an optional upsell rather than a mandatory field.
 export const SECRETARY_CAPITAL_THRESHOLD_KES = 5_000_000
 
-export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description: string; guideUrl?: string }> = [
+export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description: string; guides?: Array<{ label: string; url: string }> }> = [
   { value: 'limited_company', label: 'Limited Company', description: 'Separate legal entity, limited liability, most common' },
   { value: 'sole_proprietorship', label: 'Sole Proprietorship', description: 'Single owner, unlimited liability, simplest structure' },
   { value: 'partnership', label: 'Partnership', description: 'Two or more partners, shared liability' },
   { value: 'public_limited_company', label: 'Public Limited Company', description: 'Can offer shares to public, complex governance' },
   { value: 'company_limited_by_guarantee', label: 'NGO / Non-Profit', description: 'Charitable or social purpose, no profit distribution' },
-  { value: 'trust', label: 'Trust', description: 'Property held for beneficiaries, fiduciary arrangement', guideUrl: '/docs/understanding-family-trusts-kenya.pdf' },
-  { value: 'society', label: 'Society', description: 'Membership-based organisation — residents’, welfare, alumni, or professional associations', guideUrl: '/docs/understanding-societies-kenya.pdf' },
+  { value: 'trust', label: 'Trust', description: 'Property held for beneficiaries, fiduciary arrangement', guides: [{ label: 'What is a family trust?', url: '/docs/understanding-family-trusts-kenya.pdf' }, { label: 'What is a charitable trust?', url: '/docs/understanding-charitable-trusts-kenya.pdf' }] },
+  { value: 'society', label: 'Society', description: 'Membership-based organisation — residents’, welfare, alumni, or professional associations', guides: [{ label: 'What is a society?', url: '/docs/understanding-societies-kenya.pdf' }] },
   { value: 'cooperative', label: 'Cooperative', description: 'Member-owned, democratic control, profit-sharing' },
   { value: 'limited_liability_partnership', label: 'LLP', description: 'Limited Liability Partnership, hybrid structure' },
 ]
