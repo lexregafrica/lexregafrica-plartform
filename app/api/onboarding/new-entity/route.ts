@@ -1445,7 +1445,7 @@ async function generateAndStoreIdp(
         isNominee: !!cd && !!(cd as { nominee?: boolean }).nominee,
         details: (() => {
           const a = s.address as { beneficiary?: TrustBeneficiaryDetails; membershipClass?: string } | null
-          if (ctx.entityType === 'society') return a?.membershipClass ?? null
+          if (ctx.entityType === 'society') return [a?.membershipClass, s.kra_pin && `PIN ${s.kra_pin}`].filter(Boolean).join(' · ') || null
           if (ctx.entityType !== 'trust') return null
           const b = a?.beneficiary
           if (!b) return null
@@ -1477,6 +1477,13 @@ async function generateAndStoreIdp(
           : 'Director',
         repName: c.repName ?? null, repTitle: c.repTitle ?? null, repEmail: c.repEmail ?? null,
         repPhone: c.repPhone ?? null, authorityBasis: c.basisOfAuthorityToAct ?? null,
+        incorporationDate: (c.incorporationDate as string) || null, postalAddress: (c.postalAddress as string) || null,
+        repNationality: (c.repNationality as string) || null,
+        repId: c.repIdNumber ? `${c.repIdType === 'passport' ? 'Passport' : 'ID'} ${c.repIdNumber}` : null,
+        repKraPin: (c.repKraPin as string) || null,
+        repResidentInKenya: typeof (c as Record<string, unknown>).repResidentInKenya === 'boolean' ? (c as Record<string, unknown>).repResidentInKenya as boolean : null,
+        legalBasis: (c.legalBasis as string) || null, authorisedOfficers: (c.authorisedOfficers as string) || null,
+        appointmentDetails: (c.appointmentDetails as string) || null,
       })
     }
     for (const s of shareholders ?? []) {
@@ -1495,6 +1502,13 @@ async function generateAndStoreIdp(
         registeredOfficeAddress: c.registeredOfficeAddress ?? null, email: c.corporateEmail ?? null, phone: c.corporatePhone ?? null,
         role: 'Shareholder', repName: c.repName ?? null, repTitle: c.repTitle ?? null, repEmail: c.repEmail ?? null,
         repPhone: c.repPhone ?? null, authorityBasis: null,
+        incorporationDate: (c.incorporationDate as string) || null, postalAddress: (c.postalAddress as string) || null,
+        repNationality: (c.repNationality as string) || null,
+        repId: c.repIdNumber ? `${c.repIdType === 'passport' ? 'Passport' : 'ID'} ${c.repIdNumber}` : null,
+        repKraPin: (c.repKraPin as string) || null,
+        repResidentInKenya: typeof (c as Record<string, unknown>).repResidentInKenya === 'boolean' ? (c as Record<string, unknown>).repResidentInKenya as boolean : null,
+        legalBasis: (c.legalBasis as string) || null, authorisedOfficers: (c.authorisedOfficers as string) || null,
+        appointmentDetails: (c.appointmentDetails as string) || null,
       })
     }
 
@@ -1535,7 +1549,7 @@ async function generateAndStoreIdp(
       { label: 'KRA PIN certificates', types: ['director_kra_pin_copy', 'shareholder_kra_pin_copy', 'beneficial_owner_kra_pin_copy'] },
       { label: 'Passport photos', types: ['passport_photo'] },
       { label: 'Proof of registered office', types: ['proof_of_address'] },
-      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_company_search', 'corporate_representative_id', 'corporate_representative_kra_pin', 'foreign_constitutional_documents', ...(ctx.entityType === 'trust' ? ['corporate_constitution', 'corporate_llp_agreement', 'public_trustee_appointment', 'trust_instrument', 'corporate_constituting_document', 'corporate_officeholders'] : [])] },
+      { label: 'Corporate certificates & resolutions', types: ['corporate_certificate_of_incorporation', 'corporate_authority_document', 'corporate_tax_certificate', 'corporate_good_standing', 'corporate_company_search', 'corporate_representative_id', 'corporate_representative_kra_pin', 'corporate_representative_photo', 'foreign_constitutional_documents', ...(ctx.entityType === 'trust' ? ['corporate_constitution', 'corporate_llp_agreement', 'public_trustee_appointment', 'trust_instrument', 'corporate_constituting_document', 'corporate_officeholders'] : [])] },
       ...(ctx.entityType === 'trust' && w.hasProtector ? [{ label: 'Enforcer documents', types: ['enforcer_id_copy', 'enforcer_kra_pin_copy'] }] : []),
       { label: 'Registration forms', types: formDefs.map((f) => f.type) },
     ].map((g) => ({
@@ -1627,7 +1641,10 @@ async function generateAndStoreIdp(
         : ctx.entityType === 'partnership' || ctx.entityType === 'sole_proprietorship' ? 'New business name registration'
         : 'New company registration',
 
-      entityTypeLabel: ENTITY_TYPES.find((t) => t.value === ctx.entityType)?.label ?? ctx.entityType,
+      entityTypeLabel:
+        ctx.entityType === 'trust' && w.trustKind && w.trustKind !== 'other'
+          ? (w.trustKind === 'family_trust' ? 'Family Trust' : 'Charitable Trust')
+          : ENTITY_TYPES.find((t) => t.value === ctx.entityType)?.label ?? ctx.entityType,
       legalNameOptions: (entity.proposed_names as string[] | null) ?? [],
       natureOfBusiness: entity.nature_of_business,
       secondaryBusinessActivity: w.secondaryActivities ?? null,
@@ -1695,6 +1712,12 @@ async function generateAndStoreIdp(
         description: o.description.trim(),
         publicBenefit: o.publicBenefit?.trim() || null,
       })),
+      charitableBeneficiaries: ctx.entityType === 'trust' && w.trustKind === 'charitable_trust' ? {
+        beneficiaryClass: w.charitableBeneficiaryClass?.trim() || null,
+        geographicArea: w.charitableGeographicArea?.trim() || null,
+        programmeAreas: w.charitableProgrammeAreas?.trim() || null,
+        propertyRestrictions: w.charitablePropertyRestrictions?.trim() || null,
+      } : null,
       charitableActivityArea:
         [CHARITABLE_ACTIVITY_LOCATIONS.find((l) => l.value === w.charitableActivityLocation)?.label, w.charitableActivityLocation !== 'kenya' ? w.charitableActivityCountries?.trim() : undefined]
           .filter(Boolean).join(' — ') || null,
@@ -1702,6 +1725,22 @@ async function generateAndStoreIdp(
       isSociety: ctx.entityType === 'society',
       societyGoverningBody: w.socHasGoverningBody ? { name: w.socGoverningBodyName ?? '—', quorum: w.socGoverningBodyQuorum ?? null } : null,
       societyProperty: (w.socPropertyItems ?? []).map((p) => ({ description: p.description, location: p.location })),
+      societyMembership: ctx.entityType === 'society' ? {
+        eligibility: w.socMembershipEligibility?.trim() || null,
+        classes: w.socHasMembershipClasses
+          ? (w.socMembershipClassDetails ?? (w.socMembershipClasses ?? []).map((name) => ({ name, rights: '' }))).filter((c) => c.name.trim())
+          : [],
+        admission: w.socAdmissionProcess?.trim() || null,
+        fees: w.socMembershipFees?.trim() || null,
+        votingRights: w.socVotingRights?.trim() || null,
+        termination: w.socTerminationRules?.trim() || null,
+      } : null,
+      societyAffiliation: ctx.entityType === 'society' && w.socIsAffiliated ? {
+        name: w.socAffiliationName?.trim() || null,
+        areaOfOperation: w.socAffiliationJurisdiction?.trim() || null,
+        nature: w.socAffiliationNature?.trim() || null,
+        political: w.socAffiliationIsPolitical ?? null,
+      } : null,
       hasConstitution: w.hasConstitution ?? null,
 
       isPartnership: ctx.entityType === 'partnership',

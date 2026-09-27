@@ -66,6 +66,15 @@ export type IdpCorporateParty = {
   repEmail: string | null
   repPhone: string | null
   authorityBasis: string | null
+  incorporationDate?: string | null
+  postalAddress?: string | null
+  repNationality?: string | null
+  repId?: string | null
+  repKraPin?: string | null
+  repResidentInKenya?: boolean | null
+  legalBasis?: string | null
+  authorisedOfficers?: string | null
+  appointmentDetails?: string | null
 }
 
 export type IdpBeneficialOwner = {
@@ -164,6 +173,7 @@ export type IdpInput = {
   // (but are not) the deed's objects clause; all pending legal review.
   charitableObjects?: Array<{ category: string; description: string; publicBenefit: string | null }>
   charitableActivityArea?: string | null
+  charitableBeneficiaries?: { beneficiaryClass: string | null; geographicArea: string | null; programmeAreas: string | null; propertyRestrictions: string | null } | null
 
   // Society Formation Workflow spec, 2026-08 — when set, the summary
   // uses membership-organisation terminology (Officers/Members/
@@ -172,6 +182,15 @@ export type IdpInput = {
   isSociety?: boolean
   societyGoverningBody?: { name: string; quorum: string | null } | null
   societyProperty?: Array<{ description: string; location: string }>
+  societyMembership?: {
+    eligibility: string | null
+    classes: Array<{ name: string; rights: string }>
+    admission: string | null
+    fees: string | null
+    votingRights: string | null
+    termination: string | null
+  } | null
+  societyAffiliation?: { name: string | null; areaOfOperation: string | null; nature: string | null; political: boolean | null } | null
   hasConstitution?: boolean | null
 
   // Partnership / sole proprietorship — reported live, 2026-08-30: every
@@ -321,7 +340,11 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
     }
   } else if (isTrust) {
     ctx.section('Beneficiaries')
-    ctx.field('Charitable beneficiary class', 'See charitable objects below — no individual beneficiaries required.')
+    const cb = input.charitableBeneficiaries
+    ctx.field('Charitable beneficiary class', cb?.beneficiaryClass ?? 'See charitable objects below — no individual beneficiaries required.')
+    if (cb?.geographicArea) ctx.field('Geographic area', cb.geographicArea)
+    if (cb?.programmeAreas) ctx.field('Programme / activity areas', cb.programmeAreas)
+    if (cb?.propertyRestrictions) ctx.field('Restrictions on trust property', cb.propertyRestrictions)
   } else if (isSociety) {
     ctx.section('Founding Members')
     ctx.field('Declaration', 'Not yet confirmed — outstanding before filing.')
@@ -344,6 +367,28 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
   }
 
   // ---------- Governing committee & property (society only) ----------
+  if (isSociety && input.societyMembership) {
+    const m = input.societyMembership
+    ctx.section('Membership Structure')
+    ctx.field('Eligibility', m.eligibility ?? '—')
+    if (m.classes.length > 0) {
+      ctx.table(['Membership class', 'Rights & voting'], [0.3, 0.7], m.classes.map((c) => [c.name, c.rights || '—']))
+    } else {
+      ctx.field('Voting rights', m.votingRights ?? '—')
+    }
+    ctx.field('Admission process', m.admission ?? '—')
+    ctx.field('Fees / subscriptions', m.fees ?? '—')
+    ctx.field('Termination / expulsion', m.termination ?? '—')
+  }
+  if (isSociety && input.societyAffiliation) {
+    const a = input.societyAffiliation
+    ctx.section('Affiliation')
+    ctx.field('Organisation', a.name ?? '—')
+    ctx.field('Area of operation', a.areaOfOperation ?? '—')
+    ctx.field('Nature of affiliation', a.nature ?? '—')
+    ctx.field('Political in nature', a.political == null ? '—' : a.political ? 'Yes' : 'No')
+  }
+
   if (isSociety) {
     ctx.section('Governing Committee')
     ctx.field('Appointed', input.societyGoverningBody ? 'Yes' : 'No')
@@ -363,20 +408,29 @@ export async function generateIdp(input: IdpInput): Promise<Uint8Array> {
 
   // ---------- 7. Corporate party annex ----------
   if (input.corporateParties.length > 0) {
-    ctx.section(isBusinessName ? 'Corporate Party Annex' : 'Corporate Shareholder / Director Annex')
+    ctx.section(isTrust ? 'Corporate Trustee Annex' : isBusinessName ? 'Corporate Party Annex' : 'Corporate Shareholder / Director Annex')
     ctx.notice('Corporate participants are listed in full below rather than flattened into the person tables above.')
     for (const c of input.corporateParties) {
       ctx.subheading(c.registeredName)
       ctx.field('Role', c.role)
-      ctx.field('Jurisdiction', c.jurisdiction ?? '—')
-      ctx.field('Registration number', c.regNumber ?? '—')
-      ctx.field('KRA PIN / foreign tax ID', c.kraPinOrTaxId ?? '—')
-      ctx.field('Registered office', c.registeredOfficeAddress ?? '—')
+      ctx.field('Jurisdiction', c.jurisdiction || '—')
+      ctx.field('Registration number', c.regNumber || '—')
+      ctx.field('KRA PIN / foreign tax ID', c.kraPinOrTaxId || '—')
+      if (c.incorporationDate) ctx.field('Date of incorporation', c.incorporationDate)
+      if (c.legalBasis) ctx.field('Legal basis', c.legalBasis)
+      if (c.authorisedOfficers) ctx.field('Authorised officers', c.authorisedOfficers)
+      if (c.appointmentDetails) ctx.field('Appointment details', c.appointmentDetails)
+      ctx.field('Registered office', c.registeredOfficeAddress || '—')
+      if (c.postalAddress) ctx.field('Postal address', c.postalAddress)
       ctx.field('Company email / phone', [c.email, c.phone].filter(Boolean).join(' / ') || '—')
-      ctx.field('Authorised representative', c.repName ?? '—')
-      ctx.field('Representative title', c.repTitle ?? '—')
+      ctx.field('Authorised representative', c.repName || '—')
+      ctx.field('Representative title', c.repTitle || '—')
       ctx.field('Representative contact', [c.repEmail, c.repPhone].filter(Boolean).join(' / ') || '—')
-      ctx.field('Authority basis', c.authorityBasis ?? '—')
+      if (c.repId) ctx.field('Representative ID / passport', c.repId)
+      if (c.repKraPin) ctx.field('Representative KRA PIN', c.repKraPin)
+      if (c.repNationality) ctx.field('Representative nationality', c.repNationality)
+      if (c.repResidentInKenya != null) ctx.field('Representative resident in Kenya', c.repResidentInKenya ? 'Yes' : 'No')
+      ctx.field('Authority basis', c.authorityBasis || '—')
       ctx.spacer(6)
     }
   }

@@ -2191,6 +2191,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   corporate_company_search: 'Company Search (CR12)',
   corporate_representative_id: 'Representative ID',
   corporate_representative_kra_pin: 'Representative KRA PIN',
+  corporate_representative_photo: 'Representative Passport Photo',
   corporate_constitution: 'Constitution',
   corporate_llp_agreement: 'LLP Agreement',
   public_trustee_appointment: 'Appointment / Acceptance',
@@ -2404,7 +2405,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
 // Passport-size photo — plain upload, no OCR. Charles, corporate-shareholder
 // call: capture a passport photo per person alongside their ID documents.
-export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initialUploaded, personName, personRole, personId, onDocumentRegistered }: {
+export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initialUploaded, personName, personRole, personId, onDocumentRegistered, documentType = 'passport_photo', label }: {
   orgId: string | null
   entityId: string | null
   api: (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string }>
@@ -2415,6 +2416,8 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
   personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
   personId?: string
   onDocumentRegistered?: (documentId: string) => void
+  documentType?: string
+  label?: string
 }) {
   const [state, setState] = useState<'idle' | 'uploading'>('idle')
   const [uploaded, setUploaded] = useState<{ name: string; filePath: string } | null>(initialUploaded ?? null)
@@ -2443,7 +2446,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
 
       const registered = await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType: 'passport_photo', personName, personRole, personId },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole, personId },
       }) as { id?: string }
       if (registered.id) onDocumentRegistered?.(registered.id)
       onUploaded(file.name)
@@ -2469,7 +2472,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
           className="min-w-0 flex-1 text-left disabled:opacity-50"
         >
           <span className="block text-ios-caption1 font-medium truncate underline decoration-dotted" style={{ color: 'var(--system-label)' }}>
-            {opening ? 'Opening…' : uploadedDocLabel(personName, 'passport_photo')}
+            {opening ? 'Opening…' : uploadedDocLabel(personName, documentType)}
           </span>
           <span className="block text-ios-caption1 truncate" style={{ color: 'var(--system-label-3)' }}>
             {uploaded.name}
@@ -2500,7 +2503,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
         onChange={(e) => { handleFile(e.target.files); e.target.value = '' }}
       />
       <span className="text-ios-caption1 font-medium" style={{ color: 'var(--brand-navy)' }}>
-        {state === 'uploading' ? 'Uploading…' : 'Upload passport-size photo →'}
+        {state === 'uploading' ? 'Uploading…' : (label ?? 'Upload passport-size photo →')}
       </span>
     </label>
   )
@@ -2872,6 +2875,20 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
             personId={personId}
             onDocumentRegistered={onDocumentRegistered}
             initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_representative_kra_pin')}
+          />
+          <PhotoUpload
+            orgId={orgId ?? null}
+            entityId={entityId ?? null}
+            api={api}
+            onUploaded={() => {}}
+            setError={setError}
+            documentType="corporate_representative_photo"
+            label="Upload representative’s passport-size photo →"
+            personName={value.registeredName}
+            personRole="corporate_party"
+            personId={personId}
+            onDocumentRegistered={onDocumentRegistered}
+            initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_representative_photo')}
           />
         </div>
       )}
@@ -5226,6 +5243,18 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
             onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'beneficial_owner_kra_pin_copy')}
           />
+          <PhotoUpload
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onUploaded={() => {}}
+            setError={setError}
+            personName={form.fullName}
+            personRole="beneficial_owner"
+            personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
+          />
           <Field label="Full legal name" required>
             <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
@@ -6084,6 +6113,18 @@ function StepTrustProtector({ wizard, patch, trusteeNames, orgId, entityId, api,
                 onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'enforcer_kra_pin_copy')}
               />
+          <PhotoUpload
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onUploaded={() => {}}
+            setError={setError}
+            personName={form.fullName}
+            personRole="enforcer"
+            personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
+          />
               <Field label="Full name" required>
                 <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
               </Field>
@@ -6596,6 +6637,18 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant, org
             personId={form.id}
             onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'shareholder_kra_pin_copy')}
+          />
+          <PhotoUpload
+            orgId={orgId}
+            entityId={entityId}
+            api={api}
+            onUploaded={() => {}}
+            setError={setError}
+            personName={form.fullName}
+            personRole="shareholder"
+            personId={form.id}
+            onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
+            initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
           />
           <Field label="Full name" required>
             <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
@@ -7447,6 +7500,13 @@ const UPLOAD_SECTIONS: UploadSection[] = [
     title: 'Corporate party — representative KRA PIN',
     hint: 'KRA PIN certificate of the person representing the corporate shareholder or director.',
     documentType: 'corporate_representative_kra_pin',
+    visible: () => true,
+  },
+  {
+    key: 'other',
+    title: 'Corporate party — representative passport photo',
+    hint: 'Passport-size photo of the person representing the corporate shareholder, director or trustee.',
+    documentType: 'corporate_representative_photo',
     visible: () => true,
   },
   {
