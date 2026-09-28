@@ -877,7 +877,7 @@ const STEP_LABELS: Record<number, string> = {
 
 const PARTNERSHIP_STEP_LABELS: Partial<Record<number, string>> = {
   3: 'Business Name Reservation',
-  4: 'Business Basics',
+  4: 'Partnership Basics',
   5: 'Partnership Suitability',
   6: 'Partnership Governance',
   7: 'Partners',

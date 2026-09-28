@@ -634,6 +634,9 @@ export async function POST(request: Request) {
         // uploaded right after an ID scan got tagged with a stale/empty
         // name and was unfindable on reopen).
         personId?: string
+        // Set by the "Replace" control: the stored file this upload
+        // supersedes, retired no matter how it was tagged.
+        replacesFilePath?: string
       }
     }
     if (!document?.name || !document?.filePath) {
@@ -658,6 +661,14 @@ export async function POST(request: Request) {
     // know who/what this document is for — the general multi-file vault
     // buckets (proof of address, "other supporting documents") are meant
     // to hold more than one file and stay untouched.
+    if (document.replacesFilePath) {
+      await supabase
+        .from('documents')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('entity_id', entityId)
+        .eq('file_path', document.replacesFilePath)
+        .is('deleted_at', null)
+    }
     if (document.documentType && (document.personId || document.personName)) {
       const { data: existing } = await supabase
         .from('documents')
@@ -665,11 +676,16 @@ export async function POST(request: Request) {
         .eq('entity_id', entityId)
         .eq('document_type', document.documentType)
         .is('deleted_at', null)
+      // Never retire another person's document by a name match — a name
+      // can come from browser autofill or be shared by two people
+      // (Charles, 2026-09-29: Elisha's upload surfaced under Charles
+      // Adede). By id when we have one; by name only among documents not
+      // yet tied to anyone.
       const stale = (existing ?? []).filter((d) => {
         const t = (d.tags as Array<{ person?: string; personId?: string }> | null)?.[0]
         if (!t) return false
-        if (document.personId && t.personId) return t.personId === document.personId
-        return !!document.personName && t.person?.toLowerCase() === document.personName.toLowerCase()
+        if (document.personId) return t.personId === document.personId
+        return !t.personId && !!document.personName && t.person?.trim().toLowerCase() === document.personName.trim().toLowerCase()
       })
       if (stale.length > 0) {
         await supabase.from('documents').update({ deleted_at: new Date().toISOString() }).in('id', stale.map((d) => d.id))
@@ -729,6 +745,28 @@ export async function POST(request: Request) {
     if (error) {
       console.error('document retag error', error)
       return NextResponse.json({ error: 'failed to retag documents' }, { status: 500 })
+    }
+
+    // One current document per person per type: anything older of the
+    // same type already tied to this person is superseded. Soft-deleted,
+    // so it stays in the history (Charles, 2026-09-29: replaced documents
+    // were showing twice in the vault).
+    const { data: retagged } = await supabase.from('documents').select('document_type').eq('entity_id', entityId).in('id', documentIds)
+    const types = [...new Set((retagged ?? []).map((d) => d.document_type).filter((t): t is string => !!t))]
+    if (types.length > 0) {
+      const { data: older } = await supabase
+        .from('documents')
+        .select('id, tags')
+        .eq('entity_id', entityId)
+        .in('document_type', types)
+        .is('deleted_at', null)
+        .not('id', 'in', `(${documentIds.join(',')})`)
+      const superseded = (older ?? [])
+        .filter((d) => (d.tags as Array<{ personId?: string }> | null)?.[0]?.personId === targetPersonId)
+        .map((d) => d.id)
+      if (superseded.length > 0) {
+        await supabase.from('documents').update({ deleted_at: new Date().toISOString() }).in('id', superseded).eq('entity_id', entityId)
+      }
     }
     return NextResponse.json({ ok: true })
   }
@@ -1476,7 +1514,7 @@ async function generateAndStoreIdp(
           ? `Corporate trustee${CORPORATE_TRUSTEE_TYPE_LABELS[c.trusteeType] ? ` — ${CORPORATE_TRUSTEE_TYPE_LABELS[c.trusteeType]}` : ''}`
           : 'Director',
         repName: c.repName ?? null, repTitle: c.repTitle ?? null, repEmail: c.repEmail ?? null,
-        repPhone: c.repPhone ?? null, authorityBasis: c.basisOfAuthorityToAct ?? null,
+        repPhone: c.repPhone ?? null, authorityBasis: c.repAuthorityCapacity || null,
         incorporationDate: (c.incorporationDate as string) || null, postalAddress: (c.postalAddress as string) || null,
         repNationality: (c.repNationality as string) || null,
         repId: c.repIdNumber ? `${c.repIdType === 'passport' ? 'Passport' : 'ID'} ${c.repIdNumber}` : null,

@@ -423,9 +423,13 @@ function findPersonDocument(documents: DocumentRow[], personId: string | undefin
     : undefined
   if (byId?.file_path) return { name: byId.name, filePath: byId.file_path }
   if (!personName.trim()) return null
+  // Name fallback only for documents not yet tied to anyone: a document
+  // already tied to a different person must never surface here just
+  // because the names match (autofilled or shared names — Charles,
+  // 2026-09-29: Elisha's upload appeared under Charles Adede).
   const match = [...documents]
     .reverse()
-    .find((d) => d.document_type === documentType && d.tags?.some((t) => t.person?.toLowerCase() === personName.trim().toLowerCase()))
+    .find((d) => d.document_type === documentType && d.tags?.some((t) => (!t.personId || t.personId === personId) && t.person?.trim().toLowerCase() === personName.trim().toLowerCase()))
   return match?.file_path ? { name: match.name, filePath: match.file_path } : null
 }
 
@@ -612,8 +616,8 @@ export function NewEntityWizard() {
       case 4:
         if (entityType !== 'trust' && !wizard.primaryActivity?.trim()) return 'Describe the business activity.'
         if (entityType === 'trust' && !wizard.trustFormationRoute) return 'Choose whether the trust will be registered or incorporated.'
-        if (!wizard.entityEmail?.trim()) return 'Company email is required.'
-        if (!EMAIL_REGEX.test(wizard.entityEmail)) return 'Enter a valid company email address.'
+        if (!wizard.entityEmail?.trim()) return `${entityNoun(entityType)} email is required.`
+        if (!EMAIL_REGEX.test(wizard.entityEmail)) return `Enter a valid ${entityNoun(entityType).toLowerCase()} email address.`
         if (!wizard.entityPhone?.trim()) return 'Entity phone is required.'
         if (!KENYA_PHONE_REGEX.test(wizard.entityPhone)) return 'Phone must be +2547XXXXXXXX or 07XXXXXXXX.'
         if (!wizard.contactPersonName?.trim()) return 'Contact person is required.'
@@ -1482,6 +1486,10 @@ function StepNames({ entityType, wizard, patch }: { entityType: EntityType; wiza
 // not spec-required but the natural home for them now that step 1 no
 // longer captures activity/industry/employee-count.
 // ------------------------------------------------------------------
+function entityNoun(t: EntityType | null | undefined): string {
+  return t === 'partnership' ? 'Partnership' : t === 'sole_proprietorship' ? 'Business' : t === 'trust' ? 'Trust' : t === 'society' ? 'Society' : 'Company'
+}
+
 function StepCompanyBasics({ entityType, wizard, patch }: {
   entityType: EntityType
   wizard: WizardData
@@ -1492,7 +1500,7 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
   return (
     <div className="space-y-5">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        {entityType === 'trust' ? 'Trust basics' : entityType === 'society' ? 'Objects & registered office' : 'Company basics'}
+        {entityType === 'trust' ? 'Trust basics' : entityType === 'society' ? 'Objects & registered office' : entityType === 'partnership' ? 'Partnership basics' : entityType === 'sole_proprietorship' ? 'Business basics' : 'Company basics'}
       </h1>
 
       {entityType === 'trust' ? (
@@ -1563,7 +1571,7 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
       )}
 
       {entityType !== 'trust' && (
-        <Field label={entityType === 'society' ? 'Entity type' : 'Company type'}>
+        <Field label={entityType === 'society' ? 'Entity type' : entityType === 'partnership' ? 'Partnership type' : entityType === 'sole_proprietorship' ? 'Business type' : 'Company type'}>
           <input type="text" className={inputCls} style={{ ...inputStyle, opacity: 0.7 }} value={entityLabel} disabled readOnly />
         </Field>
       )}
@@ -1695,7 +1703,7 @@ function StepCompanyBasics({ entityType, wizard, patch }: {
           Entity contact details
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Company email" required>
+          <Field label={`${entityNoun(entityType)} email`} required>
             <input type="email" className={inputCls} style={inputStyle} value={wizard.entityEmail ?? ''} onChange={(e) => patch({ entityEmail: e.target.value })} />
           </Field>
           <Field label="Entity phone" required>
@@ -2327,7 +2335,7 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
 
       const registered = await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole, personId },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole, personId, replacesFilePath: replacing ? uploaded?.filePath : undefined },
       }) as { id?: string }
       if (registered.id) onDocumentRegistered?.(registered.id)
 
@@ -2475,7 +2483,7 @@ export function PhotoUpload({ orgId, entityId, api, onUploaded, setError, initia
 
       const registered = await api({
         action: 'register_document',
-        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole, personId },
+        document: { name: file.name, filePath: path, fileSize: file.size, mimeType: file.type, documentType, personName, personRole, personId, replacesFilePath: replacing ? uploaded?.filePath : undefined },
       }) as { id?: string }
       if (registered.id) onDocumentRegistered?.(registered.id)
       onUploaded(file.name)
@@ -2553,12 +2561,6 @@ const REP_ID_TYPES: Array<{ value: CorporateParticipant['repIdType']; label: str
   { value: 'other', label: 'Other' },
 ]
 
-const AUTHORITY_BASIS_OPTIONS: Array<{ value: CorporateParticipant['basisOfAuthorityToAct']; label: string }> = [
-  { value: 'board_resolution', label: 'Board resolution' },
-  { value: 'power_of_attorney', label: 'Power of attorney' },
-  { value: 'constitutional_document', label: 'Constitutional document' },
-  { value: 'other', label: 'Other' },
-]
 
 // Merges Gemini's company-document extraction (certificate of
 // incorporation, KRA PIN certificate, CR12 company search) into a
@@ -2814,19 +2816,6 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
 
       {(context === 'director' || (isTrustee && !isPublicTrustee)) && (
         <>
-          <div className="h-px" style={{ background: 'var(--system-fill-3)' }} />
-          <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>
-            {isTrustee ? 'Trustee-specific' : 'Director-specific'}
-          </p>
-          <Field label="Service address for notices" required>
-            <input type="text" className={inputCls} style={inputStyle} value={value.serviceAddressForNotices} onChange={(e) => onChange({ serviceAddressForNotices: e.target.value })} />
-          </Field>
-          <Field label={isTrustee ? 'Basis of authority to act as trustee' : 'Basis of authority to act as director'} required>
-            <select className={inputCls} style={inputStyle} value={value.basisOfAuthorityToAct} onChange={(e) => onChange({ basisOfAuthorityToAct: e.target.value as CorporateParticipant['basisOfAuthorityToAct'] })}>
-              <option value="" disabled>Choose…</option>
-              {AUTHORITY_BASIS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </Field>
           <p className="text-ios-caption1 rounded-lg p-2" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>
             {isTrustee
               ? 'A corporate trustee is flagged for legal review before filing — our team will confirm its authority to accept this trusteeship.'
@@ -2868,7 +2857,7 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
       {api && setError && onRepresentativeExtracted && (
         <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--system-bg)' }}>
           <p className="text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
-            Upload the representative&apos;s ID or passport and KRA PIN certificate to fill in their details.
+            Upload the representative&apos;s ID or passport and KRA PIN certificate to fill in their details, plus the board resolution or other authority showing they can act.
           </p>
           {/* section "other": read-only extraction — "director"/"shareholder"
               would make the server auto-create a person row for the
@@ -2919,6 +2908,20 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
             onDocumentRegistered={onDocumentRegistered}
             initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_representative_photo')}
           />
+          <PhotoUpload
+            orgId={orgId ?? null}
+            entityId={entityId ?? null}
+            api={api}
+            onUploaded={() => {}}
+            setError={setError}
+            documentType="corporate_authority_document"
+            label="Upload board resolution / authority to act →"
+            personName={value.registeredName}
+            personRole="corporate_party"
+            personId={personId}
+            onDocumentRegistered={onDocumentRegistered}
+            initialUploaded={findPersonDocument(documents ?? [], personId, value.registeredName, 'corporate_authority_document')}
+          />
         </div>
       )}
       <Field label="Representative full name" required>
@@ -2957,11 +2960,6 @@ export function CorporateFields({ value, onChange, context, orgId, entityId, api
       <Field label="Authority / capacity to act">
         <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Appointed by board resolution dated…" value={value.repAuthorityCapacity} onChange={(e) => onChange({ repAuthorityCapacity: e.target.value })} />
       </Field>
-      {!isTrustee && (
-        <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-          Upload the board resolution or power of attorney in the document step.
-        </p>
-      )}
       </>)}
     </div>
   )
@@ -3030,8 +3028,6 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
         }
         if (!c.countryOfIncorporation.trim()) return 'Country of incorporation is required.'
         if (!c.registeredOfficeAddress.trim()) return 'Registered office address is required.'
-        if (!c.serviceAddressForNotices.trim()) return 'Service address for notices is required.'
-        if (!c.basisOfAuthorityToAct) return 'Choose the basis of authority to act as trustee.'
       }
       if (!c.repName.trim()) return 'Contact person’s name is required.'
       if (c.repResidentInKenya !== true) return 'A corporate trustee must have a contact person resident in Kenya.'
@@ -3053,8 +3049,6 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
         return 'Company KRA PIN is required.'
       }
       if (!c.registeredOfficeAddress.trim()) return 'Registered office address is required.'
-      if (!c.serviceAddressForNotices.trim()) return 'Service address for notices is required.'
-      if (!c.basisOfAuthorityToAct) return 'Choose the basis of authority to act as director.'
       if (!c.repName.trim()) return 'Representative name is required.'
       if (!c.repIdType) return 'Choose the representative’s ID type.'
       if (!c.repIdNumber.trim()) return 'Representative ID number is required.'
