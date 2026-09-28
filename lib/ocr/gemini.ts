@@ -192,14 +192,18 @@ Extract exactly these fields. Use null when a field is not present in the docume
   both), and number of shares held if shown
 - confidence: 0-100, your certainty that the extracted values are correct
 
+Ignore contact details that belong to the issuing authority itself (e.g. the KRA call centre
+phone numbers and email printed on every KRA certificate, or BRS's own address) — only
+extract details of the person or company the document is about.
+
 Do not guess values you cannot read. A wrong extraction is worse than null. These
 BO-related fields are extraction aids only — a human always confirms beneficial
 ownership conclusions; never treat them as authoritative.`
 
 const GEMINI_TIMEOUT_MS = 20_000
 const GROQ_TIMEOUT_MS = 20_000
-const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? 'llama-3.3-70b-versatile'
-const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL ?? 'meta-llama/llama-4-scout-17b-16e-instruct'
+const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? 'openai/gpt-oss-120b'
+const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL ?? 'qwen/qwen3.8-27b'
 
 // Provider chain: Gemini (reads PDFs and images natively), falling back
 // to Groq when Gemini fails, times out or is rate-limited — Gemini
@@ -332,6 +336,7 @@ function parseFields(text: string | undefined): ExtractionResult {
       full_name: str(raw.full_name),
       id_number: str(raw.id_number),
       kra_pin: str(raw.kra_pin)?.replace(/\s+/g, '').toUpperCase() ?? null,
+      registration_number: str(raw.registration_number)?.toUpperCase() ?? null,
       confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
     } as ExtractedFields
     if (!fields.document_kind) fields.document_kind = 'other'
