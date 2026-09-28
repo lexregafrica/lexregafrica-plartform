@@ -50,6 +50,25 @@ import { AddressFields, formatAddress, readLegacyAddress, type AddressData } fro
 // ------------------------------------------------------------------
 // Shared styles
 // ------------------------------------------------------------------
+// Person identity fields (name, ID number, KRA PIN). Chrome ignores
+// autocomplete="off" on name-like fields: picking a saved suggestion in
+// any one field bulk-fills every matching field in the form, which is how
+// the signed-in user's own name kept landing on other people's records
+// (Charles, 2026-09-25/29). Browsers never autofill a read-only field, so
+// each field stays read-only until the user actually focuses it.
+function NoAutofillInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [editable, setEditable] = useState(false)
+  return (
+    <input
+      {...props}
+      autoComplete="off"
+      readOnly={!editable || props.readOnly}
+      onFocus={(e) => { setEditable(true); props.onFocus?.(e) }}
+      onPointerDown={(e) => { setEditable(true); props.onPointerDown?.(e) }}
+    />
+  )
+}
+
 const inputCls =
   'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
 const inputStyle = {
@@ -2321,7 +2340,17 @@ export function InlineOcrUpload({ section, documentType = 'id_copy', label, orgI
       // formatting can differ from the ID scan's reading), silently
       // leaving that field blank on the saved row (reported live,
       // 2026-08-30: KRA PIN uploaded fine, tagged fine, field stayed empty).
-      const result = await api({ action: 'ocr_extract', documentId: registered.id, section, personId })
+      const result = await api({ action: 'ocr_extract', documentId: registered.id, section, personId }) as Awaited<ReturnType<typeof api>> & { reason?: string }
+      // A failed read used to be silent — leaving whatever was already in
+      // the form (e.g. a browser-autofilled name) looking like it came
+      // from the document (Charles, 2026-09-29).
+      if (!result.ok) {
+        setError(
+          result.reason === 'quota_exhausted'
+            ? 'The document reader is busy right now. The file is saved — use Replace to try again in a minute, or type the details in.'
+            : 'We couldn’t read that document. The file is saved — check the details below, use Replace to try again, or type them in.'
+        )
+      }
 
       // This document was registered before the person existed (personId
       // prop was still undefined), tagged only by name at that instant —
@@ -3412,7 +3441,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
-                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+                <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
               </Field>
               <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
                 <input type="checkbox" checked={form.isForeign} onChange={(e) => set({ isForeign: e.target.checked, nationality: e.target.checked ? '' : 'Kenyan' })} />
@@ -3420,10 +3449,10 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={form.isForeign ? 'Passport number' : 'National ID number'} required>
-                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                 </Field>
                 <Field label="KRA PIN" required>
-                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -4068,7 +4097,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
-                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
+                <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
               </Field>
               <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
                 <input type="checkbox" checked={form.isForeign} onChange={(e) => set({ isForeign: e.target.checked })} />
@@ -4076,10 +4105,10 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={form.isForeign ? 'Passport number' : 'National ID number'} required>
-                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                 </Field>
                 <Field label="KRA PIN" required>
-                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
                 </Field>
               </div>
               {form.isForeign && (
@@ -4522,14 +4551,14 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             percentage of control, before saving.
           </p>
           <Field label="Full name" required>
-            <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+            <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="ID / passport number">
-              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+              <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
             <Field label="KRA PIN">
-              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+              <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -5256,14 +5285,14 @@ function StepTrustSettlors({ settlors, setSettlors, orgId, entityId, api, setErr
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
           />
           <Field label="Full legal name" required>
-            <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+            <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="National ID / passport number" required>
-              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+              <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
             <Field label="KRA PIN" required>
-              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
+              <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value })} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -5678,7 +5707,7 @@ function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries
               )}
 
               <Field label="Full name" required>
-                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.name} onChange={(e) => set({ name: e.target.value })} />
+                <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.name} onChange={(e) => set({ name: e.target.value })} />
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Relationship to settlor">
@@ -5693,10 +5722,10 @@ function StepTrustBeneficiaries({ wizard, patch, beneficiaries, setBeneficiaries
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="ID / passport number" required>
-                      <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                      <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                     </Field>
                     <Field label="KRA PIN">
-                      <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
+                      <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
                     </Field>
                   </div>
                   <Field label="Nationality">
@@ -6126,15 +6155,15 @@ function StepTrustProtector({ wizard, patch, trusteeNames, orgId, entityId, api,
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
           />
               <Field label="Full name" required>
-                <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+                <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
               </Field>
               {isTrustee(form.fullName) && trusteeWarning(form.fullName, form.isSuccessor)}
               <div className="grid grid-cols-2 gap-3">
                 <Field label="ID / passport number" required>
-                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
                 </Field>
                 <Field label="KRA PIN">
-                  <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
+                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
                 </Field>
               </div>
               <Field label="Nationality">
@@ -6651,14 +6680,14 @@ function StepSocietyMembers({ members, setMembers, api, setError, applicant, org
             initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
           />
           <Field label="Full name" required>
-            <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+            <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="ID / passport">
-              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
+              <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.idNumber} onChange={(e) => set({ idNumber: e.target.value })} />
             </Field>
             <Field label="KRA PIN">
-              <input type="text" autoComplete="off" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
+              <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="A123456789B" value={form.kraPin} onChange={(e) => set({ kraPin: e.target.value.toUpperCase() })} />
             </Field>
           </div>
           <Field label="Nationality">

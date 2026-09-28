@@ -196,64 +196,147 @@ Do not guess values you cannot read. A wrong extraction is worse than null. Thes
 BO-related fields are extraction aids only — a human always confirms beneficial
 ownership conclusions; never treat them as authoritative.`
 
-export async function extractFromDocument(
-  bytes: Uint8Array,
-  mimeType: string
-): Promise<ExtractionResult> {
+const GEMINI_TIMEOUT_MS = 20_000
+const GROQ_TIMEOUT_MS = 20_000
+const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? 'llama-3.3-70b-versatile'
+const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL ?? 'meta-llama/llama-4-scout-17b-16e-instruct'
+
+// Provider chain: Gemini (reads PDFs and images natively), falling back
+// to Groq when Gemini fails, times out or is rate-limited — Gemini
+// failures were being swallowed on the client, so a missed read silently
+// left autofilled or empty fields in place (reported repeatedly by
+// Charles, 2026-09-29). OCR_PRIMARY=groq flips the order for speed.
+export async function extractFromDocument(bytes: Uint8Array, mimeType: string): Promise<ExtractionResult> {
+  const providers = process.env.OCR_PRIMARY === 'groq' ? [extractWithGroq, extractWithGemini] : [extractWithGemini, extractWithGroq]
+  let last: ExtractionResult = { ok: false, reason: 'no_api_key' }
+  for (const provider of providers) {
+    const result = await provider(bytes, mimeType).catch((e): ExtractionResult => {
+      console.error('ocr provider error', e)
+      return { ok: false, reason: 'model_error' }
+    })
+    if (result.ok) return result
+    if (result.reason !== 'no_api_key' || last.reason === 'no_api_key') last = result
+  }
+  return last
+}
+
+async function extractWithGemini(bytes: Uint8Array, mimeType: string): Promise<ExtractionResult> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return { ok: false, reason: 'no_api_key' }
 
-  // Retry on transient failures — up to 3 attempts total with growing
-  // backoff. Gemini's 503 ("model currently experiencing high demand")
-  // fires in real bursts that can outlast a single 2.5s retry, and a
-  // 429 from bursty multi-document uploads resets on its own per-minute
-  // window — both are worth pushing through rather than giving up early.
-  const BACKOFF_MS = [2_500, 8_000]
+  // One retry on transient 503/429 — the Groq fallback now covers longer
+  // outages, so there's no point making the user wait through several.
   let res = await callGemini(apiKey, bytes, mimeType)
-  for (const delay of BACKOFF_MS) {
-    if (res.status !== 503 && res.status !== 429) break
-    await new Promise((r) => setTimeout(r, delay))
+  if (res.status === 503 || res.status === 429) {
+    await new Promise((r) => setTimeout(r, 1_500))
     res = await callGemini(apiKey, bytes, mimeType)
   }
-
   if (res.status === 429) return { ok: false, reason: 'quota_exhausted' }
   if (!res.ok) {
     console.error('gemini error', res.status, await res.text().catch(() => ''))
     return { ok: false, reason: 'model_error' }
   }
-
   const data = await res.json()
   const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) return { ok: false, reason: 'model_error' }
+  return parseFields(text)
+}
 
+async function callGemini(apiKey: string, bytes: Uint8Array, mimeType: string): Promise<Response> {
   try {
-    const fields = JSON.parse(text) as ExtractedFields
-    if (typeof fields.confidence !== 'number') fields.confidence = 0
+    return await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: PROMPT }, { inline_data: { mime_type: mimeType, data: Buffer.from(bytes).toString('base64') } }] }],
+        generationConfig: { response_mime_type: 'application/json', response_schema: RESPONSE_SCHEMA, temperature: 0 },
+      }),
+    })
+  } catch (e) {
+    console.error('gemini request failed', e)
+    return new Response(null, { status: 504 })
+  }
+}
+
+const JSON_INSTRUCTIONS = `
+
+Respond with ONLY a JSON object using exactly these keys (null where not present):
+document_kind, full_name, id_number, kra_pin, date_of_birth, phone, email, occupation,
+address_line1, county, district, locality, city, postal_code, postal_address,
+business_name, registration_number, date_of_incorporation, nominal_share_capital,
+share_classes, bo_percent_shares_direct, bo_percent_shares_indirect,
+bo_percent_voting_rights, bo_has_right_to_appoint_director,
+bo_has_significant_influence, people, confidence.
+document_kind must be one of: ${(RESPONSE_SCHEMA.properties.document_kind.enum as string[]).join(', ')}.`
+
+async function extractWithGroq(bytes: Uint8Array, mimeType: string): Promise<ExtractionResult> {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) return { ok: false, reason: 'no_api_key' }
+
+  let messages: unknown[]
+  let model: string
+  if (mimeType === 'application/pdf') {
+    // Groq's vision models take images, not PDFs — but KRA certificates,
+    // CR12s and certificates of incorporation are text PDFs, so read the
+    // text layer and use the faster text model.
+    const { extractText, getDocumentProxy } = await import('unpdf')
+    const pdf = await getDocumentProxy(new Uint8Array(bytes))
+    const { text } = await extractText(pdf, { mergePages: true })
+    if (text.replace(/\s+/g, '').length < 40) return { ok: false, reason: 'unreadable' } // scanned PDF, no text layer
+    model = GROQ_TEXT_MODEL
+    messages = [
+      { role: 'system', content: PROMPT + JSON_INSTRUCTIONS },
+      { role: 'user', content: `Document text:\n\n${text.slice(0, 20_000)}` },
+    ]
+  } else if (mimeType.startsWith('image/')) {
+    model = GROQ_VISION_MODEL
+    messages = [{
+      role: 'user',
+      content: [
+        { type: 'text', text: PROMPT + JSON_INSTRUCTIONS },
+        { type: 'image_url', image_url: { url: `data:${mimeType};base64,${Buffer.from(bytes).toString('base64')}` } },
+      ],
+    }]
+  } else {
+    return { ok: false, reason: 'unreadable' }
+  }
+
+  let res: Response
+  try {
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(GROQ_TIMEOUT_MS),
+      body: JSON.stringify({ model, messages, temperature: 0, response_format: { type: 'json_object' } }),
+    })
+  } catch (e) {
+    console.error('groq request failed', e)
+    return { ok: false, reason: 'model_error' }
+  }
+  if (res.status === 429) return { ok: false, reason: 'quota_exhausted' }
+  if (!res.ok) {
+    console.error('groq error', res.status, await res.text().catch(() => ''))
+    return { ok: false, reason: 'model_error' }
+  }
+  const data = await res.json()
+  return parseFields(data?.choices?.[0]?.message?.content)
+}
+
+function parseFields(text: string | undefined): ExtractionResult {
+  if (!text) return { ok: false, reason: 'model_error' }
+  try {
+    const raw = JSON.parse(text) as Partial<ExtractedFields>
+    const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+    const fields = {
+      ...raw,
+      full_name: str(raw.full_name),
+      id_number: str(raw.id_number),
+      kra_pin: str(raw.kra_pin)?.replace(/\s+/g, '').toUpperCase() ?? null,
+      confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
+    } as ExtractedFields
+    if (!fields.document_kind) fields.document_kind = 'other'
     return { ok: true, fields }
   } catch {
     return { ok: false, reason: 'unreadable' }
   }
-}
-
-function callGemini(apiKey: string, bytes: Uint8Array, mimeType: string): Promise<Response> {
-  return fetch(`${GEMINI_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: PROMPT },
-            { inline_data: { mime_type: mimeType, data: Buffer.from(bytes).toString('base64') } },
-          ],
-        },
-      ],
-      generationConfig: {
-        response_mime_type: 'application/json',
-        response_schema: RESPONSE_SCHEMA,
-        temperature: 0,
-      },
-    }),
-  })
 }
