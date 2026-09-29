@@ -663,7 +663,7 @@ export function ExistingEntityWizard() {
                   ))}
 
                   {live.filter(([, s]) => s.state !== 'done').concat(live.filter(([, s]) => s.state === 'done')).map(([id, s]) => (
-                    <p key={id} className="text-ios-caption1" style={{ color: s.state === 'done' ? '#16a34a' : s.state === 'uploading' || s.state === 'extracting' ? 'var(--system-label-2)' : '#92400e' }}>
+                    <p key={id} className="text-ios-caption1 break-words [overflow-wrap:anywhere]" style={{ color: s.state === 'done' ? '#16a34a' : s.state === 'uploading' || s.state === 'extracting' ? 'var(--system-label-2)' : '#92400e' }}>
                       {s.name}: {s.state === 'uploading' ? 'Uploading…' : s.state === 'extracting' ? 'Reading document…' : s.summary}
                     </p>
                   ))}

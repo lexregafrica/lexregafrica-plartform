@@ -3451,7 +3451,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
               />
               {photoUploaded && (
-                <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
+                <p className="text-ios-caption1 truncate" title={photoUploaded} style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
                 <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
@@ -4113,7 +4113,7 @@ function StepShareholders({ entityType, shareholders, setShareholders, directors
                 initialUploaded={findPersonDocument(documents, form.id, form.legalName, 'passport_photo')}
               />
               {photoUploaded && (
-                <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
+                <p className="text-ios-caption1 truncate" title={photoUploaded} style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
               )}
               <Field label="Full name" required>
                 <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={form.legalName} onChange={(e) => set({ legalName: e.target.value })} />
@@ -4563,7 +4563,7 @@ function StepBeneficialOwners({ shareholders, beneficialOwners, setBeneficialOwn
             }
           />
           {photoUploaded && (
-            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
+            <p className="text-ios-caption1 truncate" title={photoUploaded} style={{ color: 'var(--system-label-3)' }}>Uploaded: {photoUploaded}</p>
           )}
           <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
             Scraped details are a starting point only — please confirm everything, especially the nature and
