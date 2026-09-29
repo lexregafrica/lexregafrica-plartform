@@ -10,7 +10,12 @@ import type { EntityType } from './new-entity'
 import type { BaselineAnswer, BaselineQuestion, DocSpec, FieldRecord, PackContext } from './existing-engine'
 import { SECRETARY_CAPITAL_THRESHOLD_KES } from './new-entity'
 
-export const EXISTING_TOTAL_STEPS = 7
+// Highest step id. Step ids are stable (a saved session resumes by id);
+// each type's order comes from stepsFor(). Step 8 — a governing-instrument
+// step — sits between 4 and 5 for types that need both it and the
+// beneficial-ownership step (LLP).
+export const EXISTING_TOTAL_STEPS = 8
+export const EXISTING_REVIEW_STEP = 7
 
 export const EXISTING_STEP_LABELS: Record<number, string> = {
   1: 'Tell Us About Your Entity',
@@ -20,6 +25,7 @@ export const EXISTING_STEP_LABELS: Record<number, string> = {
   5: 'Beneficial Ownership',
   6: 'Changes Since Your Latest Record',
   7: 'Review & Activate',
+  8: 'Agreement',
 }
 
 // Which of the seven steps a type uses. A sole proprietorship has no
@@ -29,6 +35,7 @@ export const EXISTING_STEP_LABELS: Record<number, string> = {
 // its Partnership Agreement (General Partnership brief §4).
 export function stepsFor(entityType: EntityType | undefined): number[] {
   if (entityType === 'sole_proprietorship') return [1, 2, 3, 4, 6, 7]
+  if (entityType === 'limited_liability_partnership') return [1, 2, 3, 4, 8, 5, 6, 7]
   return [1, 2, 3, 4, 5, 6, 7]
 }
 
@@ -42,17 +49,22 @@ export function stepLabel(entityType: EntityType | undefined, step: number): str
     if (step === 4) return 'Partners'
     if (step === 5) return 'Partnership Agreement'
   }
+  if (entityType === 'limited_liability_partnership') {
+    if (step === 3) return 'Confirm LLP Details'
+    if (step === 4) return 'Partners & Managers'
+    if (step === 8) return 'LLP Agreement'
+  }
   return EXISTING_STEP_LABELS[step]
 }
 
 // Noun used in headings and copy
 export function entityNounFor(entityType: EntityType | undefined): string {
-  return entityType === 'sole_proprietorship' ? 'business' : entityType === 'partnership' ? 'partnership' : 'company'
+  return entityType === 'sole_proprietorship' ? 'business' : entityType === 'partnership' ? 'partnership' : entityType === 'limited_liability_partnership' ? 'LLP' : 'company'
 }
 
 // Entity types with a built existing-entity workflow. Others show "coming
 // later" until their brief is implemented (one at a time, per the plan).
-export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company', 'sole_proprietorship', 'partnership']
+export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company', 'sole_proprietorship', 'partnership', 'limited_liability_partnership']
 
 // Company subtype fork (Limited Companies brief §2, §14)
 export const COMPANY_SUBTYPES: Array<{ value: 'private' | 'public'; label: string; description: string }> = [
@@ -111,8 +123,24 @@ export const PARTNERSHIP_FIELDS: EntityFieldSpec[] = [
   { key: 'kraPin', label: 'Partnership KRA PIN', ocr: 'kra_pin', material: false },
 ]
 
+export const LLP_FIELDS: EntityFieldSpec[] = [
+  { key: 'legalName', label: 'LLP name', ocr: 'business_name', material: true },
+  { key: 'registrationNumber', label: 'Registration number', ocr: 'registration_number', material: true },
+  { key: 'dateIncorporated', label: 'Date of registration', ocr: 'date_of_incorporation', material: true },
+  { key: 'addressLine1', label: 'Registered office', ocr: 'address_line1', material: true },
+  { key: 'county', label: 'County', ocr: 'county', material: false },
+  { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
+  { key: 'natureOfBusiness', label: 'Principal business activities', ocr: 'nature_of_business', material: false },
+  { key: 'kraPin', label: 'LLP KRA PIN', ocr: 'kra_pin', material: false },
+]
+
 export function entityFieldsFor(entityType: EntityType | undefined): EntityFieldSpec[] {
-  return entityType === 'sole_proprietorship' ? SOLE_PROPRIETORSHIP_FIELDS : entityType === 'partnership' ? PARTNERSHIP_FIELDS : ENTITY_FIELDS
+  switch (entityType) {
+    case 'sole_proprietorship': return SOLE_PROPRIETORSHIP_FIELDS
+    case 'partnership': return PARTNERSHIP_FIELDS
+    case 'limited_liability_partnership': return LLP_FIELDS
+    default: return ENTITY_FIELDS
+  }
 }
 
 // Partnership sub-type fork (General Partnership brief §1): LP and LLP
@@ -431,7 +459,120 @@ export const PARTNERSHIP_PACK: DocSpec[] = [
   },
 ]
 
+// LLP Agreement → structured rules (LLP brief §4)
+export const LLP_AGREEMENT_FIELDS: Array<{ key: string; label: string; hint: string }> = [
+  { key: 'partners', label: 'Partners', hint: 'categories and rights of partners, admission mechanics and cessation rules' },
+  { key: 'contributions', label: 'Contributions', hint: 'capital or other contributions and contribution obligations' },
+  { key: 'profits_losses', label: 'Profits & losses', hint: 'allocation or distribution formula and drawings' },
+  { key: 'management', label: 'Management', hint: 'management rights, the manager role, committees and delegations' },
+  { key: 'decision_making', label: 'Decision-making', hint: 'voting thresholds, reserved matters, meetings and quorum' },
+  { key: 'authority', label: 'Authority', hint: 'contracting, banking, borrowing, signing and spending authority' },
+  { key: 'duties', label: 'Duties & restrictions', hint: 'conflicts, confidentiality, competition and agreed duties' },
+  { key: 'transfers', label: 'Transfers & changes', hint: 'transfer or assignment restrictions and partner-change mechanics' },
+  { key: 'disputes', label: 'Disputes', hint: 'negotiation, mediation, arbitration or court provisions' },
+  { key: 'exit_winding_up', label: 'Exit & winding up', hint: 'retirement, death or incapacity, expulsion, buy-out and winding-up rules' },
+]
+
+// LLP brief §2 + §11; ranks per §9 (current search, then annual return
+// and LLP9 changes, agreement, BO filing, LLP1 formation).
+export const LLP_PACK: DocSpec[] = [
+  {
+    documentType: 'certificate_of_registration',
+    title: 'Certificate of Registration',
+    hint: 'The LLP’s registration certificate — name, number and registration date.',
+    priority: 'primary',
+    treatment: 'identity_anchor',
+    rank: 6,
+    missing: { impact: 'high', behaviour: 'The LLP’s identity can’t be marked registry-verified. Upload the certificate or other reliable registry evidence.' },
+  },
+  {
+    documentType: 'official_search_llp',
+    title: 'Current Official Search / registry extract',
+    hint: 'The current registry snapshot — our anchor for today’s partners and managers.',
+    priority: 'strong',
+    treatment: 'current_state',
+    rank: 2,
+    missing: { impact: 'high', behaviour: 'Onboarding continues provisionally — current partners and managers aren’t anchored to a current search.' },
+  },
+  {
+    documentType: 'llp_agreement',
+    title: 'LLP Agreement',
+    hint: 'Contributions, profit sharing, management, authority, transfers, disputes and winding up.',
+    priority: 'strong',
+    treatment: 'governance',
+    rank: 4,
+    missing: { impact: 'high', behaviour: 'Your identity is onboarded, but governance and economic rules stay incomplete. We can draft or review an agreement.' },
+  },
+  {
+    documentType: 'llp_bo',
+    title: 'Beneficial ownership filing / register',
+    hint: 'The LLP’s own beneficial-ownership filing under the LLP BO Regulations.',
+    priority: 'strong',
+    treatment: 'beneficial_ownership',
+    rank: 5,
+    missing: { impact: 'high', behaviour: 'A beneficial-ownership completion task is opened. Partners are never assumed to be beneficial owners.' },
+  },
+  {
+    documentType: 'llp_annual_return',
+    title: 'Latest annual return',
+    hint: 'Includes the solvency/insolvency declaration and partner, manager and authorised-person particulars.',
+    priority: 'recommended',
+    treatment: 'compliance',
+    rank: 3,
+    missing: { impact: 'high', behaviour: 'Your annual-return status stays unverified — we’ll ask when it was last filed.' },
+  },
+  {
+    documentType: 'llp1',
+    title: 'LLP 1 — Registration application',
+    hint: 'Formation particulars, first partners and managers as filed. Kept as history.',
+    priority: 'recommended',
+    treatment: 'formation',
+    rank: 6,
+    missing: { impact: 'low', behaviour: 'Doesn’t block onboarding — the formation record is noted as unavailable.' },
+  },
+  {
+    documentType: 'llp9',
+    title: 'LLP 9 — Statements of change',
+    hint: 'Changes in partners, managers, registered office, name or business since registration.',
+    priority: 'conditional',
+    treatment: 'change',
+    rank: 3,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Only needed where registered details have changed.' },
+  },
+  {
+    documentType: 'llp10',
+    title: 'LLP 10 — Solvency / insolvency declaration (historical)',
+    hint: 'Older filings only — the annual return now carries this declaration.',
+    priority: 'conditional',
+    treatment: 'compliance',
+    rank: 5,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Historical only.' },
+  },
+  {
+    documentType: 'llp_kra_pin',
+    title: 'LLP KRA PIN certificate',
+    hint: 'The LLP’s own tax PIN.',
+    priority: 'recommended',
+    treatment: 'identity_anchor',
+    rank: 6,
+    missing: { impact: 'low', behaviour: 'Recorded as not provided — we never invent a PIN.' },
+  },
+  {
+    documentType: 'other',
+    title: 'Other documents',
+    hint: 'Resolutions, accounts, permits, licences or anything else you’d like on file.',
+    priority: 'conditional',
+    treatment: 'operational',
+    rank: 7,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: '' },
+  },
+]
+
 export const EXISTING_DOC_PACKS: Partial<Record<EntityType, DocSpec[]>> = {
+  limited_liability_partnership: LLP_PACK,
   limited_company: LIMITED_COMPANY_PACK,
   sole_proprietorship: SOLE_PROPRIETORSHIP_PACK,
   partnership: PARTNERSHIP_PACK,
@@ -455,7 +596,17 @@ const BUSINESS_NAME_KIND_MAP: Record<string, string> = {
 }
 export const OCR_KIND_TO_DOC_TYPE = COMPANY_KIND_MAP
 
+const LLP_KIND_MAP: Record<string, string> = {
+  certificate_of_incorporation: 'certificate_of_registration',
+  business_registration: 'certificate_of_registration',
+  llp1: 'llp1',
+  llp9: 'llp9',
+  cr12: 'official_search_llp',
+  cr13: 'official_search_llp',
+}
+
 export function ocrKindToDocType(entityType: EntityType | undefined, kind: string): string | undefined {
+  if (entityType === 'limited_liability_partnership') return LLP_KIND_MAP[kind]
   return (entityType === 'sole_proprietorship' || entityType === 'partnership' ? BUSINESS_NAME_KIND_MAP : COMPANY_KIND_MAP)[kind]
 }
 
@@ -621,7 +772,54 @@ export const PARTNERSHIP_BASELINE: BaselineQuestion[] = [
   },
 ]
 
+// LLP brief §12
+export const LLP_BASELINE: BaselineQuestion[] = [
+  {
+    key: 'participant_changes',
+    question: 'Has any partner or manager joined or left since the latest registry record?',
+    taskOn: 'yes',
+    task: { title: 'File the change with LLP 9', description: 'A statement of change must be lodged within 14 days of a change in partners or managers (s. 33). Upload the LLP 9 if filed, or ask us to prepare it.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'details_changed',
+    question: 'Have the registered office, name or principal business activities changed?',
+    taskOn: 'yes',
+    task: { title: 'File the change of registered details (LLP 9)', description: 'Changes to registered details must be lodged within 14 days (s. 33).', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'annual_return_current',
+    question: 'Has the latest annual return (with its solvency declaration) been filed?',
+    taskOn: 'no_or_unsure',
+    task: { title: 'Bring the annual return up to date', description: 'The annual return is due within 30 days of each registration anniversary and includes the solvency/insolvency declaration.', category: 'annual_return', dueInDays: 30 },
+  },
+  {
+    key: 'agreement_amended',
+    question: 'Has the LLP Agreement been amended since it was signed?',
+    taskOn: 'yes',
+    task: { title: 'Upload the LLP Agreement amendments', description: 'Amendments supersede the affected rules — upload them so your governance record is complete.', category: 'governance', dueInDays: 30 },
+  },
+  {
+    key: 'bo_changed',
+    question: 'Have the LLP’s beneficial owners changed since its last BO filing?',
+    taskOn: 'yes',
+    task: { title: 'Update the LLP beneficial-ownership filing', description: 'BO changes must be lodged with the Registrar under the LLP BO Regulations.', category: 'bo_update', dueInDays: 14 },
+  },
+  {
+    key: 'employs_staff',
+    question: 'Does the LLP employ staff?',
+    taskOn: 'yes',
+    task: { title: 'Set up employment compliance', description: 'PAYE, NSSF, SHIF and Housing Levy obligations apply once you employ staff.', category: 'employment', dueInDays: 30 },
+  },
+  {
+    key: 'regulated_activity',
+    question: 'Does the LLP carry on a regulated activity or need county/sector licences?',
+    taskOn: 'yes',
+    task: { title: 'Record licences and permits', description: 'Upload your licences so we can track renewals.', category: 'license', dueInDays: 30 },
+  },
+]
+
 export const EXISTING_BASELINES: Partial<Record<EntityType, BaselineQuestion[]>> = {
+  limited_liability_partnership: LLP_BASELINE,
   limited_company: LIMITED_COMPANY_BASELINE,
   sole_proprietorship: SOLE_PROPRIETORSHIP_BASELINE,
   partnership: PARTNERSHIP_BASELINE,

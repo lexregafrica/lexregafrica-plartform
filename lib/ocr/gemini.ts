@@ -13,7 +13,7 @@ export type ExtractedPerson = {
   kra_pin: string | null
   // 'subscriber' = founding subscriber on a CR2 memorandum; 'secretary' =
   // company secretary on a CR12 / secretary form
-  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'unknown'
+  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'manager' | 'unknown'
   shares_held: number | null
 }
 
@@ -39,6 +39,8 @@ export type ExtractedFields = {
     | 'statement_of_nominal_capital'
     | 'cr13' // Official Search — business name (status report)
     | 'bn2' // application to register a business name
+    | 'llp1' // LLP registration application
+    | 'llp9' // LLP statement of change
     | 'other'
   full_name: string | null
   id_number: string | null
@@ -89,7 +91,7 @@ const RESPONSE_SCHEMA = {
       enum: [
         'national_id', 'passport', 'kra_pin_certificate', 'proof_of_address',
         'business_registration', 'certificate_of_incorporation', 'cr12',
-        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'cr13', 'bn2', 'other',
+        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'cr13', 'bn2', 'llp1', 'llp9', 'other',
       ],
     },
     full_name: { type: 'STRING', nullable: true },
@@ -138,7 +140,7 @@ const RESPONSE_SCHEMA = {
           full_name: { type: 'STRING' },
           id_number: { type: 'STRING', nullable: true },
           kra_pin: { type: 'STRING', nullable: true },
-          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'unknown'] },
+          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'unknown'] },
           shares_held: { type: 'NUMBER', nullable: true },
         },
         required: ['full_name', 'role'],
@@ -157,7 +159,8 @@ registration of a company), CR2 (memorandum of registration for a company with
 share capital), CR8 (notification of director/secretary residential address),
 BOF1 (beneficial ownership register filing), Statement of Nominal Capital, a
 business-name Certificate of Registration (business_registration), a business-name
-Official Search (cr13), a BN2 business-name application (bn2), or another business
+Official Search (cr13), a BN2 business-name application (bn2), an LLP registration application (llp1),
+an LLP statement of change (llp9), or another business
 registration document.
 
 Extract exactly these fields. Use null when a field is not present in the document.
@@ -209,7 +212,9 @@ Extract exactly these fields. Use null when a field is not present in the docume
   secretary listed (role secretary); for a CR2 memorandum, every subscriber (role
   subscriber) with the shares they took; for a business-name certificate, BN2 or
   business-name search, every proprietor listed (role proprietor), or every partner
-  where the business is a partnership (role partner) —
+  where the business is a partnership (role partner); for an LLP (LLP 1, LLP 9, LLP
+  search or annual return), every partner (role partner) and every manager (role
+  manager) —
   full name, ID number if shown, KRA PIN if shown, role (director / shareholder /
   both), and number of shares held if shown
 - confidence: 0-100, your certainty that the extracted values are correct

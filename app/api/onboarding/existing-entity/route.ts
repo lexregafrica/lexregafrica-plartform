@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import {
-  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType, PARTNERSHIP_AGREEMENT_FIELDS,
+  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, EXISTING_REVIEW_STEP,
   LIMITED_COMPANY_PACK, rankFor,
   type EntityFieldKey, type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
@@ -254,13 +254,14 @@ export async function POST(request: Request) {
     const bytes = new Uint8Array(await blob.arrayBuffer())
 
     // A governing instrument is read into structured rules, not fields
-    if (doc.document_type === 'partnership_agreement' && section === 'registry') {
-      const g = await extractGovernanceRules(bytes, doc.mime_type ?? 'application/pdf', 'partnership agreement', PARTNERSHIP_AGREEMENT_FIELDS)
+    const instrument = doc.document_type ? INSTRUMENTS[doc.document_type] : undefined
+    if (instrument && section === 'registry') {
+      const g = await extractGovernanceRules(bytes, doc.mime_type ?? 'application/pdf', instrument.name, instrument.fields)
       if (!g.ok) {
         await supabase.from('documents').update({ ocr_status: 'failed', ocr_data: { reason: g.reason } as Json }).eq('id', doc.id)
         return NextResponse.json({ ok: false, ocrStatus: 'failed', reason: g.reason })
       }
-      await supabase.from('documents').update({ ocr_status: 'complete', ocr_data: { document_kind: 'partnership_agreement', document_date: g.datedAs, governance: g.rules, parties_named: g.partiesNamed } as unknown as Json }).eq('id', doc.id)
+      await supabase.from('documents').update({ ocr_status: 'complete', ocr_data: { document_kind: doc.document_type, document_date: g.datedAs, governance: g.rules, parties_named: g.partiesNamed } as unknown as Json }).eq('id', doc.id)
       const { data: freshP } = await supabase.from('onboarding_progress').select('data').eq('id', progress.id).single()
       const pd = (freshP?.data ?? {}) as ProgressData
       const governance = { ...(pd.wizard?.governance ?? {}) }
@@ -292,7 +293,14 @@ export async function POST(request: Request) {
     const personScoped = tagged || section !== 'registry'
     let documentType = doc.document_type ?? 'other'
     const detected = ocrKindToDocType(entityType, fields.document_kind)
-    if (!personScoped && detected) documentType = detected
+    // The user's choice of box wins — OCR classification can be wrong
+    // (an LLP certificate read as an LLP 1). Only files dropped into
+    // "Other" are re-filed; elsewhere a mismatch is just mentioned.
+    let looksLike: string | undefined
+    if (!personScoped && detected && detected !== documentType) {
+      if (documentType === 'other') documentType = detected
+      else looksLike = detected
+    }
     await supabase
       .from('documents')
       .update({ ocr_status: 'complete', ocr_data: fields as unknown as Json, document_type: documentType })
@@ -315,7 +323,7 @@ export async function POST(request: Request) {
       p_metadata: { document_kind: fields.document_kind, confidence: fields.confidence, section: section ?? 'registry' },
     })
 
-    return NextResponse.json({ ok: true, ocrStatus: 'complete', fields, documentType, ...merged })
+    return NextResponse.json({ ok: true, ocrStatus: 'complete', fields, documentType, looksLike, ...merged })
   }
 
   // ----------------------------------------------------------
@@ -423,7 +431,7 @@ export async function POST(request: Request) {
       director: {
         id?: string; fullName: string; idNumber?: string; kraPin?: string
         nationality?: string; dateOfBirth?: string; phone?: string; email?: string; occupation?: string
-        role?: 'director' | 'secretary' | 'proprietor' | 'partner'
+        role?: 'director' | 'secretary' | 'proprietor' | 'partner' | 'manager' | 'authorised_person'
         appointmentDate?: string
         // Partner relationship facts (General Partnership brief §8) — kept
         // on the relationship, not the person's identity record
@@ -483,9 +491,10 @@ export async function POST(request: Request) {
           contributionValue: director.contributionValue || undefined,
           isManagingPartner: director.isManagingPartner || undefined,
           signingAuthority: director.signingAuthority || undefined,
-          cessationDate: director.cessationDate || undefined,
-          cessationReason: director.cessationReason || undefined,
         } : {}),
+        // Cessation keeps the relationship as history instead of deleting it
+        cessationDate: director.cessationDate || undefined,
+        cessationReason: director.cessationDate ? director.cessationReason || undefined : undefined,
         // The user has now reviewed this person — a name-only OCR match
         // no longer needs confirming.
         nameMatchOnly: undefined,
@@ -647,22 +656,29 @@ export async function POST(request: Request) {
 
     const [{ data: docs }, { data: directorRows }] = await Promise.all([
       supabase.from('documents').select('document_type, tags').eq('entity_id', entityId).is('deleted_at', null),
-      supabase.from('directors').select('id, full_name, residential_address').eq('entity_id', entityId),
+      supabase.from('directors').select('id, full_name, id_number, residential_address').eq('entity_id', entityId),
     ])
     if (entityType === 'sole_proprietorship') {
       const proprietors = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'proprietor')
       if (proprietors.length !== 1) return NextResponse.json({ error: 'a business name registered to one proprietor needs exactly one proprietor' }, { status: 400 })
+    } else if (entityType === 'limited_liability_partnership') {
+      const partners = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'partner')
+      if (partners.length < 1) return NextResponse.json({ error: 'add the partners' }, { status: 400 })
     } else if (entityType === 'partnership') {
       const partners = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'partner')
       if (partners.length < 1) return NextResponse.json({ error: 'add the partners' }, { status: 400 })
     } else if ((directorRows ?? []).length < 1) {
       return NextResponse.json({ error: 'add at least one director' }, { status: 400 })
     }
-    const unverifiedPeople = (directorRows ?? [])
-      .filter((d) => !(d.residential_address as { isCorporate?: boolean; cessationDate?: string } | null)?.isCorporate)
+    // One person can hold several roles (partner + manager): an ID on file
+    // for any of their rows verifies the person, and they're listed once.
+    const hasId = (id: string) => (docs ?? []).some((doc) => doc.document_type === 'director_id_copy' && (doc.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === id))
+    const personKey = (d: { id_number: string | null; full_name: string }) => (d.id_number || d.full_name).trim().toLowerCase()
+    const activePeople = (directorRows ?? [])
+      .filter((d) => !(d.residential_address as { isCorporate?: boolean } | null)?.isCorporate)
       .filter((d) => !(d.residential_address as { cessationDate?: string } | null)?.cessationDate)
-      .filter((d) => !(docs ?? []).some((doc) => doc.document_type === 'director_id_copy' && (doc.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === d.id)))
-      .map((d) => d.full_name)
+    const verifiedKeys = new Set(activePeople.filter((d) => hasId(d.id)).map(personKey))
+    const unverifiedPeople = [...new Map(activePeople.filter((d) => !verifiedKeys.has(personKey(d))).map((d) => [personKey(d), d.full_name])).values()]
 
     const { data: liveDocs } = await supabase.from('documents').select('id').eq('entity_id', entityId).is('deleted_at', null)
     const liveWizard = withLiveEvidence(wizard, new Set((liveDocs ?? []).map((d) => d.id)), rankFor(entityType))
@@ -686,6 +702,24 @@ export async function POST(request: Request) {
     const states = entityFieldsFor(entityType).filter((f) => f.material).map((f) => fieldState(evidence[f.key], String(finalWizard[f.key] ?? ''), rank))
 
     const tasks = buildActivationTasks({ gaps, baseline: EXISTING_BASELINES[entityType] ?? [], wizard: finalWizard, ctx, unverifiedPeople })
+    if (entityType === 'limited_liability_partnership') {
+      const managers = (directorRows ?? []).filter((d) => {
+        const ra = (d.residential_address ?? {}) as { role?: string; cessationDate?: string; isCorporate?: boolean }
+        return ra.role === 'manager' && !ra.cessationDate && !ra.isCorporate
+      })
+      // LLP Act: at least one manager, who must be a natural person
+      if (managers.length < 1) {
+        tasks.unshift({ title: 'Urgent: appoint / record the LLP manager', description: 'An LLP must have at least one manager, and the manager must be a natural person. The manager carries personal responsibility for specified statutory compliance.', category: 'legal_review', dueInDays: 7 })
+      }
+    }
+    const instrumentType = instrumentFor(entityType)
+    if (instrumentType && uploaded.has(instrumentType)) {
+      const liveGov = liveGovernance(finalWizard.governance, new Set((liveDocs ?? []).map((d) => d.id))) ?? {}
+      const silent = INSTRUMENTS[instrumentType].fields.filter((f) => liveGov[f.key]?.silent)
+      if (silent.length > 0) {
+        tasks.push({ title: 'Legal review: matters the agreement doesn’t cover', description: `The agreement is silent on: ${silent.map((f) => f.label.toLowerCase()).join(', ')}. Statutory default rules may apply — we’ll review with you rather than assume a rule.`, category: 'legal_review', dueInDays: 30 })
+      }
+    }
     if (entityType === 'partnership') {
       const current = (directorRows ?? []).filter((d) => {
         const ra = (d.residential_address ?? {}) as { role?: string; cessationDate?: string }
@@ -694,11 +728,6 @@ export async function POST(request: Request) {
       // Partnerships Act: falling below two partners is a break-up event
       if (current.length < 2) {
         tasks.unshift({ title: 'Urgent: legal-status review — fewer than two partners', description: `Only ${current.length} current partner${current.length === 1 ? '' : 's'} recorded. Under the Partnerships Act a partnership breaks up when its partners fall below two. We’ll review the business’s legal status with you.`, category: 'legal_review', dueInDays: 7 })
-      }
-      const liveGov = liveGovernance(finalWizard.governance, new Set((liveDocs ?? []).map((d) => d.id))) ?? {}
-      const silent = PARTNERSHIP_AGREEMENT_FIELDS.filter((f) => liveGov[f.key]?.silent)
-      if (uploaded.has('partnership_agreement') && silent.length > 0) {
-        tasks.push({ title: 'Legal review: matters the partnership agreement doesn’t cover', description: `The agreement is silent on: ${silent.map((f) => f.label.toLowerCase()).join(', ')}. Statutory default rules may apply — we’ll review with you rather than assume a rule.`, category: 'legal_review', dueInDays: 30 })
       }
     }
     const status = activationStatus({ gaps, states, openTasks: tasks.length })
@@ -710,13 +739,13 @@ export async function POST(request: Request) {
         .from('entities')
         .update({
           status: 'active',
-          onboarding_step: EXISTING_TOTAL_STEPS,
+          onboarding_step: EXISTING_REVIEW_STEP,
           onboarding_data: newData as Json,
           applicant_name: wizard.signature.trim(),
           applicant_email: user.email ?? null,
         })
         .eq('id', entityId),
-      supabase.from('onboarding_progress').update({ step: EXISTING_TOTAL_STEPS, data: newData as Json }).eq('id', progress.id),
+      supabase.from('onboarding_progress').update({ step: EXISTING_REVIEW_STEP, data: newData as Json }).eq('id', progress.id),
     ])
 
     if (entityError || progressError) {
@@ -827,7 +856,15 @@ async function seedComplianceCalendar(
     // Recurring obligations only where they apply: a business name files
     // no BRS annual return, and its income is taxed on the proprietor's
     // own return; a permit is tracked only if the business needs one.
-    const recurring = ctx.entityType === 'partnership'
+    // LLP annual return: within 30 days after each registration anniversary
+    const llpReturn = new Date(annualReturn)
+    llpReturn.setDate(llpReturn.getDate() + 30)
+    const recurring = ctx.entityType === 'limited_liability_partnership'
+      ? [
+          { ...base, title: 'File the LLP annual return', description: 'Due within 30 days after the registration anniversary. It includes the solvency/insolvency declaration and the particulars of the manager, partners and authorised person. Accounting records must be kept for at least seven years.', category: 'annual_return', due_date: iso(llpReturn) },
+          { ...base, title: 'File income tax return with KRA', description: 'Confirm with your tax adviser which return applies to the LLP and its partners; due by 30 June.', category: 'tax', due_date: iso(kraReturn) },
+        ]
+      : ctx.entityType === 'partnership'
       ? [
           { ...base, title: 'File the partnership income tax return (IT2P)', description: 'The partnership files a return by 30 June; each partner then declares their share of profit on their own return.', category: 'tax', due_date: iso(kraReturn) },
           ...(ctx.baseline.county_permit === 'yes'
@@ -915,7 +952,7 @@ async function generateAndStoreProfile(
       directors: (directors ?? []).map((d) => {
         const ra = (d.residential_address ?? {}) as { role?: string; structuredAddress?: AddressData }
         return {
-          fullName: d.full_name, role: ra.role === 'secretary' ? 'Company Secretary' : ra.role === 'proprietor' ? 'Proprietor' : ra.role === 'partner' ? 'Partner' : 'Director', nationality: d.nationality,
+          fullName: d.full_name, role: ra.role === 'secretary' ? 'Company Secretary' : ra.role === 'proprietor' ? 'Proprietor' : ra.role === 'partner' ? 'Partner' : ra.role === 'manager' ? 'Manager' : ra.role === 'authorised_person' ? 'Authorised person' : 'Director', nationality: d.nationality,
           idNumber: d.id_number || null, kraPin: d.kra_pin, email: d.email, phone: d.phone,
           address: ra.structuredAddress ? formatAddress(ra.structuredAddress) : null,
           isAlsoShareholder: false, isAlsoBeneficialOwner: false,
@@ -974,6 +1011,14 @@ async function generateAndStoreProfile(
   }
 }
 
+// Governing instruments read into structured rules, by document type
+const INSTRUMENTS: Record<string, { name: string; fields: typeof PARTNERSHIP_AGREEMENT_FIELDS }> = {
+  partnership_agreement: { name: 'partnership agreement', fields: PARTNERSHIP_AGREEMENT_FIELDS },
+  llp_agreement: { name: 'limited liability partnership (LLP) agreement', fields: LLP_AGREEMENT_FIELDS },
+}
+const instrumentFor = (entityType: EntityType) =>
+  entityType === 'partnership' ? 'partnership_agreement' : entityType === 'limited_liability_partnership' ? 'llp_agreement' : null
+
 // Rules read from an agreement that has since been removed/replaced stop
 // counting; the user's own entries stay.
 function liveGovernance(g: ExistingWizardData['governance'], live: Set<string>) {
@@ -1026,7 +1071,7 @@ async function recomputeShareholding(supabase: SupabaseServer, entityId: string)
 // only pre-filled when it is still empty. People are matched by strong
 // identifiers; a name-only match is flagged for the user to confirm.
 // ------------------------------------------------------------------
-const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'cr13', 'bn2', 'kra_pin_certificate', 'other'])
+const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'cr13', 'bn2', 'llp1', 'llp9', 'kra_pin_certificate', 'other'])
 
 async function mergeRegistryEvidence(
   supabase: SupabaseServer,
@@ -1129,6 +1174,14 @@ async function mergeRegistryEvidence(
   } else if (source.documentType === 'cr12' || source.documentType === 'change_filing' || source.documentType === 'cr8' || source.documentType === 'cr1') {
     const current = source.documentType === 'cr12' || source.documentType === 'change_filing'
     await mergePeople(supabase, { people, source, entityId, orgId, current })
+  } else if (ctx.entityType === 'limited_liability_partnership' && ['certificate_of_registration', 'official_search_llp', 'llp1', 'llp9', 'llp_annual_return'].includes(source.documentType)) {
+    // LLP records list partners and managers — separate roles, even when
+    // one person holds both (LLP brief §5)
+    await mergePeople(supabase, {
+      people: people.map((p) => ({ ...p, role: p.role === 'manager' ? 'manager' as const : 'partner' as const })),
+      source, entityId, orgId,
+      current: source.documentType !== 'llp1',
+    })
   } else if ((ctx.entityType === 'sole_proprietorship' || ctx.entityType === 'partnership') && ['certificate_of_registration', 'official_search_bn', 'bn2', 'bn_change', 'partner_change'].includes(source.documentType)) {
     // Business-name records name the proprietor — sometimes as a people
     // list, sometimes as the document's single named person.
@@ -1141,7 +1194,7 @@ async function mergeRegistryEvidence(
     })
   }
 
-  if (source.documentType === 'bof1' && fields.full_name) {
+  if ((source.documentType === 'bof1' || source.documentType === 'llp_bo') && fields.full_name) {
     await mergeBeneficialOwner(supabase, { fields, source, entityId, orgId })
   }
 
@@ -1165,9 +1218,12 @@ async function mergePeople(
     if (!p.full_name) continue
     const person = { name: p.full_name, idNumber: p.id_number, kraPin: p.kra_pin }
 
-    const officerRole = p.role === 'partner' ? 'partner' : p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
+    const officerRole = p.role === 'manager' ? 'manager' : p.role === 'partner' ? 'partner' : p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
     if (officerRole) {
-      const matches = (directors ?? []).map((d) => ({ d, m: matchPerson(person, { name: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin }) }))
+      // Matched within the same role: a partner who is also the manager
+      // keeps two relationships, not one merged row.
+      const roleOf = (d: { residential_address: unknown }) => ((d.residential_address ?? {}) as { role?: string }).role ?? 'director'
+      const matches = (directors ?? []).filter((d) => roleOf(d) === officerRole).map((d) => ({ d, m: matchPerson(person, { name: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin }) }))
       const hit = matches.find((x) => x.m === 'same') ?? matches.find((x) => x.m === 'possible')
       if (hit) {
         const ra = (hit.d.residential_address ?? {}) as Record<string, unknown>
