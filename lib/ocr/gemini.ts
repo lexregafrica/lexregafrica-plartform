@@ -11,7 +11,9 @@ export type ExtractedPerson = {
   full_name: string
   id_number: string | null
   kra_pin: string | null
-  role: 'director' | 'shareholder' | 'both' | 'unknown'
+  // 'subscriber' = founding subscriber on a CR2 memorandum; 'secretary' =
+  // company secretary on a CR12 / secretary form
+  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'unknown'
   shares_held: number | null
 }
 
@@ -66,6 +68,9 @@ export type ExtractedFields = {
   bo_has_right_to_appoint_director: boolean | null
   bo_has_significant_influence: boolean | null
   people: ExtractedPerson[] | null // directors/shareholders listed on CR12-type documents
+  // Date the document speaks as at — search date, filing date or issue
+  // date — so later records can be told apart from historical ones.
+  document_date: string | null // YYYY-MM-DD
   confidence: number // 0-100, model's own certainty about the extraction
 }
 
@@ -119,6 +124,7 @@ const RESPONSE_SCHEMA = {
     bo_percent_voting_rights: { type: 'NUMBER', nullable: true },
     bo_has_right_to_appoint_director: { type: 'BOOLEAN', nullable: true },
     bo_has_significant_influence: { type: 'BOOLEAN', nullable: true },
+    document_date: { type: 'STRING', nullable: true },
     people: {
       type: 'ARRAY',
       nullable: true,
@@ -128,7 +134,7 @@ const RESPONSE_SCHEMA = {
           full_name: { type: 'STRING' },
           id_number: { type: 'STRING', nullable: true },
           kra_pin: { type: 'STRING', nullable: true },
-          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'unknown'] },
+          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'unknown'] },
           shares_held: { type: 'NUMBER', nullable: true },
         },
         required: ['full_name', 'role'],
@@ -187,7 +193,12 @@ Extract exactly these fields. Use null when a field is not present in the docume
   never infer or calculate
 - bo_has_right_to_appoint_director, bo_has_significant_influence: booleans as
   explicitly stated on a BOF1 filing — extract only if explicitly printed
-- people: for CR12 or similar documents, every director and shareholder listed —
+- document_date: YYYY-MM-DD the document speaks as at — the search/report date on an
+  Official Search (CR12), the filing or signature date on a CR1/CR2/CR8/BOF1, or the
+  issue date on a certificate
+- people: for CR12 or similar documents, every director, shareholder and company
+  secretary listed (role secretary); for a CR2 memorandum, every subscriber (role
+  subscriber) with the shares they took —
   full name, ID number if shown, KRA PIN if shown, role (director / shareholder /
   both), and number of shares held if shown
 - confidence: 0-100, your certainty that the extracted values are correct
@@ -265,7 +276,7 @@ async function callGemini(apiKey: string, bytes: Uint8Array, mimeType: string): 
 const JSON_INSTRUCTIONS = `
 
 Respond with ONLY a JSON object using exactly these keys (null where not present):
-document_kind, full_name, id_number, kra_pin, date_of_birth, phone, email, occupation,
+document_kind, document_date, full_name, id_number, kra_pin, date_of_birth, phone, email, occupation,
 address_line1, county, district, locality, city, postal_code, postal_address,
 business_name, registration_number, date_of_incorporation, nominal_share_capital,
 share_classes, bo_percent_shares_direct, bo_percent_shares_indirect,

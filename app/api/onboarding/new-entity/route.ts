@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
+import { registerDocument, retagDocuments, retirePersonDocuments, type PersonRole, type RegisterDocumentInput } from '@/lib/onboarding/documents-server'
 import { generateIdp } from '@/lib/documents/idp'
 import { formatAddress, type AddressData } from '@/lib/onboarding/new-entity'
 import {
@@ -620,102 +621,8 @@ export async function POST(request: Request) {
   // straight to Supabase Storage from the client)
   // ----------------------------------------------------------
   if (action === 'register_document') {
-    const { document } = body as {
-      document: {
-        name: string; filePath: string; fileSize?: number; mimeType?: string; documentType?: string
-        // Person the document belongs to (for the document-vault file-tree
-        // grouping) and a category label — Charles call, 2026-08: tag docs
-        // by who/what they're for, not just their type, since there's no
-        // per-person FK on this table.
-        personName?: string; personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
-        // The saved row's own id, when there is one — preferred over
-        // name matching, which can race with the name itself still
-        // landing in form state (Charles call, 2026-08: a photo
-        // uploaded right after an ID scan got tagged with a stale/empty
-        // name and was unfindable on reopen).
-        personId?: string
-        // Set by the "Replace" control: the stored file this upload
-        // supersedes, retired no matter how it was tagged.
-        replacesFilePath?: string
-      }
-    }
-    if (!document?.name || !document?.filePath) {
-      return NextResponse.json({ error: 'name and filePath required' }, { status: 400 })
-    }
-    // Only allow registering files inside this org's own storage folder
-    if (!document.filePath.startsWith(`${orgId}/`)) {
-      return NextResponse.json({ error: 'invalid file path' }, { status: 400 })
-    }
-
-    const tags: Json[] = []
-    if (document.personName || document.personId) {
-      tags.push({ person: document.personName, personId: document.personId, role: document.personRole ?? 'other' } as Json)
-    }
-
-    // A "Replace" upload should retire the old file, not pile up next to
-    // it — every re-upload for the same person + document type used to
-    // insert a fresh row and leave the previous one sitting in the vault
-    // forever (Charles call, 2026-08: "every time you add, it keeps
-    // adding, adding, adding" — reproduced live, the vault had 4+ copies
-    // of the same statement of nominal capital). Only applies when we
-    // know who/what this document is for — the general multi-file vault
-    // buckets (proof of address, "other supporting documents") are meant
-    // to hold more than one file and stay untouched.
-    if (document.replacesFilePath) {
-      await supabase
-        .from('documents')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('entity_id', entityId)
-        .eq('file_path', document.replacesFilePath)
-        .is('deleted_at', null)
-    }
-    if (document.documentType && (document.personId || document.personName)) {
-      const { data: existing } = await supabase
-        .from('documents')
-        .select('id, tags')
-        .eq('entity_id', entityId)
-        .eq('document_type', document.documentType)
-        .is('deleted_at', null)
-      // Never retire another person's document by a name match — a name
-      // can come from browser autofill or be shared by two people
-      // (Charles, 2026-09-29: Elisha's upload surfaced under Charles
-      // Adede). By id when we have one; by name only among documents not
-      // yet tied to anyone.
-      const stale = (existing ?? []).filter((d) => {
-        const t = (d.tags as Array<{ person?: string; personId?: string }> | null)?.[0]
-        if (!t) return false
-        if (document.personId) return t.personId === document.personId
-        return !t.personId && !!document.personName && t.person?.trim().toLowerCase() === document.personName.trim().toLowerCase()
-      })
-      if (stale.length > 0) {
-        await supabase.from('documents').update({ deleted_at: new Date().toISOString() }).in('id', stale.map((d) => d.id))
-      }
-    }
-
-    const { data: doc, error } = await supabase
-      .from('documents')
-      .insert({
-        entity_id: entityId,
-        organisation_id: orgId,
-        name: document.name,
-        document_type: document.documentType ?? 'other',
-        category: 'legal',
-        file_path: document.filePath,
-        file_size: document.fileSize ?? null,
-        mime_type: document.mimeType ?? null,
-        ocr_status: 'pending', // OCR pipeline lands in a later phase — status stays pending
-        uploaded_by: user.id,
-        tags: tags as unknown as Json,
-        metadata: { uploaded_from: 'onboarding' } as Json,
-      })
-      .select('id')
-      .single()
-
-    if (error) {
-      console.error('document register error', error)
-      return NextResponse.json({ error: 'failed to register document' }, { status: 500 })
-    }
-    return NextResponse.json({ ok: true, id: doc?.id })
+    const { document } = body as { document: RegisterDocumentInput }
+    return registerDocument(supabase, { entityId, orgId, userId: user.id }, document)
   }
 
   // ----------------------------------------------------------
@@ -728,47 +635,7 @@ export async function POST(request: Request) {
   // documents showed no link back on the edit screen).
   // ----------------------------------------------------------
   if (action === 'retag_documents') {
-    const { documentIds, personId: targetPersonId, personName, personRole } = body as {
-      documentIds?: string[]
-      personId?: string
-      personName?: string
-      personRole?: 'director' | 'shareholder' | 'beneficial_owner' | 'corporate_party' | 'enforcer' | 'entity'
-    }
-    if (!documentIds?.length || !targetPersonId) return NextResponse.json({ ok: true })
-
-    const { error } = await supabase
-      .from('documents')
-      .update({ tags: [{ person: personName, personId: targetPersonId, role: personRole ?? 'other' }] as unknown as Json })
-      .eq('entity_id', entityId)
-      .in('id', documentIds)
-
-    if (error) {
-      console.error('document retag error', error)
-      return NextResponse.json({ error: 'failed to retag documents' }, { status: 500 })
-    }
-
-    // One current document per person per type: anything older of the
-    // same type already tied to this person is superseded. Soft-deleted,
-    // so it stays in the history (Charles, 2026-09-29: replaced documents
-    // were showing twice in the vault).
-    const { data: retagged } = await supabase.from('documents').select('document_type').eq('entity_id', entityId).in('id', documentIds)
-    const types = [...new Set((retagged ?? []).map((d) => d.document_type).filter((t): t is string => !!t))]
-    if (types.length > 0) {
-      const { data: older } = await supabase
-        .from('documents')
-        .select('id, tags')
-        .eq('entity_id', entityId)
-        .in('document_type', types)
-        .is('deleted_at', null)
-        .not('id', 'in', `(${documentIds.join(',')})`)
-      const superseded = (older ?? [])
-        .filter((d) => (d.tags as Array<{ personId?: string }> | null)?.[0]?.personId === targetPersonId)
-        .map((d) => d.id)
-      if (superseded.length > 0) {
-        await supabase.from('documents').update({ deleted_at: new Date().toISOString() }).in('id', superseded).eq('entity_id', entityId)
-      }
-    }
-    return NextResponse.json({ ok: true })
+    return retagDocuments(supabase, entityId, body as { documentIds?: string[]; personId?: string; personName?: string; personRole?: PersonRole })
   }
 
   // clone_person_documents — "also a director" copies a shareholder's
@@ -1827,19 +1694,6 @@ async function generateAndStoreIdp(
 // a person who no longer exists, and re-adding the same person later
 // would sit alongside them as duplicates instead of replacing them.
 // Soft-delete on removal so both problems go away at the source.
-async function retirePersonDocuments(supabase: SupabaseServer, entityId: string, personId: string) {
-  const { data: docs } = await supabase
-    .from('documents')
-    .select('id, tags')
-    .eq('entity_id', entityId)
-    .is('deleted_at', null)
-  const tagged = (docs ?? []).filter((d) =>
-    (d.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === personId)
-  )
-  if (tagged.length > 0) {
-    await supabase.from('documents').update({ deleted_at: new Date().toISOString() }).in('id', tagged.map((d) => d.id))
-  }
-}
 
 // ------------------------------------------------------------------
 // Merge OCR-extracted fields into wizard data + directors/shareholders.

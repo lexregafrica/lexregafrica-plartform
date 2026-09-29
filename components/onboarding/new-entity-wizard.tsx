@@ -56,7 +56,7 @@ import { AddressFields, formatAddress, readLegacyAddress, type AddressData } fro
 // the signed-in user's own name kept landing on other people's records
 // (Charles, 2026-09-25/29). Browsers never autofill a read-only field, so
 // each field stays read-only until the user actually focuses it.
-function NoAutofillInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+export function NoAutofillInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   const [editable, setEditable] = useState(false)
   return (
     <input
@@ -271,7 +271,7 @@ const CORPORATE_TRUSTEE_TYPES: Array<{ value: CorporateTrusteeType; label: strin
 
 // The directors table needs an identifier; a Public Trustee or an
 // unregistered body corporate has no registration number.
-function corporateIdentifier(c: CorporateParticipant): string {
+export function corporateIdentifier(c: CorporateParticipant): string {
   return c.regNumber.trim() || (c.trusteeType === 'public_trustee' ? 'Public Trustee' : 'Not registered')
 }
 
@@ -371,7 +371,7 @@ type ShareholderRow = {
   } | null
 }
 
-type DocumentRow = {
+export type DocumentRow = {
   id: string
   name: string
   document_type: string | null
@@ -401,7 +401,7 @@ function isIdentityDocument(documentKind: string | undefined): boolean {
   return documentKind === 'national_id' || documentKind === 'passport'
 }
 
-function mergePersonExtraction<T extends { fullName: string; idNumber: string; kraPin: string; dateOfBirth: string }>(
+export function mergePersonExtraction<T extends { fullName: string; idNumber: string; kraPin: string; dateOfBirth: string }>(
   prev: T,
   f: { full_name?: string; id_number?: string; kra_pin?: string; date_of_birth?: string; document_kind?: string },
   isReplace: boolean
@@ -417,7 +417,7 @@ function mergePersonExtraction<T extends { fullName: string; idNumber: string; k
   }
 }
 
-function findPersonDocument(documents: DocumentRow[], personId: string | undefined, personName: string, documentType: string): { name: string; filePath: string } | null {
+export function findPersonDocument(documents: DocumentRow[], personId: string | undefined, personName: string, documentType: string): { name: string; filePath: string } | null {
   const byId = personId
     ? [...documents].reverse().find((d) => d.document_type === documentType && d.tags?.some((t) => t.personId === personId))
     : undefined
