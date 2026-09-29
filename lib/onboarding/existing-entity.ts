@@ -25,6 +25,8 @@ export const EXISTING_STEP_LABELS: Record<number, string> = {
 // Which of the seven steps a type uses. A sole proprietorship has no
 // beneficial-ownership register — the proprietor owns and controls the
 // business (Sole Proprietorship brief §13).
+// A general partnership has no BO register step either; step 5 becomes
+// its Partnership Agreement (General Partnership brief §4).
 export function stepsFor(entityType: EntityType | undefined): number[] {
   if (entityType === 'sole_proprietorship') return [1, 2, 3, 4, 6, 7]
   return [1, 2, 3, 4, 5, 6, 7]
@@ -35,17 +37,22 @@ export function stepLabel(entityType: EntityType | undefined, step: number): str
     if (step === 3) return 'Confirm Business Details'
     if (step === 4) return 'Proprietor'
   }
+  if (entityType === 'partnership') {
+    if (step === 3) return 'Confirm Partnership Details'
+    if (step === 4) return 'Partners'
+    if (step === 5) return 'Partnership Agreement'
+  }
   return EXISTING_STEP_LABELS[step]
 }
 
 // Noun used in headings and copy
 export function entityNounFor(entityType: EntityType | undefined): string {
-  return entityType === 'sole_proprietorship' ? 'business' : 'company'
+  return entityType === 'sole_proprietorship' ? 'business' : entityType === 'partnership' ? 'partnership' : 'company'
 }
 
 // Entity types with a built existing-entity workflow. Others show "coming
 // later" until their brief is implemented (one at a time, per the plan).
-export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company', 'sole_proprietorship']
+export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company', 'sole_proprietorship', 'partnership']
 
 // Company subtype fork (Limited Companies brief §2, §14)
 export const COMPANY_SUBTYPES: Array<{ value: 'private' | 'public'; label: string; description: string }> = [
@@ -93,9 +100,55 @@ export const SOLE_PROPRIETORSHIP_FIELDS: EntityFieldSpec[] = [
   { key: 'natureOfBusiness', label: 'Nature of business', ocr: 'nature_of_business', material: false },
 ]
 
+export const PARTNERSHIP_FIELDS: EntityFieldSpec[] = [
+  { key: 'legalName', label: 'Partnership name', ocr: 'business_name', material: true },
+  { key: 'registrationNumber', label: 'Registration number', ocr: 'registration_number', material: true },
+  { key: 'dateIncorporated', label: 'Date of registration', ocr: 'date_of_incorporation', material: true },
+  { key: 'addressLine1', label: 'Principal place of business', ocr: 'address_line1', material: true },
+  { key: 'county', label: 'County', ocr: 'county', material: false },
+  { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
+  { key: 'natureOfBusiness', label: 'Nature of business', ocr: 'nature_of_business', material: false },
+  { key: 'kraPin', label: 'Partnership KRA PIN', ocr: 'kra_pin', material: false },
+]
+
 export function entityFieldsFor(entityType: EntityType | undefined): EntityFieldSpec[] {
-  return entityType === 'sole_proprietorship' ? SOLE_PROPRIETORSHIP_FIELDS : ENTITY_FIELDS
+  return entityType === 'sole_proprietorship' ? SOLE_PROPRIETORSHIP_FIELDS : entityType === 'partnership' ? PARTNERSHIP_FIELDS : ENTITY_FIELDS
 }
+
+// Partnership sub-type fork (General Partnership brief §1): LP and LLP
+// have their own workflows.
+export const PARTNERSHIP_SUBTYPES: Array<{ value: 'general' | 'limited' | 'llp'; label: string; description: string; available: boolean }> = [
+  { value: 'general', label: 'General (ordinary) partnership', description: 'Two or more partners carrying on business together; partners can be personally liable.', available: true },
+  { value: 'limited', label: 'Limited partnership (LP)', description: 'At least one general and one limited partner.', available: false },
+  { value: 'llp', label: 'Limited liability partnership (LLP)', description: 'A separate body corporate — its own workflow.', available: false },
+]
+
+// ------------------------------------------------------------------
+// Governing instrument → structured rules (General Partnership brief §4).
+// The keys are what the extractor fills and the agreement step shows.
+// ------------------------------------------------------------------
+export type GovernanceRuleRecord = {
+  summary: string
+  clause?: string | null
+  silent: boolean
+  // 'document' = read from the uploaded agreement; 'user' = entered or
+  // corrected by the user (evidence then rests on the agreement itself)
+  source: 'document' | 'user'
+  documentId?: string
+}
+
+export const PARTNERSHIP_AGREEMENT_FIELDS: Array<{ key: string; label: string; hint: string }> = [
+  { key: 'partners', label: 'Partners', hint: 'who the partners are, categories of partner and admission dates' },
+  { key: 'capital', label: 'Capital', hint: 'initial and ongoing capital contributions, capital accounts, changes to contributions' },
+  { key: 'profits_losses', label: 'Profits & losses', hint: 'profit/loss sharing percentages or formula, drawings, distribution rules' },
+  { key: 'management', label: 'Management', hint: 'who may take part in management, any managing partner, delegated functions' },
+  { key: 'decision_making', label: 'Decision-making', hint: 'voting thresholds, matters needing unanimity, meetings and quorum' },
+  { key: 'authority', label: 'Authority', hint: 'signing, banking, borrowing and contracting powers and spending limits' },
+  { key: 'duties', label: 'Duties & restrictions', hint: 'conflicts of interest, competing business, confidentiality and other duties' },
+  { key: 'admission_retirement', label: 'Admission & retirement', hint: 'new partners, retirement, expulsion, death or incapacity, buy-out' },
+  { key: 'disputes', label: 'Disputes', hint: 'negotiation, mediation, arbitration or court clauses' },
+  { key: 'dissolution', label: 'Break-up / winding up', hint: 'trigger events, treatment of assets and liabilities, distribution' },
+]
 
 // ------------------------------------------------------------------
 // Document packs
@@ -290,9 +343,98 @@ export const SOLE_PROPRIETORSHIP_PACK: DocSpec[] = [
   },
 ]
 
+// General Partnership brief §2 + §11; ranks per §9.
+export const PARTNERSHIP_PACK: DocSpec[] = [
+  {
+    documentType: 'certificate_of_registration',
+    title: 'Certificate of Registration',
+    hint: 'The partnership’s registry certificate — name, number and registration date.',
+    priority: 'primary',
+    treatment: 'identity_anchor',
+    rank: 5,
+    missing: { impact: 'high', behaviour: 'The partnership’s identity can’t be marked registry-verified. Upload the certificate or other reliable registry evidence.' },
+  },
+  {
+    documentType: 'official_search_bn',
+    title: 'Current Official Search / registry extract',
+    hint: 'The current registry snapshot — our anchor for who the partners are today.',
+    priority: 'strong',
+    treatment: 'current_state',
+    rank: 2,
+    missing: { impact: 'high', behaviour: 'Onboarding continues provisionally — the current partner list isn’t anchored to a current search.' },
+  },
+  {
+    documentType: 'partnership_agreement',
+    title: 'Partnership Agreement / Deed',
+    hint: 'The partners’ own rules: capital, profit sharing, authority, admission/retirement, disputes and break-up.',
+    priority: 'strong',
+    treatment: 'governance',
+    rank: 4,
+    missing: { impact: 'high', behaviour: 'Your identity is onboarded, but governance and profit-sharing rules stay incomplete — a major gap. We can draft or review an agreement.' },
+  },
+  {
+    documentType: 'bn2',
+    title: 'Registration application (BN2)',
+    hint: 'The original partners, business nature and addresses as first registered. Kept as history.',
+    priority: 'recommended',
+    treatment: 'formation',
+    rank: 6,
+    missing: { impact: 'medium', behaviour: 'Doesn’t block onboarding — the formation record stays flagged as a gap.' },
+  },
+  {
+    documentType: 'partner_change',
+    title: 'Admission / retirement / change records',
+    hint: 'Partner changes, address or name changes, agreement amendments.',
+    priority: 'conditional',
+    treatment: 'change',
+    rank: 3,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Only needed where partners or particulars have changed.' },
+  },
+  {
+    documentType: 'partnership_kra_pin',
+    title: 'Partnership KRA PIN certificate',
+    hint: 'The partnership’s own tax PIN, if it has one.',
+    priority: 'recommended',
+    treatment: 'identity_anchor',
+    rank: 5,
+    missing: { impact: 'low', behaviour: 'Recorded as not provided — we never invent a PIN.' },
+  },
+  {
+    documentType: 'single_business_permit',
+    title: 'County Single Business Permit',
+    hint: 'If you trade from premises — we’ll track the renewal date.',
+    priority: 'conditional',
+    treatment: 'operational',
+    rank: 7,
+    missing: { impact: 'conditional', behaviour: 'Only needed where your location or activity requires one.' },
+  },
+  {
+    documentType: 'sector_licence',
+    title: 'Sector licences / approvals',
+    hint: 'Any regulator licence your activity needs.',
+    priority: 'conditional',
+    treatment: 'operational',
+    rank: 7,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Only needed for regulated activities.' },
+  },
+  {
+    documentType: 'other',
+    title: 'Other documents',
+    hint: 'Mandates, resolutions, accounts or anything else you’d like on file.',
+    priority: 'conditional',
+    treatment: 'operational',
+    rank: 7,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: '' },
+  },
+]
+
 export const EXISTING_DOC_PACKS: Partial<Record<EntityType, DocSpec[]>> = {
   limited_company: LIMITED_COMPANY_PACK,
   sole_proprietorship: SOLE_PROPRIETORSHIP_PACK,
+  partnership: PARTNERSHIP_PACK,
 }
 
 // Maps an OCR document_kind onto the pack's document type when the user
@@ -314,7 +456,7 @@ const BUSINESS_NAME_KIND_MAP: Record<string, string> = {
 export const OCR_KIND_TO_DOC_TYPE = COMPANY_KIND_MAP
 
 export function ocrKindToDocType(entityType: EntityType | undefined, kind: string): string | undefined {
-  return (entityType === 'sole_proprietorship' ? BUSINESS_NAME_KIND_MAP : COMPANY_KIND_MAP)[kind]
+  return (entityType === 'sole_proprietorship' || entityType === 'partnership' ? BUSINESS_NAME_KIND_MAP : COMPANY_KIND_MAP)[kind]
 }
 
 export function rankFor(entityType: EntityType | undefined) {
@@ -420,9 +562,69 @@ export const SOLE_PROPRIETORSHIP_BASELINE: BaselineQuestion[] = [
   },
 ]
 
+// General Partnership brief §14
+export const PARTNERSHIP_BASELINE: BaselineQuestion[] = [
+  {
+    key: 'partners_match_registry',
+    question: 'Do the partners listed in the previous step match the latest registry record?',
+    taskOn: 'no_or_unsure',
+    task: { title: 'Regularise the registered partner list', description: 'The current partners should match the registry. Upload a fresh Official Search, or file the change so the register reflects today’s partners.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'partner_changes',
+    question: 'Has any partner joined, retired, died or otherwise left since the latest registry record?',
+    taskOn: 'yes',
+    task: { title: 'Record and file the partner change', description: 'Partner admissions and departures should be documented under the agreement and notified to the registry. Upload the records or ask us to prepare them.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'agreement_amended',
+    question: 'Has the Partnership Agreement been amended since it was signed?',
+    taskOn: 'yes',
+    task: { title: 'Upload the agreement amendments', description: 'Amendments supersede the affected rules — upload them so your governance record is complete.', category: 'governance', dueInDays: 30 },
+  },
+  {
+    key: 'particulars_changed',
+    question: 'Has the partnership’s name, address or nature of business changed?',
+    taskOn: 'yes',
+    task: { title: 'File the change of particulars', description: 'Changes to registered particulars are notified to the registry. Upload the filing or ask us to prepare it.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'economics_changed',
+    question: 'Have capital contributions, profit/loss sharing or signing authority changed?',
+    taskOn: 'yes',
+    task: { title: 'Document the change in partner economics or authority', description: 'Record the change in a signed variation or partner resolution so the agreement and practice match.', category: 'governance', dueInDays: 30 },
+  },
+  {
+    key: 'employs_staff',
+    question: 'Does the partnership employ staff?',
+    taskOn: 'yes',
+    task: { title: 'Set up employment compliance', description: 'PAYE, NSSF, SHIF and Housing Levy obligations apply once you employ staff.', category: 'employment', dueInDays: 30 },
+  },
+  {
+    key: 'county_permit',
+    question: 'Does the partnership trade from premises that need a county Single Business Permit?',
+    taskOn: 'yes',
+    task: { title: 'Upload your county Single Business Permit', description: 'So we can track its expiry and remind you before renewal.', category: 'license', dueInDays: 30 },
+  },
+  {
+    key: 'regulated_activity',
+    question: 'Is the activity regulated — does it need a sector licence?',
+    taskOn: 'yes',
+    task: { title: 'Record sector licences', description: 'Upload your sector licence(s) so we can track renewals.', category: 'license', dueInDays: 30 },
+  },
+  {
+    key: 'tax_registered',
+    question: 'Is the partnership registered for tax obligations such as VAT, or filing a partnership return?',
+    help: 'Having a KRA PIN alone doesn’t create these obligations.',
+    taskOn: 'no_or_unsure',
+    task: { title: 'Review your tax registrations', description: 'Confirm which obligations apply — we don’t assume any from a PIN alone.', category: 'tax', dueInDays: 30 },
+  },
+]
+
 export const EXISTING_BASELINES: Partial<Record<EntityType, BaselineQuestion[]>> = {
   limited_company: LIMITED_COMPANY_BASELINE,
   sole_proprietorship: SOLE_PROPRIETORSHIP_BASELINE,
+  partnership: PARTNERSHIP_BASELINE,
 }
 
 // ------------------------------------------------------------------
@@ -442,6 +644,10 @@ export type ExistingWizardData = {
   postalAddress?: string
   nominalCapital?: string
   natureOfBusiness?: string
+  partnershipKind?: 'general' | 'limited' | 'llp'
+  // Structured rules from the governing instrument, keyed by the type's
+  // agreement-field keys. Silence is recorded, never filled in.
+  governance?: Record<string, GovernanceRuleRecord>
   // Field-level provenance: every value each document proposed + what the
   // user confirmed. Never pruned (brief §4: preserve historical values).
   fieldEvidence?: Partial<Record<EntityFieldKey, FieldRecord>>

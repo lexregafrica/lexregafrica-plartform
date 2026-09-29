@@ -253,8 +253,8 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
             {[
               ['Registration no.', entity.registrationNumber],
               ['KRA PIN', entity.kraPin],
-              [entity.typeLabel === 'Sole Proprietorship' ? 'Registered' : 'Incorporated', entity.dateIncorporated ? formatDate(entity.dateIncorporated) : null],
-              [entity.typeLabel === 'Sole Proprietorship' ? 'Place of business' : 'Registered office', entity.address],
+              [entity.typeLabel === 'Sole Proprietorship' || entity.typeLabel === 'Partnership' ? 'Registered' : 'Incorporated', entity.dateIncorporated ? formatDate(entity.dateIncorporated) : null],
+              [entity.typeLabel === 'Sole Proprietorship' || entity.typeLabel === 'Partnership' ? 'Place of business' : 'Registered office', entity.address],
             ].filter(([, v]) => v).map(([label, value]) => (
               <div key={label} className="flex items-baseline justify-between gap-3 sm:flex-col sm:items-start sm:gap-0.5">
                 <span className="text-ios-caption1 shrink-0" style={{ color: 'var(--system-label-3)' }}>{label}</span>
@@ -303,6 +303,8 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
           <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>
             {entity.typeLabel === 'Sole Proprietorship'
               ? 'Proprietor'
+              : entity.typeLabel === 'Partnership'
+              ? `${directors.length} partner${directors.length === 1 ? '' : 's'}`
               : `${directors.length} director${directors.length === 1 ? '' : 's'} · ${shareholders.length} shareholder${shareholders.length === 1 ? '' : 's'}`}
           </p>
         </button>

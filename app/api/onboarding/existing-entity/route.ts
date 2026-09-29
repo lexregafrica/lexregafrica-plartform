@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import {
-  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType,
+  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType, PARTNERSHIP_AGREEMENT_FIELDS,
   LIMITED_COMPANY_PACK, rankFor,
   type EntityFieldKey, type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
@@ -15,6 +15,7 @@ import {
 import { ENTITY_TYPES, KENYA_COUNTIES, formatAddress, type AddressData, type EntityType } from '@/lib/onboarding/new-entity'
 import { registerDocument, retagDocuments, retirePersonDocuments, type PersonRole, type RegisterDocumentInput } from '@/lib/onboarding/documents-server'
 import { generateIdp } from '@/lib/documents/idp'
+import { extractGovernanceRules } from '@/lib/ocr/governance'
 
 // OCR extraction retries on 503/429 and falls back to Groq
 // (lib/ocr/gemini.ts) — default serverless timeout would kill that mid-retry.
@@ -103,6 +104,7 @@ export async function GET(request: Request) {
         ...withLiveEvidence(rawWizard, live, rankFor(rawWizard.entityType)),
         subscribers: rawWizard.subscribers?.filter((x) => live.has(x.documentId)),
         shareClasses: rawWizard.shareClasses?.filter((x) => live.has(x.documentId)),
+        governance: liveGovernance(rawWizard.governance, live),
       }
     : rawWizard
 
@@ -250,6 +252,28 @@ export async function POST(request: Request) {
     }
 
     const bytes = new Uint8Array(await blob.arrayBuffer())
+
+    // A governing instrument is read into structured rules, not fields
+    if (doc.document_type === 'partnership_agreement' && section === 'registry') {
+      const g = await extractGovernanceRules(bytes, doc.mime_type ?? 'application/pdf', 'partnership agreement', PARTNERSHIP_AGREEMENT_FIELDS)
+      if (!g.ok) {
+        await supabase.from('documents').update({ ocr_status: 'failed', ocr_data: { reason: g.reason } as Json }).eq('id', doc.id)
+        return NextResponse.json({ ok: false, ocrStatus: 'failed', reason: g.reason })
+      }
+      await supabase.from('documents').update({ ocr_status: 'complete', ocr_data: { document_kind: 'partnership_agreement', document_date: g.datedAs, governance: g.rules, parties_named: g.partiesNamed } as unknown as Json }).eq('id', doc.id)
+      const { data: freshP } = await supabase.from('onboarding_progress').select('data').eq('id', progress.id).single()
+      const pd = (freshP?.data ?? {}) as ProgressData
+      const governance = { ...(pd.wizard?.governance ?? {}) }
+      for (const [key, rule] of Object.entries(g.rules)) {
+        // Never overwrite a rule the user entered or corrected
+        if (governance[key]?.source === 'user') continue
+        governance[key] = { summary: rule.summary ?? '', clause: rule.clause, silent: rule.silent, source: 'document', documentId: doc.id }
+      }
+      await supabase.from('onboarding_progress').update({ data: { ...pd, wizard: { ...(pd.wizard ?? {}), governance } } as Json }).eq('id', progress.id)
+      const silent = Object.values(g.rules).filter((r) => r.silent).length
+      return NextResponse.json({ ok: true, ocrStatus: 'complete', governance: true, silent, partiesNamed: g.partiesNamed, fields: { business_name: `${Object.keys(g.rules).length - silent} rules read` } })
+    }
+
     const result = await extractFromDocument(bytes, doc.mime_type ?? 'application/pdf')
 
     if (!result.ok) {
@@ -383,6 +407,7 @@ export async function POST(request: Request) {
         ...withLiveEvidence(mergedWizard, live, rankFor(mergedWizard.entityType)),
         subscribers: mergedWizard.subscribers?.filter((x) => live.has(x.documentId)),
         shareClasses: mergedWizard.shareClasses?.filter((x) => live.has(x.documentId)),
+        governance: liveGovernance(mergedWizard.governance, live),
       },
     })
   }
@@ -398,8 +423,17 @@ export async function POST(request: Request) {
       director: {
         id?: string; fullName: string; idNumber?: string; kraPin?: string
         nationality?: string; dateOfBirth?: string; phone?: string; email?: string; occupation?: string
-        role?: 'director' | 'secretary' | 'proprietor'
+        role?: 'director' | 'secretary' | 'proprietor' | 'partner'
         appointmentDate?: string
+        // Partner relationship facts (General Partnership brief §8) — kept
+        // on the relationship, not the person's identity record
+        interestPercentage?: string
+        contributionType?: string
+        contributionValue?: string
+        isManagingPartner?: boolean
+        signingAuthority?: string
+        cessationDate?: string
+        cessationReason?: string
         structuredAddress?: AddressData
         isCorporate?: boolean; corporate?: Record<string, unknown>
         isForeign?: boolean; foreignAddress?: string
@@ -443,6 +477,15 @@ export async function POST(request: Request) {
         foreignAddress: director.isForeign ? director.foreignAddress : undefined,
         structuredAddress: director.structuredAddress ?? prev.structuredAddress,
         addressHistory: history.length ? history : undefined,
+        ...(director.role === 'partner' ? {
+          interestPercentage: director.interestPercentage || undefined,
+          contributionType: director.contributionType || undefined,
+          contributionValue: director.contributionValue || undefined,
+          isManagingPartner: director.isManagingPartner || undefined,
+          signingAuthority: director.signingAuthority || undefined,
+          cessationDate: director.cessationDate || undefined,
+          cessationReason: director.cessationReason || undefined,
+        } : {}),
         // The user has now reviewed this person — a name-only OCR match
         // no longer needs confirming.
         nameMatchOnly: undefined,
@@ -609,11 +652,15 @@ export async function POST(request: Request) {
     if (entityType === 'sole_proprietorship') {
       const proprietors = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'proprietor')
       if (proprietors.length !== 1) return NextResponse.json({ error: 'a business name registered to one proprietor needs exactly one proprietor' }, { status: 400 })
+    } else if (entityType === 'partnership') {
+      const partners = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'partner')
+      if (partners.length < 1) return NextResponse.json({ error: 'add the partners' }, { status: 400 })
     } else if ((directorRows ?? []).length < 1) {
       return NextResponse.json({ error: 'add at least one director' }, { status: 400 })
     }
     const unverifiedPeople = (directorRows ?? [])
-      .filter((d) => !(d.residential_address as { isCorporate?: boolean } | null)?.isCorporate)
+      .filter((d) => !(d.residential_address as { isCorporate?: boolean; cessationDate?: string } | null)?.isCorporate)
+      .filter((d) => !(d.residential_address as { cessationDate?: string } | null)?.cessationDate)
       .filter((d) => !(docs ?? []).some((doc) => doc.document_type === 'director_id_copy' && (doc.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === d.id)))
       .map((d) => d.full_name)
 
@@ -639,6 +686,21 @@ export async function POST(request: Request) {
     const states = entityFieldsFor(entityType).filter((f) => f.material).map((f) => fieldState(evidence[f.key], String(finalWizard[f.key] ?? ''), rank))
 
     const tasks = buildActivationTasks({ gaps, baseline: EXISTING_BASELINES[entityType] ?? [], wizard: finalWizard, ctx, unverifiedPeople })
+    if (entityType === 'partnership') {
+      const current = (directorRows ?? []).filter((d) => {
+        const ra = (d.residential_address ?? {}) as { role?: string; cessationDate?: string }
+        return ra.role === 'partner' && !ra.cessationDate
+      })
+      // Partnerships Act: falling below two partners is a break-up event
+      if (current.length < 2) {
+        tasks.unshift({ title: 'Urgent: legal-status review — fewer than two partners', description: `Only ${current.length} current partner${current.length === 1 ? '' : 's'} recorded. Under the Partnerships Act a partnership breaks up when its partners fall below two. We’ll review the business’s legal status with you.`, category: 'legal_review', dueInDays: 7 })
+      }
+      const liveGov = liveGovernance(finalWizard.governance, new Set((liveDocs ?? []).map((d) => d.id))) ?? {}
+      const silent = PARTNERSHIP_AGREEMENT_FIELDS.filter((f) => liveGov[f.key]?.silent)
+      if (uploaded.has('partnership_agreement') && silent.length > 0) {
+        tasks.push({ title: 'Legal review: matters the partnership agreement doesn’t cover', description: `The agreement is silent on: ${silent.map((f) => f.label.toLowerCase()).join(', ')}. Statutory default rules may apply — we’ll review with you rather than assume a rule.`, category: 'legal_review', dueInDays: 30 })
+      }
+    }
     const status = activationStatus({ gaps, states, openTasks: tasks.length })
 
     const newData: ProgressData = { ...progressData, wizard: finalWizard, activated: true, onboardingStatus: status }
@@ -765,7 +827,14 @@ async function seedComplianceCalendar(
     // Recurring obligations only where they apply: a business name files
     // no BRS annual return, and its income is taxed on the proprietor's
     // own return; a permit is tracked only if the business needs one.
-    const recurring = ctx.entityType === 'sole_proprietorship'
+    const recurring = ctx.entityType === 'partnership'
+      ? [
+          { ...base, title: 'File the partnership income tax return (IT2P)', description: 'The partnership files a return by 30 June; each partner then declares their share of profit on their own return.', category: 'tax', due_date: iso(kraReturn) },
+          ...(ctx.baseline.county_permit === 'yes'
+            ? [{ ...base, title: 'Renew county single business permit', description: 'Single business permits are renewed with your county government at the start of each year.', category: 'license', due_date: iso(permitRenewal) }]
+            : []),
+        ]
+      : ctx.entityType === 'sole_proprietorship'
       ? [
           { ...base, title: 'File your personal income tax return (business income)', description: 'A sole proprietor’s business profit is declared on their own KRA income tax return, due by 30 June.', category: 'tax', due_date: iso(kraReturn) },
           ...(ctx.baseline.county_permit === 'yes'
@@ -846,7 +915,7 @@ async function generateAndStoreProfile(
       directors: (directors ?? []).map((d) => {
         const ra = (d.residential_address ?? {}) as { role?: string; structuredAddress?: AddressData }
         return {
-          fullName: d.full_name, role: ra.role === 'secretary' ? 'Company Secretary' : ra.role === 'proprietor' ? 'Proprietor' : 'Director', nationality: d.nationality,
+          fullName: d.full_name, role: ra.role === 'secretary' ? 'Company Secretary' : ra.role === 'proprietor' ? 'Proprietor' : ra.role === 'partner' ? 'Partner' : 'Director', nationality: d.nationality,
           idNumber: d.id_number || null, kraPin: d.kra_pin, email: d.email, phone: d.phone,
           address: ra.structuredAddress ? formatAddress(ra.structuredAddress) : null,
           isAlsoShareholder: false, isAlsoBeneficialOwner: false,
@@ -903,6 +972,13 @@ async function generateAndStoreProfile(
   } catch (e) {
     console.error('entity profile generation failed', e)
   }
+}
+
+// Rules read from an agreement that has since been removed/replaced stop
+// counting; the user's own entries stay.
+function liveGovernance(g: ExistingWizardData['governance'], live: Set<string>) {
+  if (!g) return g
+  return Object.fromEntries(Object.entries(g).filter(([, r]) => r.source === 'user' || !r.documentId || live.has(r.documentId)))
 }
 
 // People a removed registry document created are withdrawn with it —
@@ -1053,12 +1129,13 @@ async function mergeRegistryEvidence(
   } else if (source.documentType === 'cr12' || source.documentType === 'change_filing' || source.documentType === 'cr8' || source.documentType === 'cr1') {
     const current = source.documentType === 'cr12' || source.documentType === 'change_filing'
     await mergePeople(supabase, { people, source, entityId, orgId, current })
-  } else if (ctx.entityType === 'sole_proprietorship' && ['certificate_of_registration', 'official_search_bn', 'bn2', 'bn_change'].includes(source.documentType)) {
+  } else if ((ctx.entityType === 'sole_proprietorship' || ctx.entityType === 'partnership') && ['certificate_of_registration', 'official_search_bn', 'bn2', 'bn_change', 'partner_change'].includes(source.documentType)) {
     // Business-name records name the proprietor — sometimes as a people
     // list, sometimes as the document's single named person.
     const named = people.length ? people : fields.full_name ? [{ full_name: fields.full_name, id_number: fields.id_number, kra_pin: fields.kra_pin, role: 'proprietor' as const, shares_held: null }] : []
+    const role = ctx.entityType === 'partnership' ? 'partner' as const : 'proprietor' as const
     await mergePeople(supabase, {
-      people: named.map((p) => ({ ...p, role: 'proprietor' as const })),
+      people: named.map((p) => ({ ...p, role })),
       source, entityId, orgId,
       current: source.documentType !== 'bn2',
     })
@@ -1088,7 +1165,7 @@ async function mergePeople(
     if (!p.full_name) continue
     const person = { name: p.full_name, idNumber: p.id_number, kraPin: p.kra_pin }
 
-    const officerRole = p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
+    const officerRole = p.role === 'partner' ? 'partner' : p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
     if (officerRole) {
       const matches = (directors ?? []).map((d) => ({ d, m: matchPerson(person, { name: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin }) }))
       const hit = matches.find((x) => x.m === 'same') ?? matches.find((x) => x.m === 'possible')

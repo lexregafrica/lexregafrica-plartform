@@ -13,7 +13,7 @@ export type ExtractedPerson = {
   kra_pin: string | null
   // 'subscriber' = founding subscriber on a CR2 memorandum; 'secretary' =
   // company secretary on a CR12 / secretary form
-  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'unknown'
+  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'unknown'
   shares_held: number | null
 }
 
@@ -138,7 +138,7 @@ const RESPONSE_SCHEMA = {
           full_name: { type: 'STRING' },
           id_number: { type: 'STRING', nullable: true },
           kra_pin: { type: 'STRING', nullable: true },
-          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'unknown'] },
+          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'unknown'] },
           shares_held: { type: 'NUMBER', nullable: true },
         },
         required: ['full_name', 'role'],
@@ -208,7 +208,8 @@ Extract exactly these fields. Use null when a field is not present in the docume
 - people: for CR12 or similar documents, every director, shareholder and company
   secretary listed (role secretary); for a CR2 memorandum, every subscriber (role
   subscriber) with the shares they took; for a business-name certificate, BN2 or
-  business-name search, every proprietor listed (role proprietor) —
+  business-name search, every proprietor listed (role proprietor), or every partner
+  where the business is a partnership (role partner) —
   full name, ID number if shown, KRA PIN if shown, role (director / shareholder /
   both), and number of shares held if shown
 - confidence: 0-100, your certainty that the extracted values are correct
