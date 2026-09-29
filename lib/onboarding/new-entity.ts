@@ -271,6 +271,9 @@ export type TrusteeForRules = {
   dateOfBirth?: string | null
   nationality?: string | null
   notResidentInKenya?: boolean | null
+  // A successor only steps in later — not a sitting trustee for the
+  // s. 11 minimum.
+  isSuccessor?: boolean
 }
 
 export function ageOn(dateOfBirth: string, today: Date): number {
@@ -290,13 +293,14 @@ export function trusteeRuleError(
   trustees: TrusteeForRules[],
   today: Date = new Date()
 ): string | null {
-  const individuals = trustees.filter((t) => !t.isCorporate)
-  const corporates = trustees.filter((t) => t.isCorporate)
-  if (trustees.length === 0) return 'Add at least one trustee.'
+  const sitting = trustees.filter((t) => !t.isSuccessor)
+  const individuals = sitting.filter((t) => !t.isCorporate)
+  const corporates = sitting.filter((t) => t.isCorporate)
+  if (sitting.length === 0) return 'Add at least one trustee (successor trustees don’t count until they step in).'
   if (trustKind === 'charitable_trust' && individuals.length < 3 && corporates.length === 0) {
-    return `A charitable trust needs at least three individual trustees, or one corporate trustee — currently ${individuals.length} individual trustee${individuals.length === 1 ? '' : 's'}.`
+    return `A charitable trust needs at least three individual trustees, or one corporate trustee — currently ${individuals.length} sitting individual trustee${individuals.length === 1 ? '' : 's'} (successors don’t count).`
   }
-  for (const t of individuals) {
+  for (const t of trustees.filter((x) => !x.isCorporate)) {
     if (t.dateOfBirth && ageOn(t.dateOfBirth, today) < 18) return `${t.name} must be at least 18 to act as a trustee.`
   }
   if (individuals.length > 0) {

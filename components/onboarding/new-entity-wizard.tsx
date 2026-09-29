@@ -790,6 +790,7 @@ export function NewEntityWizard() {
             dateOfBirth: d.residential_address?.dateOfBirth,
             nationality: d.nationality,
             notResidentInKenya: d.is_foreign,
+            isSuccessor: !!d.residential_address?.isSuccessorTrustee,
           })))
           if (trusteeError) return trusteeError
         }
@@ -3069,6 +3070,11 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
     if (!f.email.trim()) return 'Email address is required.'
     if (!EMAIL_REGEX.test(f.email)) return 'Enter a valid email address.'
     if (!f.address.city?.trim()) return 'City/Town is required.'
+    if (!f.isForeign) {
+      if (!f.address.county) return 'Choose a county.'
+      if (!f.address.postalAddress?.trim()) return 'P.O. Box is required.'
+      if (!f.address.postalCode?.trim()) return 'Postal code is required.'
+    }
     return null
   }
 
@@ -3299,6 +3305,7 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
             </p>
             <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
               {d.residential_address?.isCorporate ? `Reg. ${d.id_number}` : `ID ${d.id_number}`}{d.kra_pin ? ` · PIN ${d.kra_pin}` : ''}
+              {d.residential_address?.isSuccessorTrustee ? ` · Successor — steps in for ${d.residential_address?.successorToName || 'any trustee'}` : ''}
             </p>
           </div>
           <div className="flex gap-3 shrink-0">
@@ -3546,11 +3553,17 @@ function StepDirectors({ entityType, directors, setDirectors, shareholders, setS
                 This is a successor trustee (steps in only if a sitting trustee can no longer serve)
               </label>
               {form.isSuccessorTrustee && (
-                <Field label="Successor to (which trustee)" required>
-                  <input
-                    type="text" className={inputCls} style={inputStyle} placeholder="Full name of the trustee this person succeeds"
-                    value={form.successorToName} onChange={(e) => set({ successorToName: e.target.value })}
-                  />
+                <Field label="Steps in for" required>
+                  <select className={inputCls} style={inputStyle} value={form.successorToName} onChange={(e) => set({ successorToName: e.target.value })}>
+                    <option value="">Choose…</option>
+                    <option value="Any trustee">Any trustee who can no longer serve</option>
+                    {directors
+                      .filter((d) => d.id !== form.id && !d.residential_address?.isSuccessorTrustee)
+                      .map((d) => <option key={d.id} value={d.full_name}>{d.full_name}</option>)}
+                    {form.successorToName && form.successorToName !== 'Any trustee' && !directors.some((d) => d.full_name === form.successorToName) && (
+                      <option value={form.successorToName}>{form.successorToName}</option>
+                    )}
+                  </select>
                 </Field>
               )}
             </>

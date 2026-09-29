@@ -979,8 +979,9 @@ export async function POST(request: Request) {
           .select('full_name, nationality, is_foreign, residential_address')
           .eq('entity_id', entityId)
         const trusteeError = trusteeRuleError(wizard.trustKind, (trustees ?? []).map((t) => {
-          const ra = t.residential_address as { isCorporate?: boolean; dateOfBirth?: string } | null
+          const ra = t.residential_address as { isCorporate?: boolean; dateOfBirth?: string; isSuccessorTrustee?: boolean } | null
           return {
+            isSuccessor: !!ra?.isSuccessorTrustee,
             name: t.full_name,
             isCorporate: !!ra?.isCorporate,
             dateOfBirth: ra?.dateOfBirth,
