@@ -109,21 +109,24 @@ export const PHASE1_ENTITY_TYPES: EntityType[] = ['limited_company', 'partnershi
 // doesn't launch the questionnaire directly — it first asks which kind.
 // Only General Partnership is wired to a real workflow; LLP/LP are
 // listed so the distinction is explained, but stay disabled.
-export const PARTNERSHIP_KINDS: Array<{ value: 'general_partnership' | 'llp' | 'lp'; label: string; description: string; enabled: boolean }> = [
+export const PARTNERSHIP_KINDS: Array<{ value: 'general_partnership' | 'llp' | 'lp'; label: string; description: string; enabled: boolean; guideUrl?: string }> = [
   {
     value: 'general_partnership',
+    guideUrl: '/docs/understanding-general-partnerships-kenya.pdf',
     label: 'General Partnership',
     description: 'A business carried on jointly by two or more partners, who generally assume personal responsibility for its obligations.',
     enabled: true,
   },
   {
     value: 'llp',
+    guideUrl: '/docs/understanding-limited-liability-partnerships-kenya.pdf',
     label: 'Limited Liability Partnership (LLP)',
     description: 'A registered body corporate with a legal identity separate from its partners and limited liability characteristics.',
     enabled: false,
   },
   {
     value: 'lp',
+    guideUrl: '/docs/understanding-limited-partnerships-kenya.pdf',
     label: 'Limited Partnership (LP)',
     description: 'A partnership with at least one general partner and one limited partner, with different liability arrangements.',
     enabled: false,
@@ -346,15 +349,15 @@ export const TRUST_KINDS: Array<{ value: 'family_trust' | 'charitable_trust' | '
 export const SECRETARY_CAPITAL_THRESHOLD_KES = 5_000_000
 
 export const ENTITY_TYPES: Array<{ value: EntityType; label: string; description: string; guides?: Array<{ label: string; url: string }> }> = [
-  { value: 'limited_company', label: 'Limited Company', description: 'Separate legal entity, limited liability, most common' },
-  { value: 'sole_proprietorship', label: 'Sole Proprietorship', description: 'Single owner, unlimited liability, simplest structure' },
-  { value: 'partnership', label: 'Partnership', description: 'Two or more partners, shared liability' },
-  { value: 'public_limited_company', label: 'Public Limited Company', description: 'Can offer shares to public, complex governance' },
-  { value: 'company_limited_by_guarantee', label: 'NGO / Non-Profit', description: 'Charitable or social purpose, no profit distribution' },
+  { value: 'limited_company', label: 'Limited Company', description: 'Separate legal entity, limited liability, most common', guides: [{ label: 'What is a private limited company?', url: '/docs/understanding-private-limited-companies-kenya.pdf' }] },
+  { value: 'sole_proprietorship', label: 'Sole Proprietorship', description: 'Single owner, unlimited liability, simplest structure', guides: [{ label: 'What is a sole proprietorship?', url: '/docs/understanding-sole-proprietorships-kenya.pdf' }] },
+  { value: 'partnership', label: 'Partnership', description: 'Two or more partners, shared liability', guides: [{ label: 'What is a general partnership?', url: '/docs/understanding-general-partnerships-kenya.pdf' }, { label: 'What is a limited partnership?', url: '/docs/understanding-limited-partnerships-kenya.pdf' }] },
+  { value: 'public_limited_company', label: 'Public Limited Company', description: 'Can offer shares to public, complex governance', guides: [{ label: 'What is a public limited company?', url: '/docs/understanding-public-limited-companies-kenya.pdf' }] },
+  { value: 'company_limited_by_guarantee', label: 'NGO / Non-Profit', description: 'Charitable or social purpose, no profit distribution', guides: [{ label: 'What is a company limited by guarantee?', url: '/docs/understanding-companies-limited-by-guarantee-kenya.pdf' }] },
   { value: 'trust', label: 'Trust', description: 'Property held for beneficiaries, fiduciary arrangement', guides: [{ label: 'What is a family trust?', url: '/docs/understanding-family-trusts-kenya.pdf' }, { label: 'What is a charitable trust?', url: '/docs/understanding-charitable-trusts-kenya.pdf' }] },
   { value: 'society', label: 'Society', description: 'Membership-based organisation — residents’, welfare, alumni, or professional associations', guides: [{ label: 'What is a society?', url: '/docs/understanding-societies-kenya.pdf' }] },
   { value: 'cooperative', label: 'Cooperative', description: 'Member-owned, democratic control, profit-sharing' },
-  { value: 'limited_liability_partnership', label: 'LLP', description: 'Limited Liability Partnership, hybrid structure' },
+  { value: 'limited_liability_partnership', label: 'LLP', description: 'Limited Liability Partnership, hybrid structure', guides: [{ label: 'What is an LLP?', url: '/docs/understanding-limited-liability-partnerships-kenya.pdf' }] },
 ]
 
 export const KENYA_COUNTIES = [

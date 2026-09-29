@@ -1210,8 +1210,8 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
           {PARTNERSHIP_KINDS.map((k) => {
             const selected = wizard.partnershipKind === k.value
             return (
+              <div key={k.value}>
               <button
-                key={k.value}
                 type="button"
                 disabled={!k.enabled}
                 onClick={() => k.enabled && patch({ partnershipKind: k.value })}
@@ -1232,6 +1232,18 @@ function StepEntityType({ entityType, setEntityType, wizard, patch, recommendedT
                 </span>
                 <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{k.description}</span>
               </button>
+              {k.guideUrl && (
+                <a
+                  href={k.guideUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ios-caption1 font-semibold underline mt-1 ml-1 inline-block"
+                  style={{ color: 'var(--brand-navy)' }}
+                >
+                  What is {k.value === 'llp' ? 'an LLP' : `a ${k.label.replace(/ \(.*\)$/, '').toLowerCase()}`}? →
+                </a>
+              )}
+              </div>
             )
           })}
         </div>
