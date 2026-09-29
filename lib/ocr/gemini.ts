@@ -13,7 +13,7 @@ export type ExtractedPerson = {
   kra_pin: string | null
   // 'subscriber' = founding subscriber on a CR2 memorandum; 'secretary' =
   // company secretary on a CR12 / secretary form
-  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'unknown'
+  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'unknown'
   shares_held: number | null
 }
 
@@ -37,6 +37,8 @@ export type ExtractedFields = {
     | 'cr8' // notification of directors/secretary residential address
     | 'bof1' // beneficial ownership register filing
     | 'statement_of_nominal_capital'
+    | 'cr13' // Official Search — business name (status report)
+    | 'bn2' // application to register a business name
     | 'other'
   full_name: string | null
   id_number: string | null
@@ -55,6 +57,7 @@ export type ExtractedFields = {
   postal_code: string | null
   postal_address: string | null // full P.O. Box line, e.g. "P.O. Box 19118-00100, Nairobi"
   business_name: string | null
+  nature_of_business: string | null // business-name documents: nature / description of business
   registration_number: string | null // company registration / incorporation number
   date_of_incorporation: string | null // YYYY-MM-DD
   // Share capital / structure — from CR2, Statement of Nominal Capital
@@ -86,7 +89,7 @@ const RESPONSE_SCHEMA = {
       enum: [
         'national_id', 'passport', 'kra_pin_certificate', 'proof_of_address',
         'business_registration', 'certificate_of_incorporation', 'cr12',
-        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'other',
+        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'cr13', 'bn2', 'other',
       ],
     },
     full_name: { type: 'STRING', nullable: true },
@@ -104,6 +107,7 @@ const RESPONSE_SCHEMA = {
     postal_code: { type: 'STRING', nullable: true },
     postal_address: { type: 'STRING', nullable: true },
     business_name: { type: 'STRING', nullable: true },
+    nature_of_business: { type: 'STRING', nullable: true },
     registration_number: { type: 'STRING', nullable: true },
     date_of_incorporation: { type: 'STRING', nullable: true },
     nominal_share_capital: { type: 'NUMBER', nullable: true },
@@ -134,7 +138,7 @@ const RESPONSE_SCHEMA = {
           full_name: { type: 'STRING' },
           id_number: { type: 'STRING', nullable: true },
           kra_pin: { type: 'STRING', nullable: true },
-          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'unknown'] },
+          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'unknown'] },
           shares_held: { type: 'NUMBER', nullable: true },
         },
         required: ['full_name', 'role'],
@@ -151,8 +155,10 @@ proof of address (utility bill / lease / title), certificate of incorporation,
 CR12 (company search listing directors and shareholders), CR1 (application for
 registration of a company), CR2 (memorandum of registration for a company with
 share capital), CR8 (notification of director/secretary residential address),
-BOF1 (beneficial ownership register filing), Statement of Nominal Capital, or
-another business registration document.
+BOF1 (beneficial ownership register filing), Statement of Nominal Capital, a
+business-name Certificate of Registration (business_registration), a business-name
+Official Search (cr13), a BN2 business-name application (bn2), or another business
+registration document.
 
 Extract exactly these fields. Use null when a field is not present in the document.
 - document_kind: classify the document
@@ -180,10 +186,13 @@ Extract exactly these fields. Use null when a field is not present in the docume
   P.O. Box and postal code fields into this one line
 - business_name: the company's registered name (company documents only; on a
   KRA PIN certificate this is the "Taxpayer Name" when it is a company)
-- registration_number: company registration / incorporation number, e.g. PVT-XXXXXXX
+- nature_of_business: the nature / description of business as printed (business-name
+  certificate, BN2, business-name search)
+- registration_number: company registration / incorporation number, or business-name
+  registration number (e.g. BN-XXXXXXX), e.g. PVT-XXXXXXX
   or C.XXXXX (company documents only)
-- date_of_incorporation: YYYY-MM-DD (certificate of incorporation, or the CR12
-  "Date of registration")
+- date_of_incorporation: YYYY-MM-DD (certificate of incorporation, the CR12 "Date of
+  registration", or the registration date on a business-name certificate / search)
 - nominal_share_capital: total nominal share capital in KES (CR2, Statement of
   Nominal Capital)
 - share_classes: every share class listed (CR2, Statement of Nominal Capital) —
@@ -198,7 +207,8 @@ Extract exactly these fields. Use null when a field is not present in the docume
   issue date on a certificate
 - people: for CR12 or similar documents, every director, shareholder and company
   secretary listed (role secretary); for a CR2 memorandum, every subscriber (role
-  subscriber) with the shares they took —
+  subscriber) with the shares they took; for a business-name certificate, BN2 or
+  business-name search, every proprietor listed (role proprietor) —
   full name, ID number if shown, KRA PIN if shown, role (director / shareholder /
   both), and number of shares held if shown
 - confidence: 0-100, your certainty that the extracted values are correct
@@ -278,7 +288,7 @@ const JSON_INSTRUCTIONS = `
 Respond with ONLY a JSON object using exactly these keys (null where not present):
 document_kind, document_date, full_name, id_number, kra_pin, date_of_birth, phone, email, occupation,
 address_line1, county, district, locality, city, postal_code, postal_address,
-business_name, registration_number, date_of_incorporation, nominal_share_capital,
+business_name, nature_of_business, registration_number, date_of_incorporation, nominal_share_capital,
 share_classes, bo_percent_shares_direct, bo_percent_shares_indirect,
 bo_percent_voting_rights, bo_has_right_to_appoint_director,
 bo_has_significant_influence, people, confidence.

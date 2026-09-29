@@ -253,8 +253,8 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
             {[
               ['Registration no.', entity.registrationNumber],
               ['KRA PIN', entity.kraPin],
-              ['Incorporated', entity.dateIncorporated ? formatDate(entity.dateIncorporated) : null],
-              ['Registered office', entity.address],
+              [entity.typeLabel === 'Sole Proprietorship' ? 'Registered' : 'Incorporated', entity.dateIncorporated ? formatDate(entity.dateIncorporated) : null],
+              [entity.typeLabel === 'Sole Proprietorship' ? 'Place of business' : 'Registered office', entity.address],
             ].filter(([, v]) => v).map(([label, value]) => (
               <div key={label} className="flex items-baseline justify-between gap-3 sm:flex-col sm:items-start sm:gap-0.5">
                 <span className="text-ios-caption1 shrink-0" style={{ color: 'var(--system-label-3)' }}>{label}</span>
@@ -301,7 +301,9 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
             {peopleCount}
           </p>
           <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>
-            {directors.length} director{directors.length === 1 ? '' : 's'} · {shareholders.length} shareholder{shareholders.length === 1 ? '' : 's'}
+            {entity.typeLabel === 'Sole Proprietorship'
+              ? 'Proprietor'
+              : `${directors.length} director${directors.length === 1 ? '' : 's'} · ${shareholders.length} shareholder${shareholders.length === 1 ? '' : 's'}`}
           </p>
         </button>
 

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import {
-  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, ENTITY_FIELDS, OCR_KIND_TO_DOC_TYPE,
+  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType,
   LIMITED_COMPANY_PACK, rankFor,
   type EntityFieldKey, type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
@@ -267,7 +267,7 @@ export async function POST(request: Request) {
     const tagged = Array.isArray(doc.tags) && (doc.tags as unknown[]).length > 0
     const personScoped = tagged || section !== 'registry'
     let documentType = doc.document_type ?? 'other'
-    const detected = OCR_KIND_TO_DOC_TYPE[fields.document_kind]
+    const detected = ocrKindToDocType(entityType, fields.document_kind)
     if (!personScoped && detected) documentType = detected
     await supabase
       .from('documents')
@@ -349,6 +349,7 @@ export async function POST(request: Request) {
     if (mergedWizard.registrationNumber !== undefined) entityUpdate.registration_number = mergedWizard.registrationNumber
     if (mergedWizard.kraPin !== undefined) entityUpdate.kra_pin = mergedWizard.kraPin || null
     if (mergedWizard.dateIncorporated) entityUpdate.date_incorporated = mergedWizard.dateIncorporated
+    if (mergedWizard.natureOfBusiness !== undefined) entityUpdate.nature_of_business = mergedWizard.natureOfBusiness || null
     if (mergedWizard.nominalCapital !== undefined) {
       const n = Number(String(mergedWizard.nominalCapital).replace(/[^\d.]/g, ''))
       entityUpdate.nominal_capital = Number.isFinite(n) && n > 0 ? n : null
@@ -397,7 +398,7 @@ export async function POST(request: Request) {
       director: {
         id?: string; fullName: string; idNumber?: string; kraPin?: string
         nationality?: string; dateOfBirth?: string; phone?: string; email?: string; occupation?: string
-        role?: 'director' | 'secretary'
+        role?: 'director' | 'secretary' | 'proprietor'
         appointmentDate?: string
         structuredAddress?: AddressData
         isCorporate?: boolean; corporate?: Record<string, unknown>
@@ -605,7 +606,12 @@ export async function POST(request: Request) {
       supabase.from('documents').select('document_type, tags').eq('entity_id', entityId).is('deleted_at', null),
       supabase.from('directors').select('id, full_name, residential_address').eq('entity_id', entityId),
     ])
-    if ((directorRows ?? []).length < 1) return NextResponse.json({ error: 'add at least one director' }, { status: 400 })
+    if (entityType === 'sole_proprietorship') {
+      const proprietors = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'proprietor')
+      if (proprietors.length !== 1) return NextResponse.json({ error: 'a business name registered to one proprietor needs exactly one proprietor' }, { status: 400 })
+    } else if ((directorRows ?? []).length < 1) {
+      return NextResponse.json({ error: 'add at least one director' }, { status: 400 })
+    }
     const unverifiedPeople = (directorRows ?? [])
       .filter((d) => !(d.residential_address as { isCorporate?: boolean } | null)?.isCorporate)
       .filter((d) => !(docs ?? []).some((doc) => doc.document_type === 'director_id_copy' && (doc.tags as Array<{ personId?: string }> | null)?.some((t) => t.personId === d.id)))
@@ -617,7 +623,7 @@ export async function POST(request: Request) {
     // Everything shown on the review screen counts as confirmed now.
     const at = new Date().toISOString()
     const evidence = { ...(liveWizard.fieldEvidence ?? {}) }
-    for (const f of ENTITY_FIELDS) {
+    for (const f of entityFieldsFor(entityType)) {
       const value = String(wizard[f.key] ?? '').trim()
       if (!value || evidence[f.key]?.confirmed?.value === value) continue
       const rec: FieldRecord = evidence[f.key] ?? { candidates: [] }
@@ -630,7 +636,7 @@ export async function POST(request: Request) {
     const uploaded = new Set((docs ?? []).filter((d) => !(d.tags as unknown[] | null)?.length).map((d) => d.document_type).filter((t): t is string => !!t))
     const gaps = documentGaps(pack, ctx, uploaded, wizard.unavailableDocuments)
     const rank = rankFor(entityType)
-    const states = ENTITY_FIELDS.filter((f) => f.material).map((f) => fieldState(evidence[f.key], String(finalWizard[f.key] ?? ''), rank))
+    const states = entityFieldsFor(entityType).filter((f) => f.material).map((f) => fieldState(evidence[f.key], String(finalWizard[f.key] ?? ''), rank))
 
     const tasks = buildActivationTasks({ gaps, baseline: EXISTING_BASELINES[entityType] ?? [], wizard: finalWizard, ctx, unverifiedPeople })
     const status = activationStatus({ gaps, states, openTasks: tasks.length })
@@ -656,7 +662,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'failed to activate' }, { status: 500 })
     }
 
-    await seedComplianceCalendar(supabase, { entityId, orgId, dateIncorporated: wizard.dateIncorporated ?? null, tasks })
+    await seedComplianceCalendar(supabase, { entityId, orgId, entityType, dateIncorporated: wizard.dateIncorporated ?? null, tasks, baseline: finalWizard.baseline ?? {} })
     await generateAndStoreProfile(supabase, { entityId, orgId, wizard: finalWizard, status, gaps: gaps.map((g) => g.spec.title) })
 
     await supabase.rpc('log_audit', {
@@ -728,7 +734,7 @@ function buildActivationTasks(opts: {
 // ------------------------------------------------------------------
 async function seedComplianceCalendar(
   supabase: SupabaseServer,
-  ctx: { entityId: string; orgId: string; dateIncorporated: string | null; tasks: ActivationTask[] }
+  ctx: { entityId: string; orgId: string; entityType: EntityType; dateIncorporated: string | null; tasks: ActivationTask[]; baseline: Record<string, string> }
 ) {
   try {
     const { count } = await supabase
@@ -756,10 +762,23 @@ async function seedComplianceCalendar(
     if (permitRenewal <= today) permitRenewal.setFullYear(year + 1)
 
     const base = { entity_id: ctx.entityId, organisation_id: ctx.orgId }
+    // Recurring obligations only where they apply: a business name files
+    // no BRS annual return, and its income is taxed on the proprietor's
+    // own return; a permit is tracked only if the business needs one.
+    const recurring = ctx.entityType === 'sole_proprietorship'
+      ? [
+          { ...base, title: 'File your personal income tax return (business income)', description: 'A sole proprietor’s business profit is declared on their own KRA income tax return, due by 30 June.', category: 'tax', due_date: iso(kraReturn) },
+          ...(ctx.baseline.county_permit === 'yes'
+            ? [{ ...base, title: 'Renew county single business permit', description: 'Single business permits are renewed with your county government at the start of each year.', category: 'license', due_date: iso(permitRenewal) }]
+            : []),
+        ]
+      : [
+          { ...base, title: 'File annual return with BRS', description: 'Companies must file an annual return with the Business Registration Service each year.', category: 'annual_return', due_date: iso(annualReturn) },
+          { ...base, title: 'File income tax return with KRA', description: 'Corporate income tax return due by 30 June following the end of the accounting period.', category: 'tax', due_date: iso(kraReturn) },
+          { ...base, title: 'Renew county single business permit', description: 'Single business permits are renewed with your county government at the start of each year.', category: 'license', due_date: iso(permitRenewal) },
+        ]
     const { error } = await supabase.from('compliance_events').insert([
-      { ...base, title: 'File annual return with BRS', description: 'Companies must file an annual return with the Business Registration Service each year.', category: 'annual_return', due_date: iso(annualReturn) },
-      { ...base, title: 'File income tax return with KRA', description: 'Corporate income tax return due by 30 June following the end of the accounting period.', category: 'tax', due_date: iso(kraReturn) },
-      { ...base, title: 'Renew county single business permit', description: 'Single business permits are renewed with your county government at the start of each year.', category: 'license', due_date: iso(permitRenewal) },
+      ...recurring,
       ...ctx.tasks.map((t) => ({ ...base, title: t.title, description: t.description, category: t.category, due_date: iso(inDays(t.dueInDays)) })),
     ])
     if (error) console.error('compliance seed error', error)
@@ -790,7 +809,7 @@ async function generateAndStoreProfile(
     const rank = rankFor(ctx.wizard.entityType)
     const exceptions = [
       `Onboarding status: ${ONBOARDING_STATUS_LABEL[ctx.status]}`,
-      ...ENTITY_FIELDS.filter((f) => f.material).flatMap((f) => {
+      ...entityFieldsFor(ctx.wizard.entityType).filter((f) => f.material).flatMap((f) => {
         const s = fieldState(ctx.wizard.fieldEvidence?.[f.key], String(ctx.wizard[f.key] ?? ''), rank)
         return s === 'verified' ? [] : [`${f.label}: ${s === 'user_confirmed' ? 'confirmed by applicant — documentary evidence outstanding' : s === 'missing' ? 'not provided' : 'conflicting sources'}`]
       }),
@@ -802,7 +821,7 @@ async function generateAndStoreProfile(
       generatedAt: new Date(),
       matterReference: ctx.entityId.slice(0, 8).toUpperCase(),
       servicePath: 'Self-service (already registered)',
-      onboardingType: 'Existing entity onboarding — verification report',
+      onboardingType: ctx.wizard.entityType === 'sole_proprietorship' ? 'Existing business name onboarding — verification report' : 'Existing entity onboarding — verification report',
 
       entityTypeLabel: ENTITY_TYPES.find((t) => t.value === entity.entity_type)?.label ?? entity.entity_type,
       legalNameOptions: [entity.legal_name ?? ''].filter(Boolean),
@@ -827,7 +846,7 @@ async function generateAndStoreProfile(
       directors: (directors ?? []).map((d) => {
         const ra = (d.residential_address ?? {}) as { role?: string; structuredAddress?: AddressData }
         return {
-          fullName: d.full_name, role: ra.role === 'secretary' ? 'Company Secretary' : 'Director', nationality: d.nationality,
+          fullName: d.full_name, role: ra.role === 'secretary' ? 'Company Secretary' : ra.role === 'proprietor' ? 'Proprietor' : 'Director', nationality: d.nationality,
           idNumber: d.id_number || null, kraPin: d.kra_pin, email: d.email, phone: d.phone,
           address: ra.structuredAddress ? formatAddress(ra.structuredAddress) : null,
           isAlsoShareholder: false, isAlsoBeneficialOwner: false,
@@ -931,7 +950,7 @@ async function recomputeShareholding(supabase: SupabaseServer, entityId: string)
 // only pre-filled when it is still empty. People are matched by strong
 // identifiers; a name-only match is flagged for the user to confirm.
 // ------------------------------------------------------------------
-const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'kra_pin_certificate', 'other'])
+const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'cr13', 'bn2', 'kra_pin_certificate', 'other'])
 
 async function mergeRegistryEvidence(
   supabase: SupabaseServer,
@@ -973,7 +992,7 @@ async function mergeRegistryEvidence(
   }
 
   const ocrValue = (key: EntityFieldKey): string | null => {
-    const spec = ENTITY_FIELDS.find((f) => f.key === key)!
+    const spec = entityFieldsFor(ctx.entityType).find((f) => f.key === key)!
     const raw = (fields as unknown as Record<string, unknown>)[spec.ocr]
     if (raw === null || raw === undefined || raw === '') return null
     if (key === 'registrationNumber' || key === 'kraPin') return String(raw).toUpperCase()
@@ -985,7 +1004,12 @@ async function mergeRegistryEvidence(
     return String(raw)
   }
 
-  for (const f of ENTITY_FIELDS) {
+  // A business-name certificate's issue date is its registration date
+  if (!fields.date_of_incorporation && fields.document_date && source.documentType === 'certificate_of_registration') {
+    fields.date_of_incorporation = fields.document_date
+  }
+
+  for (const f of entityFieldsFor(ctx.entityType)) {
     // The company KRA PIN only comes from the company's own PIN certificate
     if (f.key === 'kraPin' && fields.document_kind !== 'kra_pin_certificate') continue
     const value = ocrValue(f.key)
@@ -1029,6 +1053,15 @@ async function mergeRegistryEvidence(
   } else if (source.documentType === 'cr12' || source.documentType === 'change_filing' || source.documentType === 'cr8' || source.documentType === 'cr1') {
     const current = source.documentType === 'cr12' || source.documentType === 'change_filing'
     await mergePeople(supabase, { people, source, entityId, orgId, current })
+  } else if (ctx.entityType === 'sole_proprietorship' && ['certificate_of_registration', 'official_search_bn', 'bn2', 'bn_change'].includes(source.documentType)) {
+    // Business-name records name the proprietor — sometimes as a people
+    // list, sometimes as the document's single named person.
+    const named = people.length ? people : fields.full_name ? [{ full_name: fields.full_name, id_number: fields.id_number, kra_pin: fields.kra_pin, role: 'proprietor' as const, shares_held: null }] : []
+    await mergePeople(supabase, {
+      people: named.map((p) => ({ ...p, role: 'proprietor' as const })),
+      source, entityId, orgId,
+      current: source.documentType !== 'bn2',
+    })
   }
 
   if (source.documentType === 'bof1' && fields.full_name) {
@@ -1055,7 +1088,7 @@ async function mergePeople(
     if (!p.full_name) continue
     const person = { name: p.full_name, idNumber: p.id_number, kraPin: p.kra_pin }
 
-    const officerRole = p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
+    const officerRole = p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
     if (officerRole) {
       const matches = (directors ?? []).map((d) => ({ d, m: matchPerson(person, { name: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin }) }))
       const hit = matches.find((x) => x.m === 'same') ?? matches.find((x) => x.m === 'possible')

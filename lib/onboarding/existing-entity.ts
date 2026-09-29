@@ -22,9 +22,30 @@ export const EXISTING_STEP_LABELS: Record<number, string> = {
   7: 'Review & Activate',
 }
 
+// Which of the seven steps a type uses. A sole proprietorship has no
+// beneficial-ownership register — the proprietor owns and controls the
+// business (Sole Proprietorship brief §13).
+export function stepsFor(entityType: EntityType | undefined): number[] {
+  if (entityType === 'sole_proprietorship') return [1, 2, 3, 4, 6, 7]
+  return [1, 2, 3, 4, 5, 6, 7]
+}
+
+export function stepLabel(entityType: EntityType | undefined, step: number): string {
+  if (entityType === 'sole_proprietorship') {
+    if (step === 3) return 'Confirm Business Details'
+    if (step === 4) return 'Proprietor'
+  }
+  return EXISTING_STEP_LABELS[step]
+}
+
+// Noun used in headings and copy
+export function entityNounFor(entityType: EntityType | undefined): string {
+  return entityType === 'sole_proprietorship' ? 'business' : 'company'
+}
+
 // Entity types with a built existing-entity workflow. Others show "coming
 // later" until their brief is implemented (one at a time, per the plan).
-export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company']
+export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company', 'sole_proprietorship']
 
 // Company subtype fork (Limited Companies brief §2, §14)
 export const COMPANY_SUBTYPES: Array<{ value: 'private' | 'public'; label: string; description: string }> = [
@@ -45,8 +66,11 @@ export type EntityFieldKey =
   | 'county'
   | 'postalAddress'
   | 'nominalCapital'
+  | 'natureOfBusiness'
 
-export const ENTITY_FIELDS: Array<{ key: EntityFieldKey; label: string; ocr: string; material: boolean }> = [
+export type EntityFieldSpec = { key: EntityFieldKey; label: string; ocr: string; material: boolean }
+
+export const ENTITY_FIELDS: EntityFieldSpec[] = [
   { key: 'legalName', label: 'Registered name', ocr: 'business_name', material: true },
   { key: 'registrationNumber', label: 'Registration number', ocr: 'registration_number', material: true },
   { key: 'dateIncorporated', label: 'Date of incorporation', ocr: 'date_of_incorporation', material: true },
@@ -56,6 +80,22 @@ export const ENTITY_FIELDS: Array<{ key: EntityFieldKey; label: string; ocr: str
   { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
   { key: 'nominalCapital', label: 'Nominal share capital (KES)', ocr: 'nominal_share_capital', material: true },
 ]
+
+// Business Name: no share capital, no company PIN — tax identity is the
+// proprietor's own (Sole Proprietorship brief §5, §13).
+export const SOLE_PROPRIETORSHIP_FIELDS: EntityFieldSpec[] = [
+  { key: 'legalName', label: 'Registered business name', ocr: 'business_name', material: true },
+  { key: 'registrationNumber', label: 'Registration number', ocr: 'registration_number', material: true },
+  { key: 'dateIncorporated', label: 'Date of registration', ocr: 'date_of_incorporation', material: true },
+  { key: 'addressLine1', label: 'Principal place of business', ocr: 'address_line1', material: true },
+  { key: 'county', label: 'County', ocr: 'county', material: false },
+  { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
+  { key: 'natureOfBusiness', label: 'Nature of business', ocr: 'nature_of_business', material: false },
+]
+
+export function entityFieldsFor(entityType: EntityType | undefined): EntityFieldSpec[] {
+  return entityType === 'sole_proprietorship' ? SOLE_PROPRIETORSHIP_FIELDS : ENTITY_FIELDS
+}
 
 // ------------------------------------------------------------------
 // Document packs
@@ -179,13 +219,85 @@ export const LIMITED_COMPANY_PACK: DocSpec[] = [
   },
 ]
 
+// Sole Proprietorship brief §2 + §9; ranks per §7 (Official Search /
+// CR13 is the current anchor, BN4/BN5 changes next, certificate, BN2).
+export const SOLE_PROPRIETORSHIP_PACK: DocSpec[] = [
+  {
+    documentType: 'certificate_of_registration',
+    title: 'Certificate of Registration (Business Name)',
+    hint: 'Your BRS business-name certificate — registered name, number and registration date.',
+    priority: 'primary',
+    treatment: 'identity_anchor',
+    rank: 4,
+    missing: { impact: 'high', behaviour: 'The business name can’t be marked registry-verified. Upload the certificate or other reliable registry evidence.' },
+  },
+  {
+    documentType: 'official_search_bn',
+    title: 'Official Search — Business Name (CR13)',
+    hint: 'The current registry snapshot for the business name. Not the company CR12.',
+    priority: 'strong',
+    treatment: 'current_state',
+    rank: 2,
+    missing: { impact: 'high', behaviour: 'Onboarding continues provisionally — the current registry position isn’t anchored to a current search.' },
+  },
+  {
+    documentType: 'bn2',
+    title: 'BN2 — Registration application',
+    hint: 'The original application: proprietor, place and nature of business as first registered. Kept as history.',
+    priority: 'recommended',
+    treatment: 'formation',
+    rank: 5,
+    missing: { impact: 'low', behaviour: 'Doesn’t block onboarding — the original application is simply recorded as unavailable.' },
+  },
+  {
+    documentType: 'bn_change',
+    title: 'BN4 / BN5 — Change of particulars',
+    hint: 'Any change of name, address, activity or proprietor particulars since registration.',
+    priority: 'conditional',
+    treatment: 'change',
+    rank: 3,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Only needed where the registered particulars have changed.' },
+  },
+  {
+    documentType: 'single_business_permit',
+    title: 'County Single Business Permit',
+    hint: 'If you trade from premises — we’ll track the renewal date.',
+    priority: 'conditional',
+    treatment: 'operational',
+    rank: 6,
+    missing: { impact: 'conditional', behaviour: 'Only needed where your location or activity requires one.' },
+  },
+  {
+    documentType: 'sector_licence',
+    title: 'Sector licences / approvals',
+    hint: 'Any regulator licence your activity needs (e.g. pharmacy, transport, food).',
+    priority: 'conditional',
+    treatment: 'operational',
+    rank: 6,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Only needed for regulated activities.' },
+  },
+  {
+    documentType: 'other',
+    title: 'Other documents',
+    hint: 'Leases, contracts, insurance or anything else you’d like on file.',
+    priority: 'conditional',
+    treatment: 'operational',
+    rank: 6,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: '' },
+  },
+]
+
 export const EXISTING_DOC_PACKS: Partial<Record<EntityType, DocSpec[]>> = {
   limited_company: LIMITED_COMPANY_PACK,
+  sole_proprietorship: SOLE_PROPRIETORSHIP_PACK,
 }
 
 // Maps an OCR document_kind onto the pack's document type when the user
 // dropped a file into the wrong box (or the generic "other" box).
-export const OCR_KIND_TO_DOC_TYPE: Record<string, string> = {
+const COMPANY_KIND_MAP: Record<string, string> = {
   certificate_of_incorporation: 'certificate_of_incorporation',
   cr12: 'cr12',
   cr1: 'cr1',
@@ -193,6 +305,16 @@ export const OCR_KIND_TO_DOC_TYPE: Record<string, string> = {
   cr8: 'cr8',
   bof1: 'bof1',
   statement_of_nominal_capital: 'statement_of_nominal_capital',
+}
+const BUSINESS_NAME_KIND_MAP: Record<string, string> = {
+  business_registration: 'certificate_of_registration',
+  cr13: 'official_search_bn',
+  bn2: 'bn2',
+}
+export const OCR_KIND_TO_DOC_TYPE = COMPANY_KIND_MAP
+
+export function ocrKindToDocType(entityType: EntityType | undefined, kind: string): string | undefined {
+  return (entityType === 'sole_proprietorship' ? BUSINESS_NAME_KIND_MAP : COMPANY_KIND_MAP)[kind]
 }
 
 export function rankFor(entityType: EntityType | undefined) {
@@ -255,8 +377,52 @@ export const LIMITED_COMPANY_BASELINE: BaselineQuestion[] = [
   },
 ]
 
+// Sole Proprietorship brief §12 — nothing inferred from legal form alone
+// (a KRA PIN doesn't imply tax obligations; not every business needs a
+// county permit or employs staff).
+export const SOLE_PROPRIETORSHIP_BASELINE: BaselineQuestion[] = [
+  {
+    key: 'changes_particulars',
+    question: 'Has the business name, place of business, nature of business or your own particulars changed since registration?',
+    taskOn: 'yes',
+    task: { title: 'File a change of particulars (BN4)', description: 'Changes to a registered business name’s particulars are notified to BRS on form BN4. Upload the BN4/BN5 if already filed, or ask us to prepare it.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'county_permit',
+    question: 'Does the business trade from premises that need a county Single Business Permit?',
+    taskOn: 'yes',
+    task: { title: 'Upload your county Single Business Permit', description: 'So we can track its expiry and remind you before the annual renewal.', category: 'license', dueInDays: 30 },
+  },
+  {
+    key: 'regulated_activity',
+    question: 'Is the activity regulated — does it need a sector licence or approval?',
+    taskOn: 'yes',
+    task: { title: 'Record sector licences', description: 'Upload the licence(s) your activity needs so we can track renewals.', category: 'license', dueInDays: 30 },
+  },
+  {
+    key: 'employs_staff',
+    question: 'Do you employ staff in the business?',
+    taskOn: 'yes',
+    task: { title: 'Set up employment compliance', description: 'PAYE, NSSF, SHIF and Housing Levy obligations apply once you employ staff.', category: 'employment', dueInDays: 30 },
+  },
+  {
+    key: 'tax_registered',
+    question: 'Is the business registered for any tax obligations beyond your personal income tax (e.g. VAT or Turnover Tax)?',
+    help: 'Having a KRA PIN alone doesn’t create these obligations.',
+    taskOn: 'no_or_unsure',
+    task: { title: 'Review your tax registrations', description: 'Confirm which tax obligations apply to the business (VAT above the threshold, Turnover Tax, etc.) — we don’t assume any from your PIN alone.', category: 'tax', dueInDays: 30 },
+  },
+  {
+    key: 'ceased_or_converting',
+    question: 'Have you stopped trading under this name, or are you planning to convert it into a company or LLP?',
+    taskOn: 'yes',
+    task: { title: 'Review cessation or conversion', description: 'A business that has ceased needs a cessation filing (BN6); a conversion needs its own workflow. We’ll review the right route with you.', category: 'legal_review', dueInDays: 14 },
+  },
+]
+
 export const EXISTING_BASELINES: Partial<Record<EntityType, BaselineQuestion[]>> = {
   limited_company: LIMITED_COMPANY_BASELINE,
+  sole_proprietorship: SOLE_PROPRIETORSHIP_BASELINE,
 }
 
 // ------------------------------------------------------------------
@@ -275,6 +441,7 @@ export type ExistingWizardData = {
   postalCode?: string
   postalAddress?: string
   nominalCapital?: string
+  natureOfBusiness?: string
   // Field-level provenance: every value each document proposed + what the
   // user confirmed. Never pruned (brief §4: preserve historical values).
   fieldEvidence?: Partial<Record<EntityFieldKey, FieldRecord>>

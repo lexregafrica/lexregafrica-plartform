@@ -14,8 +14,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
-  EXISTING_TOTAL_STEPS, EXISTING_STEP_LABELS, EXISTING_SUPPORTED_TYPES, EXISTING_DOC_PACKS, EXISTING_BASELINES,
-  COMPANY_SUBTYPES, ENTITY_FIELDS, LIMITED_COMPANY_PACK, rankFor,
+  EXISTING_TOTAL_STEPS, EXISTING_SUPPORTED_TYPES, EXISTING_DOC_PACKS, EXISTING_BASELINES,
+  COMPANY_SUBTYPES, LIMITED_COMPANY_PACK, rankFor, entityFieldsFor, stepsFor, stepLabel, entityNounFor,
+  type EntityFieldSpec,
   type EntityFieldKey, type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
 import {
@@ -222,7 +223,9 @@ export function ExistingEntityWizard() {
         setEntityId(data.entityId)
         setOrgId(data.orgId)
         applyServerState(data)
-        setStep(Math.min(Math.max(data.step ?? 1, 1), EXISTING_TOTAL_STEPS))
+        const resumeSteps = stepsFor((data.wizard as ExistingWizardData | undefined)?.entityType)
+        const saved = Math.min(Math.max(data.step ?? 1, 1), EXISTING_TOTAL_STEPS)
+        setStep(resumeSteps.includes(saved) ? saved : resumeSteps.find((x) => x > saved) ?? EXISTING_TOTAL_STEPS)
         if (data.activated) { setActivatedStatus(data.onboardingStatus); setLoadState('activated'); return }
 
         if (!data.entityId) {
@@ -253,6 +256,11 @@ export function ExistingEntityWizard() {
   const packCtx = { subtype: wizard.subtype, nominalCapital: Number(String(wizard.nominalCapital ?? '').replace(/[^\d.]/g, '')) || null }
   const rank = rankFor(entityType)
   const stateOf = (key: EntityFieldKey) => fieldState(wizard.fieldEvidence?.[key], String(wizard[key] ?? ''), rank)
+  const fields = entityFieldsFor(entityType)
+  const steps = stepsFor(entityType)
+  const stepIndex = Math.max(steps.indexOf(step), 0)
+  const noun = entityNounFor(entityType)
+  const isSoleProp = entityType === 'sole_proprietorship'
 
   // ---- registry uploads -------------------------------------------
   const handleFiles = async (spec: DocSpec, files: FileList | null, replacesFilePath?: string) => {
@@ -344,11 +352,18 @@ export function ExistingEntityWizard() {
         if (!wizard.legalName?.trim()) return 'Registered name is required.'
         if (!wizard.registrationNumber?.trim()) return 'Registration number is required.'
         if (wizard.kraPin && !KRA_PIN_REGEX.test(wizard.kraPin.toUpperCase())) return 'KRA PIN format: A123456789B.'
-        const unresolved = ENTITY_FIELDS.find((f) => stateOf(f.key) === 'conflicting' && !resolved.has(f.key))
+        const unresolved = fields.find((f) => stateOf(f.key) === 'conflicting' && !resolved.has(f.key))
         if (unresolved) return `Your documents disagree on “${unresolved.label}” — choose the value that reflects the current position.`
         return null
       }
       case 4:
+        if (isSoleProp) {
+          const proprietors = directors.filter((d) => d.residential_address?.role === 'proprietor')
+          if (proprietors.length === 0) return 'Add the proprietor.'
+          if (proprietors.length > 1) return 'A business name registered to one person has one proprietor — for two or more owners, choose Partnership.'
+          if (proprietors.some((d) => d.residential_address?.nameMatchOnly)) return 'Confirm the proprietor marked “matched by name only”.'
+          return null
+        }
         if (directors.filter((d) => (d.residential_address?.role ?? 'director') === 'director').length < 1) return 'Add at least one director.'
         if (directors.some((d) => d.residential_address?.nameMatchOnly)) return 'Confirm the people marked “matched by name only”.'
         return null
@@ -374,10 +389,10 @@ export function ExistingEntityWizard() {
     setError('')
     setSaving(true)
     try {
-      const next = Math.min(step + 1, EXISTING_TOTAL_STEPS)
+      const next = steps[stepIndex + 1] ?? EXISTING_TOTAL_STEPS
       // Continuing past the details step is the user confirming those
       // values — each keeps its own state (verified vs evidence outstanding).
-      const confirm = step === 3 ? ENTITY_FIELDS.map((f) => f.key).filter((k) => String(wizard[k] ?? '').trim()) : undefined
+      const confirm = step === 3 ? fields.map((f) => f.key).filter((k) => String(wizard[k] ?? '').trim()) : undefined
       const res = await api({ action: 'save_step', step, wizard, advanceTo: next, confirm })
       if (res.wizard) setWizard(res.wizard as ExistingWizardData)
       setStep(next)
@@ -473,13 +488,13 @@ export function ExistingEntityWizard() {
     <div className="flex min-h-[100dvh] flex-col items-center px-4 py-12">
       <div className="w-full max-w-[520px]">
         <div className="flex items-center gap-1 mb-6">
-          {Array.from({ length: EXISTING_TOTAL_STEPS }).map((_, i) => (
-            <div key={i} className="h-1 flex-1 rounded-full transition-colors" style={{ background: i + 1 <= step ? 'var(--brand-navy)' : 'var(--system-fill-3)' }} />
+          {steps.map((sId, i) => (
+            <div key={sId} className="h-1 flex-1 rounded-full transition-colors" style={{ background: i <= stepIndex ? 'var(--brand-navy)' : 'var(--system-fill-3)' }} />
           ))}
         </div>
 
         <p className="text-ios-footnote mb-2" style={{ color: 'var(--system-label-3)' }}>
-          Step {step} of {EXISTING_TOTAL_STEPS} — {EXISTING_STEP_LABELS[step]}
+          Step {stepIndex + 1} of {steps.length} — {stepLabel(entityType, step)}
         </p>
 
         {/* ---------------- Step 1: entity type ---------------- */}
@@ -549,7 +564,7 @@ export function ExistingEntityWizard() {
                   <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={wizard.legalName ?? ''} onChange={(e) => patch({ legalName: e.target.value })} />
                 </Field>
                 <Field label="Registration number">
-                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder="PVT-XXXXXXX" value={wizard.registrationNumber ?? ''} onChange={(e) => patch({ registrationNumber: e.target.value.toUpperCase() })} />
+                  <NoAutofillInput type="text" className={inputCls} style={inputStyle} placeholder={isSoleProp ? 'BN-XXXXXXX' : 'PVT-XXXXXXX'} value={wizard.registrationNumber ?? ''} onChange={(e) => patch({ registrationNumber: e.target.value.toUpperCase() })} />
                 </Field>
               </div>
             )}
@@ -638,6 +653,8 @@ export function ExistingEntityWizard() {
         {/* ---------------- Step 3: entity details with provenance ---------------- */}
         {step === 3 && (
           <EntityDetailsStep
+            fields={fields}
+            noun={noun}
             wizard={wizard}
             patch={patch}
             pack={pack}
@@ -666,7 +683,8 @@ export function ExistingEntityWizard() {
             setError={setError}
             wizard={wizard}
             pack={pack}
-            needsSecretary={wizard.subtype === 'public' || (packCtx.nominalCapital ?? 0) >= SECRETARY_CAPITAL_THRESHOLD_KES}
+            needsSecretary={!isSoleProp && (wizard.subtype === 'public' || (packCtx.nominalCapital ?? 0) >= SECRETARY_CAPITAL_THRESHOLD_KES)}
+            isSoleProp={isSoleProp}
           />
         )}
 
@@ -694,7 +712,7 @@ export function ExistingEntityWizard() {
               Is everything still current?
             </h1>
             <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-              A certificate proves the company exists — not that its records are up to date. Your answers set your
+              A certificate proves the {noun} exists — not that its records are up to date. Your answers set your
               compliance baseline and create only the tasks that apply to you.
             </p>
             {(EXISTING_BASELINES[entityType] ?? []).filter((q) => !q.when || q.when(packCtx)).map((q) => (
@@ -715,7 +733,7 @@ export function ExistingEntityWizard() {
                 </div>
               </div>
             ))}
-            {!uploadedTypes.has('annual_return') && (
+            {!isSoleProp && !uploadedTypes.has('annual_return') && (
               <Field label="When was the last annual return filed? (if you know)">
                 <input type="date" className={inputCls} style={inputStyle} value={wizard.lastAnnualReturnDate ?? ''} onChange={(e) => patch({ lastAnnualReturnDate: e.target.value })} />
               </Field>
@@ -726,6 +744,8 @@ export function ExistingEntityWizard() {
         {/* ---------------- Step 7: review & activate ---------------- */}
         {step === 7 && (
           <ReviewStep
+            fields={fields}
+            isSoleProp={isSoleProp}
             wizard={wizard}
             patch={patch}
             stateOf={stateOf}
@@ -746,7 +766,7 @@ export function ExistingEntityWizard() {
 
         <div className="flex items-center gap-3 mt-6">
           {step > 1 && (
-            <button type="button" onClick={() => { setError(''); setStep(step - 1) }}
+            <button type="button" onClick={() => { setError(''); setStep(steps[stepIndex - 1] ?? 1) }}
               className="py-2.5 px-5 rounded-full text-sm font-medium border" style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}>
               Back
             </button>
@@ -777,7 +797,7 @@ export function ExistingEntityWizard() {
 
       {showHelp && (
         <HelpRequestSheet
-          context={{ source: `Existing entity onboarding — step ${step} (${EXISTING_STEP_LABELS[step]})`, businessName: wizard.legalName }}
+          context={{ source: `Existing entity onboarding — step ${step} (${stepLabel(entityType, step)})`, businessName: wizard.legalName }}
           onClose={() => setShowHelp(false)}
           onSent={() => { api({ action: 'request_help' }).catch(() => {}) }}
         />
@@ -790,7 +810,9 @@ export function ExistingEntityWizard() {
 // Step 3 — entity details. Each field shows its verification state and
 // the documents behind it; conflicts are chosen side by side.
 // ------------------------------------------------------------------
-function EntityDetailsStep({ wizard, patch, pack, documents, stateOf, rank, resolved, setResolved, lowConfidence, onHelp }: {
+function EntityDetailsStep({ fields, noun, wizard, patch, pack, documents, stateOf, rank, resolved, setResolved, lowConfidence, onHelp }: {
+  fields: EntityFieldSpec[]
+  noun: string
   wizard: ExistingWizardData
   patch: (p: Partial<ExistingWizardData>) => void
   pack: DocSpec[]
@@ -833,7 +855,7 @@ function EntityDetailsStep({ wizard, patch, pack, documents, stateOf, rank, reso
   return (
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-        Confirm your company details
+        Confirm your {noun} details
       </h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
         Each detail shows where it came from. Correct anything that’s out of date — where your documents disagree,
@@ -846,7 +868,7 @@ function EntityDetailsStep({ wizard, patch, pack, documents, stateOf, rank, reso
         </div>
       )}
 
-      {ENTITY_FIELDS.map((f) => {
+      {fields.map((f) => {
         const state = stateOf(f.key)
         const distinct = distinctCandidates(wizard.fieldEvidence?.[f.key], rank)
         const conflict = distinct.length > 1
@@ -947,7 +969,7 @@ function EntityDetailsStep({ wizard, patch, pack, documents, stateOf, rank, reso
 // new-entity flow. Identity documents are optional here: the person is
 // recorded provisionally and flagged "identity unverified".
 // ------------------------------------------------------------------
-type PersonKind = 'director' | 'secretary' | 'shareholder'
+type PersonKind = 'director' | 'secretary' | 'shareholder' | 'proprietor'
 
 type PersonForm = {
   id?: string
@@ -1003,7 +1025,7 @@ function validatePerson(f: PersonForm): string | null {
 const idDocType = (kind: PersonKind) => (kind === 'shareholder' ? 'shareholder_id_copy' : 'director_id_copy')
 const kraDocType = (kind: PersonKind) => (kind === 'shareholder' ? 'shareholder_kra_pin_copy' : 'director_kra_pin_copy')
 
-function PeopleStep({ directors, shareholders, documents, setDirectors, setShareholders, refresh, api, setError, orgId, entityId, wizard, pack, needsSecretary }: {
+function PeopleStep({ directors, shareholders, documents, setDirectors, setShareholders, refresh, api, setError, orgId, entityId, wizard, pack, needsSecretary, isSoleProp }: {
   directors: DirectorRow[]
   shareholders: ShareholderRow[]
   documents: DocumentRow[]
@@ -1017,6 +1039,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
   wizard: ExistingWizardData
   pack: DocSpec[]
   needsSecretary: boolean
+  isSoleProp: boolean
 }) {
   const [form, setForm] = useState<PersonForm | null>(null)
   const [busy, setBusy] = useState(false)
@@ -1113,7 +1136,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
       action: 'upsert_director',
       director: {
         id: d.id, fullName: d.full_name, idNumber: d.id_number || undefined, kraPin: d.kra_pin ?? undefined,
-        role: ra.role === 'secretary' ? 'secretary' : 'director', structuredAddress: ra.structuredAddress,
+        role: ra.role === 'secretary' ? 'secretary' : ra.role === 'proprietor' ? 'proprietor' : 'director', structuredAddress: ra.structuredAddress,
         isCorporate: ra.isCorporate, corporate: ra.corporate, dateOfBirth: ra.dateOfBirth ?? undefined,
       },
     }).catch(() => setError('Failed to confirm.'))
@@ -1123,7 +1146,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
   const directorToForm = (d: DirectorRow): PersonForm => {
     const ra = d.residential_address ?? {}
     return {
-      ...emptyPersonForm(ra.role === 'secretary' ? 'secretary' : 'director'),
+      ...emptyPersonForm(ra.role === 'secretary' ? 'secretary' : ra.role === 'proprietor' ? 'proprietor' : 'director'),
       id: d.id, fullName: d.full_name, idNumber: ra.isCorporate ? '' : d.id_number ?? '', kraPin: d.kra_pin ?? '',
       dateOfBirth: ra.dateOfBirth ?? '', nationality: d.nationality ?? 'Kenyan', phone: d.phone ?? '', email: d.email ?? '',
       occupation: ra.occupation ?? '', appointmentDate: d.appointment_date ?? '',
@@ -1162,7 +1185,8 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
     </div>
   )
 
-  const officers = directors.filter((d) => (d.residential_address?.role ?? 'director') !== 'secretary')
+  const officers = directors.filter((d) => { const r = d.residential_address?.role ?? 'director'; return r !== 'secretary' && r !== 'proprietor' })
+  const proprietors = directors.filter((d) => d.residential_address?.role === 'proprietor')
   const secretaries = directors.filter((d) => d.residential_address?.role === 'secretary')
 
   const directorFlags = (d: DirectorRow) => {
@@ -1170,20 +1194,42 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
     const flags: Array<{ text: string; tone: 'warn' | 'info' }> = []
     if (ra.nameMatchOnly) flags.push({ tone: 'warn', text: 'Matched to an existing person by name only — confirm it’s the same person, or edit.' })
     if (ra.formationOnly && !ra.onCurrentRecord && !ra.userReviewed) flags.push({ tone: 'warn', text: 'Only on formation records — confirm they’re still in office, or remove.' })
-    if (!ra.isCorporate && !hasIdDoc(d.id, 'director')) flags.push({ tone: 'info', text: 'Identity unverified — upload their ID/passport when you can.' })
+    if (!ra.isCorporate && !hasIdDoc(d.id, 'director')) flags.push({ tone: 'info', text: ra.role === 'proprietor' ? 'Identity unverified — upload your ID/passport when you can.' : 'Identity unverified — upload their ID/passport when you can.' })
     return flags
   }
 
-  const kindLabel: Record<PersonKind, string> = { director: 'director', secretary: 'company secretary', shareholder: 'shareholder' }
+  const kindLabel: Record<PersonKind, string> = { director: 'director', secretary: 'company secretary', shareholder: 'shareholder', proprietor: 'proprietor' }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>People &amp; roles</h1>
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>{isSoleProp ? 'The proprietor' : <>People &amp; roles</>}</h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        {directors.length + shareholders.length > 0
-          ? 'Built from your documents. Check each person against today’s position — the same person can hold several roles.'
-          : 'Add your directors and shareholders. Uploading an Official Search (CR12) fills this in for you.'}
+        {isSoleProp
+          ? 'A registered business name isn’t a separate legal person — it belongs to you, the proprietor. There are no shareholders or directors. Check the details we read from your certificate, and add your ID and KRA PIN if you have them.'
+          : directors.length + shareholders.length > 0
+            ? 'Built from your documents. Check each person against today’s position — the same person can hold several roles.'
+            : 'Add your directors and shareholders. Uploading an Official Search (CR12) fills this in for you.'}
       </p>
+
+      {proprietors.map((d) => (
+        <Card key={d.id} title={d.full_name}
+          lines={[
+            [d.id_number && `ID ${d.id_number}`, d.kra_pin && `PIN ${d.kra_pin}`].filter(Boolean).join(' · '),
+            evidenceText(d.residential_address?.evidence) ? `Source: ${evidenceText(d.residential_address?.evidence)}` : '',
+          ]}
+          flags={directorFlags(d)}
+          onEdit={() => open(directorToForm(d))}
+          onRemove={() => remove('director', d.id)}
+          extra={d.residential_address?.nameMatchOnly ? (
+            <button type="button" className="text-ios-footnote font-semibold" style={{ color: 'var(--brand-navy)' }} onClick={() => confirmMatch(d)}>Yes, same person</button>
+          ) : undefined}
+        />
+      ))}
+      {isSoleProp && proprietors.length > 1 && (
+        <p className="text-ios-caption1 rounded-lg px-3 py-2" style={{ background: 'rgba(217,119,6,0.12)', color: '#92400e' }}>
+          Your documents list more than one owner. A business name owned by two or more people is a partnership — remove anyone listed by mistake, or restart and choose Partnership.
+        </p>
+      )}
 
       {officers.length > 0 && <p className="text-ios-caption1 font-semibold uppercase tracking-wide" style={{ color: 'var(--system-label-3)' }}>Directors</p>}
       {officers.map((d) => (
@@ -1233,7 +1279,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
       {form ? (
         <div className="ios-surface rounded-2xl p-4 space-y-3">
           <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>{form.id ? 'Edit' : 'Add'} {kindLabel[form.kind]}</p>
-          {form.kind !== 'secretary' && (
+          {form.kind !== 'secretary' && form.kind !== 'proprietor' && (
             <div className="flex gap-2">
               {[false, true].map((corp) => (
                 <button key={String(corp)} type="button" onClick={() => set({ isCorporate: corp })}
@@ -1348,7 +1394,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
           )}
 
           {form.kind !== 'shareholder' && (
-            <Field label="Date appointed (if known)">
+            <Field label={form.kind === 'proprietor' ? 'Date you started the business (if known)' : 'Date appointed (if known)'}>
               <input type="date" className={inputCls} style={inputStyle} value={form.appointmentDate} onChange={(e) => set({ appointmentDate: e.target.value })} />
             </Field>
           )}
@@ -1381,6 +1427,14 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
           </div>
         </div>
       ) : (
+        isSoleProp ? (
+          proprietors.length === 0 ? (
+            <button type="button" onClick={() => open(emptyPersonForm('proprietor'))}
+              className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium" style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}>
+              + Add the proprietor
+            </button>
+          ) : null
+        ) : (
         <div className="grid grid-cols-3 gap-2">
           {(['director', 'secretary', 'shareholder'] as PersonKind[]).map((k) => (
             <button key={k} type="button" onClick={() => open(emptyPersonForm(k))}
@@ -1389,6 +1443,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
             </button>
           ))}
         </div>
+        )
       )}
     </div>
   )
@@ -1676,7 +1731,9 @@ function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwn
 // evidence still outstanding, and the status the entity will activate
 // with. Confirming never upgrades unsupported data (brief §11).
 // ------------------------------------------------------------------
-function ReviewStep({ wizard, patch, stateOf, gaps, directors, shareholders, beneficialOwners, documents, taskCount }: {
+function ReviewStep({ fields, isSoleProp, wizard, patch, stateOf, gaps, directors, shareholders, beneficialOwners, documents, taskCount }: {
+  fields: EntityFieldSpec[]
+  isSoleProp: boolean
   wizard: ExistingWizardData
   patch: (p: Partial<ExistingWizardData>) => void
   stateOf: (k: EntityFieldKey) => FieldState
@@ -1687,7 +1744,7 @@ function ReviewStep({ wizard, patch, stateOf, gaps, directors, shareholders, ben
   documents: DocumentRow[]
   taskCount: number
 }) {
-  const states = ENTITY_FIELDS.filter((f) => f.material).map((f) => stateOf(f.key))
+  const states = fields.filter((f) => f.material).map((f) => stateOf(f.key))
   const status = activationStatus({ gaps, states, openTasks: taskCount })
   const unverifiedPeople = directors.filter((d) => !d.residential_address?.isCorporate && !documents.some((doc) => doc.tags?.some((t) => t.personId === d.id) && doc.document_type === 'director_id_copy'))
   const reportedGaps = gaps.filter((g) => g.spec.missing.impact !== 'conditional')
@@ -1710,7 +1767,7 @@ function ReviewStep({ wizard, patch, stateOf, gaps, directors, shareholders, ben
       </div>
 
       <div className="ios-surface rounded-2xl p-4">
-        {ENTITY_FIELDS.map((f) => (
+        {fields.map((f) => (
           <div key={f.key} className="flex items-center justify-between gap-3 py-2 border-b last:border-0" style={{ borderColor: 'var(--system-fill-3)' }}>
             <div className="min-w-0">
               <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{f.label}</p>
@@ -1722,7 +1779,9 @@ function ReviewStep({ wizard, patch, stateOf, gaps, directors, shareholders, ben
         <div className="flex justify-between gap-4 py-2">
           <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>People</span>
           <span className="text-ios-footnote font-medium text-right" style={{ color: 'var(--system-label)' }}>
-            {directors.filter((d) => d.residential_address?.role !== 'secretary').length} director(s) · {shareholders.length} shareholder(s) · {beneficialOwners.length || (wizard.noBeneficialOwners ? 'no' : 0)} beneficial owner(s)
+            {isSoleProp
+              ? `Proprietor: ${directors.find((d) => d.residential_address?.role === 'proprietor')?.full_name ?? '—'}`
+              : `${directors.filter((d) => d.residential_address?.role !== 'secretary').length} director(s) · ${shareholders.length} shareholder(s) · ${beneficialOwners.length || (wizard.noBeneficialOwners ? 'no' : 0)} beneficial owner(s)`}
           </span>
         </div>
       </div>
@@ -1749,10 +1808,25 @@ function ReviewStep({ wizard, patch, stateOf, gaps, directors, shareholders, ben
         </div>
       )}
 
+      {isSoleProp && (
+        // Sole Proprietorship brief §14 — educational, not alarmist
+        <div className="ios-surface rounded-2xl p-4 space-y-1.5">
+          <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>Good to know</p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            A registered business name isn’t a separate legal entity. You own and control the business, and you’re
+            personally responsible for its debts and obligations.
+          </p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            If the business grows or takes on more risk, some owners choose a company or LLP. If you’d like advice on
+            that at any point, we can review your structure with you — your records here carry over.
+          </p>
+        </div>
+      )}
+
       <div className="ios-surface rounded-2xl p-4 space-y-3">
         <label className="flex items-start gap-3 text-ios-footnote" style={{ color: 'var(--system-label)' }}>
           <input type="checkbox" className="mt-0.5" checked={wizard.declared ?? false} onChange={(e) => patch({ declared: e.target.checked })} />
-          I confirm that, to the best of my knowledge, the details above reflect the company’s current position, and
+          I confirm that, to the best of my knowledge, the details above reflect the {isSoleProp ? 'business’s' : 'company’s'} current position, and
           that I am authorised to register it on LexReg Africa. I understand that details marked “evidence outstanding”
           are recorded as my confirmation, not as registry-verified.
         </label>
@@ -1765,8 +1839,9 @@ function ReviewStep({ wizard, patch, stateOf, gaps, directors, shareholders, ben
       </div>
 
       <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-        Activating creates your workspace — profile, people and roles, share register, beneficial ownership and
-        document vault — seeds your compliance calendar, and files a signed verification report in the vault.
+        {isSoleProp
+          ? 'Activating creates your business workspace — business profile, proprietor link, licences and document vault — seeds your compliance calendar, and files a signed verification report in the vault.'
+          : 'Activating creates your workspace — profile, people and roles, share register, beneficial ownership and document vault — seeds your compliance calendar, and files a signed verification report in the vault.'}
       </p>
     </div>
   )
