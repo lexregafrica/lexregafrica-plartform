@@ -574,8 +574,108 @@ function StructureTab({ entity, directors, shareholders, beneficialOwners }: {
   )
 }
 
-function PeopleTab({ directors, shareholders }: { directors: WorkspacePerson[]; shareholders: WorkspaceShareholder[] }) {
-  if (directors.length === 0 && shareholders.length === 0) {
+// One card per person, however many roles they hold (brief §6: one
+// person, several role badges), with everything captured at onboarding
+// and the documents on file for them.
+type PersonView = {
+  key: string
+  name: string
+  roles: string[]
+  former: boolean
+  isCorporate: boolean
+  details: Array<[string, string]>
+  sources: SourceRef[]
+  ids: string[]
+}
+
+const DOC_LABEL: Record<string, string> = {
+  cr12: 'Official Search (CR12)', certificate_of_incorporation: 'Certificate of Incorporation', bof1: 'BOF-1',
+  cr8: 'CR8', cr1: 'CR1', certificate_of_registration: 'Certificate of Registration', official_search_bn: 'Official Search',
+  official_search_llp: 'Official Search', llp_bo: 'LLP BO filing', llp1: 'LLP 1', llp9: 'LLP 9', bn2: 'BN2',
+}
+
+function buildPeople(directors: WorkspacePerson[], shareholders: WorkspaceShareholder[], owners: WorkspaceBeneficialOwner[]): PersonView[] {
+  const map = new Map<string, PersonView>()
+  const keyOf = (name: string, id?: string | null) => (id?.trim() || name.trim()).toLowerCase()
+  const get = (name: string, id: string | null | undefined, isCorporate: boolean) => {
+    // Same ID, or same name when either side has no ID
+    let key = keyOf(name, id)
+    if (!map.has(key)) {
+      const byName = [...map.values()].find((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase())
+      if (byName) key = byName.key
+    }
+    if (!map.has(key)) map.set(key, { key, name, roles: [], former: true, isCorporate, details: [], sources: [], ids: [] })
+    return map.get(key)!
+  }
+  const add = (p: PersonView, label: string, value: string | null | undefined) => {
+    if (!value || p.details.some(([l]) => l === label)) return
+    p.details.push([label, value])
+  }
+  for (const d of directors) {
+    const p = get(d.name, d.idNumber, !!d.isCorporate)
+    const role = ROLE_LABEL[d.role ?? 'director'] ?? 'Officer'
+    p.roles.push(d.cessationDate ? `Former ${role.toLowerCase()}` : d.isManagingPartner ? 'Managing partner' : role)
+    if (!d.cessationDate) p.former = false
+    p.ids.push(d.id)
+    add(p, d.isCorporate ? 'Registration no.' : 'ID / passport', d.idNumber)
+    add(p, 'KRA PIN', d.kraPin)
+    add(p, 'Nationality', d.nationality)
+    add(p, 'Date of birth', d.dateOfBirth ? formatDate(d.dateOfBirth) : null)
+    add(p, 'Occupation', d.occupation)
+    add(p, 'Phone', d.phone)
+    add(p, 'Email', d.email)
+    add(p, 'Address', d.address)
+    add(p, `${role} since`, d.appointmentDate ? formatDate(d.appointmentDate) : null)
+    add(p, 'Profit share', d.profitShare ? `${d.profitShare}%` : null)
+    add(p, 'Capital contribution', d.contribution)
+    add(p, 'Signing authority', d.signingAuthority)
+    add(p, 'Left', d.cessationDate ? `${formatDate(d.cessationDate)}${d.cessationReason ? ` — ${d.cessationReason}` : ''}` : null)
+    p.sources.push(...(d.sources ?? []))
+  }
+  for (const s of shareholders) {
+    const p = get(s.name, s.idNumber, !!s.isCorporate)
+    p.roles.push(s.isNominee ? 'Shareholder (nominee)' : 'Shareholder')
+    p.former = false
+    p.ids.push(s.id)
+    add(p, s.isCorporate ? 'Registration no.' : 'ID / passport', s.idNumber)
+    add(p, 'KRA PIN', s.kraPin)
+    add(p, 'Shares', `${s.shares.toLocaleString()} ${s.shareClass ?? 'Ordinary'}${s.percentage != null ? ` (${s.percentage}%)` : ''}`)
+    add(p, 'Nationality', s.nationality)
+    add(p, 'Date of birth', s.dateOfBirth ? formatDate(s.dateOfBirth) : null)
+    add(p, 'Phone', s.phone)
+    add(p, 'Email', s.email)
+    add(p, 'Address', s.address)
+    p.sources.push(...(s.sources ?? []))
+  }
+  for (const b of owners) {
+    const p = get(b.name, b.idNumber, false)
+    p.roles.push('Beneficial owner')
+    p.former = false
+    p.ids.push(b.id)
+    add(p, 'ID / passport', b.idNumber)
+    add(p, 'KRA PIN', b.kraPin)
+    add(p, 'Nature of control', b.natureOfControl)
+    add(p, 'Beneficial owner since', b.since ? formatDate(b.since) : null)
+    add(p, 'Nationality', b.nationality)
+    add(p, 'Date of birth', b.dateOfBirth ? formatDate(b.dateOfBirth) : null)
+    add(p, 'Occupation', b.occupation)
+    add(p, 'Phone', b.phone)
+    add(p, 'Email', b.email)
+    add(p, 'Address', b.address)
+    p.sources.push(...(b.sources ?? []))
+  }
+  return [...map.values()]
+}
+
+function PeopleTab({ directors, shareholders, beneficialOwners, documents }: {
+  directors: WorkspacePerson[]
+  shareholders: WorkspaceShareholder[]
+  beneficialOwners: WorkspaceBeneficialOwner[]
+  documents: WorkspaceDocument[]
+}) {
+  const [open, setOpen] = useState<string | null>(null)
+  const people = buildPeople(directors, shareholders, beneficialOwners)
+  if (people.length === 0) {
     return (
       <div className={`${CARD} py-10 text-center`}>
         <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>No people recorded</p>
@@ -583,26 +683,81 @@ function PeopleTab({ directors, shareholders }: { directors: WorkspacePerson[]; 
       </div>
     )
   }
+  const current = people.filter((p) => !p.former)
+  const former = people.filter((p) => p.former)
+
+  const card = (p: PersonView) => {
+    const expanded = open === p.key
+    const docs = documents.filter((d) => d.tags?.some((t) => !!t.personId && p.ids.includes(t.personId)))
+    const sources = [...new Map(p.sources.filter((x) => x.documentType).map((x) => [`${x.documentType}${x.documentDate}`, x])).values()]
+    const missing = ['ID / passport', 'KRA PIN'].filter((l) => !p.isCorporate && !p.details.some(([k]) => k === l))
+    return (
+      <div key={p.key} className={CARD}>
+        <button type="button" className="w-full text-left" onClick={() => setOpen(expanded ? null : p.key)} aria-expanded={expanded}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-ios-subhead font-semibold break-words" style={{ color: 'var(--system-label)' }}>{p.name}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {[...new Set(p.roles)].map((r) => (
+                  <span key={r} className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>{r}</span>
+                ))}
+                {p.isCorporate && <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'rgba(37,99,235,0.10)', color: '#1d4ed8' }}>Corporate</span>}
+              </div>
+            </div>
+            <span className="text-ios-caption1 shrink-0 font-medium" style={{ color: 'var(--system-label-3)' }}>{expanded ? 'Hide' : 'Details'}</span>
+          </div>
+          {!expanded && (
+            <p className="text-ios-caption1 mt-1.5 truncate" style={{ color: 'var(--system-label-3)' }}>
+              {p.details.filter(([l]) => ['KRA PIN', 'Shares', 'Phone', 'Email', 'Profit share'].includes(l)).map(([, v]) => v).join(' · ') || '—'}
+            </p>
+          )}
+        </button>
+        {expanded && (
+          <div className="mt-3 space-y-3">
+            <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+              {p.details.map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-ios-caption2" style={{ color: 'var(--system-label-3)' }}>{label}</dt>
+                  <dd className="text-ios-footnote break-words" style={{ color: 'var(--system-label)' }}>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            {missing.length > 0 && (
+              <p className="text-ios-caption1 rounded-lg px-2 py-1" style={{ background: 'rgba(217,119,6,0.12)', color: '#92400e' }}>
+                Not on file: {missing.join(', ')}
+              </p>
+            )}
+            {sources.length > 0 && (
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+                From: {sources.map((x) => `${DOC_LABEL[x.documentType!] ?? x.documentType}${x.documentDate ? ` (${formatDate(x.documentDate)})` : ''}`).join(' · ')}
+              </p>
+            )}
+            {docs.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {docs.map((d) => (
+                  <a key={d.id} href={d.url ?? undefined} target="_blank" rel="noopener noreferrer"
+                    className="text-ios-caption1 inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 font-medium"
+                    style={{ borderColor: 'var(--system-fill-3)', color: 'var(--brand-navy)' }}>
+                    <IconDownload size={13} /> <span className="truncate">{(d.documentType ?? 'document').replace(/^(director|shareholder|beneficial_owner|corporate)_/, '').replace(/_/g, ' ')}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="grid content-start gap-3 sm:grid-cols-2">
-      {directors.map((d) => (
-        <div key={d.id} className={CARD}>
-          <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>{d.name}</p>
-          <p className="text-ios-caption1 mt-0.5 font-medium" style={{ color: 'var(--brand-navy)' }}>Director</p>
-          <p className="text-ios-caption1 mt-1.5" style={{ color: 'var(--system-label-3)' }}>
-            {[d.kraPin && `PIN ${d.kraPin}`, d.email, d.phone].filter(Boolean).join(' · ') || '—'}
-          </p>
-        </div>
-      ))}
-      {shareholders.map((s) => (
-        <div key={s.id} className={CARD}>
-          <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>{s.name}</p>
-          <p className="text-ios-caption1 mt-0.5 font-medium" style={{ color: 'var(--brand-navy)' }}>Shareholder</p>
-          <p className="text-ios-caption1 mt-1.5" style={{ color: 'var(--system-label-3)' }}>
-            {s.shares.toLocaleString()} shares{s.percentage != null ? ` · ${s.percentage}%` : ''}
-          </p>
-        </div>
-      ))}
+    <div className="space-y-4">
+      <div className="grid content-start gap-3 sm:grid-cols-2">{current.map(card)}</div>
+      {former.length > 0 && (
+        <>
+          <p className="text-ios-caption1 font-semibold uppercase tracking-wide px-1" style={{ color: 'var(--system-label-3)' }}>Former</p>
+          <div className="grid content-start gap-3 sm:grid-cols-2">{former.map(card)}</div>
+        </>
+      )}
     </div>
   )
 }
@@ -645,7 +800,7 @@ export function EntityWorkspace({
     structure: <StructureTab entity={entity} directors={directors} shareholders={shareholders} beneficialOwners={beneficialOwners} />,
     compliance: <ComplianceTab events={events} />,
     documents: <DocumentsTab documents={documents} />,
-    people: <PeopleTab directors={directors} shareholders={shareholders} />,
+    people: <PeopleTab directors={directors} shareholders={shareholders} beneficialOwners={beneficialOwners} documents={documents} />,
   }[tab]
 
   return (
