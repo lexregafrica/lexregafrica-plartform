@@ -1,6 +1,8 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { EntityWorkspace } from '@/components/dashboard/entity-workspace'
+import { EXISTING_DOC_PACKS, LIMITED_COMPANY_PACK, entityFieldsFor, rankFor, type ExistingWizardData } from '@/lib/onboarding/existing-entity'
+import { documentGaps, fieldState, withLiveEvidence, ONBOARDING_STATUS_LABEL, FIELD_STATE_LABEL, type OnboardingStatus } from '@/lib/onboarding/existing-engine'
 import { ENTITY_TYPES, missingRequiredDocuments, formatAddress, type AddressData, type EntityType } from '@/lib/onboarding/new-entity'
 
 export default async function EntityWorkspacePage({
@@ -17,7 +19,7 @@ export default async function EntityWorkspacePage({
   // unknown id simply returns no row
   const { data: entity } = await supabase
     .from('entities')
-    .select('id, organisation_id, legal_name, trading_name, proposed_names, entity_type, status, registration_status, registration_number, kra_pin, date_incorporated, nature_of_business, registered_address')
+    .select('id, organisation_id, legal_name, trading_name, proposed_names, entity_type, status, registration_status, registration_number, kra_pin, date_incorporated, nature_of_business, registered_address, onboarding_path, onboarding_data')
     .eq('id', entityId)
     .is('deleted_at', null)
     .maybeSingle()
@@ -79,10 +81,37 @@ export default async function EntityWorkspacePage({
   // this from — only once a certificate is on file, since some of these
   // documents can't exist before then.
   const presentDocTypes = new Set((docs ?? []).map((d) => d.document_type).filter((t): t is string => !!t))
+  const isExisting = entity.onboarding_path === 'existing_entity'
   const missingDocs =
-    entity.status === 'pending_registration' || entity.status === 'active'
+    !isExisting && (entity.status === 'pending_registration' || entity.status === 'active')
       ? missingRequiredDocuments(entity.entity_type as EntityType, presentDocTypes)
       : []
+
+  // Existing-entity onboarding: its own status and the evidence still
+  // outstanding, not the new-entity formation checklist.
+  let onboarding: { status: string; statusKey: OnboardingStatus; gaps: Array<{ title: string; impact: string; behaviour: string }>; fields: Array<{ label: string; state: string }> } | null = null
+  if (isExisting) {
+    const od = (entity.onboarding_data ?? {}) as { onboardingStatus?: OnboardingStatus; wizard?: ExistingWizardData }
+    const wizard = od.wizard ?? {}
+    const pack = EXISTING_DOC_PACKS[wizard.entityType ?? 'limited_company'] ?? LIMITED_COMPANY_PACK
+    const registryTypes = new Set((docs ?? []).filter((d) => !(d.tags as unknown[] | null)?.length).map((d) => d.document_type).filter((t): t is string => !!t))
+    const gaps = documentGaps(pack, { subtype: wizard.subtype, nominalCapital: Number(wizard.nominalCapital) || null }, registryTypes, wizard.unavailableDocuments)
+      .filter((g) => g.spec.missing.impact !== 'low')
+    const rank = rankFor(wizard.entityType)
+    const live = withLiveEvidence(wizard, new Set((docs ?? []).map((d) => d.id)), rank)
+    const fields = entityFieldsFor(wizard.entityType)
+      .filter((f) => f.material)
+      .map((f) => ({ label: f.label, state: fieldState(live.fieldEvidence?.[f.key], String(live[f.key] ?? ''), rank) }))
+      .filter((f) => f.state !== 'verified')
+      .map((f) => ({ label: f.label, state: FIELD_STATE_LABEL[f.state] }))
+    const statusKey = od.onboardingStatus ?? 'provisionally_onboarded'
+    onboarding = {
+      status: ONBOARDING_STATUS_LABEL[statusKey],
+      statusKey,
+      gaps: gaps.map((g) => ({ title: g.spec.title, impact: g.spec.missing.impact, behaviour: g.spec.missing.behaviour })),
+      fields,
+    }
+  }
 
   return (
     <EntityWorkspace
@@ -99,6 +128,7 @@ export default async function EntityWorkspacePage({
         address: address ? [address.line1, address.city, address.county, address.postcode].filter(Boolean).join(', ') : null,
         profileUrl,
         missingDocs,
+        onboarding,
       }}
       canManageStatus={canManageStatus}
       events={(events ?? []).map((e) => ({

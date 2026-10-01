@@ -34,6 +34,8 @@ type WorkspaceEntity = {
   // for every registered entity — it belongs on that entity's own page,
   // where there's room and it's actually actionable.
   missingDocs: string[]
+  // Existing-entity onboarding status + evidence still outstanding
+  onboarding?: { status: string; statusKey: string; gaps: Array<{ title: string; impact: string; behaviour: string }>; fields: Array<{ label: string; state: string }> } | null
 }
 
 type WorkspaceEvent = {
@@ -253,6 +255,54 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
           style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}
         >
           Still missing from the vault: {entity.missingDocs.join(', ')}.
+        </div>
+      )}
+      {entity.onboarding && (
+        <div className={`${CARD} lg:col-span-3`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-3)' }}>Onboarding status</p>
+              <p className="text-ios-headline font-semibold" style={{ color: entity.onboarding.statusKey === 'verified_onboarded' ? '#15803d' : 'var(--brand-navy)' }}>
+                {entity.onboarding.status}
+              </p>
+            </div>
+            {(entity.onboarding.gaps.length > 0 || entity.onboarding.fields.length > 0) && (
+              <button type="button" onClick={() => onNavigate('compliance')} className="text-ios-footnote font-semibold" style={{ color: 'var(--brand-navy)' }}>
+                See follow-up tasks →
+              </button>
+            )}
+          </div>
+          {entity.onboarding.gaps.length === 0 && entity.onboarding.fields.length === 0 ? (
+            <p className="text-ios-footnote mt-2" style={{ color: 'var(--system-label-2)' }}>Your core details are supported by your registry documents.</p>
+          ) : (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {entity.onboarding.gaps.length > 0 && (
+                <div>
+                  <p className="text-ios-caption1 font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--system-label-3)' }}>Evidence outstanding</p>
+                  <ul className="space-y-1.5">
+                    {entity.onboarding.gaps.map((g) => (
+                      <li key={g.title} className="text-ios-footnote" style={{ color: 'var(--system-label)' }}>
+                        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: g.impact === 'high' || g.impact === 'critical' ? '#dc2626' : '#d97706' }} />
+                        {g.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {entity.onboarding.fields.length > 0 && (
+                <div>
+                  <p className="text-ios-caption1 font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--system-label-3)' }}>Not yet registry-verified</p>
+                  <ul className="space-y-1.5">
+                    {entity.onboarding.fields.map((f) => (
+                      <li key={f.label} className="text-ios-footnote" style={{ color: 'var(--system-label)' }}>
+                        {f.label} <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>— {f.state}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       {/* Left mosaic (2 cols on desktop) */}
