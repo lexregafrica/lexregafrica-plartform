@@ -2580,7 +2580,7 @@ const REP_ID_TYPES: Array<{ value: CorporateParticipant['repIdType']; label: str
 // corporate shareholder/director's sub-form — the company-shaped
 // counterpart of the individual full_name/id_number merge in
 // StepDirectors/StepShareholders' handleExtracted.
-function mergeCorporateExtraction(
+export function mergeCorporateExtraction(
   prev: CorporateParticipant,
   f: {
     business_name?: string

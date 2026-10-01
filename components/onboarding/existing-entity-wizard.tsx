@@ -36,7 +36,7 @@ import { AddressFields } from '@/components/onboarding/address-fields'
 // made in one path reach the other.
 import {
   CorporateFields, InlineOcrUpload, PhotoUpload, NoAutofillInput, emptyCorporate,
-  findPersonDocument, mergePersonExtraction, corporateIdentifier,
+  findPersonDocument, mergePersonExtraction, mergeCorporateExtraction, corporateIdentifier,
   type CorporateParticipant, type DocumentRow as SharedDocumentRow,
 } from '@/components/onboarding/new-entity-wizard'
 
@@ -1156,6 +1156,11 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
     if (!fields || sessionToken !== formTokenRef.current) return
     setForm((prev) => {
       if (!prev) return prev
+      // Company documents (certificate, KRA PIN certificate, CR12) and the
+      // representative's ID fill the corporate sub-form, same as new-entity
+      if (prev.isCorporate) {
+        return { ...prev, corporate: mergeCorporateExtraction(prev.corporate, fields as Parameters<typeof mergeCorporateExtraction>[1], !!wasReplace) }
+      }
       return mergePersonExtraction(prev, fields as Parameters<typeof mergePersonExtraction>[1], !!wasReplace)
     })
   }
@@ -1503,6 +1508,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
               context={form.kind === 'shareholder' ? 'shareholder' : 'director'}
               onChange={(p) => set({ corporate: { ...form.corporate, ...p } })}
               orgId={orgId} entityId={entityId} api={api} setError={setError}
+              onExtracted={handleExtracted}
               sessionToken={formToken ?? undefined}
               personId={form.id}
               documents={documents}
