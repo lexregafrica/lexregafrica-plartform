@@ -134,7 +134,7 @@ type BeneficialOwnerRow = {
 }
 
 type LoadState = 'loading' | 'wizard' | 'activated' | 'error'
-type FileStatus = { name: string; documentType: string; state: 'uploading' | 'extracting' | 'done' | 'ocr_failed' | 'upload_failed'; summary?: string }
+type FileStatus = { name: string; documentType: string; state: 'uploading' | 'extracting' | 'done' | 'ocr_failed' | 'upload_failed'; summary?: string; documentId?: string }
 
 type ApiFn = (p: Record<string, unknown>) => Promise<{ ok: boolean; id?: string; fields?: Record<string, unknown>; personId?: string; [k: string]: unknown }>
 
@@ -309,7 +309,7 @@ export function ExistingEntityWizard() {
         continue
       }
 
-      setStatus(tempId, { name: file.name, documentType: spec.documentType, state: 'extracting' })
+      setStatus(tempId, { name: file.name, documentType: spec.documentType, state: 'extracting', documentId })
       try {
         const result = await api({ action: 'ocr_extract', documentId, section: 'registry' }) as Awaited<ReturnType<ApiFn>> & { reason?: string; conflicts?: string[]; documentType?: string; looksLike?: string; identity?: { matched: string[]; kind: string; name: string | null }; otherEntity?: { documentNumber: string; expectedNumber: string } }
         if (result.ok && result.fields) {
@@ -320,7 +320,7 @@ export function ExistingEntityWizard() {
           if (result.identity) {
             const kindLabel = result.identity.kind === 'kra_pin_certificate' ? 'KRA PIN certificate' : result.identity.kind === 'passport' ? 'passport' : result.identity.kind === 'national_id' ? 'ID' : 'document'
             setStatus(tempId, {
-              name: file.name, documentType: spec.documentType,
+              name: file.name, documentType: spec.documentType, documentId,
               state: result.identity.matched.length ? 'done' : 'ocr_failed',
               summary: result.identity.matched.length
                 ? `${result.identity.name}’s ${kindLabel} — filled into ${result.identity.matched.join(', ')}.`
@@ -643,7 +643,11 @@ export function ExistingEntityWizard() {
             {packFor(pack, packCtx).map((spec) => {
               const files = registryDocs.filter((d) => d.document_type === spec.documentType)
               const unavailable = wizard.unavailableDocuments?.includes(spec.documentType) ?? false
-              const live = Object.entries(statuses).filter(([, s]) => s.documentType === spec.documentType)
+              // An ID that wasn't matched at upload may have been matched
+              // since (the CR12 came later) — its old "no match" note goes
+              const matchedLater = (st: FileStatus) => st.state === 'ocr_failed' && !!st.documentId &&
+                documents.some((d) => d.id === st.documentId && !!d.tags?.length)
+              const live = Object.entries(statuses).filter(([, s]) => s.documentType === spec.documentType && !matchedLater(s))
               return (
                 <div key={spec.documentType} className="ios-surface rounded-2xl p-4 space-y-3">
                   <div>
