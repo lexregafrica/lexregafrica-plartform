@@ -13,7 +13,7 @@ export type ExtractedPerson = {
   kra_pin: string | null
   // 'subscriber' = founding subscriber on a CR2 memorandum; 'secretary' =
   // company secretary on a CR12 / secretary form
-  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'manager' | 'unknown'
+  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'manager' | 'member' | 'unknown'
   shares_held: number | null
   // Every other particular the document prints for this person — CR12s,
   // CR8s, BOF1s and LLP/partnership records carry these, and the person
@@ -58,6 +58,8 @@ export type ExtractedFields = {
     | 'cr13' // Official Search — business name (status report)
     | 'bn2' // application to register a business name
     | 'llp1' // LLP registration application
+    | 'cr3' // memorandum — company limited by guarantee
+    | 'cr29' // company annual return
     | 'llp9' // LLP statement of change
     | 'other'
   full_name: string | null
@@ -109,7 +111,7 @@ const RESPONSE_SCHEMA = {
       enum: [
         'national_id', 'passport', 'kra_pin_certificate', 'proof_of_address',
         'business_registration', 'certificate_of_incorporation', 'cr12',
-        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'cr13', 'bn2', 'llp1', 'llp9', 'other',
+        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'cr13', 'bn2', 'llp1', 'llp9', 'cr3', 'cr29', 'other',
       ],
     },
     full_name: { type: 'STRING', nullable: true },
@@ -158,7 +160,7 @@ const RESPONSE_SCHEMA = {
           full_name: { type: 'STRING' },
           id_number: { type: 'STRING', nullable: true },
           kra_pin: { type: 'STRING', nullable: true },
-          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'unknown'] },
+          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'member', 'unknown'] },
           shares_held: { type: 'NUMBER', nullable: true },
           share_class: { type: 'STRING', nullable: true },
           nationality: { type: 'STRING', nullable: true },
@@ -192,7 +194,8 @@ share capital), CR8 (notification of director/secretary residential address),
 BOF1 (beneficial ownership register filing), Statement of Nominal Capital, a
 business-name Certificate of Registration (business_registration), a business-name
 Official Search (cr13), a BN2 business-name application (bn2), an LLP registration application (llp1),
-an LLP statement of change (llp9), or another business
+an LLP statement of change (llp9), a CR3 memorandum for a company limited by guarantee
+(cr3), a CR29 company annual return (cr29), or another business
 registration document.
 
 Extract exactly these fields. Use null when a field is not present in the document.
@@ -246,7 +249,11 @@ Extract exactly these fields. Use null when a field is not present in the docume
   business-name search, every proprietor listed (role proprietor), or every partner
   where the business is a partnership (role partner); for an LLP (LLP 1, LLP 9, LLP
   search or annual return), every partner (role partner) and every manager (role
-  manager) —
+  manager); for a company limited by guarantee's CR3 every subscriber (role
+  subscriber), and on its CR29 annual return or member register every member (role
+  member) with their guarantee amount in shares_held (if the document states one
+  amount for every member, put it on each member); someone who is both a director and
+  a member gets role both —
   full name, ID or passport number, KRA PIN, role (director / shareholder / both),
   number of shares held and share class, and EVERY other particular printed for that
   person: nationality, date_of_birth (YYYY-MM-DD), occupation, phone, email, their
@@ -277,18 +284,27 @@ const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL ?? 'qwen/qwen3.8-27b'
 // failures were being swallowed on the client, so a missed read silently
 // left autofilled or empty fields in place (reported repeatedly by
 // Charles, 2026-09-29). OCR_PRIMARY=groq flips the order for speed.
-export async function extractFromDocument(bytes: Uint8Array, mimeType: string): Promise<ExtractionResult> {
+// `expectPeople`: the document is one that lists people (CR12, annual
+// return, member register…). A provider occasionally returns the document
+// without its people list; rather than leave the people screens empty,
+// the other provider gets a go and the fuller reading wins.
+export async function extractFromDocument(bytes: Uint8Array, mimeType: string, opts: { expectPeople?: boolean } = {}): Promise<ExtractionResult> {
   const providers = process.env.OCR_PRIMARY === 'groq' ? [extractWithGroq, extractWithGemini] : [extractWithGemini, extractWithGroq]
   let last: ExtractionResult = { ok: false, reason: 'no_api_key' }
+  let firstOk: ExtractionResult | null = null
   for (const provider of providers) {
     const result = await provider(bytes, mimeType).catch((e): ExtractionResult => {
       console.error('ocr provider error', e)
       return { ok: false, reason: 'model_error' }
     })
-    if (result.ok) return result
+    if (result.ok) {
+      if (!opts.expectPeople || (result.fields.people?.length ?? 0) > 0) return result
+      firstOk ??= result
+      continue
+    }
     if (result.reason !== 'no_api_key' || last.reason === 'no_api_key') last = result
   }
-  return last
+  return firstOk ?? last
 }
 
 async function extractWithGemini(bytes: Uint8Array, mimeType: string): Promise<ExtractionResult> {
@@ -397,6 +413,25 @@ async function extractWithGroq(bytes: Uint8Array, mimeType: string): Promise<Ext
   return parseFields(data?.choices?.[0]?.message?.content)
 }
 
+// Text models sometimes return free-text roles ("director, member",
+// "Director/Shareholder"); map them onto the schema's roles.
+const ROLES = ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'member', 'unknown'] as const
+function normaliseRole(role: unknown): ExtractedPerson['role'] {
+  const r = String(role ?? '').toLowerCase()
+  if ((ROLES as readonly string[]).includes(r)) return r as ExtractedPerson['role']
+  const has = (w: string) => r.includes(w)
+  if (has('director') && (has('shareholder') || has('member'))) return 'both'
+  if (has('secretary')) return 'secretary'
+  if (has('manager')) return 'manager'
+  if (has('partner')) return 'partner'
+  if (has('proprietor') || has('owner')) return 'proprietor'
+  if (has('subscriber')) return 'subscriber'
+  if (has('director')) return 'director'
+  if (has('shareholder')) return 'shareholder'
+  if (has('member') || has('guarantor')) return 'member'
+  return 'unknown'
+}
+
 function parseFields(text: string | undefined): ExtractionResult {
   if (!text) return { ok: false, reason: 'model_error' }
   try {
@@ -411,6 +446,7 @@ function parseFields(text: string | undefined): ExtractionResult {
       people: Array.isArray(raw.people)
         ? raw.people.map((pp) => ({
             ...pp,
+            role: normaliseRole(pp.role),
             kra_pin: str(pp.kra_pin)?.replace(/\s+/g, '').toUpperCase() ?? null,
             id_number: str(pp.id_number),
             email: str(pp.email),

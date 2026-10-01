@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import {
-  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, EXISTING_REVIEW_STEP,
+  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, CLG_ARTICLES_FIELDS, EXISTING_REVIEW_STEP,
   LIMITED_COMPANY_PACK, rankFor,
   type EntityFieldKey, type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
@@ -270,12 +270,26 @@ export async function POST(request: Request) {
         if (governance[key]?.source === 'user') continue
         governance[key] = { summary: rule.summary ?? '', clause: rule.clause, silent: rule.silent, source: 'document', documentId: doc.id }
       }
-      await supabase.from('onboarding_progress').update({ data: { ...pd, wizard: { ...(pd.wizard ?? {}), governance } } as Json }).eq('id', progress.id)
+      const nextWizard: ExistingWizardData = { ...(pd.wizard ?? {}), governance }
+      // The objects clause is the CLG's stated purpose — evidence for the
+      // "Objects / purpose" field (filled only if still empty)
+      const objects = g.rules.objects?.summary
+      if (objects && doc.document_type === 'articles') {
+        const ev = { ...(nextWizard.fieldEvidence ?? {}) }
+        ev.natureOfBusiness = addCandidate(ev.natureOfBusiness, objects, { documentId: doc.id, documentType: 'articles', documentName: doc.name, documentDate: g.datedAs })
+        nextWizard.fieldEvidence = ev
+        if (!nextWizard.natureOfBusiness?.trim()) {
+          nextWizard.natureOfBusiness = objects
+          ev.natureOfBusiness = { ...ev.natureOfBusiness, autoFilledFrom: doc.id }
+        }
+      }
+      await supabase.from('onboarding_progress').update({ data: { ...pd, wizard: nextWizard } as Json }).eq('id', progress.id)
       const silent = Object.values(g.rules).filter((r) => r.silent).length
       return NextResponse.json({ ok: true, ocrStatus: 'complete', governance: true, silent, partiesNamed: g.partiesNamed, fields: { business_name: `${Object.keys(g.rules).length - silent} rules read` } })
     }
 
-    const result = await extractFromDocument(bytes, doc.mime_type ?? 'application/pdf')
+    const PEOPLE_DOCS = ['cr12', 'annual_return', 'member_register', 'official_search_bn', 'official_search_llp', 'certificate_of_registration', 'llp1', 'llp9', 'llp_annual_return', 'cr8', 'cr2', 'cr3', 'bn2', 'bof1', 'llp_bo', 'change_filing', 'partner_change', 'bn_change']
+    const result = await extractFromDocument(bytes, doc.mime_type ?? 'application/pdf', { expectPeople: section === 'registry' && PEOPLE_DOCS.includes(doc.document_type ?? '') })
 
     if (!result.ok) {
       await supabase.from('documents').update({ ocr_status: 'failed', ocr_data: { reason: result.reason } as Json }).eq('id', doc.id)
@@ -550,6 +564,9 @@ export async function POST(request: Request) {
         structuredAddress?: AddressData
         isCorporate?: boolean; corporate?: Record<string, unknown>
         isForeign?: boolean; foreignAddress?: string
+        // CLG member / guarantor (no shares)
+        isMember?: boolean; guaranteeAmount?: string; membershipClass?: string
+        admissionDate?: string; cessationDate?: string; cessationReason?: string
       }
     }
     if (!shareholder?.legalName?.trim()) return NextResponse.json({ error: 'legalName required' }, { status: 400 })
@@ -579,7 +596,15 @@ export async function POST(request: Request) {
         nationality: shareholder.nationality ?? undefined,
         dateOfBirth: shareholder.dateOfBirth ?? undefined,
         occupation: shareholder.occupation ?? undefined,
-        shareClass: shareholder.shareClass || 'Ordinary',
+        shareClass: shareholder.isMember ? undefined : shareholder.shareClass || 'Ordinary',
+        ...(shareholder.isMember ? {
+          isMember: true,
+          guaranteeAmount: shareholder.guaranteeAmount || undefined,
+          membershipClass: shareholder.membershipClass || undefined,
+          admissionDate: shareholder.admissionDate || undefined,
+          cessationDate: shareholder.cessationDate || undefined,
+          cessationReason: shareholder.cessationDate ? shareholder.cessationReason || undefined : undefined,
+        } : {}),
       } as Json,
       corporate_details: {
         ...prevCorporate,
@@ -882,7 +907,12 @@ async function seedComplianceCalendar(
     // LLP annual return: within 30 days after each registration anniversary
     const llpReturn = new Date(annualReturn)
     llpReturn.setDate(llpReturn.getDate() + 30)
-    const recurring = ctx.entityType === 'limited_liability_partnership'
+    const recurring = ctx.entityType === 'company_limited_by_guarantee'
+      ? [
+          { ...base, title: 'File annual return (CR29) with financial statements', description: 'A company limited by guarantee files its annual return with the member count/list and copies of the financial statements sent to members, certified by a director or the secretary.', category: 'annual_return', due_date: iso(annualReturn) },
+          { ...base, title: 'File income tax return with KRA', description: 'Due by 30 June — unless the company holds a valid KRA exemption, which we track separately.', category: 'tax', due_date: iso(kraReturn) },
+        ]
+      : ctx.entityType === 'limited_liability_partnership'
       ? [
           { ...base, title: 'File the LLP annual return', description: 'Due within 30 days after the registration anniversary. It includes the solvency/insolvency declaration and the particulars of the manager, partners and authorised person. Accounting records must be kept for at least seven years.', category: 'annual_return', due_date: iso(llpReturn) },
           { ...base, title: 'File income tax return with KRA', description: 'Confirm with your tax adviser which return applies to the LLP and its partners; due by 30 June.', category: 'tax', due_date: iso(kraReturn) },
@@ -1038,9 +1068,12 @@ async function generateAndStoreProfile(
 const INSTRUMENTS: Record<string, { name: string; fields: typeof PARTNERSHIP_AGREEMENT_FIELDS }> = {
   partnership_agreement: { name: 'partnership agreement', fields: PARTNERSHIP_AGREEMENT_FIELDS },
   llp_agreement: { name: 'limited liability partnership (LLP) agreement', fields: LLP_AGREEMENT_FIELDS },
+  articles: { name: 'articles of association of a company limited by guarantee', fields: CLG_ARTICLES_FIELDS },
 }
 const instrumentFor = (entityType: EntityType) =>
-  entityType === 'partnership' ? 'partnership_agreement' : entityType === 'limited_liability_partnership' ? 'llp_agreement' : null
+  entityType === 'partnership' ? 'partnership_agreement'
+    : entityType === 'limited_liability_partnership' ? 'llp_agreement'
+      : entityType === 'company_limited_by_guarantee' ? 'articles' : null
 
 // Rules read from an agreement that has since been removed/replaced stop
 // counting; the user's own entries stay.
@@ -1234,7 +1267,7 @@ async function recomputeShareholding(supabase: SupabaseServer, entityId: string)
 // only pre-filled when it is still empty. People are matched by strong
 // identifiers; a name-only match is flagged for the user to confirm.
 // ------------------------------------------------------------------
-const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'cr13', 'bn2', 'llp1', 'llp9', 'kra_pin_certificate', 'other'])
+const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'cr13', 'bn2', 'llp1', 'llp9', 'cr3', 'cr29', 'kra_pin_certificate', 'other'])
 
 async function mergeRegistryEvidence(
   supabase: SupabaseServer,
@@ -1328,7 +1361,7 @@ async function mergeRegistryEvidence(
 
   // ---- people ----------------------------------------------------
   const people = fields.people ?? []
-  if (source.documentType === 'cr2') {
+  if (source.documentType === 'cr2' || source.documentType === 'cr3') {
     // Founding subscribers are formation history, not current shareholders
     const others = (wizard.subscribers ?? []).filter((s) => s.documentId !== source.documentId)
     wizard.subscribers = [
@@ -1338,6 +1371,20 @@ async function mergeRegistryEvidence(
   } else if (source.documentType === 'cr12' || source.documentType === 'change_filing' || source.documentType === 'cr8' || source.documentType === 'cr1') {
     const current = source.documentType === 'cr12' || source.documentType === 'change_filing'
     await mergePeople(supabase, { people, source, entityId, orgId, current })
+  } else if (ctx.entityType === 'company_limited_by_guarantee' && (source.documentType === 'annual_return' || source.documentType === 'member_register')) {
+    // The CR29 / member register lists today's members — guarantors, not
+    // shareholders; any amount read is their guarantee (CLG brief §5)
+    // Someone listed as both director and member holds two relationships
+    const split = people.flatMap((p) =>
+      p.role === 'both' ? [{ ...p, role: 'director' as const }, { ...p, role: 'member' as const }]
+        : p.role === 'director' || p.role === 'secretary' ? [p]
+          : [{ ...p, role: 'member' as const }])
+    // A single "each member guarantees KES X" line applies to every member
+    const uniform = fields.people?.find((p) => p.shares_held != null)?.shares_held ?? null
+    await mergePeople(supabase, {
+      people: split.map((p) => (p.role === 'member' && p.shares_held == null && uniform != null ? { ...p, shares_held: uniform } : p)),
+      source, entityId, orgId, current: true,
+    })
   } else if (ctx.entityType === 'limited_liability_partnership' && ['certificate_of_registration', 'official_search_llp', 'llp1', 'llp9', 'llp_annual_return'].includes(source.documentType)) {
     // LLP records list partners and managers — separate roles, even when
     // one person holds both (LLP brief §5)
@@ -1541,7 +1588,8 @@ async function mergePeople(
     // Only a current record (Official Search / change filing) creates
     // shareholders — formation documents never make someone a current
     // shareholder (brief §17).
-    if (current && (p.role === 'shareholder' || p.role === 'both')) {
+    const isMember = p.role === 'member'
+    if (current && (p.role === 'shareholder' || p.role === 'both' || isMember)) {
       const matches = (shareholders ?? []).map((sh) => ({ sh, m: matchPerson(person, { name: sh.legal_name, idNumber: sh.id_or_reg_number, kraPin: sh.kra_pin }) }))
       const hit = matches.find((x) => x.m === 'same') ?? matches.find((x) => x.m === 'possible')
       if (hit) {
@@ -1553,7 +1601,7 @@ async function mergePeople(
         await supabase.from('shareholders').update({
           id_or_reg_number: fill(hit.sh.id_or_reg_number, idNumber, locked) ?? null,
           kra_pin: fill(hit.sh.kra_pin, p.kra_pin, locked) ?? null,
-          shares_held: locked ? hit.sh.shares_held : p.shares_held ?? hit.sh.shares_held,
+          shares_held: isMember ? 0 : locked ? hit.sh.shares_held : p.shares_held ?? hit.sh.shares_held,
           phone: fill(hit.sh.phone, d.phone, locked) ?? null,
           email: fill(hit.sh.email, d.email, locked) ?? null,
           address: {
@@ -1563,6 +1611,8 @@ async function mergePeople(
             dateOfBirth: fill(ad.dateOfBirth as string | null, d.dateOfBirth, locked) ?? undefined,
             occupation: fill(ad.occupation as string | null, d.occupation, locked) ?? undefined,
             shareClass: fill(ad.shareClass as string | null, d.shareClass, locked) ?? undefined,
+            isMember: isMember || ad.isMember || undefined,
+            guaranteeAmount: isMember ? fill(ad.guaranteeAmount as string | null, p.shares_held != null ? String(p.shares_held) : null, locked) ?? undefined : ad.guaranteeAmount,
           } as Json,
           corporate_details: {
             ...cd,
@@ -1577,10 +1627,12 @@ async function mergePeople(
         const id = crypto.randomUUID()
         const row = {
           id, entity_id: entityId, organisation_id: orgId, legal_name: p.full_name, id_or_reg_number: idNumber, kra_pin: p.kra_pin,
-          shares_held: p.shares_held ?? 0, phone: d.phone, email: d.email,
+          shares_held: isMember ? 0 : p.shares_held ?? 0, phone: d.phone, email: d.email,
           address: {
             structuredAddress: d.structuredAddress ?? undefined, nationality: d.nationality ?? undefined, dateOfBirth: d.dateOfBirth ?? undefined,
-            occupation: d.occupation ?? undefined, shareClass: d.shareClass ?? undefined,
+            occupation: d.occupation ?? undefined, shareClass: isMember ? undefined : d.shareClass ?? undefined,
+            isMember: isMember || undefined,
+            guaranteeAmount: isMember && p.shares_held != null ? String(p.shares_held) : undefined,
           } as Json,
           corporate_details: {
             source: 'ocr', evidence: [evidenceRef], isCorporate: d.isCorporate || undefined, corporate,

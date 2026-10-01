@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   EXISTING_TOTAL_STEPS, EXISTING_REVIEW_STEP, EXISTING_SUPPORTED_TYPES, EXISTING_DOC_PACKS, EXISTING_BASELINES,
-  COMPANY_SUBTYPES, PARTNERSHIP_SUBTYPES, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, LIMITED_COMPANY_PACK, rankFor, entityFieldsFor, stepsFor, stepLabel, entityNounFor,
+  COMPANY_SUBTYPES, PARTNERSHIP_SUBTYPES, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, CLG_ARTICLES_FIELDS, LIMITED_COMPANY_PACK, rankFor, entityFieldsFor, stepsFor, stepLabel, entityNounFor,
   type GovernanceRuleRecord,
   type EntityFieldSpec,
   type EntityFieldKey, type ExistingWizardData,
@@ -107,6 +107,8 @@ type ShareholderRow = {
   address?: {
     isForeign?: boolean; foreignAddress?: string; structuredAddress?: AddressData
     nationality?: string; dateOfBirth?: string; occupation?: string; shareClass?: string
+    isMember?: boolean; guaranteeAmount?: string; membershipClass?: string; admissionDate?: string
+    cessationDate?: string; cessationReason?: string
   } | null
   corporate_details?: { isCorporate?: boolean; corporate?: Partial<CorporateParticipant>; nominee?: boolean; evidence?: Evidence[]; nameMatchOnly?: boolean; userReviewed?: boolean; prefilled?: string[] } | null
 }
@@ -272,8 +274,9 @@ export function ExistingEntityWizard() {
   const isSoleProp = entityType === 'sole_proprietorship'
   const isPartnership = entityType === 'partnership'
   const isLLP = entityType === 'limited_liability_partnership'
-  const agreementFields = isLLP ? LLP_AGREEMENT_FIELDS : PARTNERSHIP_AGREEMENT_FIELDS
-  const agreementType = isLLP ? 'llp_agreement' : 'partnership_agreement'
+  const isCLG = entityType === 'company_limited_by_guarantee'
+  const agreementFields = isCLG ? CLG_ARTICLES_FIELDS : isLLP ? LLP_AGREEMENT_FIELDS : PARTNERSHIP_AGREEMENT_FIELDS
+  const agreementType = isCLG ? 'articles' : isLLP ? 'llp_agreement' : 'partnership_agreement'
 
   // ---- registry uploads -------------------------------------------
   const handleFiles = async (spec: DocSpec, files: FileList | null, replacesFilePath?: string) => {
@@ -751,18 +754,21 @@ export function ExistingEntityWizard() {
             setError={setError}
             wizard={wizard}
             pack={pack}
-            needsSecretary={!isSoleProp && (wizard.subtype === 'public' || (packCtx.nominalCapital ?? 0) >= SECRETARY_CAPITAL_THRESHOLD_KES)}
+            needsSecretary={!isSoleProp && !isCLG && (wizard.subtype === 'public' || (packCtx.nominalCapital ?? 0) >= SECRETARY_CAPITAL_THRESHOLD_KES)}
             isSoleProp={isSoleProp}
             isPartnership={isPartnership}
             isLLP={isLLP}
+            isCLG={isCLG}
           />
         )}
 
         {/* ---------------- Step 5: beneficial ownership ---------------- */}
-        {((step === 5 && isPartnership) || (step === 8 && isLLP)) && (
+        {((step === 5 && isPartnership) || (step === 8 && (isLLP || isCLG))) && (
           <AgreementStep wizard={wizard} patch={patch} documents={documents} directors={directors}
-            fields={agreementFields} documentType={agreementType} instrument={isLLP ? 'LLP agreement' : 'partnership agreement'}
-            statuteNote={isLLP
+            fields={agreementFields} documentType={agreementType} instrument={isCLG ? 'articles of association' : isLLP ? 'LLP agreement' : 'partnership agreement'}
+            statuteNote={isCLG
+              ? 'Where the Articles are silent, the Companies Act or legal review may apply. We flag these rather than invent a constitutional rule.'
+              : isLLP
               ? 'Where the agreement is silent, the Limited Liability Partnerships Act’s default rules may apply. We flag these for legal review rather than assume them.'
               : 'Where the agreement is silent, the Partnerships Act’s default rules may apply (for example, equal sharing of profits). We flag these for legal review rather than assume them.'} />
         )}
@@ -780,6 +786,7 @@ export function ExistingEntityWizard() {
             entityId={entityId}
             setError={setError}
             isLLP={isLLP}
+            isCLG={isCLG}
           />
         )}
 
@@ -826,6 +833,7 @@ export function ExistingEntityWizard() {
             isSoleProp={isSoleProp}
             isPartnership={isPartnership}
             isLLP={isLLP}
+            isCLG={isCLG}
             agreementFields={agreementFields}
             wizard={wizard}
             patch={patch}
@@ -1032,7 +1040,7 @@ function EntityDetailsStep({ fields, noun, wizard, patch, pack, documents, state
 
       {(wizard.subscribers?.length ?? 0) > 0 && (
         <div className="ios-surface rounded-2xl p-4 space-y-1">
-          <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>Founding subscribers (CR2)</p>
+          <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>Founding subscribers ({wizard.entityType === 'company_limited_by_guarantee' ? 'CR3' : 'CR2'})</p>
           {wizard.subscribers!.map((s, i) => (
             <p key={i} className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
               {s.name}{s.shares ? ` — ${s.shares.toLocaleString()} shares` : ''}
@@ -1053,7 +1061,7 @@ function EntityDetailsStep({ fields, noun, wizard, patch, pack, documents, state
 // new-entity flow. Identity documents are optional here: the person is
 // recorded provisionally and flagged "identity unverified".
 // ------------------------------------------------------------------
-type PersonKind = 'director' | 'secretary' | 'shareholder' | 'proprietor' | 'partner' | 'manager' | 'authorised_person'
+type PersonKind = 'director' | 'secretary' | 'shareholder' | 'proprietor' | 'partner' | 'manager' | 'authorised_person' | 'member'
 
 type PersonForm = {
   id?: string
@@ -1075,6 +1083,8 @@ type PersonForm = {
   hasLeft: boolean
   cessationDate: string
   cessationReason: string
+  guaranteeAmount: string
+  membershipClass: string
   shares: string
   shareClass: string
   isNominee: boolean
@@ -1088,7 +1098,7 @@ type PersonForm = {
 const emptyPersonForm = (kind: PersonKind): PersonForm => ({
   kind, fullName: '', idNumber: '', kraPin: '', dateOfBirth: '', nationality: 'Kenyan', phone: '', email: '',
   occupation: '', appointmentDate: '', profitShare: '', contributionType: '', contributionValue: '', isManagingPartner: false,
-  signingAuthority: '', hasLeft: false, cessationDate: '', cessationReason: '', shares: '', shareClass: 'Ordinary', isNominee: false,
+  signingAuthority: '', hasLeft: false, cessationDate: '', cessationReason: '', guaranteeAmount: '', membershipClass: '', shares: '', shareClass: 'Ordinary', isNominee: false,
   isCorporate: false, corporate: { ...emptyCorporate }, isForeign: false, foreignAddress: '', address: {},
 })
 
@@ -1104,7 +1114,7 @@ function validatePerson(f: PersonForm): string | null {
   if (f.email.trim() && !EMAIL_REGEX.test(f.email.trim())) return 'Enter a valid email address.'
   if (f.kind === 'shareholder' && !(parseInt(f.shares, 10) > 0)) return 'Enter the number of shares held.'
   if (f.kind === 'manager' && f.isCorporate) return 'An LLP manager must be a natural person.'
-  if ((f.kind === 'partner' || f.kind === 'manager') && f.hasLeft && !f.cessationDate) return 'Enter the date they left.'
+  if ((f.kind === 'partner' || f.kind === 'manager' || f.kind === 'member') && f.hasLeft && !f.cessationDate) return 'Enter the date they left.'
   if (f.kind === 'partner') {
     if (f.profitShare.trim() && !(Number(f.profitShare) >= 0 && Number(f.profitShare) <= 100)) return 'Profit share must be a percentage between 0 and 100.'
     if (f.hasLeft && !f.cessationDate) return 'Enter the date the partner left.'
@@ -1121,10 +1131,10 @@ function validatePerson(f: PersonForm): string | null {
   return null
 }
 
-const idDocType = (kind: PersonKind) => (kind === 'shareholder' ? 'shareholder_id_copy' : 'director_id_copy')
-const kraDocType = (kind: PersonKind) => (kind === 'shareholder' ? 'shareholder_kra_pin_copy' : 'director_kra_pin_copy')
+const idDocType = (kind: PersonKind) => (kind === 'shareholder' || kind === 'member' ? 'shareholder_id_copy' : 'director_id_copy')
+const kraDocType = (kind: PersonKind) => (kind === 'shareholder' || kind === 'member' ? 'shareholder_kra_pin_copy' : 'director_kra_pin_copy')
 
-function PeopleStep({ directors, shareholders, documents, setDirectors, setShareholders, refresh, api, setError, orgId, entityId, wizard, pack, needsSecretary, isSoleProp, isPartnership, isLLP }: {
+function PeopleStep({ directors, shareholders, documents, setDirectors, setShareholders, refresh, api, setError, orgId, entityId, wizard, pack, needsSecretary, isSoleProp, isPartnership, isLLP, isCLG }: {
   directors: DirectorRow[]
   shareholders: ShareholderRow[]
   documents: DocumentRow[]
@@ -1141,6 +1151,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
   isSoleProp: boolean
   isPartnership: boolean
   isLLP: boolean
+  isCLG: boolean
 }) {
   const [form, setForm] = useState<PersonForm | null>(null)
   const [busy, setBusy] = useState(false)
@@ -1206,7 +1217,19 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
         foreignAddress: form.isForeign ? form.foreignAddress.trim() : undefined,
       }
       let id: string
-      if (form.kind === 'shareholder') {
+      if (form.kind === 'member') {
+        const result = await api({
+          action: 'upsert_shareholder',
+          shareholder: {
+            ...common, legalName: displayName, sharesHeld: 0, isMember: true,
+            guaranteeAmount: form.guaranteeAmount.trim() || undefined, membershipClass: form.membershipClass.trim() || undefined,
+            admissionDate: form.appointmentDate || undefined,
+            cessationDate: form.hasLeft ? form.cessationDate : undefined,
+            cessationReason: form.hasLeft ? form.cessationReason.trim() || undefined : undefined,
+          },
+        })
+        id = result.id!
+      } else if (form.kind === 'shareholder') {
         const result = await api({
           action: 'upsert_shareholder',
           shareholder: { ...common, legalName: displayName, sharesHeld: parseInt(form.shares, 10) || 0, shareClass: form.shareClass, isNominee: form.isNominee },
@@ -1231,7 +1254,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
         id = result.id!
       }
       if (uploadedDocIds.length > 0) {
-        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: id, personName: displayName, personRole: form.kind === 'shareholder' ? 'shareholder' : 'director' })
+        await api({ action: 'retag_documents', documentIds: uploadedDocIds, personId: id, personName: displayName, personRole: form.kind === 'shareholder' || form.kind === 'member' ? 'shareholder' : 'director' })
       }
       setForm(null)
       newToken(null)
@@ -1282,7 +1305,10 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
     }
   }
   const shareholderToForm = (s: ShareholderRow): PersonForm => ({
-    ...emptyPersonForm('shareholder'),
+    ...emptyPersonForm(s.address?.isMember ? 'member' : 'shareholder'),
+    guaranteeAmount: s.address?.guaranteeAmount ?? '', membershipClass: s.address?.membershipClass ?? '',
+    appointmentDate: s.address?.admissionDate ?? '', hasLeft: !!s.address?.cessationDate,
+    cessationDate: s.address?.cessationDate ?? '', cessationReason: s.address?.cessationReason ?? '',
     id: s.id, fullName: s.legal_name, idNumber: s.corporate_details?.isCorporate ? '' : s.id_or_reg_number ?? '', kraPin: s.kra_pin ?? '',
     dateOfBirth: s.address?.dateOfBirth ?? '', nationality: s.address?.nationality ?? 'Kenyan', phone: s.phone ?? '', email: s.email ?? '',
     occupation: s.address?.occupation ?? '', shares: String(s.shares_held || ''), shareClass: s.address?.shareClass ?? 'Ordinary',
@@ -1333,13 +1359,15 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
     return flags
   }
 
-  const kindLabel: Record<PersonKind, string> = { director: 'director', secretary: 'company secretary', shareholder: 'shareholder', proprietor: 'proprietor', partner: 'partner', manager: 'manager', authorised_person: 'authorised person' }
+  const kindLabel: Record<PersonKind, string> = { director: 'director', secretary: 'company secretary', shareholder: 'shareholder', proprietor: 'proprietor', partner: 'partner', manager: 'manager', authorised_person: 'authorised person', member: 'member / guarantor' }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>{isSoleProp ? 'The proprietor' : isPartnership ? 'Partners' : isLLP ? <>Partners &amp; managers</> : <>People &amp; roles</>}</h1>
+      <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>{isSoleProp ? 'The proprietor' : isPartnership ? 'Partners' : isLLP ? <>Partners &amp; managers</> : isCLG ? <>Directors &amp; members</> : <>People &amp; roles</>}</h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        {isLLP
+        {isCLG
+          ? 'Directors run the company; members guarantee it. A director can also be a member — we keep the two roles separate. Members who have left stay in the history.'
+          : isLLP
           ? 'Partners and managers are separate roles — the same person can hold both, and we keep them apart. The LLP needs at least one manager, who must be a natural person. Anyone who has left stays in the history.'
           : isPartnership
           ? 'Each partner’s capital, profit share and authority belong to their relationship with the partnership — we don’t assume equal shares. Partners who have left stay in the history.'
@@ -1448,7 +1476,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
         <Card key={d.id} title={d.full_name}
           lines={[
             [d.id_number && !d.residential_address?.isCorporate && `ID ${d.id_number}`, d.kra_pin && `PIN ${d.kra_pin}`].filter(Boolean).join(' · '),
-            shareholders.some((s) => s.legal_name.trim().toLowerCase() === d.full_name.trim().toLowerCase() || (!!d.id_number && s.id_or_reg_number === d.id_number)) ? 'Also a shareholder' : '',
+            shareholders.some((s) => s.legal_name.trim().toLowerCase() === d.full_name.trim().toLowerCase() || (!!d.id_number && s.id_or_reg_number === d.id_number)) ? (isCLG ? 'Also a member' : 'Also a shareholder') : '',
             evidenceText(d.residential_address?.evidence) ? `Source: ${evidenceText(d.residential_address?.evidence)}` : '',
           ]}
           flags={directorFlags(d)}
@@ -1476,8 +1504,27 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
         </p>
       )}
 
-      {shareholders.length > 0 && <p className="text-ios-caption1 font-semibold uppercase tracking-wide" style={{ color: 'var(--system-label-3)' }}>Shareholders</p>}
-      {shareholders.map((s) => (
+      {isCLG && <p className="text-ios-caption1 font-semibold uppercase tracking-wide" style={{ color: 'var(--system-label-3)' }}>Members / guarantors</p>}
+      {isCLG && shareholders.length === 0 && (
+        <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
+          No members yet — upload the Member Register or latest CR29 annual return, or add them below. A CLG has members who guarantee its debts on winding up, not shareholders.
+        </p>
+      )}
+      {isCLG && shareholders.map((s) => (
+        <Card key={s.id} title={s.legal_name}
+          lines={[
+            [s.address?.membershipClass, s.address?.guaranteeAmount && `Guarantee KES ${s.address.guaranteeAmount}`, s.address?.cessationDate && `Ceased ${fmtDate(s.address.cessationDate)}`].filter(Boolean).join(' · ') || 'Member',
+            evidenceText(s.corporate_details?.evidence) ? `Source: ${evidenceText(s.corporate_details?.evidence)}` : '',
+          ]}
+          flags={[
+            ...(s.corporate_details?.prefilled?.length && !s.corporate_details?.userReviewed ? [{ tone: 'info' as const, text: `Pre-filled from your documents: ${s.corporate_details.prefilled.filter((x) => x !== 'shares').join(', ')} — open Edit to check and complete.` }] : []),
+            ...(s.address?.cessationDate ? [{ tone: 'info' as const, text: 'Former member — their guarantee can still apply for twelve months after leaving.' }] : []),
+          ]}
+          onEdit={() => open(shareholderToForm(s))}
+          onRemove={() => remove('shareholder', s.id)} />
+      ))}
+      {!isCLG && shareholders.length > 0 && <p className="text-ios-caption1 font-semibold uppercase tracking-wide" style={{ color: 'var(--system-label-3)' }}>Shareholders</p>}
+      {!isCLG && shareholders.map((s) => (
         <Card key={s.id} title={s.legal_name}
           lines={[
             [s.shares_held > 0 && `${s.shares_held.toLocaleString()} ${s.address?.shareClass ?? 'Ordinary'} shares`, s.share_percentage != null && `${s.share_percentage}%`].filter(Boolean).join(' · '),
@@ -1521,27 +1568,27 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
           ) : (
             <>
               <InlineOcrUpload
-                section={form.kind === 'shareholder' ? 'shareholder' : 'director'}
+                section={form.kind === 'shareholder' || form.kind === 'member' ? 'shareholder' : 'director'}
                 documentType={idDocType(form.kind)}
                 label={form.id ? 'Upload a replacement ID/passport →' : 'Upload ID/passport to auto-fill →'}
                 orgId={orgId} entityId={entityId} api={api} setError={setError}
                 onExtracted={handleExtracted}
                 sessionToken={formToken ?? undefined}
                 personName={form.fullName}
-                personRole={form.kind === 'shareholder' ? 'shareholder' : 'director'}
+                personRole={form.kind === 'shareholder' || form.kind === 'member' ? 'shareholder' : 'director'}
                 personId={form.id}
                 onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, idDocType(form.kind))}
               />
               <InlineOcrUpload
-                section={form.kind === 'shareholder' ? 'shareholder' : 'director'}
+                section={form.kind === 'shareholder' || form.kind === 'member' ? 'shareholder' : 'director'}
                 documentType={kraDocType(form.kind)}
                 label={form.id ? 'Upload a replacement KRA PIN certificate →' : 'Upload KRA PIN certificate to auto-fill →'}
                 orgId={orgId} entityId={entityId} api={api} setError={setError}
                 onExtracted={handleExtracted}
                 sessionToken={formToken ?? undefined}
                 personName={form.fullName}
-                personRole={form.kind === 'shareholder' ? 'shareholder' : 'director'}
+                personRole={form.kind === 'shareholder' || form.kind === 'member' ? 'shareholder' : 'director'}
                 personId={form.id}
                 onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, kraDocType(form.kind))}
@@ -1550,7 +1597,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
                 orgId={orgId} entityId={entityId} api={api} setError={setError}
                 onUploaded={() => {}}
                 personName={form.fullName}
-                personRole={form.kind === 'shareholder' ? 'shareholder' : 'director'}
+                personRole={form.kind === 'shareholder' || form.kind === 'member' ? 'shareholder' : 'director'}
                 personId={form.id}
                 onDocumentRegistered={(id) => setUploadedDocIds((prev) => [...prev, id])}
                 initialUploaded={findPersonDocument(documents, form.id, form.fullName, 'passport_photo')}
@@ -1610,7 +1657,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
           )}
 
           {form.kind !== 'shareholder' && (
-            <Field label={form.kind === 'proprietor' ? 'Date you started the business (if known)' : form.kind === 'partner' ? 'Date admitted as partner (if known)' : form.kind === 'manager' ? 'Date appointed manager (if known)' : 'Date appointed (if known)'}>
+            <Field label={form.kind === 'proprietor' ? 'Date you started the business (if known)' : form.kind === 'partner' ? 'Date admitted as partner (if known)' : form.kind === 'manager' ? 'Date appointed manager (if known)' : form.kind === 'member' ? 'Date admitted as member (if known)' : 'Date appointed (if known)'}>
               <input type="date" className={inputCls} style={inputStyle} value={form.appointmentDate} onChange={(e) => set({ appointmentDate: e.target.value })} />
             </Field>
           )}
@@ -1654,6 +1701,32 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
                   </Field>
                   <Field label="Reason">
                     <input type="text" className={inputCls} style={inputStyle} placeholder="Retired / died / expelled…" value={form.cessationReason} onChange={(e) => set({ cessationReason: e.target.value })} />
+                  </Field>
+                </div>
+              )}
+            </>
+          )}
+          {form.kind === 'member' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Guarantee amount (KES)">
+                  <input type="text" inputMode="decimal" className={inputCls} style={inputStyle} placeholder="e.g. 100" value={form.guaranteeAmount} onChange={(e) => set({ guaranteeAmount: e.target.value })} />
+                </Field>
+                <Field label="Membership class">
+                  <input type="text" className={inputCls} style={inputStyle} placeholder="e.g. Ordinary, Founder" value={form.membershipClass} onChange={(e) => set({ membershipClass: e.target.value })} />
+                </Field>
+              </div>
+              <label className="flex items-center gap-2 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+                <input type="checkbox" checked={form.hasLeft} onChange={(e) => set({ hasLeft: e.target.checked })} />
+                This member has ceased to be a member
+              </label>
+              {form.hasLeft && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Date ceased" required>
+                    <input type="date" className={inputCls} style={inputStyle} value={form.cessationDate} onChange={(e) => set({ cessationDate: e.target.value })} />
+                  </Field>
+                  <Field label="Reason">
+                    <input type="text" className={inputCls} style={inputStyle} value={form.cessationReason} onChange={(e) => set({ cessationReason: e.target.value })} />
                   </Field>
                 </div>
               )}
@@ -1706,7 +1779,16 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
           </div>
         </div>
       ) : (
-        isLLP ? (
+        isCLG ? (
+          <div className="grid grid-cols-3 gap-2">
+            {(['director', 'secretary', 'member'] as PersonKind[]).map((k) => (
+              <button key={k} type="button" onClick={() => open(emptyPersonForm(k))}
+                className="py-2.5 rounded-xl border border-dashed text-sm font-medium" style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}>
+                + {k === 'director' ? 'Director' : k === 'secretary' ? 'Secretary' : 'Member'}
+              </button>
+            ))}
+          </div>
+        ) : isLLP ? (
           <div className="grid grid-cols-3 gap-2">
             {(['partner', 'manager', 'authorised_person'] as PersonKind[]).map((k) => (
               <button key={k} type="button" onClick={() => open(emptyPersonForm(k))}
@@ -1768,7 +1850,7 @@ const emptyBeneficialOwner = (): BeneficialOwnerForm => ({
   occupation: '', natureOfControl: '', dateBecameBo: '', sharePercentage: '',
 })
 
-function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwners, documents, pack, wizard, patch, api, orgId, entityId, setError, isLLP }: {
+function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwners, documents, pack, wizard, patch, api, orgId, entityId, setError, isLLP, isCLG }: {
   shareholders: ShareholderRow[]
   beneficialOwners: BeneficialOwnerRow[]
   setBeneficialOwners: (b: BeneficialOwnerRow[]) => void
@@ -1781,6 +1863,7 @@ function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwn
   entityId: string | null
   setError: (e: string) => void
   isLLP?: boolean
+  isCLG?: boolean
 }) {
   const [form, setForm] = useState<BeneficialOwnerForm | null>(null)
   const [busy, setBusy] = useState(false)
@@ -1865,7 +1948,9 @@ function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwn
     <div className="space-y-4">
       <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>Beneficial ownership</h1>
       <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        {isLLP
+        {isCLG
+          ? 'A company limited by guarantee has no shares, so beneficial ownership is about control: holding voting rights, the right to appoint or remove directors, the power to direct how funds or assets are used, or other significant influence. Members and directors aren’t automatically beneficial owners.'
+          : isLLP
           ? 'The natural persons who ultimately own or control the LLP, under the LLP beneficial-ownership rules. This is separate from the partner register: a partner isn’t automatically a beneficial owner, and a beneficial owner may not be a partner at all (e.g. behind a corporate partner).'
           : 'The natural persons who ultimately own or control the company — 10%+ of shares or votes, the right to appoint directors, or significant influence. This is recorded separately from the shareholder register: a shareholder isn’t automatically a beneficial owner, and a beneficial owner may not appear on it at all.'}
       </p>
@@ -2028,11 +2113,12 @@ function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwn
 // evidence still outstanding, and the status the entity will activate
 // with. Confirming never upgrades unsupported data (brief §11).
 // ------------------------------------------------------------------
-function ReviewStep({ fields, isSoleProp, isPartnership, isLLP, agreementFields, wizard, patch, stateOf, gaps, directors, shareholders, beneficialOwners, documents, taskCount }: {
+function ReviewStep({ fields, isSoleProp, isPartnership, isLLP, isCLG, agreementFields, wizard, patch, stateOf, gaps, directors, shareholders, beneficialOwners, documents, taskCount }: {
   fields: EntityFieldSpec[]
   isSoleProp: boolean
   isPartnership: boolean
   isLLP: boolean
+  isCLG: boolean
   agreementFields: Array<{ key: string; label: string }>
   wizard: ExistingWizardData
   patch: (p: Partial<ExistingWizardData>) => void
@@ -2082,7 +2168,9 @@ function ReviewStep({ fields, isSoleProp, isPartnership, isLLP, agreementFields,
         <div className="flex justify-between gap-4 py-2">
           <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>People</span>
           <span className="text-ios-footnote font-medium text-right" style={{ color: 'var(--system-label)' }}>
-            {isLLP
+            {isCLG
+              ? `${directors.filter((d) => (d.residential_address?.role ?? 'director') === 'director').length} director(s) · ${shareholders.filter((m) => !m.address?.cessationDate).length} member(s) · ${beneficialOwners.length || (wizard.noBeneficialOwners ? 'no' : 0)} beneficial owner(s) · articles: ${agreementFields.filter((f) => wizard.governance?.[f.key] && !wizard.governance[f.key].silent).length} rules recorded, ${agreementFields.filter((f) => wizard.governance?.[f.key]?.silent).length} silent`
+              : isLLP
               ? `${directors.filter((d) => d.residential_address?.role === 'partner' && !d.residential_address?.cessationDate).length} partner(s) · ${directors.filter((d) => d.residential_address?.role === 'manager' && !d.residential_address?.cessationDate).length} manager(s) · ${beneficialOwners.length || (wizard.noBeneficialOwners ? 'no' : 0)} beneficial owner(s) · agreement rules: ${agreementFields.filter((f) => wizard.governance?.[f.key] && !wizard.governance[f.key].silent).length} recorded, ${agreementFields.filter((f) => wizard.governance?.[f.key]?.silent).length} silent`
               : isPartnership
               ? `${directors.filter((d) => d.residential_address?.role === 'partner' && !d.residential_address?.cessationDate).length} current partner(s) · ${directors.filter((d) => d.residential_address?.role === 'partner' && d.residential_address?.cessationDate).length} former · agreement rules: ${PARTNERSHIP_AGREEMENT_FIELDS.filter((f) => wizard.governance?.[f.key] && !wizard.governance[f.key].silent).length} recorded, ${PARTNERSHIP_AGREEMENT_FIELDS.filter((f) => wizard.governance?.[f.key]?.silent).length} silent`
@@ -2112,6 +2200,21 @@ function ReviewStep({ fields, isSoleProp, isPartnership, isLLP, agreementFields,
               Identity unverified (no ID on file): {unverifiedPeople.map((d) => d.full_name).join(', ')}.
             </p>
           )}
+        </div>
+      )}
+
+      {isCLG && (
+        // CLG brief §1, §15 — form vs status
+        <div className="ios-surface rounded-2xl p-4 space-y-1.5">
+          <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>Good to know</p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            A company limited by guarantee has no share capital: its members guarantee a fixed amount towards its debts if
+            it’s wound up — including for twelve months after a member leaves.
+          </p>
+          <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
+            Being a CLG doesn’t by itself make the company charitable, a PBO or tax-exempt, and it doesn’t remove company
+            accounting, audit and annual-return duties. Those statuses are tracked separately.
+          </p>
         </div>
       )}
 
@@ -2183,6 +2286,8 @@ function ReviewStep({ fields, isSoleProp, isPartnership, isLLP, agreementFields,
           ? 'Activating creates your partnership workspace — profile, partners and role history, agreement rules, authority and document vault — seeds your compliance calendar, and files a signed verification report in the vault.'
           : isSoleProp
           ? 'Activating creates your business workspace — business profile, proprietor link, licences and document vault — seeds your compliance calendar, and files a signed verification report in the vault.'
+          : isCLG
+          ? 'Activating creates your company workspace — profile, directors, member/guarantor register, Articles rules, beneficial ownership and document vault — seeds your compliance calendar, and files a signed verification report in the vault.'
           : 'Activating creates your workspace — profile, people and roles, share register, beneficial ownership and document vault — seeds your compliance calendar, and files a signed verification report in the vault.'}
       </p>
     </div>
@@ -2206,6 +2311,8 @@ function AgreementStep({ wizard, patch, documents, directors, fields, documentTy
   statuteNote: string
 }) {
   const agreement = documents.find((d) => d.document_type === documentType && !d.tags?.length)
+  // "the Articles" / "the agreement" in the copy below
+  const short = documentType === 'articles' ? 'the Articles' : 'the agreement'
   const governance = wizard.governance ?? {}
   const setRule = (key: string, p: Partial<GovernanceRuleRecord>) => {
     const prev = governance[key] ?? { summary: '', silent: false, source: 'user' as const }
@@ -2221,8 +2328,8 @@ function AgreementStep({ wizard, patch, documents, directors, fields, documentTy
       {agreement ? (
         <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
           We read <span className="font-medium">{agreement.name}</span>{agreement.document_date ? ` (dated ${fmtDate(agreement.document_date)})` : ''} into
-          the rules below — {read} matter{read === 1 ? '' : 's'} found{silent ? `, ${silent} the agreement doesn’t cover` : ''}. The signed
-          agreement stays the controlling document; correct any summary that’s off.
+          the rules below — {read} matter{read === 1 ? '' : 's'} found{silent ? `, ${silent} ${short} don’t cover` : ''}. The signed
+          {documentType === 'articles' ? 'Articles stay' : 'agreement stays'} the controlling document; correct any summary that’s off.
         </p>
       ) : (
         <div className="text-ios-footnote rounded-xl p-3 space-y-1" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
@@ -2244,19 +2351,19 @@ function AgreementStep({ wizard, patch, documents, directors, fields, documentTy
               {r && (
                 <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold whitespace-nowrap"
                   style={r.silent ? { background: 'rgba(217,119,6,0.12)', color: '#92400e' } : r.source === 'document' ? { background: 'rgba(22,163,74,0.12)', color: '#15803d' } : { background: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}>
-                  {r.silent ? 'Agreement silent — legal review' : r.source === 'document' ? `From agreement${r.clause ? `, ${/^\d/.test(r.clause) ? `clause ${r.clause}` : r.clause}` : ''}` : 'Entered by you'}
+                  {r.silent ? `${documentType === 'articles' ? 'Articles' : 'Agreement'} silent — legal review` : r.source === 'document' ? `From ${documentType === 'articles' ? 'Articles' : 'agreement'}${r.clause ? `, ${/^\d/.test(r.clause) ? `clause ${r.clause}` : r.clause}` : ''}` : 'Entered by you'}
                 </span>
               )}
             </div>
             <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{f.hint}</p>
             {!r?.silent && (
               <textarea rows={2} className={inputCls} style={inputStyle} value={r?.summary ?? ''}
-                placeholder={f.key === 'partners' && partnerNames.length ? partnerNames.join(', ') : 'What the agreement provides'}
+                placeholder={f.key === 'partners' && partnerNames.length ? partnerNames.join(', ') : `What ${short} provide${documentType === 'articles' ? '' : 's'}`}
                 onChange={(e) => setRule(f.key, { summary: e.target.value, silent: false })} />
             )}
             <label className="flex items-center gap-2 text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
               <input type="checkbox" checked={!!r?.silent} onChange={(e) => setRule(f.key, { silent: e.target.checked, summary: e.target.checked ? '' : r?.summary ?? '' })} />
-              The agreement doesn’t cover this
+              {documentType === 'articles' ? 'The Articles don’t cover this' : 'The agreement doesn’t cover this'}
             </label>
           </div>
         )

@@ -71,6 +71,7 @@ type WorkspaceShareholder = {
   idNumber?: string | null; kraPin?: string | null; email?: string | null; phone?: string | null
   isCorporate?: boolean; isNominee?: boolean; shareClass?: string | null; nationality?: string | null
   dateOfBirth?: string | null; address?: string | null; sources?: SourceRef[]
+  isMember?: boolean; guaranteeAmount?: string | null; membershipClass?: string | null; cessationDate?: string | null
 }
 type WorkspaceBeneficialOwner = {
   id: string; name: string; idNumber: string | null; kraPin: string | null; email: string | null; phone: string | null
@@ -547,6 +548,7 @@ function StructureTab({ entity, directors, shareholders, beneficialOwners }: {
   const t = entity.typeLabel
   const partnerType = t === 'Partnership' || t === 'LLP'
   const soleProp = t === 'Sole Proprietorship'
+  const clg = shareholders.some((s) => s.isMember) || t === 'NGO / Non-Profit'
 
   // Who holds the entity: shareholders for a company, partners (with
   // their profit share) for a partnership/LLP, the proprietor otherwise.
@@ -556,6 +558,12 @@ function StructureTab({ entity, directors, shareholders, beneficialOwners }: {
         stake: d.profitShare ? `${d.profitShare}%` : null,
         detail: [d.isManagingPartner && 'Managing partner', d.contribution && `Capital ${d.contribution}`].filter(Boolean).join(' · ') || null,
       }))
+    : clg
+      ? shareholders.filter((s) => !s.cessationDate).map((s) => ({
+          id: s.id, name: s.name, isCorporate: !!s.isCorporate,
+          stake: s.guaranteeAmount ? `KES ${s.guaranteeAmount}` : null,
+          detail: [s.membershipClass, s.guaranteeAmount ? 'Guarantor' : 'Member'].filter(Boolean).join(' · '),
+        }))
     : soleProp
       ? current.filter((d) => d.role === 'proprietor').map((d) => ({ id: d.id, name: d.name, isCorporate: false, stake: '100%', detail: 'Owns and controls the business' }))
       : shareholders.map((s) => ({
@@ -567,7 +575,7 @@ function StructureTab({ entity, directors, shareholders, beneficialOwners }: {
     .filter((d) => !(partnerType && d.role === 'partner') && !(soleProp && d.role === 'proprietor'))
     .map((d) => ({ id: d.id, name: d.name, role: ROLE_LABEL[d.role ?? 'director'] ?? 'Officer' }))
   const owners = beneficialOwners.map((b) => ({ id: b.id, name: b.name, control: b.natureOfControl }))
-  const holderNoun = partnerType ? 'Partners' : soleProp ? 'Proprietor' : 'Shareholders'
+  const holderNoun = partnerType ? 'Partners' : soleProp ? 'Proprietor' : clg ? 'Members (guarantee)' : 'Shareholders'
 
   if (holders.length === 0 && officers.length === 0) {
     return (
@@ -583,7 +591,7 @@ function StructureTab({ entity, directors, shareholders, beneficialOwners }: {
     <div className="space-y-4">
       <OwnershipStructure entityName={entity.name} typeLabel={entity.typeLabel} holders={holders} holderNoun={holderNoun} officers={officers} owners={owners} />
 
-      {!partnerType && !soleProp && shareholders.length > 0 && (
+      {!partnerType && !soleProp && !clg && shareholders.length > 0 && (
         <div className={CARD}>
           <p className="text-ios-subhead font-semibold mb-2" style={{ color: 'var(--system-label)' }}>Share register</p>
           <div className="overflow-x-auto">
@@ -684,12 +692,18 @@ function buildPeople(directors: WorkspacePerson[], shareholders: WorkspaceShareh
   }
   for (const s of shareholders) {
     const p = get(s.name, s.idNumber, !!s.isCorporate)
-    p.roles.push(s.isNominee ? 'Shareholder (nominee)' : 'Shareholder')
-    p.former = false
+    p.roles.push(s.isMember ? (s.cessationDate ? 'Former member' : 'Member / guarantor') : s.isNominee ? 'Shareholder (nominee)' : 'Shareholder')
+    if (!s.cessationDate) p.former = false
     p.ids.push(s.id)
     add(p, s.isCorporate ? 'Registration no.' : 'ID / passport', s.idNumber)
     add(p, 'KRA PIN', s.kraPin)
-    add(p, 'Shares', `${s.shares.toLocaleString()} ${s.shareClass ?? 'Ordinary'}${s.percentage != null ? ` (${s.percentage}%)` : ''}`)
+    if (s.isMember) {
+      add(p, 'Guarantee', s.guaranteeAmount ? `KES ${s.guaranteeAmount}` : null)
+      add(p, 'Membership class', s.membershipClass)
+      add(p, 'Ceased', s.cessationDate ? formatDate(s.cessationDate) : null)
+    } else {
+      add(p, 'Shares', `${s.shares.toLocaleString()} ${s.shareClass ?? 'Ordinary'}${s.percentage != null ? ` (${s.percentage}%)` : ''}`)
+    }
     add(p, 'Nationality', s.nationality)
     add(p, 'Date of birth', s.dateOfBirth ? formatDate(s.dateOfBirth) : null)
     add(p, 'Phone', s.phone)

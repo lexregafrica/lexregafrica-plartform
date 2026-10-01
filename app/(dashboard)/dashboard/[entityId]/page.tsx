@@ -158,13 +158,14 @@ export default async function EntityWorkspacePage({
         }
       })}
       shareholders={(shareholders ?? []).map((s) => {
-        const ad = (s.address ?? {}) as { structuredAddress?: AddressData; foreignAddress?: string; nationality?: string; shareClass?: string; dateOfBirth?: string }
+        const ad = (s.address ?? {}) as { structuredAddress?: AddressData; foreignAddress?: string; nationality?: string; shareClass?: string; dateOfBirth?: string; isMember?: boolean; guaranteeAmount?: string; membershipClass?: string; cessationDate?: string }
         const cd = (s.corporate_details ?? {}) as { isCorporate?: boolean; nominee?: boolean; evidence?: Array<{ documentType?: string; documentDate?: string | null }> }
         return {
           id: s.id, name: s.legal_name, shares: s.shares_held, percentage: s.share_percentage,
           idNumber: s.id_or_reg_number, kraPin: s.kra_pin, email: s.email, phone: s.phone,
           isCorporate: !!cd.isCorporate, isNominee: !!cd.nominee, shareClass: ad.shareClass ?? null, nationality: ad.nationality ?? null,
           dateOfBirth: ad.dateOfBirth ?? null,
+          isMember: !!ad.isMember, guaranteeAmount: ad.guaranteeAmount ?? null, membershipClass: ad.membershipClass ?? null, cessationDate: ad.cessationDate ?? null,
           address: ad.structuredAddress ? formatAddress(ad.structuredAddress) || null : ad.foreignAddress ?? null,
           sources: (cd.evidence ?? []).map((e) => ({ documentType: e.documentType ?? null, documentDate: e.documentDate ?? null })),
         }

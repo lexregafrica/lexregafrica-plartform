@@ -35,7 +35,7 @@ export const EXISTING_STEP_LABELS: Record<number, string> = {
 // its Partnership Agreement (General Partnership brief §4).
 export function stepsFor(entityType: EntityType | undefined): number[] {
   if (entityType === 'sole_proprietorship') return [1, 2, 3, 4, 6, 7]
-  if (entityType === 'limited_liability_partnership') return [1, 2, 3, 4, 8, 5, 6, 7]
+  if (entityType === 'limited_liability_partnership' || entityType === 'company_limited_by_guarantee') return [1, 2, 3, 4, 8, 5, 6, 7]
   return [1, 2, 3, 4, 5, 6, 7]
 }
 
@@ -48,6 +48,10 @@ export function stepLabel(entityType: EntityType | undefined, step: number): str
     if (step === 3) return 'Confirm Partnership Details'
     if (step === 4) return 'Partners'
     if (step === 5) return 'Partnership Agreement'
+  }
+  if (entityType === 'company_limited_by_guarantee') {
+    if (step === 4) return 'Directors & Members'
+    if (step === 8) return 'Articles of Association'
   }
   if (entityType === 'limited_liability_partnership') {
     if (step === 3) return 'Confirm LLP Details'
@@ -64,7 +68,7 @@ export function entityNounFor(entityType: EntityType | undefined): string {
 
 // Entity types with a built existing-entity workflow. Others show "coming
 // later" until their brief is implemented (one at a time, per the plan).
-export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company', 'sole_proprietorship', 'partnership', 'limited_liability_partnership']
+export const EXISTING_SUPPORTED_TYPES: EntityType[] = ['limited_company', 'sole_proprietorship', 'partnership', 'limited_liability_partnership', 'company_limited_by_guarantee']
 
 // Company subtype fork (Limited Companies brief §2, §14)
 export const COMPANY_SUBTYPES: Array<{ value: 'private' | 'public'; label: string; description: string }> = [
@@ -142,8 +146,23 @@ export const LLP_FIELDS: EntityFieldSpec[] = [
   { key: 'email', label: 'Office email', ocr: 'email', material: false },
 ]
 
+// CLG: no share capital (CLG brief §1, §15)
+export const CLG_FIELDS: EntityFieldSpec[] = [
+  { key: 'legalName', label: 'Registered name', ocr: 'business_name', material: true },
+  { key: 'registrationNumber', label: 'Registration number', ocr: 'registration_number', material: true },
+  { key: 'dateIncorporated', label: 'Date of incorporation', ocr: 'date_of_incorporation', material: true },
+  { key: 'addressLine1', label: 'Registered office', ocr: 'address_line1', material: true },
+  { key: 'county', label: 'County', ocr: 'county', material: false },
+  { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
+  { key: 'natureOfBusiness', label: 'Objects / purpose', ocr: 'nature_of_business', material: false },
+  { key: 'kraPin', label: 'Company KRA PIN', ocr: 'kra_pin', material: false },
+  { key: 'phone', label: 'Office telephone', ocr: 'phone', material: false },
+  { key: 'email', label: 'Office email', ocr: 'email', material: false },
+]
+
 export function entityFieldsFor(entityType: EntityType | undefined): EntityFieldSpec[] {
   switch (entityType) {
+    case 'company_limited_by_guarantee': return CLG_FIELDS
     case 'sole_proprietorship': return SOLE_PROPRIETORSHIP_FIELDS
     case 'partnership': return PARTNERSHIP_FIELDS
     case 'limited_liability_partnership': return LLP_FIELDS
@@ -619,7 +638,110 @@ export const LLP_PACK: DocSpec[] = [
   },
 ]
 
+// Articles → structured rules (CLG brief §4)
+export const CLG_ARTICLES_FIELDS: Array<{ key: string; label: string; hint: string }> = [
+  { key: 'objects', label: 'Objects / purpose', hint: 'objects, non-profit or public-benefit restrictions and permitted activities' },
+  { key: 'membership', label: 'Membership', hint: 'eligibility, admission, cessation, classes, subscriptions and discipline' },
+  { key: 'guarantee', label: 'Guarantee', hint: 'the guarantee undertaking and amount, and any class-specific provisions' },
+  { key: 'member_rights', label: 'Member rights', hint: 'voting, general meetings, proxies, class rights and reserved matters' },
+  { key: 'directors', label: 'Directors', hint: 'number, appointment and removal, terms, powers, committees and delegation' },
+  { key: 'board_decisions', label: 'Board decisions', hint: 'notice, quorum, voting, written resolutions, conflicts and deadlock' },
+  { key: 'funds_property', label: 'Funds & property', hint: 'use of income and assets, benefits to members, grants, donations, investments and related-party controls' },
+  { key: 'financial_governance', label: 'Financial governance', hint: 'accounts, audit, budgets and approvals' },
+  { key: 'amendment', label: 'Amendment', hint: 'member/director thresholds for changing the articles and filing triggers' },
+  { key: 'winding_up', label: 'Winding up', hint: 'guarantee exposure on winding up and what happens to remaining assets' },
+]
+
+// CLG brief §2 + §10; ranks per §8
+export const CLG_PACK: DocSpec[] = [
+  {
+    documentType: 'certificate_of_incorporation', title: 'Certificate of Incorporation',
+    hint: 'Name, registration number, incorporation date and company type.',
+    priority: 'primary', treatment: 'identity_anchor', rank: 6,
+    missing: { impact: 'high', behaviour: 'Company identity and type can’t be marked registry-verified.' },
+  },
+  {
+    documentType: 'cr12', title: 'Official Search / CR12 (company status report)',
+    hint: 'The current registry snapshot — our anchor for today’s directors and particulars.',
+    priority: 'strong', treatment: 'current_state', rank: 2,
+    missing: { impact: 'high', behaviour: 'Onboarding continues provisionally — the current registry position isn’t anchored to a current search.' },
+  },
+  {
+    documentType: 'articles', title: 'Articles of Association (and amendments)',
+    hint: 'Objects, membership, guarantee, board and member decisions, funds, winding up — read into your governance rules.',
+    priority: 'strong', treatment: 'governance', rank: 4, multiple: true,
+    missing: { impact: 'critical', behaviour: 'Your identity is onboarded, but governance can’t be verified without the Articles.' },
+  },
+  {
+    documentType: 'member_register', title: 'Member / Guarantor Register',
+    hint: 'Current and former members, classes, admission and cessation, guarantee amounts.',
+    priority: 'strong', treatment: 'current_state', rank: 5,
+    missing: { impact: 'high', behaviour: 'Membership and guarantee position stays unverified.' },
+  },
+  {
+    documentType: 'annual_return', title: 'Latest annual return (CR29) with attachments',
+    hint: 'Member count or list, officers, registered particulars and the financial statements filed with it.',
+    priority: 'strong', treatment: 'compliance', rank: 3,
+    missing: { impact: 'high', behaviour: 'Annual compliance and the current member baseline stay incomplete.' },
+  },
+  {
+    documentType: 'bof1', title: 'Beneficial ownership register / filings',
+    hint: 'Control-based for a CLG — voting, director appointment, influence — not shareholding.',
+    priority: 'strong', treatment: 'beneficial_ownership', rank: 4,
+    missing: { impact: 'high', behaviour: 'A beneficial-ownership review and filing task is opened.' },
+  },
+  {
+    documentType: 'cr3', title: 'CR3 — Memorandum (company limited by guarantee)',
+    hint: 'The founding subscribers and guarantee. Kept as formation history — not today’s members.',
+    priority: 'recommended', treatment: 'formation', rank: 6,
+    missing: { impact: 'medium', behaviour: 'The formation guarantee/subscriber baseline stays incomplete.' },
+  },
+  {
+    documentType: 'cr1', title: 'CR1 — Application to register',
+    hint: 'Formation particulars. Kept as history.',
+    priority: 'recommended', treatment: 'formation', rank: 6,
+    missing: { impact: 'low', behaviour: 'Formation record noted as unavailable.' },
+  },
+  {
+    documentType: 'cr8', title: 'CR8 and director change forms (CR6–CR9)',
+    hint: 'Director residential addresses and later appointments, changes and cessations.',
+    priority: 'recommended', treatment: 'change', rank: 3, multiple: true,
+    missing: { impact: 'medium', behaviour: 'Director history stays incomplete.' },
+  },
+  {
+    documentType: 'financial_statements', title: 'Financial statements / audit report',
+    hint: 'Latest accounts and audit — required with the annual return.',
+    priority: 'recommended', treatment: 'compliance', rank: 5, multiple: true,
+    missing: { impact: 'high', behaviour: 'A financial-reporting gap is opened.' },
+  },
+  {
+    documentType: 'secretary_records', title: 'Company secretary / contact person records',
+    hint: 'If a secretary is appointed, or the s. 243A contact person where there’s no secretary or resident director.',
+    priority: 'conditional', treatment: 'governance', rank: 4, multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Checked against your directors and secretary.' },
+  },
+  {
+    documentType: 'tax_exemption', title: 'KRA tax-exemption certificate',
+    hint: 'Only if the company holds one — we never assume exemption from the CLG form.',
+    priority: 'conditional', treatment: 'compliance', rank: 6,
+    missing: { impact: 'conditional', behaviour: 'Only where the company is exempt.' },
+  },
+  {
+    documentType: 'identity_documents', title: 'IDs, passports & KRA PIN certificates (everyone)',
+    hint: 'Drop them all here — each one is matched to the right person and fills in their details.',
+    priority: 'recommended', treatment: 'operational', rank: 6, multiple: true,
+    missing: { impact: 'conditional', behaviour: 'People without an ID on file stay “identity unverified”.' },
+  },
+  {
+    documentType: 'other', title: 'Other documents',
+    hint: 'Minutes, resolutions, donor or grant agreements, licences.',
+    priority: 'conditional', treatment: 'operational', rank: 7, multiple: true,
+    missing: { impact: 'conditional', behaviour: '' },
+  },
+]
+
 export const EXISTING_DOC_PACKS: Partial<Record<EntityType, DocSpec[]>> = {
+  company_limited_by_guarantee: CLG_PACK,
   limited_liability_partnership: LLP_PACK,
   limited_company: LIMITED_COMPANY_PACK,
   sole_proprietorship: SOLE_PROPRIETORSHIP_PACK,
@@ -644,6 +766,15 @@ const BUSINESS_NAME_KIND_MAP: Record<string, string> = {
 }
 export const OCR_KIND_TO_DOC_TYPE = COMPANY_KIND_MAP
 
+const CLG_KIND_MAP: Record<string, string> = {
+  certificate_of_incorporation: 'certificate_of_incorporation',
+  cr12: 'cr12',
+  cr1: 'cr1',
+  cr3: 'cr3',
+  cr8: 'cr8',
+  cr29: 'annual_return',
+  bof1: 'bof1',
+}
 const LLP_KIND_MAP: Record<string, string> = {
   certificate_of_incorporation: 'certificate_of_registration',
   business_registration: 'certificate_of_registration',
@@ -655,6 +786,7 @@ const LLP_KIND_MAP: Record<string, string> = {
 
 export function ocrKindToDocType(entityType: EntityType | undefined, kind: string): string | undefined {
   if (entityType === 'limited_liability_partnership') return LLP_KIND_MAP[kind]
+  if (entityType === 'company_limited_by_guarantee') return CLG_KIND_MAP[kind]
   return (entityType === 'sole_proprietorship' || entityType === 'partnership' ? BUSINESS_NAME_KIND_MAP : COMPANY_KIND_MAP)[kind]
 }
 
@@ -866,7 +998,52 @@ export const LLP_BASELINE: BaselineQuestion[] = [
   },
 ]
 
+// CLG brief §11, §12, §14
+export const CLG_BASELINE: BaselineQuestion[] = [
+  {
+    key: 'directors_changed', question: 'Have any directors been appointed or left since the latest registry record?', taskOn: 'yes',
+    task: { title: 'File the director change (CR6–CR9)', description: 'Director appointments and cessations are notified to the Registrar. Upload the filing or ask us to prepare it.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'members_changed', question: 'Have members been admitted or ceased since the latest annual return?', taskOn: 'yes',
+    task: { title: 'Update the Member / Guarantor Register', description: 'Record admissions and cessations under the Articles — a former member’s guarantee can still apply for twelve months after leaving (s. 15).', category: 'governance', dueInDays: 30 },
+  },
+  {
+    key: 'office_changed', question: 'Has the registered office or name changed?', taskOn: 'yes',
+    task: { title: 'File the change (CR16 for registered office)', description: 'Registered office and name changes are filed with the Registrar.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'articles_amended', question: 'Have the Articles or objects been amended?', taskOn: 'yes',
+    task: { title: 'Upload the amended Articles and resolution', description: 'Amendments need a member resolution and filing; upload them so your governance rules are current.', category: 'governance', dueInDays: 30 },
+  },
+  {
+    key: 'annual_return_current', question: 'Are annual returns (with financial statements) filed up to date?', taskOn: 'no_or_unsure',
+    task: { title: 'Bring annual returns up to date', description: 'A CLG’s annual return is filed with copies of the financial statements sent to members, certified by a director or the secretary.', category: 'annual_return', dueInDays: 30 },
+  },
+  {
+    key: 'accounts_audited', question: 'Are the latest financial statements prepared and audited?', taskOn: 'no_or_unsure',
+    task: { title: 'Prepare / audit the financial statements', description: 'Non-profit status doesn’t remove company accounting and audit duties.', category: 'records', dueInDays: 30 },
+  },
+  {
+    key: 'secretary_or_resident_director', question: 'Does the company have a company secretary, or at least one director resident in Kenya?', taskOn: 'no_or_unsure',
+    task: { title: 'Appoint a contact person (s. 243A)', description: 'With no secretary and no resident director, the company must name a natural person permanently resident in Kenya as its contact person.', category: 'governance', dueInDays: 30 },
+  },
+  {
+    key: 'bo_changed', question: 'Have voting rights, director-appointment powers or anyone’s control changed since the last BO filing?', taskOn: 'yes',
+    task: { title: 'Review and update beneficial ownership', description: 'Membership, voting or control changes trigger a CLG beneficial-ownership review and filing.', category: 'bo_update', dueInDays: 14 },
+  },
+  {
+    key: 'tax_exempt', question: 'Does the company rely on a KRA tax exemption?', taskOn: 'yes',
+    task: { title: 'Upload the tax-exemption certificate', description: 'Exemption is a separate KRA status with its own conditions — we track it from the certificate, never from the CLG form.', category: 'tax', dueInDays: 30 },
+  },
+  {
+    key: 'employs_staff', question: 'Does the company employ staff?', taskOn: 'yes',
+    task: { title: 'Set up employment compliance', description: 'PAYE, NSSF, SHIF and Housing Levy obligations apply once you employ staff.', category: 'employment', dueInDays: 30 },
+  },
+]
+
 export const EXISTING_BASELINES: Partial<Record<EntityType, BaselineQuestion[]>> = {
+  company_limited_by_guarantee: CLG_BASELINE,
   limited_liability_partnership: LLP_BASELINE,
   limited_company: LIMITED_COMPANY_BASELINE,
   sole_proprietorship: SOLE_PROPRIETORSHIP_BASELINE,
