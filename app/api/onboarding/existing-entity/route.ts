@@ -1069,9 +1069,9 @@ async function matchIdentityDocument(
   if ((!isId && !isKra) || !fields.full_name) return { matched: [], kind, name: fields.full_name }
 
   const [{ data: directors }, { data: shareholders }, { data: bos }] = await Promise.all([
-    supabase.from('directors').select('id, full_name, id_number, kra_pin, nationality, residential_address').eq('entity_id', entityId),
-    supabase.from('shareholders').select('id, legal_name, id_or_reg_number, kra_pin, address, corporate_details').eq('entity_id', entityId),
-    supabase.from('beneficial_owners').select('id, full_name, id_number, kra_pin, date_of_birth, residential_address').eq('entity_id', entityId),
+    supabase.from('directors').select('id, full_name, id_number, kra_pin, phone, email, nationality, residential_address').eq('entity_id', entityId),
+    supabase.from('shareholders').select('id, legal_name, id_or_reg_number, kra_pin, phone, email, address, corporate_details').eq('entity_id', entityId),
+    supabase.from('beneficial_owners').select('id, full_name, id_number, kra_pin, date_of_birth, phone, email, residential_address').eq('entity_id', entityId),
   ])
   const docName = nameTokens(fields.full_name)
   const sameId = (v?: string | null) => !!v && !!fields.id_number && v.replace(/\s/g, '') === fields.id_number.replace(/\s/g, '')
@@ -1093,7 +1093,9 @@ async function matchIdentityDocument(
     await supabase.from('directors').update({
       id_number: isId ? (fill(d.id_number || null, fields.id_number, locked) ?? '') : d.id_number,
       kra_pin: fill(d.kra_pin, fields.kra_pin, locked) ?? null,
-      residential_address: { ...ra, dateOfBirth: fill(ra.dateOfBirth as string | null, dob, locked), prefilled: [...new Set([...((ra.prefilled as string[]) ?? []), isId ? 'ID' : 'KRA PIN', ...(dob ? ['date of birth'] : [])])] } as Json,
+      phone: fill(d.phone, fields.phone, locked) ?? null,
+      email: fill(d.email, fields.email?.toLowerCase(), locked) ?? null,
+      residential_address: { ...ra, dateOfBirth: fill(ra.dateOfBirth as string | null, dob, locked), prefilled: [...new Set([...((ra.prefilled as string[]) ?? []), isId ? 'ID' : 'KRA PIN', ...(dob ? ['date of birth'] : []), ...(fields.email ? ['email'] : []), ...(fields.phone ? ['phone'] : [])])] } as Json,
     }).eq('id', d.id)
     matched.push(d.full_name)
     primary ??= { id: d.id, role: 'director', name: d.full_name }
@@ -1106,6 +1108,8 @@ async function matchIdentityDocument(
     await supabase.from('shareholders').update({
       id_or_reg_number: isId ? (fill(sh.id_or_reg_number, fields.id_number, locked) ?? null) : sh.id_or_reg_number,
       kra_pin: fill(sh.kra_pin, fields.kra_pin, locked) ?? null,
+      phone: fill(sh.phone, fields.phone, locked) ?? null,
+      email: fill(sh.email, fields.email?.toLowerCase(), locked) ?? null,
       address: { ...ad, dateOfBirth: fill(ad.dateOfBirth as string | null, dob, locked) ?? undefined } as Json,
       corporate_details: { ...cd, prefilled: [...new Set([...((cd.prefilled as string[]) ?? []), isId ? 'ID' : 'KRA PIN'])] } as Json,
     }).eq('id', sh.id)
@@ -1120,6 +1124,8 @@ async function matchIdentityDocument(
       id_number: isId ? (fill(b.id_number, fields.id_number, locked) ?? null) : b.id_number,
       kra_pin: fill(b.kra_pin, fields.kra_pin, locked) ?? null,
       date_of_birth: fill(b.date_of_birth, dob, locked) ?? null,
+      phone: fill(b.phone, fields.phone, locked) ?? null,
+      email: fill(b.email, fields.email?.toLowerCase(), locked) ?? null,
     }).eq('id', b.id)
     if (!matched.includes(b.full_name)) matched.push(b.full_name)
     primary ??= { id: b.id, role: 'beneficial_owner', name: b.full_name }
