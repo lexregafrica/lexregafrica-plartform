@@ -85,6 +85,7 @@ type DirectorRow = {
     formationOnly?: boolean
     nameMatchOnly?: boolean
     userReviewed?: boolean
+    prefilled?: string[]
     interestPercentage?: string
     contributionType?: string
     contributionValue?: string
@@ -107,7 +108,7 @@ type ShareholderRow = {
     isForeign?: boolean; foreignAddress?: string; structuredAddress?: AddressData
     nationality?: string; dateOfBirth?: string; occupation?: string; shareClass?: string
   } | null
-  corporate_details?: { isCorporate?: boolean; corporate?: CorporateParticipant; nominee?: boolean; evidence?: Evidence[]; nameMatchOnly?: boolean; userReviewed?: boolean } | null
+  corporate_details?: { isCorporate?: boolean; corporate?: Partial<CorporateParticipant>; nominee?: boolean; evidence?: Evidence[]; nameMatchOnly?: boolean; userReviewed?: boolean; prefilled?: string[] } | null
 }
 type DocumentRow = SharedDocumentRow & {
   ocr_status?: string | null
@@ -123,7 +124,7 @@ type BeneficialOwnerRow = {
   kra_pin: string | null
   nationality: string
   date_of_birth: string | null
-  residential_address: { structuredAddress?: AddressData; evidence?: Evidence[]; asAtFiling?: string | null; text?: string } | null
+  residential_address: { structuredAddress?: AddressData; evidence?: Evidence[]; asAtFiling?: string | null; text?: string; prefilled?: string[]; userReviewed?: boolean } | null
   phone: string | null
   email: string | null
   occupation: string | null
@@ -310,12 +311,26 @@ export function ExistingEntityWizard() {
 
       setStatus(tempId, { name: file.name, documentType: spec.documentType, state: 'extracting' })
       try {
-        const result = await api({ action: 'ocr_extract', documentId, section: 'registry' }) as Awaited<ReturnType<ApiFn>> & { reason?: string; conflicts?: string[]; documentType?: string; looksLike?: string; otherEntity?: { documentNumber: string; expectedNumber: string } }
+        const result = await api({ action: 'ocr_extract', documentId, section: 'registry' }) as Awaited<ReturnType<ApiFn>> & { reason?: string; conflicts?: string[]; documentType?: string; looksLike?: string; identity?: { matched: string[]; kind: string; name: string | null }; otherEntity?: { documentNumber: string; expectedNumber: string } }
         if (result.ok && result.fields) {
           const f = result.fields as { business_name?: string; registration_number?: string; people?: unknown[]; full_name?: string }
           const refiled = result.documentType && result.documentType !== spec.documentType
             ? ` Filed as ${docTitle(pack, result.documentType)}.`
             : result.looksLike ? ` (It reads like: ${docTitle(pack, result.looksLike)} — move it if it’s in the wrong box.)` : ''
+          if (result.identity) {
+            const kindLabel = result.identity.kind === 'kra_pin_certificate' ? 'KRA PIN certificate' : result.identity.kind === 'passport' ? 'passport' : result.identity.kind === 'national_id' ? 'ID' : 'document'
+            setStatus(tempId, {
+              name: file.name, documentType: spec.documentType,
+              state: result.identity.matched.length ? 'done' : 'ocr_failed',
+              summary: result.identity.matched.length
+                ? `${result.identity.name}’s ${kindLabel} — filled into ${result.identity.matched.join(', ')}.`
+                : result.identity.name
+                  ? `${result.identity.name}’s ${kindLabel} — no matching person yet. It’s saved; upload the CR12/certificate first, or add them on the people screen.`
+                  : 'Not an ID, passport or personal KRA PIN certificate — upload it in the right box above.',
+            })
+            await refresh()
+            continue
+          }
           if (result.otherEntity) {
             setStatus(tempId, {
               name: file.name, documentType: result.documentType ?? spec.documentType, state: 'ocr_failed',
@@ -662,6 +677,12 @@ export function ExistingEntityWizard() {
                     </div>
                   ))}
 
+                  {spec.documentType === 'identity_documents' && (() => {
+                    const filed = documents.filter((d) => /_(id_copy|kra_pin_copy)$/.test(d.document_type ?? '') && d.tags?.length).length
+                    return filed > 0 ? (
+                      <p className="text-ios-caption1" style={{ color: '#16a34a' }}>{filed} identity document{filed === 1 ? '' : 's'} filed under the right people.</p>
+                    ) : null
+                  })()}
                   {live.filter(([, s]) => s.state !== 'done').concat(live.filter(([, s]) => s.state === 'done')).map(([id, s]) => (
                     <p key={id} className="text-ios-caption1 break-words [overflow-wrap:anywhere]" style={{ color: s.state === 'done' ? '#16a34a' : s.state === 'uploading' || s.state === 'extracting' ? 'var(--system-label-2)' : '#92400e' }}>
                       {s.name}: {s.state === 'uploading' ? 'Uploading…' : s.state === 'extracting' ? 'Reading document…' : s.summary}
@@ -1247,7 +1268,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
       id: d.id, fullName: d.full_name, idNumber: ra.isCorporate ? '' : d.id_number ?? '', kraPin: d.kra_pin ?? '',
       dateOfBirth: ra.dateOfBirth ?? '', nationality: d.nationality ?? 'Kenyan', phone: d.phone ?? '', email: d.email ?? '',
       occupation: ra.occupation ?? '', appointmentDate: d.appointment_date ?? '',
-      isCorporate: ra.isCorporate ?? false, corporate: ra.corporate ?? { ...emptyCorporate },
+      isCorporate: ra.isCorporate ?? false, corporate: { ...emptyCorporate, ...(ra.corporate ?? {}) },
       isForeign: d.is_foreign ?? false, foreignAddress: ra.foreignAddress ?? '', address: ra.structuredAddress ?? {},
     }
   }
@@ -1257,7 +1278,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
     dateOfBirth: s.address?.dateOfBirth ?? '', nationality: s.address?.nationality ?? 'Kenyan', phone: s.phone ?? '', email: s.email ?? '',
     occupation: s.address?.occupation ?? '', shares: String(s.shares_held || ''), shareClass: s.address?.shareClass ?? 'Ordinary',
     isNominee: !!s.corporate_details?.nominee,
-    isCorporate: s.corporate_details?.isCorporate ?? false, corporate: s.corporate_details?.corporate ?? { ...emptyCorporate },
+    isCorporate: s.corporate_details?.isCorporate ?? false, corporate: { ...emptyCorporate, ...(s.corporate_details?.corporate ?? {}) },
     isForeign: s.address?.isForeign ?? false, foreignAddress: s.address?.foreignAddress ?? '', address: s.address?.structuredAddress ?? {},
   })
 
@@ -1296,6 +1317,7 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
   const directorFlags = (d: DirectorRow) => {
     const ra = d.residential_address ?? {}
     const flags: Array<{ text: string; tone: 'warn' | 'info' }> = []
+    if (ra.prefilled?.length && !ra.userReviewed) flags.push({ tone: 'info', text: `Pre-filled from your documents: ${ra.prefilled.join(', ')} — open Edit to check and complete.` })
     if (ra.nameMatchOnly) flags.push({ tone: 'warn', text: 'Matched to an existing person by name only — confirm it’s the same person, or edit.' })
     if (ra.formationOnly && !ra.onCurrentRecord && !ra.userReviewed) flags.push({ tone: 'warn', text: 'Only on formation records — confirm they’re still in office, or remove.' })
     if (!ra.isCorporate && !hasIdDoc(d.id, 'director')) flags.push({ tone: 'info', text: ra.role === 'proprietor' ? 'Identity unverified — upload your ID/passport when you can.' : 'Identity unverified — upload their ID/passport when you can.' })
@@ -1452,7 +1474,10 @@ function PeopleStep({ directors, shareholders, documents, setDirectors, setShare
             [s.shares_held > 0 && `${s.shares_held.toLocaleString()} ${s.address?.shareClass ?? 'Ordinary'} shares`, s.share_percentage != null && `${s.share_percentage}%`].filter(Boolean).join(' · '),
             evidenceText(s.corporate_details?.evidence) ? `Source: ${evidenceText(s.corporate_details?.evidence)}` : '',
           ]}
-          flags={s.corporate_details?.nameMatchOnly ? [{ tone: 'warn', text: 'Matched by name only — open and save to confirm.' }] : []}
+          flags={[
+            ...(s.corporate_details?.prefilled?.length && !s.corporate_details?.userReviewed ? [{ tone: 'info' as const, text: `Pre-filled from your documents: ${s.corporate_details.prefilled.join(', ')} — open Edit to check and complete.` }] : []),
+            ...(s.corporate_details?.nameMatchOnly ? [{ tone: 'warn' as const, text: 'Matched by name only — open and save to confirm.' }] : []),
+          ]}
           onEdit={() => open(shareholderToForm(s))}
           onRemove={() => remove('shareholder', s.id)} />
       ))}
@@ -1869,6 +1894,9 @@ function BeneficialOwnersStep({ shareholders, beneficialOwners, setBeneficialOwn
             ) : (
               <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Declared by you</p>
             )}
+            {b.residential_address?.prefilled?.length && !b.residential_address?.userReviewed ? (
+              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Pre-filled: {b.residential_address.prefilled.join(', ')} — open Edit to check.</p>
+            ) : null}
           </div>
           <div className="flex gap-3 shrink-0">
             <button type="button" className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}

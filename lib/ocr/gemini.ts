@@ -15,6 +15,24 @@ export type ExtractedPerson = {
   // company secretary on a CR12 / secretary form
   role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'manager' | 'unknown'
   shares_held: number | null
+  // Every other particular the document prints for this person — CR12s,
+  // CR8s, BOF1s and LLP/partnership records carry these, and the person
+  // screens are pre-filled from them (Charles, 2026-09-30: "my only work
+  // is to make sure everything's correct").
+  share_class?: string | null
+  nationality?: string | null
+  date_of_birth?: string | null // YYYY-MM-DD
+  occupation?: string | null
+  phone?: string | null
+  email?: string | null
+  address_line1?: string | null // building / street
+  city?: string | null
+  county?: string | null
+  postal_address?: string | null // P.O. Box line
+  postal_code?: string | null
+  is_corporate?: boolean | null // the holder is a company / body corporate
+  corporate_registration_number?: string | null
+  appointment_date?: string | null // YYYY-MM-DD
 }
 
 export type ExtractedShareClass = {
@@ -142,6 +160,20 @@ const RESPONSE_SCHEMA = {
           kra_pin: { type: 'STRING', nullable: true },
           role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'unknown'] },
           shares_held: { type: 'NUMBER', nullable: true },
+          share_class: { type: 'STRING', nullable: true },
+          nationality: { type: 'STRING', nullable: true },
+          date_of_birth: { type: 'STRING', nullable: true },
+          occupation: { type: 'STRING', nullable: true },
+          phone: { type: 'STRING', nullable: true },
+          email: { type: 'STRING', nullable: true },
+          address_line1: { type: 'STRING', nullable: true },
+          city: { type: 'STRING', nullable: true },
+          county: { type: 'STRING', nullable: true },
+          postal_address: { type: 'STRING', nullable: true },
+          postal_code: { type: 'STRING', nullable: true },
+          is_corporate: { type: 'BOOLEAN', nullable: true },
+          corporate_registration_number: { type: 'STRING', nullable: true },
+          appointment_date: { type: 'STRING', nullable: true },
         },
         required: ['full_name', 'role'],
       },
@@ -215,8 +247,16 @@ Extract exactly these fields. Use null when a field is not present in the docume
   where the business is a partnership (role partner); for an LLP (LLP 1, LLP 9, LLP
   search or annual return), every partner (role partner) and every manager (role
   manager) —
-  full name, ID number if shown, KRA PIN if shown, role (director / shareholder /
-  both), and number of shares held if shown
+  full name, ID or passport number, KRA PIN, role (director / shareholder / both),
+  number of shares held and share class, and EVERY other particular printed for that
+  person: nationality, date_of_birth (YYYY-MM-DD), occupation, phone, email, their
+  address split into address_line1 (building/street), city, county, postal_address
+  (P.O. Box line) and postal_code, appointment_date (YYYY-MM-DD), and — when the holder
+  is a company or other body corporate — is_corporate true with its
+  corporate_registration_number. On a CR8 the residential address of each director
+  belongs in that director's address fields. Use null for anything not printed for
+  that person; never copy one person's details onto another, and never use the
+  company's own office address or contacts as a person's
 - confidence: 0-100, your certainty that the extracted values are correct
 
 Ignore contact details that belong to the issuing authority itself (e.g. the KRA call centre
@@ -298,6 +338,10 @@ business_name, nature_of_business, registration_number, date_of_incorporation, n
 share_classes, bo_percent_shares_direct, bo_percent_shares_indirect,
 bo_percent_voting_rights, bo_has_right_to_appoint_director,
 bo_has_significant_influence, people, confidence.
+Each people entry is an object with keys: full_name, id_number, kra_pin, role, shares_held,
+share_class, nationality, date_of_birth, occupation, phone, email, address_line1, city,
+county, postal_address, postal_code, is_corporate, corporate_registration_number,
+appointment_date.
 document_kind must be one of: ${(RESPONSE_SCHEMA.properties.document_kind.enum as string[]).join(', ')}.`
 
 async function extractWithGroq(bytes: Uint8Array, mimeType: string): Promise<ExtractionResult> {
@@ -364,6 +408,15 @@ function parseFields(text: string | undefined): ExtractionResult {
       id_number: str(raw.id_number),
       kra_pin: str(raw.kra_pin)?.replace(/\s+/g, '').toUpperCase() ?? null,
       registration_number: str(raw.registration_number)?.toUpperCase() ?? null,
+      people: Array.isArray(raw.people)
+        ? raw.people.map((pp) => ({
+            ...pp,
+            kra_pin: str(pp.kra_pin)?.replace(/\s+/g, '').toUpperCase() ?? null,
+            id_number: str(pp.id_number),
+            email: str(pp.email),
+            phone: str(pp.phone),
+          }))
+        : raw.people ?? null,
       confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
     } as ExtractedFields
     if (!fields.document_kind) fields.document_kind = 'other'

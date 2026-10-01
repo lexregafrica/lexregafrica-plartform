@@ -297,7 +297,7 @@ export async function POST(request: Request) {
     // (an LLP certificate read as an LLP 1). Only files dropped into
     // "Other" are re-filed; elsewhere a mismatch is just mentioned.
     let looksLike: string | undefined
-    if (!personScoped && detected && detected !== documentType) {
+    if (!personScoped && detected && detected !== documentType && documentType !== 'identity_documents') {
       if (documentType === 'other') documentType = detected
       else looksLike = detected
     }
@@ -306,6 +306,13 @@ export async function POST(request: Request) {
       .update({ ocr_status: 'complete', ocr_data: fields as unknown as Json, document_type: documentType })
       .eq('id', doc.id)
 
+    // Bulk identity documents: matched to the person they belong to and
+    // filed under that person, so the people screens arrive pre-filled.
+    if (!personScoped && doc.document_type === 'identity_documents') {
+      const matched = await matchIdentityDocument(supabase, { fields, documentId: doc.id, entityId })
+      return NextResponse.json({ ok: true, ocrStatus: 'complete', fields, identity: matched })
+    }
+
     let merged: { conflicts: string[]; otherEntity?: { documentNumber: string; expectedNumber: string } } = { conflicts: [] }
     if (!personScoped) {
       merged = await mergeRegistryEvidence(supabase, {
@@ -313,6 +320,20 @@ export async function POST(request: Request) {
         source: { documentId: doc.id, documentType, documentName: doc.name, documentDate: fields.document_date, confidence: fields.confidence },
         entityId, orgId, progressId: progress.id, entityType,
       })
+      // IDs uploaded before the people existed get matched now
+      const { data: pending } = await supabase.from('documents').select('id, ocr_data')
+        .eq('entity_id', entityId).eq('document_type', 'identity_documents').eq('ocr_status', 'complete').is('deleted_at', null)
+      for (const d of pending ?? []) {
+        if (d.ocr_data) await matchIdentityDocument(supabase, { fields: d.ocr_data as unknown as ExtractedFields, documentId: d.id, entityId })
+      }
+      // …and BO filings read before the people existed fill them now
+      if (documentType !== 'bof1' && documentType !== 'llp_bo') {
+        const { data: boDocs } = await supabase.from('documents').select('ocr_data')
+          .eq('entity_id', entityId).in('document_type', ['bof1', 'llp_bo']).eq('ocr_status', 'complete').is('deleted_at', null)
+        for (const d of boDocs ?? []) {
+          for (const p of ((d.ocr_data as unknown as ExtractedFields | null)?.people ?? [])) await crossFillPerson(supabase, entityId, p)
+        }
+      }
     }
 
     await supabase.rpc('log_audit', {
@@ -382,6 +403,8 @@ export async function POST(request: Request) {
     if (mergedWizard.kraPin !== undefined) entityUpdate.kra_pin = mergedWizard.kraPin || null
     if (mergedWizard.dateIncorporated) entityUpdate.date_incorporated = mergedWizard.dateIncorporated
     if (mergedWizard.natureOfBusiness !== undefined) entityUpdate.nature_of_business = mergedWizard.natureOfBusiness || null
+    if (mergedWizard.phone !== undefined) entityUpdate.phone = mergedWizard.phone || null
+    if (mergedWizard.email !== undefined) entityUpdate.email = mergedWizard.email || null
     if (mergedWizard.nominalCapital !== undefined) {
       const n = Number(String(mergedWizard.nominalCapital).replace(/[^\d.]/g, ''))
       entityUpdate.nominal_capital = Number.isFinite(n) && n > 0 ? n : null
@@ -1026,6 +1049,140 @@ function liveGovernance(g: ExistingWizardData['governance'], live: Set<string>) 
   return Object.fromEntries(Object.entries(g).filter(([, r]) => r.source === 'user' || !r.documentId || live.has(r.documentId)))
 }
 
+// ------------------------------------------------------------------
+// Match a bulk-uploaded ID/passport/KRA PIN certificate to the person it
+// belongs to: ID/KRA number first, then the name on the document against
+// the names on the registry records (word order and case ignored — IDs
+// print surname-first). Fills only empty identity fields, re-files the
+// document under that person, and leaves it unmatched rather than guess.
+// ------------------------------------------------------------------
+const nameTokens = (n: string) => n.toUpperCase().replace(/[^A-Z\s]/g, ' ').split(/\s+/).filter((t) => t.length > 1).sort().join(' ')
+
+async function matchIdentityDocument(
+  supabase: SupabaseServer,
+  ctx: { fields: ExtractedFields; documentId: string; entityId: string },
+): Promise<{ matched: string[]; kind: string; name: string | null }> {
+  const { fields, documentId, entityId } = ctx
+  const kind = fields.document_kind
+  const isId = kind === 'national_id' || kind === 'passport'
+  const isKra = kind === 'kra_pin_certificate' && !fields.business_name
+  if ((!isId && !isKra) || !fields.full_name) return { matched: [], kind, name: fields.full_name }
+
+  const [{ data: directors }, { data: shareholders }, { data: bos }] = await Promise.all([
+    supabase.from('directors').select('id, full_name, id_number, kra_pin, nationality, residential_address').eq('entity_id', entityId),
+    supabase.from('shareholders').select('id, legal_name, id_or_reg_number, kra_pin, address, corporate_details').eq('entity_id', entityId),
+    supabase.from('beneficial_owners').select('id, full_name, id_number, kra_pin, date_of_birth, residential_address').eq('entity_id', entityId),
+  ])
+  const docName = nameTokens(fields.full_name)
+  const sameId = (v?: string | null) => !!v && !!fields.id_number && v.replace(/\s/g, '') === fields.id_number.replace(/\s/g, '')
+  const samePin = (v?: string | null) => !!v && !!fields.kra_pin && v.toUpperCase() === fields.kra_pin.toUpperCase()
+  const isMatch = (name: string, id?: string | null, pin?: string | null) => {
+    if (sameId(id) || samePin(pin)) return true
+    // A different ID/PIN already on record means a different person
+    if ((id && fields.id_number && !sameId(id)) || (pin && fields.kra_pin && !samePin(pin))) return false
+    return nameTokens(name) === docName
+  }
+  const dob = isoDate(fields.date_of_birth)
+  const matched: string[] = []
+  let primary: { id: string; role: 'director' | 'shareholder' | 'beneficial_owner'; name: string } | null = null
+
+  for (const d of directors ?? []) {
+    const ra = (d.residential_address ?? {}) as Record<string, unknown>
+    if (ra.isCorporate || !isMatch(d.full_name, d.id_number, d.kra_pin)) continue
+    const locked = !!ra.userReviewed
+    await supabase.from('directors').update({
+      id_number: isId ? (fill(d.id_number || null, fields.id_number, locked) ?? '') : d.id_number,
+      kra_pin: fill(d.kra_pin, fields.kra_pin, locked) ?? null,
+      residential_address: { ...ra, dateOfBirth: fill(ra.dateOfBirth as string | null, dob, locked), prefilled: [...new Set([...((ra.prefilled as string[]) ?? []), isId ? 'ID' : 'KRA PIN', ...(dob ? ['date of birth'] : [])])] } as Json,
+    }).eq('id', d.id)
+    matched.push(d.full_name)
+    primary ??= { id: d.id, role: 'director', name: d.full_name }
+  }
+  for (const sh of shareholders ?? []) {
+    const cd = (sh.corporate_details ?? {}) as Record<string, unknown>
+    if (cd.isCorporate || !isMatch(sh.legal_name, sh.id_or_reg_number, sh.kra_pin)) continue
+    const locked = !!cd.userReviewed
+    const ad = (sh.address ?? {}) as Record<string, unknown>
+    await supabase.from('shareholders').update({
+      id_or_reg_number: isId ? (fill(sh.id_or_reg_number, fields.id_number, locked) ?? null) : sh.id_or_reg_number,
+      kra_pin: fill(sh.kra_pin, fields.kra_pin, locked) ?? null,
+      address: { ...ad, dateOfBirth: fill(ad.dateOfBirth as string | null, dob, locked) ?? undefined } as Json,
+      corporate_details: { ...cd, prefilled: [...new Set([...((cd.prefilled as string[]) ?? []), isId ? 'ID' : 'KRA PIN'])] } as Json,
+    }).eq('id', sh.id)
+    if (!matched.includes(sh.legal_name)) matched.push(sh.legal_name)
+    primary ??= { id: sh.id, role: 'shareholder', name: sh.legal_name }
+  }
+  for (const b of bos ?? []) {
+    if (!isMatch(b.full_name, b.id_number, b.kra_pin)) continue
+    const ra = (b.residential_address ?? {}) as Record<string, unknown>
+    const locked = !!ra.userReviewed
+    await supabase.from('beneficial_owners').update({
+      id_number: isId ? (fill(b.id_number, fields.id_number, locked) ?? null) : b.id_number,
+      kra_pin: fill(b.kra_pin, fields.kra_pin, locked) ?? null,
+      date_of_birth: fill(b.date_of_birth, dob, locked) ?? null,
+    }).eq('id', b.id)
+    if (!matched.includes(b.full_name)) matched.push(b.full_name)
+    primary ??= { id: b.id, role: 'beneficial_owner', name: b.full_name }
+  }
+
+  if (primary) {
+    // File it under that person so their form shows it as already uploaded
+    const documentType = `${primary.role}_${isId ? 'id_copy' : 'kra_pin_copy'}`
+    await supabase.from('documents').update({
+      document_type: documentType,
+      tags: [{ person: primary.name, personId: primary.id, role: primary.role }] as unknown as Json,
+    }).eq('id', documentId)
+  }
+  return { matched, kind, name: fields.full_name }
+}
+
+// Fill a director's/shareholder's empty particulars from another document
+// that names the same person (matched by ID/PIN, else the same name).
+async function crossFillPerson(supabase: SupabaseServer, entityId: string, p: NonNullable<ExtractedFields['people']>[number]) {
+  if (!p.full_name || p.is_corporate) return
+  const d = personDetails(p)
+  const docName = nameTokens(p.full_name)
+  const same = (name: string, id?: string | null, pin?: string | null) => {
+    if (id && p.id_number) return id.replace(/\s/g, '') === p.id_number.replace(/\s/g, '')
+    if (pin && p.kra_pin) return pin.toUpperCase() === p.kra_pin.toUpperCase()
+    return nameTokens(name) === docName
+  }
+  const [{ data: directors }, { data: shareholders }] = await Promise.all([
+    supabase.from('directors').select('id, full_name, id_number, kra_pin, phone, email, nationality, residential_address').eq('entity_id', entityId),
+    supabase.from('shareholders').select('id, legal_name, id_or_reg_number, kra_pin, phone, email, address, corporate_details').eq('entity_id', entityId),
+  ])
+  for (const r of directors ?? []) {
+    const ra = (r.residential_address ?? {}) as Record<string, unknown>
+    if (ra.isCorporate || ra.userReviewed || !same(r.full_name, r.id_number, r.kra_pin)) continue
+    await supabase.from('directors').update({
+      id_number: r.id_number || p.id_number || '',
+      kra_pin: r.kra_pin ?? p.kra_pin,
+      phone: r.phone ?? d.phone,
+      email: r.email ?? d.email,
+      residential_address: {
+        ...ra,
+        structuredAddress: ra.structuredAddress ?? d.structuredAddress ?? undefined,
+        dateOfBirth: ra.dateOfBirth ?? d.dateOfBirth,
+        occupation: ra.occupation ?? d.occupation ?? undefined,
+        prefilled: [...new Set([...((ra.prefilled as string[]) ?? []), ...prefilledKeys(d, { id: !r.id_number && p.id_number, kra: !r.kra_pin && p.kra_pin })])],
+      } as Json,
+    }).eq('id', r.id)
+  }
+  for (const r of shareholders ?? []) {
+    const cd = (r.corporate_details ?? {}) as Record<string, unknown>
+    if (cd.isCorporate || cd.userReviewed || !same(r.legal_name, r.id_or_reg_number, r.kra_pin)) continue
+    const ad = (r.address ?? {}) as Record<string, unknown>
+    await supabase.from('shareholders').update({
+      id_or_reg_number: r.id_or_reg_number ?? p.id_number,
+      kra_pin: r.kra_pin ?? p.kra_pin,
+      phone: r.phone ?? d.phone,
+      email: r.email ?? d.email,
+      address: { ...ad, structuredAddress: ad.structuredAddress ?? d.structuredAddress ?? undefined, dateOfBirth: ad.dateOfBirth ?? d.dateOfBirth ?? undefined, occupation: ad.occupation ?? d.occupation ?? undefined } as Json,
+      corporate_details: { ...cd, prefilled: [...new Set([...((cd.prefilled as string[]) ?? []), ...prefilledKeys(d, { id: !r.id_or_reg_number && p.id_number, kra: !r.kra_pin && p.kra_pin })])] } as Json,
+    }).eq('id', r.id)
+  }
+}
+
 // People a removed registry document created are withdrawn with it —
 // unless the user has since reviewed/edited them, or another live document
 // also lists them (then only that evidence link is dropped).
@@ -1133,6 +1290,7 @@ async function mergeRegistryEvidence(
   for (const f of entityFieldsFor(ctx.entityType)) {
     // The company KRA PIN only comes from the company's own PIN certificate
     if (f.key === 'kraPin' && fields.document_kind !== 'kra_pin_certificate') continue
+    if ((f.key === 'phone' || f.key === 'email') && fields.document_kind === 'kra_pin_certificate') continue
     const value = ocrValue(f.key)
     if (!value) continue
     const before = distinctCandidates(evidence[f.key], rank).length
@@ -1194,13 +1352,101 @@ async function mergeRegistryEvidence(
     })
   }
 
-  if ((source.documentType === 'bof1' || source.documentType === 'llp_bo') && fields.full_name) {
-    await mergeBeneficialOwner(supabase, { fields, source, entityId, orgId })
+  if (source.documentType === 'bof1' || source.documentType === 'llp_bo') {
+    // A BO filing may print the owner(s) as a people list or as the
+    // document's single named person — take every one, with all their
+    // particulars.
+    const owners = (fields.people ?? []).filter((p) => p.full_name)
+    if (owners.length) {
+      for (const p of owners) {
+        await mergeBeneficialOwner(supabase, {
+          fields: {
+            ...fields,
+            full_name: p.full_name, id_number: p.id_number, kra_pin: p.kra_pin, date_of_birth: p.date_of_birth ?? null,
+            phone: p.phone ?? null, email: p.email ?? null, occupation: p.occupation ?? null,
+            address_line1: p.address_line1 ?? null, city: p.city ?? null, county: p.county ?? null,
+            postal_address: p.postal_address ?? null, postal_code: p.postal_code ?? null,
+          },
+          nationality: p.nationality ?? null,
+          source, entityId, orgId,
+        })
+        // The same person is usually also a director/shareholder: carry
+        // their particulars across to those records too.
+        await crossFillPerson(supabase, entityId, p)
+      }
+    } else if (fields.full_name) {
+      await mergeBeneficialOwner(supabase, { fields, source, entityId, orgId })
+    }
   }
 
   wizard.fieldEvidence = evidence
   await supabase.from('onboarding_progress').update({ data: { ...progressData, wizard } as Json }).eq('id', progressId)
   return { conflicts }
+}
+
+// Everything a registry document prints about a person, shaped for the
+// person rows. Charles, 2026-09-30: upload a CR12 and the people screens
+// should already hold every shareholder/director with their details —
+// the user only checks, corrects and fills what the documents lacked.
+type PersonDetails = {
+  phone: string | null
+  email: string | null
+  nationality: string | null
+  dateOfBirth: string | null
+  occupation: string | null
+  appointmentDate: string | null
+  shareClass: string | null
+  structuredAddress: AddressData | null
+  isCorporate: boolean
+  corporateRegNumber: string | null
+}
+
+const isoDate = (v?: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
+
+function personDetails(p: NonNullable<ExtractedFields['people']>[number]): PersonDetails {
+  const county = p.county ? KENYA_COUNTIES.find((k) => k.toLowerCase() === p.county!.replace(/\s*county\s*$/i, '').trim().toLowerCase()) ?? null : null
+  const address: AddressData = {
+    streetName: p.address_line1 ?? undefined,
+    city: p.city ?? undefined,
+    county: county ?? undefined,
+    postalAddress: p.postal_address ?? undefined,
+    postalCode: p.postal_code ?? undefined,
+  }
+  const hasAddress = Object.values(address).some(Boolean)
+  return {
+    phone: p.phone ?? null,
+    email: p.email ? p.email.toLowerCase() : null,
+    nationality: p.nationality ?? null,
+    dateOfBirth: isoDate(p.date_of_birth),
+    occupation: p.occupation ?? null,
+    appointmentDate: isoDate(p.appointment_date),
+    shareClass: p.share_class ?? null,
+    structuredAddress: hasAddress ? address : null,
+    isCorporate: !!p.is_corporate,
+    corporateRegNumber: p.corporate_registration_number ? p.corporate_registration_number.toUpperCase() : null,
+  }
+}
+
+// Fill only what's empty; a record the user has reviewed is theirs — the
+// document's value is recorded as evidence but never overwrites it.
+function fill<T>(existing: T | null | undefined, incoming: T | null | undefined, locked: boolean): T | null | undefined {
+  if (locked) return existing
+  const empty = existing === null || existing === undefined || existing === ''
+  return empty ? incoming ?? existing : existing
+}
+
+function prefilledKeys(d: PersonDetails, extra: Record<string, unknown>): string[] {
+  const out: string[] = []
+  if (extra.id) out.push('ID')
+  if (extra.kra) out.push('KRA PIN')
+  if (d.phone) out.push('phone')
+  if (d.email) out.push('email')
+  if (d.structuredAddress) out.push('address')
+  if (d.nationality) out.push('nationality')
+  if (d.dateOfBirth) out.push('date of birth')
+  if (d.occupation) out.push('occupation')
+  if (extra.shares) out.push('shares')
+  return out
 }
 
 async function mergePeople(
@@ -1209,46 +1455,80 @@ async function mergePeople(
 ) {
   const { people, source, entityId, orgId, current } = ctx
   const [{ data: directors }, { data: shareholders }] = await Promise.all([
-    supabase.from('directors').select('id, full_name, id_number, kra_pin, residential_address').eq('entity_id', entityId),
-    supabase.from('shareholders').select('id, legal_name, id_or_reg_number, kra_pin, shares_held, corporate_details').eq('entity_id', entityId),
+    supabase.from('directors').select('id, full_name, id_number, kra_pin, phone, email, nationality, appointment_date, residential_address').eq('entity_id', entityId),
+    supabase.from('shareholders').select('id, legal_name, id_or_reg_number, kra_pin, shares_held, phone, email, address, corporate_details').eq('entity_id', entityId),
   ])
   const evidenceRef = { documentId: source.documentId, documentType: source.documentType, documentDate: source.documentDate ?? null }
 
   for (const p of people) {
     if (!p.full_name) continue
-    const person = { name: p.full_name, idNumber: p.id_number, kraPin: p.kra_pin }
+    const d = personDetails(p)
+    const idNumber = d.isCorporate ? (d.corporateRegNumber ?? p.id_number) : p.id_number
+    const person = { name: p.full_name, idNumber, kraPin: p.kra_pin }
+    const corporate = d.isCorporate ? { registeredName: p.full_name, regNumber: d.corporateRegNumber ?? '', countryOfIncorporation: 'Kenya', kraPin: p.kra_pin ?? '' } : undefined
 
     const officerRole = p.role === 'manager' ? 'manager' : p.role === 'partner' ? 'partner' : p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
     if (officerRole) {
       // Matched within the same role: a partner who is also the manager
       // keeps two relationships, not one merged row.
-      const roleOf = (d: { residential_address: unknown }) => ((d.residential_address ?? {}) as { role?: string }).role ?? 'director'
-      const matches = (directors ?? []).filter((d) => roleOf(d) === officerRole).map((d) => ({ d, m: matchPerson(person, { name: d.full_name, idNumber: d.id_number, kraPin: d.kra_pin }) }))
+      const roleOf = (r: { residential_address: unknown }) => ((r.residential_address ?? {}) as { role?: string }).role ?? 'director'
+      const matches = (directors ?? []).filter((r) => roleOf(r) === officerRole).map((r) => ({ r, m: matchPerson(person, { name: r.full_name, idNumber: r.id_number, kraPin: r.kra_pin }) }))
       const hit = matches.find((x) => x.m === 'same') ?? matches.find((x) => x.m === 'possible')
       if (hit) {
-        const ra = (hit.d.residential_address ?? {}) as Record<string, unknown>
+        const ra = (hit.r.residential_address ?? {}) as Record<string, unknown>
+        const locked = !!ra.userReviewed
         const evidence = Array.isArray(ra.evidence) ? [...(ra.evidence as unknown[])] : []
         if (!evidence.some((e) => (e as { documentId?: string }).documentId === source.documentId)) evidence.push(evidenceRef)
+        // A newer current record with a different address keeps the old one
+        // as history (brief §17: older CR8 address stays in history).
+        const prevAddr = ra.structuredAddress as AddressData | undefined
+        const history = Array.isArray(ra.addressHistory) ? [...(ra.addressHistory as unknown[])] : []
+        let structuredAddress = prevAddr
+        if (!locked && d.structuredAddress) {
+          if (!prevAddr) structuredAddress = d.structuredAddress
+          else if (current && formatAddress(prevAddr) !== formatAddress(d.structuredAddress)) {
+            history.push({ address: prevAddr, replacedAt: new Date().toISOString() })
+            structuredAddress = d.structuredAddress
+          }
+        }
         await supabase.from('directors').update({
-          id_number: hit.d.id_number || p.id_number || '',
-          kra_pin: hit.d.kra_pin ?? p.kra_pin,
+          id_number: fill(hit.r.id_number || null, idNumber, locked) ?? '',
+          kra_pin: fill(hit.r.kra_pin, p.kra_pin, locked) ?? null,
+          phone: fill(hit.r.phone, d.phone, locked) ?? null,
+          email: fill(hit.r.email, d.email, locked) ?? null,
+          nationality: fill(hit.r.nationality === 'Kenyan' ? null : hit.r.nationality, d.nationality, locked) ?? hit.r.nationality,
+          appointment_date: fill(hit.r.appointment_date, d.appointmentDate, locked) ?? null,
           residential_address: {
             ...ra,
             evidence,
+            structuredAddress,
+            addressHistory: history.length ? history : undefined,
+            dateOfBirth: fill(ra.dateOfBirth as string | null, d.dateOfBirth, locked),
+            occupation: fill(ra.occupation as string | null, d.occupation, locked),
+            isCorporate: (ra.isCorporate as boolean | undefined) ?? (d.isCorporate || undefined),
+            corporate: ra.corporate ?? corporate,
+            prefilled: locked ? ra.prefilled : [...new Set([...((ra.prefilled as string[]) ?? []), ...prefilledKeys(d, { id: !hit.r.id_number && idNumber, kra: !hit.r.kra_pin && p.kra_pin })])],
             onCurrentRecord: current || ra.onCurrentRecord,
             // Same name, no shared identifier: never silently merged — the
             // card asks the user to confirm it's the same person.
             nameMatchOnly: hit.m === 'possible' && !ra.userReviewed ? true : ra.nameMatchOnly,
           } as Json,
-        }).eq('id', hit.d.id)
+        }).eq('id', hit.r.id)
       } else {
         const id = crypto.randomUUID()
+        const ra = {
+          source: 'ocr', role: officerRole, evidence: [evidenceRef], onCurrentRecord: current, formationOnly: !current,
+          structuredAddress: d.structuredAddress ?? undefined, dateOfBirth: d.dateOfBirth, occupation: d.occupation ?? undefined,
+          isCorporate: d.isCorporate || undefined, corporate,
+          prefilled: prefilledKeys(d, { id: idNumber, kra: p.kra_pin }),
+        }
         const row = {
-          id, entity_id: entityId, organisation_id: orgId, full_name: p.full_name, id_number: p.id_number ?? '', kra_pin: p.kra_pin,
-          residential_address: { source: 'ocr', role: officerRole, evidence: [evidenceRef], onCurrentRecord: current, formationOnly: !current } as Json,
+          id, entity_id: entityId, organisation_id: orgId, full_name: p.full_name, id_number: idNumber ?? '', kra_pin: p.kra_pin,
+          phone: d.phone, email: d.email, nationality: d.nationality ?? 'Kenyan', appointment_date: d.appointmentDate,
+          residential_address: ra as Json,
         }
         await supabase.from('directors').insert(row)
-        directors?.push({ id, full_name: p.full_name, id_number: p.id_number ?? '', kra_pin: p.kra_pin, residential_address: row.residential_address })
+        directors?.push({ ...row, id_number: row.id_number })
       }
     }
 
@@ -1256,26 +1536,53 @@ async function mergePeople(
     // shareholders — formation documents never make someone a current
     // shareholder (brief §17).
     if (current && (p.role === 'shareholder' || p.role === 'both')) {
-      const matches = (shareholders ?? []).map((s) => ({ s, m: matchPerson(person, { name: s.legal_name, idNumber: s.id_or_reg_number, kraPin: s.kra_pin }) }))
+      const matches = (shareholders ?? []).map((sh) => ({ sh, m: matchPerson(person, { name: sh.legal_name, idNumber: sh.id_or_reg_number, kraPin: sh.kra_pin }) }))
       const hit = matches.find((x) => x.m === 'same') ?? matches.find((x) => x.m === 'possible')
       if (hit) {
-        const cd = (hit.s.corporate_details ?? {}) as Record<string, unknown>
+        const cd = (hit.sh.corporate_details ?? {}) as Record<string, unknown>
+        const ad = (hit.sh.address ?? {}) as Record<string, unknown>
+        const locked = !!cd.userReviewed
         const evidence = Array.isArray(cd.evidence) ? [...(cd.evidence as unknown[])] : []
         if (!evidence.some((e) => (e as { documentId?: string }).documentId === source.documentId)) evidence.push(evidenceRef)
         await supabase.from('shareholders').update({
-          id_or_reg_number: hit.s.id_or_reg_number ?? p.id_number,
-          kra_pin: hit.s.kra_pin ?? p.kra_pin,
-          shares_held: p.shares_held ?? hit.s.shares_held,
-          corporate_details: { ...cd, evidence, nameMatchOnly: hit.m === 'possible' && !cd.userReviewed ? true : cd.nameMatchOnly } as Json,
-        }).eq('id', hit.s.id)
+          id_or_reg_number: fill(hit.sh.id_or_reg_number, idNumber, locked) ?? null,
+          kra_pin: fill(hit.sh.kra_pin, p.kra_pin, locked) ?? null,
+          shares_held: locked ? hit.sh.shares_held : p.shares_held ?? hit.sh.shares_held,
+          phone: fill(hit.sh.phone, d.phone, locked) ?? null,
+          email: fill(hit.sh.email, d.email, locked) ?? null,
+          address: {
+            ...ad,
+            structuredAddress: fill(ad.structuredAddress as AddressData | null, d.structuredAddress, locked) ?? undefined,
+            nationality: fill(ad.nationality as string | null, d.nationality, locked) ?? undefined,
+            dateOfBirth: fill(ad.dateOfBirth as string | null, d.dateOfBirth, locked) ?? undefined,
+            occupation: fill(ad.occupation as string | null, d.occupation, locked) ?? undefined,
+            shareClass: fill(ad.shareClass as string | null, d.shareClass, locked) ?? undefined,
+          } as Json,
+          corporate_details: {
+            ...cd,
+            evidence,
+            isCorporate: (cd.isCorporate as boolean | undefined) ?? (d.isCorporate || undefined),
+            corporate: cd.corporate ?? corporate,
+            prefilled: locked ? cd.prefilled : [...new Set([...((cd.prefilled as string[]) ?? []), ...prefilledKeys(d, { id: !hit.sh.id_or_reg_number && idNumber, kra: !hit.sh.kra_pin && p.kra_pin, shares: p.shares_held })])],
+            nameMatchOnly: hit.m === 'possible' && !cd.userReviewed ? true : cd.nameMatchOnly,
+          } as Json,
+        }).eq('id', hit.sh.id)
       } else {
         const id = crypto.randomUUID()
-        await supabase.from('shareholders').insert({
-          id, entity_id: entityId, organisation_id: orgId, legal_name: p.full_name, id_or_reg_number: p.id_number, kra_pin: p.kra_pin,
-          shares_held: p.shares_held ?? 0,
-          corporate_details: { source: 'ocr', evidence: [evidenceRef] } as Json,
-        })
-        shareholders?.push({ id, legal_name: p.full_name, id_or_reg_number: p.id_number, kra_pin: p.kra_pin, shares_held: p.shares_held ?? 0, corporate_details: null })
+        const row = {
+          id, entity_id: entityId, organisation_id: orgId, legal_name: p.full_name, id_or_reg_number: idNumber, kra_pin: p.kra_pin,
+          shares_held: p.shares_held ?? 0, phone: d.phone, email: d.email,
+          address: {
+            structuredAddress: d.structuredAddress ?? undefined, nationality: d.nationality ?? undefined, dateOfBirth: d.dateOfBirth ?? undefined,
+            occupation: d.occupation ?? undefined, shareClass: d.shareClass ?? undefined,
+          } as Json,
+          corporate_details: {
+            source: 'ocr', evidence: [evidenceRef], isCorporate: d.isCorporate || undefined, corporate,
+            prefilled: prefilledKeys(d, { id: idNumber, kra: p.kra_pin, shares: p.shares_held }),
+          } as Json,
+        }
+        await supabase.from('shareholders').insert(row)
+        shareholders?.push(row)
       }
     }
   }
@@ -1284,10 +1591,11 @@ async function mergePeople(
 
 async function mergeBeneficialOwner(
   supabase: SupabaseServer,
-  ctx: { fields: ExtractedFields; source: FieldSource; entityId: string; orgId: string },
+  ctx: { fields: ExtractedFields; source: FieldSource; entityId: string; orgId: string; nationality?: string | null },
 ) {
   const { fields, source, entityId, orgId } = ctx
-  const { data: bos } = await supabase.from('beneficial_owners').select('id, full_name, id_number, kra_pin, residential_address').eq('entity_id', entityId)
+  const nationality = ctx.nationality ? (/^kenya(n)?$/i.test(ctx.nationality.trim()) ? 'Kenyan' : ctx.nationality) : 'Kenyan'
+  const { data: bos } = await supabase.from('beneficial_owners').select('id, full_name, id_number, kra_pin, phone, email, date_of_birth, occupation, nature_of_control, share_percentage, residential_address').eq('entity_id', entityId)
   const person = { name: fields.full_name, idNumber: fields.id_number, kraPin: fields.kra_pin }
   const hit = (bos ?? []).find((b) => matchPerson(person, { name: b.full_name, idNumber: b.id_number, kraPin: b.kra_pin }) !== 'different')
   const control = [
@@ -1297,13 +1605,29 @@ async function mergeBeneficialOwner(
     fields.bo_has_right_to_appoint_director && 'right to appoint/remove a director',
     fields.bo_has_significant_influence && 'significant influence or control',
   ].filter(Boolean).join('; ')
+  const county = fields.county ? KENYA_COUNTIES.find((k) => k.toLowerCase() === fields.county!.replace(/\s*county\s*$/i, '').trim().toLowerCase()) : undefined
+  const address: AddressData = { streetName: fields.address_line1 ?? undefined, city: (fields.city ?? fields.locality) ?? undefined, county, postalAddress: fields.postal_address ?? undefined, postalCode: fields.postal_code ?? undefined }
+  const hasAddress = Object.values(address).some(Boolean)
   const evidenceRef = { documentId: source.documentId, documentType: source.documentType, documentDate: source.documentDate ?? null }
+  const prefilled = [fields.id_number && 'ID', fields.kra_pin && 'KRA PIN', fields.phone && 'phone', fields.email && 'email', hasAddress && 'address', fields.date_of_birth && 'date of birth', fields.occupation && 'occupation', control && 'nature of control'].filter(Boolean)
   if (hit) {
     const ra = (hit.residential_address ?? {}) as Record<string, unknown>
+    const locked = !!ra.userReviewed
     await supabase.from('beneficial_owners').update({
-      id_number: hit.id_number ?? fields.id_number,
-      kra_pin: hit.kra_pin ?? fields.kra_pin,
-      residential_address: { ...ra, evidence: [...((ra.evidence as unknown[]) ?? []), evidenceRef] } as Json,
+      id_number: fill(hit.id_number, fields.id_number, locked) ?? null,
+      kra_pin: fill(hit.kra_pin, fields.kra_pin, locked) ?? null,
+      phone: fill(hit.phone, fields.phone, locked) ?? null,
+      email: fill(hit.email, fields.email, locked) ?? null,
+      date_of_birth: fill(hit.date_of_birth, isoDate(fields.date_of_birth), locked) ?? null,
+      occupation: fill(hit.occupation, fields.occupation, locked) ?? null,
+      nature_of_control: fill(hit.nature_of_control, control || null, locked) ?? null,
+      share_percentage: fill(hit.share_percentage, fields.bo_percent_shares_direct, locked) ?? null,
+      residential_address: {
+        ...ra,
+        structuredAddress: fill(ra.structuredAddress as AddressData | null, hasAddress ? address : null, locked) ?? undefined,
+        evidence: [...((ra.evidence as unknown[]) ?? []), evidenceRef],
+        prefilled: locked ? ra.prefilled : prefilled,
+      } as Json,
     }).eq('id', hit.id)
     return
   }
@@ -1314,12 +1638,14 @@ async function mergeBeneficialOwner(
     full_name: fields.full_name!,
     id_number: fields.id_number,
     kra_pin: fields.kra_pin,
-    nationality: 'Kenyan',
-    date_of_birth: fields.date_of_birth,
+    nationality,
+    date_of_birth: isoDate(fields.date_of_birth),
     occupation: fields.occupation,
+    phone: fields.phone,
+    email: fields.email ? fields.email.toLowerCase() : null,
     nature_of_control: control || null,
     share_percentage: fields.bo_percent_shares_direct ?? null,
     date_became_bo: null,
-    residential_address: { source: 'ocr', evidence: [evidenceRef], asAtFiling: source.documentDate ?? null } as Json,
+    residential_address: { source: 'ocr', evidence: [evidenceRef], asAtFiling: source.documentDate ?? null, structuredAddress: hasAddress ? address : undefined, prefilled } as Json,
   })
 }

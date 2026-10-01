@@ -187,7 +187,7 @@ export function packFor(pack: DocSpec[], ctx: PackContext) {
 
 export function documentGaps(pack: DocSpec[], ctx: PackContext, uploadedTypes: Set<string>, unavailable: string[] = []): DocumentGap[] {
   return packFor(pack, ctx)
-    .filter((d) => d.priority !== 'conditional' || d.missing.impact !== 'conditional')
+    .filter((d) => d.missing.impact !== 'conditional')
     .filter((d) => !uploadedTypes.has(d.documentType) && d.documentType !== 'other')
     .map((spec) => ({ spec, declaredUnavailable: unavailable.includes(spec.documentType) }))
 }

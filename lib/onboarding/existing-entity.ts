@@ -86,6 +86,8 @@ export type EntityFieldKey =
   | 'postalAddress'
   | 'nominalCapital'
   | 'natureOfBusiness'
+  | 'phone'
+  | 'email'
 
 export type EntityFieldSpec = { key: EntityFieldKey; label: string; ocr: string; material: boolean }
 
@@ -98,6 +100,8 @@ export const ENTITY_FIELDS: EntityFieldSpec[] = [
   { key: 'county', label: 'County', ocr: 'county', material: false },
   { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
   { key: 'nominalCapital', label: 'Nominal share capital (KES)', ocr: 'nominal_share_capital', material: true },
+  { key: 'phone', label: 'Office telephone', ocr: 'phone', material: false },
+  { key: 'email', label: 'Office email', ocr: 'email', material: false },
 ]
 
 // Business Name: no share capital, no company PIN — tax identity is the
@@ -121,6 +125,8 @@ export const PARTNERSHIP_FIELDS: EntityFieldSpec[] = [
   { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
   { key: 'natureOfBusiness', label: 'Nature of business', ocr: 'nature_of_business', material: false },
   { key: 'kraPin', label: 'Partnership KRA PIN', ocr: 'kra_pin', material: false },
+  { key: 'phone', label: 'Office telephone', ocr: 'phone', material: false },
+  { key: 'email', label: 'Office email', ocr: 'email', material: false },
 ]
 
 export const LLP_FIELDS: EntityFieldSpec[] = [
@@ -132,6 +138,8 @@ export const LLP_FIELDS: EntityFieldSpec[] = [
   { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
   { key: 'natureOfBusiness', label: 'Principal business activities', ocr: 'nature_of_business', material: false },
   { key: 'kraPin', label: 'LLP KRA PIN', ocr: 'kra_pin', material: false },
+  { key: 'phone', label: 'Office telephone', ocr: 'phone', material: false },
+  { key: 'email', label: 'Office email', ocr: 'email', material: false },
 ]
 
 export function entityFieldsFor(entityType: EntityType | undefined): EntityFieldSpec[] {
@@ -289,6 +297,16 @@ export const LIMITED_COMPANY_PACK: DocSpec[] = [
     missing: { impact: 'medium', behaviour: 'We’ll ask when the last annual return was filed instead.' },
   },
   {
+    documentType: 'identity_documents',
+    title: 'IDs, passports & KRA PIN certificates (everyone)',
+    hint: 'Drop them all here — each one is matched to the right person and fills in their ID, KRA PIN and date of birth before you reach the people screens.',
+    priority: 'recommended',
+    treatment: 'operational',
+    rank: 6,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'People without an ID on file stay “identity unverified”.' },
+  },
+  {
     documentType: 'other',
     title: 'Other documents',
     hint: 'Articles, resolutions, permits or anything else you’d like on file.',
@@ -358,6 +376,16 @@ export const SOLE_PROPRIETORSHIP_PACK: DocSpec[] = [
     rank: 6,
     multiple: true,
     missing: { impact: 'conditional', behaviour: 'Only needed for regulated activities.' },
+  },
+  {
+    documentType: 'identity_documents',
+    title: 'IDs, passports & KRA PIN certificates (everyone)',
+    hint: 'Drop them all here — each one is matched to the right person and fills in their ID, KRA PIN and date of birth before you reach the people screens.',
+    priority: 'recommended',
+    treatment: 'operational',
+    rank: 6,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'People without an ID on file stay “identity unverified”.' },
   },
   {
     documentType: 'other',
@@ -446,6 +474,16 @@ export const PARTNERSHIP_PACK: DocSpec[] = [
     rank: 7,
     multiple: true,
     missing: { impact: 'conditional', behaviour: 'Only needed for regulated activities.' },
+  },
+  {
+    documentType: 'identity_documents',
+    title: 'IDs, passports & KRA PIN certificates (everyone)',
+    hint: 'Drop them all here — each one is matched to the right person and fills in their ID, KRA PIN and date of birth before you reach the people screens.',
+    priority: 'recommended',
+    treatment: 'operational',
+    rank: 6,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'People without an ID on file stay “identity unverified”.' },
   },
   {
     documentType: 'other',
@@ -558,6 +596,16 @@ export const LLP_PACK: DocSpec[] = [
     treatment: 'identity_anchor',
     rank: 6,
     missing: { impact: 'low', behaviour: 'Recorded as not provided — we never invent a PIN.' },
+  },
+  {
+    documentType: 'identity_documents',
+    title: 'IDs, passports & KRA PIN certificates (everyone)',
+    hint: 'Drop them all here — each one is matched to the right person and fills in their ID, KRA PIN and date of birth before you reach the people screens.',
+    priority: 'recommended',
+    treatment: 'operational',
+    rank: 6,
+    multiple: true,
+    missing: { impact: 'conditional', behaviour: 'People without an ID on file stay “identity unverified”.' },
   },
   {
     documentType: 'other',
@@ -842,6 +890,8 @@ export type ExistingWizardData = {
   postalAddress?: string
   nominalCapital?: string
   natureOfBusiness?: string
+  phone?: string
+  email?: string
   partnershipKind?: 'general' | 'limited' | 'llp'
   // Structured rules from the governing instrument, keyed by the type's
   // agreement-field keys. Silence is recorded, never filled in.
