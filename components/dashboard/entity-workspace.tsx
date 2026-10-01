@@ -11,9 +11,11 @@ import {
   IconDownload,
   IconArrowUpRight,
   IconCheck,
+  IconHierarchy2,
 } from '@tabler/icons-react'
 import { REGISTRATION_STAGES, registrationStageIndex } from '@/lib/onboarding/registration-status'
 import { DocumentVaultTree } from '@/components/dashboard/document-vault-tree'
+import { OwnershipStructure, type StructureHolder, type StructureOfficer } from '@/components/dashboard/ownership-structure'
 
 type WorkspaceEntity = {
   id: string
@@ -53,13 +55,32 @@ type WorkspaceDocument = {
   tags?: Array<{ person?: string; personId?: string; role?: string }> | null
 }
 
-type WorkspacePerson = { id: string; name: string; kraPin?: string | null; email?: string | null; phone?: string | null }
-type WorkspaceShareholder = { id: string; name: string; shares: number; percentage: number | null }
+type SourceRef = { documentType: string | null; documentDate: string | null }
 
-type TabId = 'overview' | 'compliance' | 'documents' | 'people'
+type WorkspacePerson = {
+  id: string; name: string; kraPin?: string | null; email?: string | null; phone?: string | null
+  idNumber?: string | null; nationality?: string | null; role?: string; isCorporate?: boolean
+  appointmentDate?: string | null; dateOfBirth?: string | null; occupation?: string | null; address?: string | null
+  profitShare?: string | null; contribution?: string | null; isManagingPartner?: boolean; signingAuthority?: string | null
+  cessationDate?: string | null; cessationReason?: string | null; sources?: SourceRef[]
+}
+type WorkspaceShareholder = {
+  id: string; name: string; shares: number; percentage: number | null
+  idNumber?: string | null; kraPin?: string | null; email?: string | null; phone?: string | null
+  isCorporate?: boolean; isNominee?: boolean; shareClass?: string | null; nationality?: string | null
+  dateOfBirth?: string | null; address?: string | null; sources?: SourceRef[]
+}
+type WorkspaceBeneficialOwner = {
+  id: string; name: string; idNumber: string | null; kraPin: string | null; email: string | null; phone: string | null
+  nationality: string | null; dateOfBirth: string | null; occupation: string | null
+  natureOfControl: string | null; percentage: number | null; since: string | null; address: string | null; sources?: SourceRef[]
+}
+
+type TabId = 'overview' | 'structure' | 'compliance' | 'documents' | 'people'
 
 const TABS: Array<{ id: TabId; label: string; icon: typeof IconLayoutDashboard }> = [
   { id: 'overview', label: 'Overview', icon: IconLayoutDashboard },
+  { id: 'structure', label: 'Structure', icon: IconHierarchy2 },
   { id: 'compliance', label: 'Compliance', icon: IconCalendarTime },
   { id: 'documents', label: 'Document Vault', icon: IconFiles },
   { id: 'people', label: 'People', icon: IconUsers },
@@ -461,6 +482,98 @@ function DocumentsTab({ documents }: { documents: WorkspaceDocument[] }) {
   )
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  director: 'Director', secretary: 'Company Secretary', proprietor: 'Proprietor', partner: 'Partner',
+  manager: 'Manager', authorised_person: 'Authorised person', trustee: 'Trustee',
+}
+
+function StructureTab({ entity, directors, shareholders, beneficialOwners }: {
+  entity: WorkspaceEntity
+  directors: WorkspacePerson[]
+  shareholders: WorkspaceShareholder[]
+  beneficialOwners: WorkspaceBeneficialOwner[]
+}) {
+  const current = directors.filter((d) => !d.cessationDate)
+  const t = entity.typeLabel
+  const partnerType = t === 'Partnership' || t === 'LLP'
+  const soleProp = t === 'Sole Proprietorship'
+
+  // Who holds the entity: shareholders for a company, partners (with
+  // their profit share) for a partnership/LLP, the proprietor otherwise.
+  const holders: StructureHolder[] = partnerType
+    ? current.filter((d) => d.role === 'partner').map((d) => ({
+        id: d.id, name: d.name, isCorporate: !!d.isCorporate,
+        stake: d.profitShare ? `${d.profitShare}%` : null,
+        detail: [d.isManagingPartner && 'Managing partner', d.contribution && `Capital ${d.contribution}`].filter(Boolean).join(' · ') || null,
+      }))
+    : soleProp
+      ? current.filter((d) => d.role === 'proprietor').map((d) => ({ id: d.id, name: d.name, isCorporate: false, stake: '100%', detail: 'Owns and controls the business' }))
+      : shareholders.map((s) => ({
+          id: s.id, name: s.name, isCorporate: !!s.isCorporate, isNominee: s.isNominee,
+          stake: s.percentage != null ? `${s.percentage}%` : null,
+          detail: `${s.shares.toLocaleString()} ${s.shareClass ? s.shareClass.toLowerCase() : ''} shares`.replace(/\s+/g, ' '),
+        }))
+  const officers: StructureOfficer[] = current
+    .filter((d) => !(partnerType && d.role === 'partner') && !(soleProp && d.role === 'proprietor'))
+    .map((d) => ({ id: d.id, name: d.name, role: ROLE_LABEL[d.role ?? 'director'] ?? 'Officer' }))
+  const owners = beneficialOwners.map((b) => ({ id: b.id, name: b.name, control: b.natureOfControl }))
+  const holderNoun = partnerType ? 'Partners' : soleProp ? 'Proprietor' : 'Shareholders'
+
+  if (holders.length === 0 && officers.length === 0) {
+    return (
+      <div className={`${CARD} py-10 text-center`}>
+        <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>No structure recorded yet</p>
+        <p className="text-ios-footnote mt-1" style={{ color: 'var(--system-label-2)' }}>It appears here once people and holdings are captured.</p>
+      </div>
+    )
+  }
+
+  const total = shareholders.reduce((sum, s) => sum + s.shares, 0)
+  return (
+    <div className="space-y-4">
+      <OwnershipStructure entityName={entity.name} typeLabel={entity.typeLabel} holders={holders} holderNoun={holderNoun} officers={officers} owners={owners} />
+
+      {!partnerType && !soleProp && shareholders.length > 0 && (
+        <div className={CARD}>
+          <p className="text-ios-subhead font-semibold mb-2" style={{ color: 'var(--system-label)' }}>Share register</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-ios-footnote">
+              <thead>
+                <tr style={{ color: 'var(--system-label-3)' }}>
+                  <th className="py-1.5 pr-3 font-medium">Holder</th>
+                  <th className="py-1.5 pr-3 font-medium">Class</th>
+                  <th className="py-1.5 pr-3 font-medium text-right">Shares</th>
+                  <th className="py-1.5 font-medium text-right">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shareholders.map((s) => (
+                  <tr key={s.id} className="border-t" style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label)' }}>
+                    <td className="py-2 pr-3">{s.name}{s.isCorporate && <span className="ml-1.5 text-ios-caption2" style={{ color: 'var(--system-label-3)' }}>corporate</span>}{s.isNominee && <span className="ml-1.5 text-ios-caption2" style={{ color: 'var(--system-label-3)' }}>nominee</span>}</td>
+                    <td className="py-2 pr-3">{s.shareClass ?? 'Ordinary'}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{s.shares.toLocaleString()}</td>
+                    <td className="py-2 text-right tabular-nums">{s.percentage != null ? `${s.percentage}%` : '—'}</td>
+                  </tr>
+                ))}
+                <tr className="border-t font-semibold" style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label)' }}>
+                  <td className="py-2 pr-3" colSpan={2}>Total issued</td>
+                  <td className="py-2 pr-3 text-right tabular-nums">{total.toLocaleString()}</td>
+                  <td className="py-2 text-right tabular-nums">100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {beneficialOwners.length === 0 && !soleProp && t !== 'Partnership' && (
+        <p className="text-ios-caption1 px-1" style={{ color: 'var(--system-label-3)' }}>
+          No beneficial owners recorded. Shareholders aren’t automatically beneficial owners — add them from onboarding or ask us to review.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function PeopleTab({ directors, shareholders }: { directors: WorkspacePerson[]; shareholders: WorkspaceShareholder[] }) {
   if (directors.length === 0 && shareholders.length === 0) {
     return (
@@ -503,6 +616,7 @@ export function EntityWorkspace({
   documents,
   directors,
   shareholders,
+  beneficialOwners = [],
   canManageStatus,
 }: {
   entity: WorkspaceEntity
@@ -510,6 +624,7 @@ export function EntityWorkspace({
   documents: WorkspaceDocument[]
   directors: WorkspacePerson[]
   shareholders: WorkspaceShareholder[]
+  beneficialOwners?: WorkspaceBeneficialOwner[]
   canManageStatus: boolean
 }) {
   const [tab, setTab] = useState<TabId>('overview')
@@ -527,6 +642,7 @@ export function EntityWorkspace({
         onNavigate={setTab}
       />
     ),
+    structure: <StructureTab entity={entity} directors={directors} shareholders={shareholders} beneficialOwners={beneficialOwners} />,
     compliance: <ComplianceTab events={events} />,
     documents: <DocumentsTab documents={documents} />,
     people: <PeopleTab directors={directors} shareholders={shareholders} />,
@@ -595,7 +711,7 @@ export function EntityWorkspace({
 
       {/* ---- Mobile bottom tab bar ---- */}
       <nav
-        className="fixed inset-x-4 bottom-4 z-20 grid grid-cols-4 rounded-[28px] bg-white px-2 py-1.5 shadow-[0_8px_30px_rgba(26,26,46,0.12)] md:hidden"
+        className="fixed inset-x-4 bottom-4 z-20 grid grid-cols-5 rounded-[28px] bg-white px-2 py-1.5 shadow-[0_8px_30px_rgba(26,26,46,0.12)] md:hidden"
       >
         {TABS.map((t) => {
           const selected = tab === t.id
