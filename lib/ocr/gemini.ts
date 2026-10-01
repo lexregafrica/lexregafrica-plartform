@@ -13,7 +13,7 @@ export type ExtractedPerson = {
   kra_pin: string | null
   // 'subscriber' = founding subscriber on a CR2 memorandum; 'secretary' =
   // company secretary on a CR12 / secretary form
-  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'manager' | 'member' | 'unknown'
+  role: 'director' | 'shareholder' | 'both' | 'secretary' | 'subscriber' | 'proprietor' | 'partner' | 'manager' | 'member' | 'officer' | 'trustee' | 'auditor' | 'unknown'
   shares_held: number | null
   // Every other particular the document prints for this person — CR12s,
   // CR8s, BOF1s and LLP/partnership records carry these, and the person
@@ -33,6 +33,7 @@ export type ExtractedPerson = {
   is_corporate?: boolean | null // the holder is a company / body corporate
   corporate_registration_number?: string | null
   appointment_date?: string | null // YYYY-MM-DD
+  title?: string | null // office title as printed, e.g. Chairperson, Treasurer
 }
 
 export type ExtractedShareClass = {
@@ -60,6 +61,8 @@ export type ExtractedFields = {
     | 'llp1' // LLP registration application
     | 'cr3' // memorandum — company limited by guarantee
     | 'cr29' // company annual return
+    | 'society_certificate' // Form C registration / Form D exemption
+    | 'form_a' | 'form_b' | 'form_h' | 'form_i' // Societies Rules forms
     | 'llp9' // LLP statement of change
     | 'other'
   full_name: string | null
@@ -111,7 +114,7 @@ const RESPONSE_SCHEMA = {
       enum: [
         'national_id', 'passport', 'kra_pin_certificate', 'proof_of_address',
         'business_registration', 'certificate_of_incorporation', 'cr12',
-        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'cr13', 'bn2', 'llp1', 'llp9', 'cr3', 'cr29', 'other',
+        'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'cr13', 'bn2', 'llp1', 'llp9', 'cr3', 'cr29', 'society_certificate', 'form_a', 'form_b', 'form_h', 'form_i', 'other',
       ],
     },
     full_name: { type: 'STRING', nullable: true },
@@ -160,7 +163,7 @@ const RESPONSE_SCHEMA = {
           full_name: { type: 'STRING' },
           id_number: { type: 'STRING', nullable: true },
           kra_pin: { type: 'STRING', nullable: true },
-          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'member', 'unknown'] },
+          role: { type: 'STRING', enum: ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'member', 'officer', 'trustee', 'auditor', 'unknown'] },
           shares_held: { type: 'NUMBER', nullable: true },
           share_class: { type: 'STRING', nullable: true },
           nationality: { type: 'STRING', nullable: true },
@@ -176,6 +179,7 @@ const RESPONSE_SCHEMA = {
           is_corporate: { type: 'BOOLEAN', nullable: true },
           corporate_registration_number: { type: 'STRING', nullable: true },
           appointment_date: { type: 'STRING', nullable: true },
+          title: { type: 'STRING', nullable: true },
         },
         required: ['full_name', 'role'],
       },
@@ -195,7 +199,9 @@ BOF1 (beneficial ownership register filing), Statement of Nominal Capital, a
 business-name Certificate of Registration (business_registration), a business-name
 Official Search (cr13), a BN2 business-name application (bn2), an LLP registration application (llp1),
 an LLP statement of change (llp9), a CR3 memorandum for a company limited by guarantee
-(cr3), a CR29 company annual return (cr29), or another business
+(cr3), a CR29 company annual return (cr29), a society's Certificate of Registration
+(Form C) or Exemption (Form D) (society_certificate), a Societies Rules Form A, B, H or I
+(form_a / form_b / form_h / form_i), or another business
 registration document.
 
 Extract exactly these fields. Use null when a field is not present in the document.
@@ -253,7 +259,9 @@ Extract exactly these fields. Use null when a field is not present in the docume
   subscriber), and on its CR29 annual return or member register every member (role
   member) with their guarantee amount in shares_held (if the document states one
   amount for every member, put it on each member); someone who is both a director and
-  a member gets role both —
+  a member gets role both; for a society (Form A, Form H, Form I, certificate) every
+  officer (role officer, with their office in title — Chairperson, Secretary,
+  Treasurer, etc.), trustee (role trustee) and auditor (role auditor) —
   full name, ID or passport number, KRA PIN, role (director / shareholder / both),
   number of shares held and share class, and EVERY other particular printed for that
   person: nationality, date_of_birth (YYYY-MM-DD), occupation, phone, email, their
@@ -357,7 +365,7 @@ bo_has_significant_influence, people, confidence.
 Each people entry is an object with keys: full_name, id_number, kra_pin, role, shares_held,
 share_class, nationality, date_of_birth, occupation, phone, email, address_line1, city,
 county, postal_address, postal_code, is_corporate, corporate_registration_number,
-appointment_date.
+appointment_date, title.
 document_kind must be one of: ${(RESPONSE_SCHEMA.properties.document_kind.enum as string[]).join(', ')}.`
 
 async function extractWithGroq(bytes: Uint8Array, mimeType: string): Promise<ExtractionResult> {
@@ -415,12 +423,15 @@ async function extractWithGroq(bytes: Uint8Array, mimeType: string): Promise<Ext
 
 // Text models sometimes return free-text roles ("director, member",
 // "Director/Shareholder"); map them onto the schema's roles.
-const ROLES = ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'member', 'unknown'] as const
+const ROLES = ['director', 'shareholder', 'both', 'secretary', 'subscriber', 'proprietor', 'partner', 'manager', 'member', 'officer', 'trustee', 'auditor', 'unknown'] as const
 function normaliseRole(role: unknown): ExtractedPerson['role'] {
   const r = String(role ?? '').toLowerCase()
   if ((ROLES as readonly string[]).includes(r)) return r as ExtractedPerson['role']
   const has = (w: string) => r.includes(w)
   if (has('director') && (has('shareholder') || has('member'))) return 'both'
+  if (has('chair') || has('treasurer') || has('officer') || has('patron') || has('organising')) return 'officer'
+  if (has('trustee')) return 'trustee'
+  if (has('auditor')) return 'auditor'
   if (has('secretary')) return 'secretary'
   if (has('manager')) return 'manager'
   if (has('partner')) return 'partner'

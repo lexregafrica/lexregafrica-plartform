@@ -35,6 +35,8 @@ export const EXISTING_STEP_LABELS: Record<number, string> = {
 // its Partnership Agreement (General Partnership brief §4).
 export function stepsFor(entityType: EntityType | undefined): number[] {
   if (entityType === 'sole_proprietorship') return [1, 2, 3, 4, 6, 7]
+  // Society: constitution-driven, no company-style BO step (Society brief §13)
+  if (entityType === 'society') return [1, 2, 3, 4, 8, 6, 7]
   if (entityType === 'limited_liability_partnership' || entityType === 'company_limited_by_guarantee') return [1, 2, 3, 4, 8, 5, 6, 7]
   return [1, 2, 3, 4, 5, 6, 7]
 }
@@ -48,6 +50,11 @@ export function stepLabel(entityType: EntityType | undefined, step: number): str
     if (step === 3) return 'Confirm Partnership Details'
     if (step === 4) return 'Partners'
     if (step === 5) return 'Partnership Agreement'
+  }
+  if (entityType === 'society') {
+    if (step === 3) return 'Confirm Society Details'
+    if (step === 4) return 'Officers & Members'
+    if (step === 8) return 'Constitution'
   }
   if (entityType === 'company_limited_by_guarantee') {
     if (step === 4) return 'Directors & Members'
@@ -63,7 +70,7 @@ export function stepLabel(entityType: EntityType | undefined, step: number): str
 
 // Noun used in headings and copy
 export function entityNounFor(entityType: EntityType | undefined): string {
-  return entityType === 'sole_proprietorship' ? 'business' : entityType === 'partnership' ? 'partnership' : entityType === 'limited_liability_partnership' ? 'LLP' : 'company'
+  return entityType === 'sole_proprietorship' ? 'business' : entityType === 'partnership' ? 'partnership' : entityType === 'limited_liability_partnership' ? 'LLP' : entityType === 'society' ? 'society' : 'company'
 }
 
 // Entity types with a built existing-entity workflow. Others show "coming
@@ -160,8 +167,28 @@ export const CLG_FIELDS: EntityFieldSpec[] = [
   { key: 'email', label: 'Office email', ocr: 'email', material: false },
 ]
 
+export const SOCIETY_FIELDS: EntityFieldSpec[] = [
+  { key: 'legalName', label: 'Registered name', ocr: 'business_name', material: true },
+  { key: 'registrationNumber', label: 'Registration / exemption number', ocr: 'registration_number', material: true },
+  { key: 'dateIncorporated', label: 'Date of registration', ocr: 'date_of_incorporation', material: true },
+  { key: 'addressLine1', label: 'Registered office', ocr: 'address_line1', material: true },
+  { key: 'county', label: 'County', ocr: 'county', material: false },
+  { key: 'postalAddress', label: 'Postal address', ocr: 'postal_address', material: false },
+  { key: 'natureOfBusiness', label: 'Objects', ocr: 'nature_of_business', material: false },
+  { key: 'kraPin', label: 'Society KRA PIN', ocr: 'kra_pin', material: false },
+  { key: 'phone', label: 'Telephone', ocr: 'phone', material: false },
+  { key: 'email', label: 'Email', ocr: 'email', material: false },
+]
+
+// Society brief §1: registered and exempted are distinct statuses
+export const SOCIETY_STATUSES: Array<{ value: 'registered' | 'exempted'; label: string; description: string }> = [
+  { value: 'registered', label: 'Registered society', description: 'Holds a Certificate of Registration (Form C).' },
+  { value: 'exempted', label: 'Exempted from registration', description: 'Holds a Certificate of Exemption (Form D).' },
+]
+
 export function entityFieldsFor(entityType: EntityType | undefined): EntityFieldSpec[] {
   switch (entityType) {
+    case 'society': return SOCIETY_FIELDS
     case 'company_limited_by_guarantee': return CLG_FIELDS
     case 'sole_proprietorship': return SOLE_PROPRIETORSHIP_FIELDS
     case 'partnership': return PARTNERSHIP_FIELDS
@@ -740,7 +767,105 @@ export const CLG_PACK: DocSpec[] = [
   },
 ]
 
+// Constitution → structured rules (Society brief §4)
+export const SOCIETY_CONSTITUTION_FIELDS: Array<{ key: string; label: string; hint: string }> = [
+  { key: 'objects', label: 'Name & objects', hint: 'the name and complete objects/purposes' },
+  { key: 'membership', label: 'Membership', hint: 'eligibility and classes, admission, subscriptions, suspension/expulsion and member rights' },
+  { key: 'officers', label: 'Officers', hint: 'office titles, qualifications, terms, election/appointment, removal and vacancies' },
+  { key: 'trustees_auditors', label: 'Trustees & auditors', hint: 'roles, terms, appointment/removal and functions' },
+  { key: 'committees', label: 'Committees', hint: 'composition, terms, appointment/election and vacancies' },
+  { key: 'general_meetings', label: 'General meetings', hint: 'AGM and other meetings: frequency, notice, quorum, voting and elections' },
+  { key: 'funds_property', label: 'Funds & property', hint: 'custody, investment, signatories, permitted use and non-distribution' },
+  { key: 'accounts_audit', label: 'Accounts & audit', hint: 'books and financial records, annual or periodic audit' },
+  { key: 'branches', label: 'Branches', hint: 'whether and how branches may be formed and governed' },
+  { key: 'amendments', label: 'Amendments', hint: 'procedure to change the name, constitution/rules or objects' },
+  { key: 'dissolution', label: 'Dissolution', hint: 'procedure and what happens to the society’s property' },
+]
+
+// Society brief §2 + §10; ranks per §8
+export const SOCIETY_PACK: DocSpec[] = [
+  {
+    documentType: 'society_certificate', title: 'Certificate of Registration (Form C) or Exemption (Form D)',
+    hint: 'Registered name, number, status and date.',
+    priority: 'primary', treatment: 'identity_anchor', rank: 5,
+    missing: { impact: 'high', behaviour: 'The society’s identity and status can’t be marked registry-verified.' },
+  },
+  {
+    documentType: 'constitution', title: 'Constitution / Rules (and amendments)',
+    hint: 'Objects, membership, officers, meetings, funds, audit, amendments and dissolution — read into your governance rules.',
+    priority: 'strong', treatment: 'governance', rank: 4, multiple: true,
+    missing: { impact: 'critical', behaviour: 'Only limited identity onboarding is possible — governance can’t be reconstructed without the constitution.' },
+  },
+  {
+    documentType: 'form_i', title: 'Latest annual return (Form I)',
+    hint: 'AGM date, member count, officers and changes for the last calendar year.',
+    priority: 'strong', treatment: 'compliance', rank: 3,
+    missing: { impact: 'high', behaviour: 'The annual-return position and current officers stay unverified.' },
+  },
+  {
+    documentType: 'society_search', title: 'Current official search / certified registry extract',
+    hint: 'What the Registrar currently holds — if you have one.',
+    priority: 'recommended', treatment: 'current_state', rank: 2,
+    missing: { impact: 'medium', behaviour: 'Onboarding continues provisionally — registry-currentness stays unverified.' },
+  },
+  {
+    documentType: 'agm_minutes', title: 'AGM / election minutes',
+    hint: 'Elections of officers, trustees, auditors and committees, and approval of accounts.',
+    priority: 'strong', treatment: 'governance', rank: 5, multiple: true,
+    missing: { impact: 'high', behaviour: 'Officers can’t be shown as validly elected from a list alone.' },
+  },
+  {
+    documentType: 'audited_accounts', title: 'Audited accounts / financial statements',
+    hint: 'Annual accounts rendered at the AGM.',
+    priority: 'recommended', treatment: 'compliance', rank: 5, multiple: true,
+    missing: { impact: 'high', behaviour: 'A financial and audit records gap is opened.' },
+  },
+  {
+    documentType: 'form_h', title: 'Form H — officer / title changes',
+    hint: 'Notices of changes in officers or their titles.',
+    priority: 'conditional', treatment: 'change', rank: 3, multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Only where officers have changed.' },
+  },
+  {
+    documentType: 'form_b', title: 'Form B — registered office / postal address',
+    hint: 'Original address notice and later changes.',
+    priority: 'recommended', treatment: 'change', rank: 3, multiple: true,
+    missing: { impact: 'low', behaviour: 'Address history noted as incomplete.' },
+  },
+  {
+    documentType: 'form_a', title: 'Form A — original application',
+    hint: 'Formation-state objects, officers and membership. Kept as history.',
+    priority: 'recommended', treatment: 'formation', rank: 6,
+    missing: { impact: 'low', behaviour: 'Formation record noted as unavailable.' },
+  },
+  {
+    documentType: 'member_register', title: 'Member register',
+    hint: 'Current and past members — kept access-controlled, never shown as a public list.',
+    priority: 'recommended', treatment: 'current_state', rank: 5,
+    missing: { impact: 'medium', behaviour: 'A records gap is flagged; we don’t make up membership data.' },
+  },
+  {
+    documentType: 'property_records', title: 'Property / title records',
+    hint: 'Land, premises or other property held by the society or its trustees.',
+    priority: 'conditional', treatment: 'operational', rank: 6, multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Only where the society holds property.' },
+  },
+  {
+    documentType: 'identity_documents', title: 'IDs, passports & KRA PIN certificates (officers)',
+    hint: 'Drop them all here — each is matched to the right officer and fills in their details.',
+    priority: 'recommended', treatment: 'operational', rank: 6, multiple: true,
+    missing: { impact: 'conditional', behaviour: 'Officers without an ID on file stay “identity unverified”.' },
+  },
+  {
+    documentType: 'other', title: 'Other documents',
+    hint: 'Registrar correspondence, licences or anything else.',
+    priority: 'conditional', treatment: 'operational', rank: 7, multiple: true,
+    missing: { impact: 'conditional', behaviour: '' },
+  },
+]
+
 export const EXISTING_DOC_PACKS: Partial<Record<EntityType, DocSpec[]>> = {
+  society: SOCIETY_PACK,
   company_limited_by_guarantee: CLG_PACK,
   limited_liability_partnership: LLP_PACK,
   limited_company: LIMITED_COMPANY_PACK,
@@ -766,6 +891,15 @@ const BUSINESS_NAME_KIND_MAP: Record<string, string> = {
 }
 export const OCR_KIND_TO_DOC_TYPE = COMPANY_KIND_MAP
 
+const SOCIETY_KIND_MAP: Record<string, string> = {
+  society_certificate: 'society_certificate',
+  business_registration: 'society_certificate',
+  certificate_of_incorporation: 'society_certificate',
+  form_a: 'form_a',
+  form_b: 'form_b',
+  form_h: 'form_h',
+  form_i: 'form_i',
+}
 const CLG_KIND_MAP: Record<string, string> = {
   certificate_of_incorporation: 'certificate_of_incorporation',
   cr12: 'cr12',
@@ -787,6 +921,7 @@ const LLP_KIND_MAP: Record<string, string> = {
 export function ocrKindToDocType(entityType: EntityType | undefined, kind: string): string | undefined {
   if (entityType === 'limited_liability_partnership') return LLP_KIND_MAP[kind]
   if (entityType === 'company_limited_by_guarantee') return CLG_KIND_MAP[kind]
+  if (entityType === 'society') return SOCIETY_KIND_MAP[kind]
   return (entityType === 'sole_proprietorship' || entityType === 'partnership' ? BUSINESS_NAME_KIND_MAP : COMPANY_KIND_MAP)[kind]
 }
 
@@ -1042,7 +1177,44 @@ export const CLG_BASELINE: BaselineQuestion[] = [
   },
 ]
 
+// Society brief §11 — Act, constitution and Registrar process kept apart
+export const SOCIETY_BASELINE: BaselineQuestion[] = [
+  {
+    key: 'agm_held', question: 'Was an annual general meeting held in the last 12 months, with accounts presented and officers elected as the constitution requires?', taskOn: 'no_or_unsure',
+    task: { title: 'Hold the AGM', description: 'Every registered society must hold a general meeting at least once a year, invite all members, present audited accounts and elect the officers, trustees, auditors and committees its constitution requires.', category: 'governance', dueInDays: 60 },
+  },
+  {
+    key: 'form_i_filed', question: 'Was last year’s annual return (Form I) filed by 31 March?', taskOn: 'no_or_unsure',
+    task: { title: 'File the annual return (Form I)', description: 'Form I covers the preceding calendar year, is signed by three officers, and is due by 31 March.', category: 'annual_return', dueInDays: 30 },
+  },
+  {
+    key: 'officers_changed', question: 'Have any officers, or their titles, changed without a Form H being filed?', taskOn: 'yes',
+    task: { title: 'Notify officer changes (Form H)', description: 'Officer and title changes are notified to the Registrar on Form H.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'address_changed', question: 'Has the registered office or postal address changed without a Form B?', taskOn: 'yes',
+    task: { title: 'Notify the address change (Form B)', description: 'Registered office and postal address changes are notified on Form B.', category: 'regularisation', dueInDays: 14 },
+  },
+  {
+    key: 'constitution_changed', question: 'Has the constitution, name or objects been changed?', taskOn: 'yes',
+    task: { title: 'Regularise the constitutional change', description: 'Constitution, name and object changes follow the constitution’s own procedure and the Registrar’s process — upload the approval or ask us to help.', category: 'legal_review', dueInDays: 30 },
+  },
+  {
+    key: 'officer_dispute', question: 'Is there any dispute about who the society’s lawful officers are (e.g. rival officer lists or a contested election)?', taskOn: 'yes',
+    task: { title: 'Officer dispute — Registrar / legal review', description: 'We keep both sets of evidence and don’t decide which side is lawful. A legal review and, if needed, the Registrar’s dispute process follow.', category: 'legal_review', dueInDays: 7 },
+  },
+  {
+    key: 'register_kept', question: 'Is a member register kept up to date?', taskOn: 'no_or_unsure',
+    task: { title: 'Bring the member register up to date', description: 'A society must keep a register of members and proper books and records.', category: 'records', dueInDays: 30 },
+  },
+  {
+    key: 'employs_staff', question: 'Does the society employ staff?', taskOn: 'yes',
+    task: { title: 'Set up employment compliance', description: 'PAYE, NSSF, SHIF and Housing Levy obligations apply once you employ staff.', category: 'employment', dueInDays: 30 },
+  },
+]
+
 export const EXISTING_BASELINES: Partial<Record<EntityType, BaselineQuestion[]>> = {
+  society: SOCIETY_BASELINE,
   company_limited_by_guarantee: CLG_BASELINE,
   limited_liability_partnership: LLP_BASELINE,
   limited_company: LIMITED_COMPANY_BASELINE,
@@ -1070,6 +1242,7 @@ export type ExistingWizardData = {
   phone?: string
   email?: string
   partnershipKind?: 'general' | 'limited' | 'llp'
+  societyStatus?: 'registered' | 'exempted'
   // Structured rules from the governing instrument, keyed by the type's
   // agreement-field keys. Silence is recorded, never filled in.
   governance?: Record<string, GovernanceRuleRecord>

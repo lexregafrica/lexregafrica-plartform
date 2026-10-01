@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
 import {
-  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, CLG_ARTICLES_FIELDS, EXISTING_REVIEW_STEP,
+  EXISTING_TOTAL_STEPS, EXISTING_DOC_PACKS, EXISTING_BASELINES, entityFieldsFor, ocrKindToDocType, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, CLG_ARTICLES_FIELDS, SOCIETY_CONSTITUTION_FIELDS, EXISTING_REVIEW_STEP,
   LIMITED_COMPANY_PACK, rankFor,
   type EntityFieldKey, type ExistingWizardData,
 } from '@/lib/onboarding/existing-entity'
@@ -274,9 +274,9 @@ export async function POST(request: Request) {
       // The objects clause is the CLG's stated purpose — evidence for the
       // "Objects / purpose" field (filled only if still empty)
       const objects = g.rules.objects?.summary
-      if (objects && doc.document_type === 'articles') {
+      if (objects && (doc.document_type === 'articles' || doc.document_type === 'constitution')) {
         const ev = { ...(nextWizard.fieldEvidence ?? {}) }
-        ev.natureOfBusiness = addCandidate(ev.natureOfBusiness, objects, { documentId: doc.id, documentType: 'articles', documentName: doc.name, documentDate: g.datedAs })
+        ev.natureOfBusiness = addCandidate(ev.natureOfBusiness, objects, { documentId: doc.id, documentType: doc.document_type, documentName: doc.name, documentDate: g.datedAs })
         nextWizard.fieldEvidence = ev
         if (!nextWizard.natureOfBusiness?.trim()) {
           nextWizard.natureOfBusiness = objects
@@ -288,7 +288,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, ocrStatus: 'complete', governance: true, silent, partiesNamed: g.partiesNamed, fields: { business_name: `${Object.keys(g.rules).length - silent} rules read` } })
     }
 
-    const PEOPLE_DOCS = ['cr12', 'annual_return', 'member_register', 'official_search_bn', 'official_search_llp', 'certificate_of_registration', 'llp1', 'llp9', 'llp_annual_return', 'cr8', 'cr2', 'cr3', 'bn2', 'bof1', 'llp_bo', 'change_filing', 'partner_change', 'bn_change']
+    const PEOPLE_DOCS = ['cr12', 'annual_return', 'member_register', 'official_search_bn', 'official_search_llp', 'certificate_of_registration', 'llp1', 'llp9', 'llp_annual_return', 'cr8', 'cr2', 'cr3', 'bn2', 'bof1', 'llp_bo', 'change_filing', 'partner_change', 'bn_change', 'society_certificate', 'form_a', 'form_h', 'form_i', 'society_search', 'agm_minutes']
     const result = await extractFromDocument(bytes, doc.mime_type ?? 'application/pdf', { expectPeople: section === 'registry' && PEOPLE_DOCS.includes(doc.document_type ?? '') })
 
     if (!result.ok) {
@@ -468,7 +468,9 @@ export async function POST(request: Request) {
       director: {
         id?: string; fullName: string; idNumber?: string; kraPin?: string
         nationality?: string; dateOfBirth?: string; phone?: string; email?: string; occupation?: string
-        role?: 'director' | 'secretary' | 'proprietor' | 'partner' | 'manager' | 'authorised_person'
+        role?: 'director' | 'secretary' | 'proprietor' | 'partner' | 'manager' | 'authorised_person' | 'officer' | 'trustee' | 'auditor'
+        position?: string
+        termOfOffice?: string
         appointmentDate?: string
         // Partner relationship facts (General Partnership brief §8) — kept
         // on the relationship, not the person's identity record
@@ -529,6 +531,8 @@ export async function POST(request: Request) {
           isManagingPartner: director.isManagingPartner || undefined,
           signingAuthority: director.signingAuthority || undefined,
         } : {}),
+        position: director.position ?? prev.position,
+        termOfOffice: director.termOfOffice ?? prev.termOfOffice,
         // Cessation keeps the relationship as history instead of deleting it
         cessationDate: director.cessationDate || undefined,
         cessationReason: director.cessationDate ? director.cessationReason || undefined : undefined,
@@ -709,6 +713,9 @@ export async function POST(request: Request) {
     if (entityType === 'sole_proprietorship') {
       const proprietors = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'proprietor')
       if (proprietors.length !== 1) return NextResponse.json({ error: 'a business name registered to one proprietor needs exactly one proprietor' }, { status: 400 })
+    } else if (entityType === 'society') {
+      const officers = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'officer')
+      if (officers.length < 1) return NextResponse.json({ error: 'add the society’s officers' }, { status: 400 })
     } else if (entityType === 'limited_liability_partnership') {
       const partners = (directorRows ?? []).filter((d) => (d.residential_address as { role?: string } | null)?.role === 'partner')
       if (partners.length < 1) return NextResponse.json({ error: 'add the partners' }, { status: 400 })
@@ -750,6 +757,15 @@ export async function POST(request: Request) {
     const states = entityFieldsFor(entityType).filter((f) => f.material).map((f) => fieldState(evidence[f.key], String(finalWizard[f.key] ?? ''), rank))
 
     const tasks = buildActivationTasks({ gaps, baseline: EXISTING_BASELINES[entityType] ?? [], wizard: finalWizard, ctx, unverifiedPeople })
+    if (entityType === 'society') {
+      const officers = (directorRows ?? []).filter((d) => {
+        const ra = (d.residential_address ?? {}) as { role?: string; cessationDate?: string }
+        return ra.role === 'officer' && !ra.cessationDate
+      })
+      if (officers.length < 3) {
+        tasks.push({ title: 'Record at least three officers', description: `Only ${officers.length} current officer${officers.length === 1 ? '' : 's'} recorded — the annual return (Form I) must be signed by three officers.`, category: 'governance', dueInDays: 30 })
+      }
+    }
     if (entityType === 'limited_liability_partnership') {
       const managers = (directorRows ?? []).filter((d) => {
         const ra = (d.residential_address ?? {}) as { role?: string; cessationDate?: string; isCorporate?: boolean }
@@ -907,7 +923,16 @@ async function seedComplianceCalendar(
     // LLP annual return: within 30 days after each registration anniversary
     const llpReturn = new Date(annualReturn)
     llpReturn.setDate(llpReturn.getDate() + 30)
-    const recurring = ctx.entityType === 'company_limited_by_guarantee'
+    // Society: Form I by 31 March for the previous calendar year; AGM yearly
+    const formI = new Date(year, 2, 31)
+    if (formI <= today) formI.setFullYear(year + 1)
+    const nextAgm = new Date(today); nextAgm.setFullYear(year + 1)
+    const recurring = ctx.entityType === 'society'
+      ? [
+          { ...base, title: 'File the annual return (Form I)', description: 'Covers the previous calendar year: AGM date, member count, officers and changes. Signed by three officers; due by 31 March.', category: 'annual_return', due_date: iso(formI) },
+          { ...base, title: 'Hold the annual general meeting', description: 'At least once a year: invite all members, present audited accounts, and elect the officers, trustees, auditors and committees the constitution requires.', category: 'governance', due_date: iso(nextAgm) },
+        ]
+      : ctx.entityType === 'company_limited_by_guarantee'
       ? [
           { ...base, title: 'File annual return (CR29) with financial statements', description: 'A company limited by guarantee files its annual return with the member count/list and copies of the financial statements sent to members, certified by a director or the secretary.', category: 'annual_return', due_date: iso(annualReturn) },
           { ...base, title: 'File income tax return with KRA', description: 'Due by 30 June — unless the company holds a valid KRA exemption, which we track separately.', category: 'tax', due_date: iso(kraReturn) },
@@ -1005,7 +1030,7 @@ async function generateAndStoreProfile(
       directors: (directors ?? []).map((d) => {
         const ra = (d.residential_address ?? {}) as { role?: string; structuredAddress?: AddressData }
         return {
-          fullName: d.full_name, role: ra.role === 'secretary' ? 'Company Secretary' : ra.role === 'proprietor' ? 'Proprietor' : ra.role === 'partner' ? 'Partner' : ra.role === 'manager' ? 'Manager' : ra.role === 'authorised_person' ? 'Authorised person' : 'Director', nationality: d.nationality,
+          fullName: d.full_name, role: ra.role === 'officer' ? ((ra as { position?: string }).position ?? 'Officer') : ra.role === 'trustee' ? 'Trustee' : ra.role === 'auditor' ? 'Auditor' : ra.role === 'secretary' ? 'Company Secretary' : ra.role === 'proprietor' ? 'Proprietor' : ra.role === 'partner' ? 'Partner' : ra.role === 'manager' ? 'Manager' : ra.role === 'authorised_person' ? 'Authorised person' : 'Director', nationality: d.nationality,
           idNumber: d.id_number || null, kraPin: d.kra_pin, email: d.email, phone: d.phone,
           address: ra.structuredAddress ? formatAddress(ra.structuredAddress) : null,
           isAlsoShareholder: false, isAlsoBeneficialOwner: false,
@@ -1069,11 +1094,13 @@ const INSTRUMENTS: Record<string, { name: string; fields: typeof PARTNERSHIP_AGR
   partnership_agreement: { name: 'partnership agreement', fields: PARTNERSHIP_AGREEMENT_FIELDS },
   llp_agreement: { name: 'limited liability partnership (LLP) agreement', fields: LLP_AGREEMENT_FIELDS },
   articles: { name: 'articles of association of a company limited by guarantee', fields: CLG_ARTICLES_FIELDS },
+  constitution: { name: 'constitution / rules of a society registered under the Kenyan Societies Act', fields: SOCIETY_CONSTITUTION_FIELDS },
 }
 const instrumentFor = (entityType: EntityType) =>
   entityType === 'partnership' ? 'partnership_agreement'
     : entityType === 'limited_liability_partnership' ? 'llp_agreement'
-      : entityType === 'company_limited_by_guarantee' ? 'articles' : null
+      : entityType === 'company_limited_by_guarantee' ? 'articles'
+        : entityType === 'society' ? 'constitution' : null
 
 // Rules read from an agreement that has since been removed/replaced stop
 // counting; the user's own entries stay.
@@ -1267,7 +1294,7 @@ async function recomputeShareholding(supabase: SupabaseServer, entityId: string)
 // only pre-filled when it is still empty. People are matched by strong
 // identifiers; a name-only match is flagged for the user to confirm.
 // ------------------------------------------------------------------
-const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'cr13', 'bn2', 'llp1', 'llp9', 'cr3', 'cr29', 'kra_pin_certificate', 'other'])
+const COMPANY_DOC_KINDS = new Set(['certificate_of_incorporation', 'cr12', 'cr1', 'cr2', 'cr8', 'bof1', 'statement_of_nominal_capital', 'business_registration', 'cr13', 'bn2', 'llp1', 'llp9', 'cr3', 'cr29', 'society_certificate', 'form_a', 'form_b', 'form_h', 'form_i', 'kra_pin_certificate', 'other'])
 
 async function mergeRegistryEvidence(
   supabase: SupabaseServer,
@@ -1371,6 +1398,15 @@ async function mergeRegistryEvidence(
   } else if (source.documentType === 'cr12' || source.documentType === 'change_filing' || source.documentType === 'cr8' || source.documentType === 'cr1') {
     const current = source.documentType === 'cr12' || source.documentType === 'change_filing'
     await mergePeople(supabase, { people, source, entityId, orgId, current })
+  } else if (ctx.entityType === 'society' && ['society_certificate', 'form_a', 'form_h', 'form_i', 'society_search', 'agm_minutes', 'member_register'].includes(source.documentType)) {
+    // Officers keep the titles the constitution gives them; a "secretary"
+    // here is a society officer, not a company secretary (Society brief §5)
+    const mapped = people.map((p) => {
+      if (source.documentType === 'member_register') return { ...p, role: 'member' as const }
+      if (p.role === 'trustee' || p.role === 'auditor' || p.role === 'member') return p
+      return { ...p, role: 'officer' as const, title: p.title ?? (p.role === 'secretary' ? 'Secretary' : null) }
+    })
+    await mergePeople(supabase, { people: mapped, source, entityId, orgId, current: source.documentType !== 'form_a' })
   } else if (ctx.entityType === 'company_limited_by_guarantee' && (source.documentType === 'annual_return' || source.documentType === 'member_register')) {
     // The CR29 / member register lists today's members — guarantors, not
     // shareholders; any amount read is their guarantee (CLG brief §5)
@@ -1520,7 +1556,7 @@ async function mergePeople(
     const person = { name: p.full_name, idNumber, kraPin: p.kra_pin }
     const corporate = d.isCorporate ? { registeredName: p.full_name, regNumber: d.corporateRegNumber ?? '', countryOfIncorporation: 'Kenya', kraPin: p.kra_pin ?? '' } : undefined
 
-    const officerRole = p.role === 'manager' ? 'manager' : p.role === 'partner' ? 'partner' : p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
+    const officerRole = p.role === 'officer' ? 'officer' : p.role === 'trustee' ? 'trustee' : p.role === 'auditor' ? 'auditor' : p.role === 'manager' ? 'manager' : p.role === 'partner' ? 'partner' : p.role === 'proprietor' ? 'proprietor' : p.role === 'secretary' ? 'secretary' : (p.role === 'director' || p.role === 'both' || p.role === 'unknown') ? 'director' : null
     if (officerRole) {
       // Matched within the same role: a partner who is also the manager
       // keeps two relationships, not one merged row.
@@ -1560,6 +1596,7 @@ async function mergePeople(
             occupation: fill(ra.occupation as string | null, d.occupation, locked),
             isCorporate: (ra.isCorporate as boolean | undefined) ?? (d.isCorporate || undefined),
             corporate: ra.corporate ?? corporate,
+            position: fill(ra.position as string | null, p.title ?? null, locked) ?? undefined,
             prefilled: locked ? ra.prefilled : [...new Set([...((ra.prefilled as string[]) ?? []), ...prefilledKeys(d, { id: !hit.r.id_number && idNumber, kra: !hit.r.kra_pin && p.kra_pin })])],
             onCurrentRecord: current || ra.onCurrentRecord,
             // Same name, no shared identifier: never silently merged — the
@@ -1573,6 +1610,7 @@ async function mergePeople(
           source: 'ocr', role: officerRole, evidence: [evidenceRef], onCurrentRecord: current, formationOnly: !current,
           structuredAddress: d.structuredAddress ?? undefined, dateOfBirth: d.dateOfBirth, occupation: d.occupation ?? undefined,
           isCorporate: d.isCorporate || undefined, corporate,
+          position: p.title ?? undefined,
           prefilled: prefilledKeys(d, { id: idNumber, kra: p.kra_pin }),
         }
         const row = {
