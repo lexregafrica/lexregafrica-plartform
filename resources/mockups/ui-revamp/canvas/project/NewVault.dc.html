@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Document vault — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lx a.btn-primary{color:#fff}
+.lx-dark a.btn-primary{color:#1C0008}
+.lx a.btn-gray,.lx a.btn-secondary{color:var(--label)}
+.ring-box{position:relative;flex:none;width:120px;height:120px}
+.ring-box .ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.dz-compact{flex-direction:row;justify-content:flex-start;text-align:left;gap:12px;padding:12px 14px;width:100%}
+.doc-item + .doc-item{padding-top:14px;border-top:var(--hairline-soft)}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <a class="wz-step is-done" href="NewName.dc.html"><span class="n">3</span>Name reservation</a>
+      <span class="wz-step is-done"><span class="n">4</span>Company basics</span>
+      <a class="wz-step is-done" href="NewShares.dc.html"><span class="n">5</span>Share structure</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">6</span>Shareholders &amp; members</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">7</span>Directors &amp; partners</a>
+      <a class="wz-step is-done" href="NewOwnership.dc.html"><span class="n">8</span>Beneficial ownership</a>
+      <span class="wz-step is-done"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step is-done"><span class="n">10</span>Constitutional documents</span>
+      <a class="wz-step is-on" aria-current="step" href="NewVault.dc.html"><span class="n">11</span>Document vault</a>
+      <span class="wz-step"><span class="n">12</span>Employee information</span>
+      <span class="wz-step"><span class="n">13</span>Declaration &amp; consent</span>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 11 of 14</span><span class="t-caption t-3 t-num">79%</span></div>
+        <div class="progress"><span style="width: 79%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 11 of 14</p>
+        <h1 class="t-large">Document vault</h1>
+        <p class="t-body t-2 t-pretty">Collect every document upfront, so your filing pack is complete before you go to BRS.</p>
+      </header>
+
+      <section class="card card-pad row gap-6 wrap rise" style="--d: 1" aria-labelledby="sum-h">
+        <div class="ring-box">
+          <svg class="ring" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="52" stroke-width="12"></circle><circle class="bar" cx="60" cy="60" r="52" stroke-width="12" stroke-dasharray="326.7" stroke-dashoffset="{{ringOffset}}" style="--len: 326.7; stroke: var({{ringColor}}); transition: stroke-dashoffset 470ms var(--ease-spring)"></circle></svg>
+          <div class="ring-label"><span class="t-stat">{{ready}}</span><span class="t-caption t-3 t-num">of 12</span></div>
+        </div>
+        <div class="stack gap-3 grow" style="min-width: 220px">
+          <div class="stack gap-1">
+            <h2 id="sum-h" class="t-title3" aria-live="polite">{{readyLabel}}</h2>
+            <p class="t-footnote t-2 t-pretty">Anything already captured while adding directors, shareholders or beneficial owners isn&#8217;t asked for again &#8212; we read documents automatically and cross-check what you entered.</p>
+          </div>
+          <div class="row wrap gap-2">
+            <span class="pill pill-good t-num"><span class="ic ic-circle-check" aria-hidden="true"></span>{{uploadedCount}} uploaded</span>
+            <span class="pill pill-brand t-num"><span class="ic ic-file-certificate" aria-hidden="true"></span>5 prepared by LexReg</span>
+            <span class="pill pill-info t-num"><span class="ic ic-upload" aria-hidden="true"></span>1 uploading</span>
+            <sc-if value="{{hasMissing}}" hint-placeholder-val="{{true}}"><span class="pill pill-warn t-num"><span class="ic ic-circle-dashed" aria-hidden="true"></span>{{missingCount}} to add</span></sc-if>
+          </div>
+        </div>
+      </section>
+
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <section class="card rise" style="--d: {{g.d}}" aria-labelledby="{{g.hid}}">
+          <div class="card-head" style="align-items: flex-start">
+            <div class="row gap-3" style="align-items: flex-start; min-width: 0">
+              <span class="icon-tile {{g.tile}}"><span class="ic {{g.icon}}" aria-hidden="true"></span></span>
+              <div class="stack gap-1" style="min-width: 0">
+                <h2 id="{{g.hid}}">{{g.title}}</h2>
+                <p class="t-footnote t-3 t-pretty">{{g.sub}}</p>
+              </div>
+            </div>
+            <span class="pill t-num {{g.countCls}}">{{g.count}}</span>
+          </div>
+          <ul class="stack" style="padding: 4px 20px 20px; gap: 14px">
+            <sc-for list="{{g.items}}" as="d" hint-placeholder-count="3">
+              <li class="doc-item stack gap-2">
+                <div class="stack">
+                  <p class="t-subhead" style="color: var(--label)">{{d.title}}</p>
+                  <p class="t-footnote t-3 t-pretty">{{d.hint}}</p>
+                </div>
+
+                <sc-if value="{{d.isUploaded}}" hint-placeholder-val="{{true}}">
+                  <div class="file-row {{d.rowCls}}">
+                    <span class="icon-tile good"><span class="ic ic-file-text" aria-hidden="true"></span></span>
+                    <div class="stack grow" style="min-width: 0">
+                      <span class="name" title="{{d.file}}">{{d.file}}</span>
+                      <span class="meta t-num">{{d.size}}</span>
+                    </div>
+                    <span class="pill {{d.ocrCls}}"><span class="ic {{d.ocrIcon}}" aria-hidden="true"></span>{{d.ocr}}</span>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{d.isUploading}}" hint-placeholder-val="{{false}}">
+                  <div class="file-row">
+                    <span class="icon-tile info"><span class="ic ic-cloud-upload" aria-hidden="true"></span></span>
+                    <div class="stack gap-2 grow" style="min-width: 0">
+                      <div class="row gap-2"><span class="name grow">{{d.file}}</span><span class="meta t-num">{{d.size}}</span></div>
+                      <div class="progress" role="progressbar" aria-label="Uploading {{d.file}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64"><span style="width: 64%; background: var(--sys-blue)"></span></div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{d.isMissing}}" hint-placeholder-val="{{false}}">
+                  <button class="dropzone dz-compact" type="button" onClick="{{d.upload}}">
+                    <span class="icon-tile gray"><span class="ic ic-cloud-upload" aria-hidden="true"></span></span>
+                    <span class="stack grow" style="min-width: 0">
+                      <span class="t-subhead" style="color: var(--label)">{{d.cta}}</span>
+                      <span class="t-footnote t-3">Drop a file or tap to choose · PDF, JPG or PNG · up to 10 MB</span>
+                    </span>
+                  </button>
+                </sc-if>
+
+                <sc-if value="{{d.isGenerated}}" hint-placeholder-val="{{false}}">
+                  <div class="file-row">
+                    <span class="icon-tile"><span class="ic ic-file-certificate" aria-hidden="true"></span></span>
+                    <div class="stack grow" style="min-width: 0">
+                      <span class="name">{{d.file}}</span>
+                      <span class="meta">Prepared by LexReg · PDF · from your answers</span>
+                    </div>
+                    <span class="pill pill-brand hide-compact"><span class="ic ic-signature" aria-hidden="true"></span>Ready to sign</span>
+                    <button class="btn btn-tinted btn-sm" type="button" aria-label="Download {{d.title}}"><span class="ic ic-download" aria-hidden="true"></span><span class="hide-compact">Download</span></button>
+                  </div>
+                </sc-if>
+              </li>
+            </sc-for>
+          </ul>
+          <sc-if value="{{g.isForms}}" hint-placeholder-val="{{false}}">
+            <div class="card-foot" style="justify-content: flex-start">
+              <div class="note note-info grow">
+                <span class="ic ic-info-circle" aria-hidden="true"></span>
+                <p class="grow t-pretty"><strong>BRS has no API, so you file these yourself.</strong> After you submit, you enter the same details on BRS eCitizen and attach these signed forms there. When BRS issues your certificate of incorporation, upload it back to LexReg.</p>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+      </sc-for>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewOwnership.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footnote}}</span>
+        <a class="btn btn-primary" href="NewDeclaration.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":2800}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const added = s.added ?? {};
+const LEN = 326.7;
+const upload = (id) => {
+  if (added[id]) return;
+  const next = Object.assign({}, added);
+  next[id] = 'reading';
+  this.setState({ added: next });
+  setTimeout(() => {
+    const cur = Object.assign({}, (this.state && this.state.added) || {});
+    cur[id] = 'done';
+    this.setState({ added: cur });
+  }, 1600);
+};
+const NEW_FILES = {
+  'jk-photo': { file: 'Photo_James_Kariuki.jpg', size: '420 KB' },
+  'sh-auth': { file: 'Savannah_Holdings_Board_Resolution.pdf', size: '640 KB' }
+};
+const GROUPS = [
+  { hid: 'g-people', title: 'People documents', sub: 'Directors and shareholders — one file per person.', icon: 'ic-users', tile: '', items: [
+    { id: 'wm-id', title: 'Wanjiku Mwangi — National ID', hint: 'Director & shareholder', state: 'uploaded', file: 'Wanjiku_Mwangi_National_ID.jpg', size: '1.2 MB' },
+    { id: 'wm-pin', title: 'Wanjiku Mwangi — KRA PIN certificate', hint: 'A012345678Z', state: 'uploaded', file: 'KRA_PIN_Certificate_A012345678Z.pdf', size: '184 KB' },
+    { id: 'bo-id', title: 'Brian Otieno — National ID', hint: 'Director & shareholder', state: 'uploaded', file: 'Brian_Otieno_ID_front_and_back.pdf', size: '2.4 MB' },
+    { id: 'bo-pin', title: 'Brian Otieno — KRA PIN certificate', hint: 'A019876543K', state: 'uploading', file: 'KRA_PIN_Brian_Otieno.pdf', size: '1.1 of 1.7 MB' }
+  ] },
+  { hid: 'g-bo', title: 'Beneficial owner documents', sub: 'For any beneficial owner not already captured as a director or shareholder.', icon: 'ic-user-shield', tile: '', items: [
+    { id: 'jk-photo', title: 'James Kariuki — passport-size photo', hint: 'His ID and KRA PIN came across from step 6. BRS also asks for a photo.', state: 'missing', cta: 'Upload James Kariuki’s photo' }
+  ] },
+  { hid: 'g-corp', title: 'Corporate party — Savannah Holdings Limited', sub: 'For any shareholder or director that is itself a company.', icon: 'ic-building-bank', tile: 'info', items: [
+    { id: 'sh-cr12', title: 'CR12 — official search', hint: 'Shows who owns Savannah Holdings — we used it to trace James Kariuki.', state: 'uploaded', file: 'Savannah_Holdings_Limited_PVT-9QK3LM2A_CR12_Official_Search_Certified_Copy_BRS_eCitizen_October_2026_FINAL_signed.pdf', size: '3.8 MB' },
+    { id: 'sh-auth', title: 'Authority to act — board resolution', hint: 'Shows James Kariuki can sign for Savannah Holdings. Its certificate and KRA PIN came across from step 6.', state: 'missing', cta: 'Upload the board resolution' }
+  ] },
+  { hid: 'g-forms', title: 'Registration forms', sub: 'Prepared by LexReg from your answers — download, check and sign.', icon: 'ic-file-certificate', tile: '', forms: true, items: [
+    { id: 'cr1', title: 'CR1 — Application for registration', hint: 'Uses the company details you’ve entered.', state: 'generated', file: 'CR1_Jua_Kali_Foods_Ltd.pdf' },
+    { id: 'cr2', title: 'CR2 — Memorandum of registration', hint: 'For companies limited by shares.', state: 'generated', file: 'CR2_Jua_Kali_Foods_Ltd.pdf' },
+    { id: 'cr8', title: 'CR8 — Particulars of directors', hint: 'Lists all directors captured in this application.', state: 'generated', file: 'CR8_Jua_Kali_Foods_Ltd.pdf' },
+    { id: 'snc', title: 'Statement of nominal capital', hint: 'Matches the share capital entered in this application.', state: 'generated', file: 'Statement_of_Nominal_Capital.pdf' },
+    { id: 'bof1', title: 'BOF-1 — Beneficial ownership', hint: 'Declares the natural persons who ultimately own or control the company.', state: 'generated', file: 'BOF-1_Jua_Kali_Foods_Ltd.pdf' }
+  ] }
+];
+let uploadedCount = 0;
+let missingCount = 0;
+const groups = GROUPS.map((g, gi) => {
+  let done = 0;
+  const items = g.items.map((it) => {
+    let st = it.state;
+    let file = it.file;
+    let size = it.size;
+    const a = added[it.id];
+    if (st === 'missing' && a) { st = 'uploaded'; file = NEW_FILES[it.id].file; size = NEW_FILES[it.id].size; }
+    const reading = a === 'reading';
+    if (st === 'uploaded' && !reading) uploadedCount += 1;
+    if (st === 'missing') missingCount += 1;
+    if ((st === 'uploaded' && !reading) || st === 'generated') done += 1;
+    return {
+      title: it.title,
+      hint: it.hint,
+      file: file,
+      size: size,
+      cta: it.cta,
+      isUploaded: st === 'uploaded',
+      isUploading: st === 'uploading',
+      isMissing: st === 'missing',
+      isGenerated: st === 'generated',
+      rowCls: reading ? 'shimmer' : '',
+      ocr: reading ? 'Reading…' : 'Read by OCR',
+      ocrCls: reading ? 'pill-info' : 'pill-good',
+      ocrIcon: reading ? 'ic-scan' : 'ic-circle-check',
+      upload: () => upload(it.id)
+    };
+  });
+  const all = done === g.items.length;
+  return {
+    hid: g.hid, title: g.title, sub: g.sub, icon: g.icon, tile: g.tile, d: gi + 2,
+    isForms: !!g.forms,
+    count: done + ' of ' + g.items.length,
+    countCls: all ? 'pill-good' : '',
+    items: items
+  };
+});
+const ready = uploadedCount + 5;
+const pct = ready / 12;
+const left = 12 - ready;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  groups: groups,
+  ready: ready,
+  uploadedCount: uploadedCount,
+  missingCount: missingCount,
+  hasMissing: missingCount > 0,
+  ringOffset: (LEN * (1 - pct)).toFixed(1),
+  ringColor: pct >= 0.9 ? '--sys-green' : '--tint',
+  readyLabel: ready + ' of 12 documents ready',
+  footnote: left === 0 ? 'Every document is in' : (left === 1 ? '1 document still to come · you can add it later' : left + ' documents still to come · you can add them later')
+};
+}
+}
+</script>
+</body>
+</html>

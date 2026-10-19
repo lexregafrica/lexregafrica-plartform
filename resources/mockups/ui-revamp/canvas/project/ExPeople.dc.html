@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>People &amp; roles — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.pgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pcell{display:flex;flex-direction:column;gap:4px;min-width:0;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2)}
+.pcell-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.ptoggle{display:flex;align-items:center;gap:12px;width:100%;padding:16px 20px;text-align:left;border-radius:var(--r-card)}
+.ptoggle:hover{background:var(--surface-3)}
+.pbody{display:flex;flex-direction:column;gap:16px;padding:0 20px 20px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:4px 4px 0}
+.diff{background:var(--warn-bg);color:var(--warn);border-radius:3px;padding:0 1px}
+.mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@container lx (max-width: 720px){
+  .pgrid{grid-template-columns:minmax(0,1fr)}
+  .ptoggle{padding:14px 16px}
+  .pbody{padding:0 16px 16px}
+  .mini{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Onboard an existing entity · Amani Logistics Limited</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="ExType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="ExUpload.dc.html"><span class="n">2</span>Upload documents</a>
+      <a class="wz-step is-done" href="ExDetails.dc.html"><span class="n">3</span>Entity details</a>
+      <a class="wz-step is-on" aria-current="step" href="ExPeople.dc.html"><span class="n">4</span>People &amp; roles</a>
+      <span class="wz-step"><span class="n">5</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">6</span>Compliance baseline</span>
+      <span class="wz-step"><span class="n">7</span>Review &amp; activate</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 4 of 7</span><span class="t-caption t-3 t-num">57%</span></div>
+        <div class="progress"><span style="width: 57%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 4 of 7 · People &amp; roles</p>
+        <h1 class="t-large t-balance">{{title}}</h1>
+        <p class="t-body t-2 t-pretty">Built from your documents. Check each person against today’s position — the same person can hold several roles.</p>
+      </header>
+
+      <!-- ================= OCR still reading ================= -->
+      <sc-if value="{{reading}}" hint-placeholder-val="{{false}}">
+        <div class="card card-pad rise" style="--d: 1" role="status" aria-live="polite">
+          <div class="row gap-3">
+            <span class="icon-tile icon-tile-lg scanline"><span class="ic ic-scan" aria-hidden="true"></span></span>
+            <div class="stack gap-1 grow">
+              <p class="t-headline">Matching identity documents to people</p>
+              <p class="t-footnote t-2">6 of 9 documents read · each ID and KRA certificate is matched by ID number first, never by name alone.</p>
+            </div>
+            <span class="t-stat hide-compact">67%</span>
+          </div>
+          <div class="progress" style="margin-top: 14px"><span style="width: 67%"></span></div>
+          <div class="stack gap-2" style="margin-top: 16px">
+            <div class="file-row"><span class="ic ic-id" aria-hidden="true" style="color: var(--good)"></span><span class="name">National ID — Wanjiku Mwangi.jpg</span><span class="src src-verified"><span class="ic ic-check" aria-hidden="true"></span>Matched</span></div>
+            <div class="file-row"><span class="ic ic-id" aria-hidden="true" style="color: var(--good)"></span><span class="name">National ID — Brian Otieno.jpg</span><span class="src src-verified"><span class="ic ic-check" aria-hidden="true"></span>Matched</span></div>
+            <div class="file-row shimmer"><span class="ic ic-file-certificate" aria-hidden="true" style="color: var(--label-3)"></span><span class="name">KRA PIN certificate — Brian Otieno.pdf</span><span class="meta">Reading…</span></div>
+            <div class="file-row shimmer"><span class="ic ic-file-certificate" aria-hidden="true" style="color: var(--label-3)"></span><span class="name">KRA PIN certificate — W Mwangi.pdf</span><span class="meta">Reading…</span></div>
+          </div>
+        </div>
+        <div class="card card-pad shimmer rise" style="--d: 2" aria-hidden="true">
+          <div class="row gap-3"><span class="skeleton" style="width: 36px; height: 36px; border-radius: 50%"></span><div class="stack gap-2 grow"><span class="skeleton" style="height: 14px; width: 40%"></span><span class="skeleton" style="height: 12px; width: 60%"></span></div></div>
+          <div class="pgrid" style="margin-top: 16px"><span class="skeleton" style="height: 52px"></span><span class="skeleton" style="height: 52px"></span><span class="skeleton" style="height: 52px"></span><span class="skeleton" style="height: 52px"></span></div>
+        </div>
+        <div class="card card-pad shimmer rise" style="--d: 3" aria-hidden="true">
+          <div class="row gap-3"><span class="skeleton" style="width: 36px; height: 36px; border-radius: 50%"></span><div class="stack gap-2 grow"><span class="skeleton" style="height: 14px; width: 35%"></span><span class="skeleton" style="height: 12px; width: 55%"></span></div></div>
+        </div>
+      </sc-if>
+
+      <!-- ================= Done ================= -->
+      <sc-if value="{{done}}" hint-placeholder-val="{{true}}">
+        <div class="card card-pad rise" style="--d: 1">
+          <div class="mini">
+            <div class="stack gap-1"><span class="t-stat">4</span><span class="t-caption t-3">People on the CR12</span></div>
+            <div class="stack gap-1"><span class="t-stat">{{docCount}}</span><span class="t-caption t-3">Identity documents matched</span></div>
+            <div class="stack gap-1"><span class="t-stat {{conflictCls}}">{{conflicts}}</span><span class="t-caption t-3">Conflicts to resolve</span></div>
+            <div class="stack gap-1"><span class="t-stat">{{missing}}</span><span class="t-caption t-3">Details still missing</span></div>
+          </div>
+        </div>
+
+        <!-- Possible match -->
+        <sc-if value="{{matchPending}}" hint-placeholder-val="{{true}}">
+          <div class="note note-info rise" style="--d: 2" role="status">
+            <span class="ic ic-users" aria-hidden="true"></span>
+            <div class="stack gap-2 grow">
+              <p><strong>W. Mwangi on the KRA certificate may be Wanjiku Mwangi</strong></p>
+              <p>The certificate names “W. Mwangi” and its PIN is partly unreadable, so we can’t match it by number. We never merge people on a name alone — tell us if it’s the same person.</p>
+              <div class="row gap-2 wrap">
+                <button class="btn btn-tinted btn-sm" type="button" onClick="{{merge}}"><span class="ic ic-link" aria-hidden="true"></span>Merge</button>
+                <button class="btn btn-gray btn-sm" type="button" onClick="{{keepSeparate}}">Keep separate</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{matchMerged}}" hint-placeholder-val="{{false}}">
+          <div class="note note-good pop" role="status">
+            <span class="ic ic-circle-check" aria-hidden="true"></span>
+            <p class="grow"><strong>Merged.</strong> You confirmed the KRA certificate is Wanjiku Mwangi’s, so her PIN is now backed by two documents.</p>
+            <button class="btn btn-plain btn-sm" type="button" onClick="{{undoMatch}}">Undo</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{matchSeparate}}" hint-placeholder-val="{{false}}">
+          <div class="note pop" role="status">
+            <span class="ic ic-info-circle" aria-hidden="true"></span>
+            <p class="grow"><strong>Kept separate.</strong> The W. Mwangi certificate stays unmatched in your vault — you can match it later.</p>
+            <button class="btn btn-plain btn-sm" type="button" onClick="{{undoMatch}}">Undo</button>
+          </div>
+        </sc-if>
+
+        <!-- ===== Directors ===== -->
+        <div class="sec-head rise" style="--d: 3"><h2 class="t-title3">Directors</h2><span class="t-caption t-3">2 on the CR12 · both also hold shares</span></div>
+
+        <!-- Wanjiku -->
+        <article class="card rise" style="--d: 3">
+          <h3 style="margin: 0">
+            <button class="ptoggle" type="button" aria-expanded="{{wm.expanded}}" aria-controls="p-wm" onClick="{{wm.toggle}}">
+              <span class="avatar">WM</span>
+              <span class="stack gap-1 grow">
+                <span class="t-headline truncate">Wanjiku Mwangi</span>
+                <span class="row gap-1 wrap"><span class="pill pill-brand">Director</span><span class="pill pill-brand t-num">Shareholder 60%</span><span class="{{wmStatusCls}}">{{wmStatus}}</span></span>
+              </span>
+              <span class="ic {{wm.chev}}" aria-hidden="true" style="color: var(--label-3)"></span>
+            </button>
+          </h3>
+          <sc-if value="{{wm.open}}" hint-placeholder-val="{{false}}">
+            <div class="pbody fade" id="p-wm">
+              <div class="pgrid">
+                <sc-for list="{{wmFields}}" as="f" hint-placeholder-count="7">
+                  <div class="pcell">
+                    <div class="pcell-top"><span class="t-caption t-3 truncate">{{f.label}}</span><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcText}}</span></div>
+                    <span class="t-subhead truncate {{f.valCls}}">{{f.value}}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div class="stack gap-2">
+                <p class="t-eyebrow">Matched documents</p>
+                <div class="file-row"><span class="ic ic-id" aria-hidden="true" style="color: var(--good)"></span><span class="name">National ID — Wanjiku Mwangi.jpg</span><span class="meta hide-compact">ID 23456789 · 97% read</span></div>
+                <sc-if value="{{matchMerged}}" hint-placeholder-val="{{false}}">
+                  <div class="file-row pop"><span class="ic ic-file-certificate" aria-hidden="true" style="color: var(--good)"></span><span class="name">KRA PIN certificate — W Mwangi.pdf</span><span class="meta hide-compact">Matched by you</span></div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </article>
+
+        <!-- Brian -->
+        <article class="card rise" style="--d: 4">
+          <h3 style="margin: 0">
+            <button class="ptoggle" type="button" aria-expanded="{{bo.expanded}}" aria-controls="p-bo" onClick="{{bo.toggle}}">
+              <span class="avatar">BO</span>
+              <span class="stack gap-1 grow">
+                <span class="t-headline truncate">Brian Otieno</span>
+                <span class="row gap-1 wrap"><span class="pill pill-brand">Director</span><span class="pill pill-brand t-num">Shareholder 30%</span><span class="{{boStatusCls}}">{{boStatus}}</span></span>
+              </span>
+              <span class="ic {{bo.chev}}" aria-hidden="true" style="color: var(--label-3)"></span>
+            </button>
+          </h3>
+          <sc-if value="{{bo.open}}" hint-placeholder-val="{{true}}">
+            <div class="pbody fade" id="p-bo">
+              <div class="pgrid">
+                <sc-for list="{{boFields}}" as="f" hint-placeholder-count="7">
+                  <div class="pcell">
+                    <div class="pcell-top"><span class="t-caption t-3 truncate">{{f.label}}</span><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcText}}</span></div>
+                    <sc-if value="{{f.isValue}}" hint-placeholder-val="{{true}}">
+                      <span class="t-subhead truncate {{f.valCls}}">{{f.value}}</span>
+                    </sc-if>
+                    <sc-if value="{{f.isMissing}}" hint-placeholder-val="{{false}}">
+                      <div class="{{f.fieldCls}}">
+                        <label class="sr-only" for="{{f.id}}">{{f.label}} for {{f.who}}</label>
+                        <input class="input {{f.inputCls}}" id="{{f.id}}" type="{{f.type}}" placeholder="{{f.ph}}" autocomplete="off" value="{{f.typed}}" onInput="{{f.set}}">
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+
+              <!-- KRA PIN conflict -->
+              <div class="stack gap-3 well">
+                <div class="row between wrap gap-2">
+                  <p class="t-subhead t-strong">KRA PIN — your documents disagree</p>
+                  <span class="{{pinChipCls}}"><span class="ic {{pinChipIc}}" aria-hidden="true"></span>{{pinChip}}</span>
+                </div>
+                <p class="t-footnote t-2 t-pretty">Two digits are swapped. Pick the PIN that’s correct today — the other value is kept as history, never deleted.</p>
+                <div class="stack gap-2" role="radiogroup" aria-label="Brian Otieno’s current KRA PIN">
+                  <button class="candidate {{c1.cls}}" type="button" role="radio" aria-checked="{{c1.checked}}" onClick="{{c1.pick}}" style="width: 100%; text-align: left">
+                    <span class="t-headline t-mono">A0198765<span class="diff">43</span>K</span>
+                    <span class="stack grow" style="min-width: 0"><span class="t-subhead truncate">Official Search (CR12)</span><span class="t-caption t-3 truncate">Searched 2 Oct 2026 · page 2</span></span>
+                    <span class="pill hide-compact">Registry</span>
+                  </button>
+                  <button class="candidate {{c2.cls}}" type="button" role="radio" aria-checked="{{c2.checked}}" onClick="{{c2.pick}}" style="width: 100%; text-align: left">
+                    <span class="t-headline t-mono">A0198765<span class="diff">34</span>K</span>
+                    <span class="stack grow" style="min-width: 0"><span class="t-subhead truncate">KRA PIN certificate</span><span class="t-caption t-3 truncate">Issued by KRA · 11 May 2019</span></span>
+                    <span class="pill hide-compact">Tax authority</span>
+                  </button>
+                </div>
+                <sc-if value="{{pinKra}}" hint-placeholder-val="{{false}}">
+                  <div class="note note-warn fade"><span class="ic ic-flag" aria-hidden="true"></span><p>The CR12 still shows <span class="t-mono">A019876543K</span>. We’ll open a task to correct the registry record, so it isn’t marked registry-verified until then.</p></div>
+                </sc-if>
+                <sc-if value="{{pinCr12}}" hint-placeholder-val="{{false}}">
+                  <div class="note fade"><span class="ic ic-history" aria-hidden="true"></span><p>The KRA certificate value is kept as history. Check it on iTax if you’re unsure — a wrong PIN on KRA filings is a common cause of rejected returns.</p></div>
+                </sc-if>
+              </div>
+
+              <div class="stack gap-2">
+                <p class="t-eyebrow">Matched documents</p>
+                <div class="file-row"><span class="ic ic-id" aria-hidden="true" style="color: var(--good)"></span><span class="name">National ID — Brian Otieno.jpg</span><span class="meta hide-compact">ID 29876543 · 95% read</span></div>
+                <div class="file-row"><span class="ic ic-file-certificate" aria-hidden="true" style="color: var(--warn)"></span><span class="name">KRA PIN certificate — Brian Otieno.pdf</span><span class="meta hide-compact">PIN differs from CR12</span></div>
+              </div>
+            </div>
+          </sc-if>
+        </article>
+
+        <!-- ===== Shareholders ===== -->
+        <div class="sec-head rise" style="--d: 5"><h2 class="t-title3">Shareholders</h2><span class="t-caption t-3 t-num">1,000 shares · 3 holders</span></div>
+        <p class="t-footnote t-3 rise" style="--d: 5; padding: 0 4px">Wanjiku Mwangi (600) and Brian Otieno (300) are shown once, above, with all their roles.</p>
+
+        <!-- Savannah -->
+        <article class="card rise" style="--d: 5">
+          <h3 style="margin: 0">
+            <button class="ptoggle" type="button" aria-expanded="{{sh.expanded}}" aria-controls="p-sh" onClick="{{sh.toggle}}">
+              <span class="avatar avatar-corp">SH</span>
+              <span class="stack gap-1 grow">
+                <span class="t-headline truncate">Savannah Holdings Limited</span>
+                <span class="row gap-1 wrap"><span class="pill pill-brand t-num">Shareholder 10% · 100 shares</span><span class="pill pill-info">Company</span><span class="{{shStatusCls}}">{{shStatus}}</span></span>
+              </span>
+              <span class="ic {{sh.chev}}" aria-hidden="true" style="color: var(--label-3)"></span>
+            </button>
+          </h3>
+          <sc-if value="{{sh.open}}" hint-placeholder-val="{{true}}">
+            <div class="pbody fade" id="p-sh">
+              <div class="pgrid">
+                <sc-for list="{{shFields}}" as="f" hint-placeholder-count="4">
+                  <div class="pcell">
+                    <div class="pcell-top"><span class="t-caption t-3 truncate">{{f.label}}</span><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcText}}</span></div>
+                    <sc-if value="{{f.isValue}}" hint-placeholder-val="{{true}}">
+                      <span class="t-subhead truncate {{f.valCls}}">{{f.value}}</span>
+                    </sc-if>
+                    <sc-if value="{{f.isMissing}}" hint-placeholder-val="{{false}}">
+                      <div class="{{f.fieldCls}}">
+                        <label class="sr-only" for="{{f.id}}">{{f.label}} for {{f.who}}</label>
+                        <input class="input {{f.inputCls}}" id="{{f.id}}" type="{{f.type}}" placeholder="{{f.ph}}" autocomplete="off" value="{{f.typed}}" onInput="{{f.set}}">
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div class="stack gap-2">
+                <p class="t-eyebrow">Its own registry record</p>
+                <sc-if value="{{corpMissing}}" hint-placeholder-val="{{true}}">
+                  <button class="dropzone" type="button" onClick="{{uploadCorp}}" style="width: 100%; padding: 20px">
+                    <span class="ic ic-cloud-upload ic-lg" aria-hidden="true" style="color: var(--tint-text)"></span>
+                    <span class="t-headline" style="color: var(--label)">Upload Savannah Holdings’ CR12</span>
+                    <span class="t-footnote t-2 t-pretty" style="max-width: 420px">We read its directors and shareholders — that’s how we trace who ultimately owns the 10%. PDF or photo.</span>
+                  </button>
+                </sc-if>
+                <sc-if value="{{corpUploaded}}" hint-placeholder-val="{{false}}">
+                  <div class="file-row pop"><span class="ic ic-file-text" aria-hidden="true" style="color: var(--good)"></span><span class="name">CR12 — Savannah Holdings Limited.pdf</span><span class="src src-extracted"><span class="ic ic-check" aria-hidden="true"></span>Read</span></div>
+                  <div class="note note-brand fade"><span class="ic ic-hierarchy-2" aria-hidden="true"></span><p>James Kariuki holds all of Savannah Holdings’ shares. We’ll suggest him as a beneficial owner in the next step — a company can’t itself be one.</p></div>
+                </sc-if>
+              </div>
+
+              <div class="stack gap-2">
+                <p class="t-eyebrow">Who acts for it</p>
+                <p class="t-footnote t-2">Authorised representative — the natural person who acts for this company.</p>
+                <sc-if value="{{corpUploaded}}" hint-placeholder-val="{{false}}">
+                  <button class="candidate {{rep.cls}}" type="button" aria-pressed="{{rep.checked}}" onClick="{{rep.pick}}" style="width: 100%; text-align: left">
+                    <span class="avatar avatar-sm">JK</span>
+                    <span class="stack grow" style="min-width: 0"><span class="t-subhead t-strong truncate">James Kariuki</span><span class="t-caption t-3 truncate">Director · named on Savannah’s CR12</span></span>
+                    <span class="{{rep.srcCls}}"><span class="ic ic-check" aria-hidden="true"></span>{{rep.srcText}}</span>
+                  </button>
+                </sc-if>
+                <sc-if value="{{corpMissing}}" hint-placeholder-val="{{true}}">
+                  <div class="inset t-footnote t-2">Upload its CR12 and we’ll suggest who can act for it — or add them yourself.</div>
+                </sc-if>
+                <div class="row gap-2 wrap">
+                  <button class="btn btn-secondary btn-sm" type="button"><span class="ic ic-id" aria-hidden="true"></span>Representative’s ID/passport</button>
+                  <button class="btn btn-secondary btn-sm" type="button"><span class="ic ic-file-upload" aria-hidden="true"></span>Board resolution</button>
+                </div>
+                <p class="t-caption t-3 t-pretty">Upload the representative’s ID or passport and KRA PIN certificate to fill in their details, plus the board resolution or other authority showing they can act.</p>
+              </div>
+            </div>
+          </sc-if>
+        </article>
+
+        <!-- ===== Company secretary ===== -->
+        <div class="sec-head rise" style="--d: 6"><h2 class="t-title3">Company secretary</h2><span class="t-caption t-3">Optional below KES 5M capital</span></div>
+        <article class="card rise" style="--d: 6">
+          <h3 style="margin: 0">
+            <button class="ptoggle" type="button" aria-expanded="{{ha.expanded}}" aria-controls="p-ha" onClick="{{ha.toggle}}">
+              <span class="avatar">HA</span>
+              <span class="stack gap-1 grow">
+                <span class="t-headline truncate">Halima Abdi</span>
+                <span class="row gap-1 wrap"><span class="pill pill-brand">Company secretary</span><span class="pill pill-outline">CPS</span><span class="{{haStatusCls}}">{{haStatus}}</span></span>
+              </span>
+              <span class="ic {{ha.chev}}" aria-hidden="true" style="color: var(--label-3)"></span>
+            </button>
+          </h3>
+          <sc-if value="{{ha.open}}" hint-placeholder-val="{{false}}">
+            <div class="pbody fade" id="p-ha">
+              <div class="pgrid">
+                <sc-for list="{{haFields}}" as="f" hint-placeholder-count="4">
+                  <div class="pcell">
+                    <div class="pcell-top"><span class="t-caption t-3 truncate">{{f.label}}</span><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcText}}</span></div>
+                    <sc-if value="{{f.isValue}}" hint-placeholder-val="{{true}}">
+                      <span class="t-subhead truncate {{f.valCls}}">{{f.value}}</span>
+                    </sc-if>
+                    <sc-if value="{{f.isMissing}}" hint-placeholder-val="{{false}}">
+                      <div class="{{f.fieldCls}}">
+                        <label class="sr-only" for="{{f.id}}">{{f.label}} for {{f.who}}</label>
+                        <input class="input {{f.inputCls}}" id="{{f.id}}" type="{{f.type}}" placeholder="{{f.ph}}" autocomplete="off" value="{{f.typed}}" onInput="{{f.set}}">
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div class="stack gap-2">
+                <p class="t-eyebrow">Matched documents</p>
+                <div class="file-row" style="background: var(--surface-3)"><span class="ic ic-file-alert" aria-hidden="true" style="color: var(--label-3)"></span><span class="name t-2">No ID or passport on file</span><button class="btn btn-tinted btn-sm" type="button"><span class="ic ic-upload" aria-hidden="true"></span>Upload</button></div>
+                <p class="t-caption t-3">Identity unverified — upload their ID/passport when you can. She’s recorded now either way.</p>
+              </div>
+            </div>
+          </sc-if>
+        </article>
+
+        <button class="btn btn-secondary rise" type="button" style="--d: 7; align-self: flex-start"><span class="ic ic-user-plus" aria-hidden="true"></span>Add someone not on the CR12</button>
+      </sc-if>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="ExDetails.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footerHint}}</span>
+        <a class="btn btn-primary {{continueCls}}" href="ExBaseline.dc.html" aria-disabled="{{continueDisabled}}">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"ocr":{"editor":"enum","options":["reading","done"],"default":"done"},"$preview":{"width":1440,"height":2700}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const ocr = this.props.ocr ?? 'done';
+const reading = ocr === 'reading';
+const open = s.open ?? { wm: false, bo: true, sh: true, ha: false };
+const match = s.match ?? 'pending';
+const pin = s.pin ?? null;
+const vals = s.vals ?? {};
+const corp = s.corp ?? false;
+const repOn = s.repOn ?? false;
+
+const SRC = {
+  verified: (t) => ({ srcCls: 'src src-verified', srcIc: 'ic-circle-check', srcText: t }),
+  extracted: (t) => ({ srcCls: 'src src-extracted', srcIc: 'ic-file-text', srcText: t }),
+  confirmed: (t) => ({ srcCls: 'src src-confirmed', srcIc: 'ic-user-check', srcText: t }),
+  missing: (t) => ({ srcCls: 'src src-missing', srcIc: 'ic-circle-dashed', srcText: t }),
+  conflict: (t) => ({ srcCls: 'src src-conflict', srcIc: 'ic-alert-triangle', srcText: t })
+};
+const V = (label, value, src, mono) => ({ label, value, isValue: true, isMissing: false, valCls: mono ? 't-mono' : '', ...src });
+const M = (key, who, label, ph, type, mono) => {
+  const typed = vals[key] ?? '';
+  const has = typed.trim().length > 0;
+  return {
+    id: 'in-' + key, who, label, ph, type: type || 'text', typed,
+    isValue: false, isMissing: true,
+    fieldCls: has ? 'field' : 'field is-missing',
+    inputCls: mono ? 't-mono' : '',
+    set: (e) => this.setState({ vals: { ...vals, [key]: e.target.value } }),
+    filled: has,
+    ...(has ? SRC.confirmed('Added by you') : SRC.missing('Missing'))
+  };
+};
+
+const wmFields = [
+  V('ID number', '23456789', SRC.verified('CR12 + ID')),
+  V('KRA PIN', 'A012345678Z', match === 'merged' ? SRC.verified('CR12 + KRA cert') : SRC.extracted('CR12'), true),
+  V('Nationality', 'Kenyan', SRC.verified('CR12 + ID')),
+  V('Date of birth', '12 June 1984', SRC.extracted('ID document')),
+  V('Phone', '+254 712 345 678', SRC.confirmed('Your account')),
+  V('Email', 'wanjiku@amanilogistics.co.ke', SRC.confirmed('Your account')),
+  V('Residential address', 'Lavington, Nairobi', SRC.extracted('CR12'))
+];
+
+const pinValue = pin === 'kra' ? 'A019876534K' : pin === 'cr12' ? 'A019876543K' : 'Two values — choose below';
+const pinSrc = pin === 'kra' ? SRC.confirmed('Chosen · KRA cert') : pin === 'cr12' ? SRC.confirmed('Chosen · CR12') : SRC.conflict('Conflict');
+const boPhone = M('boPhone', 'Brian Otieno', 'Phone', '+254 7XX XXX XXX', 'tel');
+const boEmail = M('boEmail', 'Brian Otieno', 'Email', 'name@example.com', 'email');
+const boFields = [
+  V('ID number', '29876543', SRC.verified('CR12 + ID')),
+  { ...V('KRA PIN', pinValue, pinSrc, !!pin), valCls: pin ? 't-mono' : 't-warn' },
+  V('Nationality', 'Kenyan', SRC.verified('CR12 + ID')),
+  V('Date of birth', '3 February 1988', SRC.extracted('ID document')),
+  boPhone,
+  boEmail,
+  V('Residential address', 'Kileleshwa, Nairobi', SRC.extracted('CR12'))
+];
+
+const shPin = M('shPin', 'Savannah Holdings Limited', 'Company KRA PIN', 'P05XXXXXXXX', 'text', true);
+const shFields = [
+  V('Registration number', 'PVT-9QK3LM2A', SRC.extracted('Amani CR12'), true),
+  V('Country of incorporation', 'Kenya', SRC.extracted('Amani CR12')),
+  corp ? V('Registered office', 'Westlands, Nairobi', SRC.extracted('Its CR12')) : { ...V('Registered office', 'Read from its CR12', SRC.missing('Missing')), valCls: 't-3' },
+  shPin
+];
+
+const haId = M('haId', 'Halima Abdi', 'ID number', '8-digit ID', 'text');
+const haPin = M('haPin', 'Halima Abdi', 'KRA PIN', 'A0XXXXXXXXX', 'text', true);
+const haFields = [
+  haId,
+  haPin,
+  V('Nationality', 'Kenyan', SRC.extracted('CR12')),
+  V('Address', 'Upper Hill, Nairobi', SRC.extracted('CR12'))
+];
+
+const missingList = [boPhone, boEmail, shPin, haId, haPin];
+const missing = missingList.filter((m) => !m.filled).length + (corp ? 0 : 1);
+const conflicts = (pin ? 0 : 1) + (match === 'pending' ? 1 : 0);
+const boOpenItems = (pin ? 0 : 1) + [boPhone, boEmail].filter((m) => !m.filled).length;
+const haOpenItems = [haId, haPin].filter((m) => !m.filled).length;
+const shOpenItems = (corp ? 0 : 1) + (shPin.filled ? 0 : 1) + (corp && repOn ? 0 : 1);
+
+const card = (k) => ({
+  open: !!open[k],
+  expanded: open[k] ? 'true' : 'false',
+  chev: open[k] ? 'ic-chevron-up' : 'ic-chevron-down',
+  toggle: () => this.setState({ open: { ...open, [k]: !open[k] } })
+});
+const pick = (v) => () => this.setState({ pin: v });
+
+const hint = reading ? 'Reading documents…' :
+  (conflicts + missing === 0 ? 'Everyone checked' :
+  [conflicts ? conflicts + (conflicts === 1 ? ' conflict' : ' conflicts') : '', missing ? missing + (missing === 1 ? ' detail missing' : ' details missing') : ''].filter(Boolean).join(' · ') + ' — you can finish later');
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  reading,
+  done: !reading,
+  title: reading ? 'Finding the people in your CR12' : 'We found 4 people in your CR12',
+  docCount: match === 'merged' ? 4 : 3,
+  conflicts,
+  conflictCls: conflicts ? 't-warn' : '',
+  missing,
+  matchPending: match === 'pending',
+  matchMerged: match === 'merged',
+  matchSeparate: match === 'separate',
+  merge: () => this.setState({ match: 'merged' }),
+  keepSeparate: () => this.setState({ match: 'separate' }),
+  undoMatch: () => this.setState({ match: 'pending' }),
+  wm: card('wm'), bo: card('bo'), sh: card('sh'), ha: card('ha'),
+  wmFields, boFields, shFields, haFields,
+  wmStatus: match === 'merged' ? 'Verified' : 'PIN from CR12 only',
+  wmStatusCls: match === 'merged' ? 'pill pill-good' : 'pill',
+  boStatus: boOpenItems ? boOpenItems + (boOpenItems === 1 ? ' item needs you' : ' items need you') : 'Complete',
+  boStatusCls: boOpenItems ? 'pill pill-warn' : 'pill pill-good',
+  shStatus: shOpenItems ? shOpenItems + (shOpenItems === 1 ? ' item needs you' : ' items need you') : 'Complete',
+  shStatusCls: shOpenItems ? 'pill pill-warn' : 'pill pill-good',
+  haStatus: haOpenItems ? 'Identity unverified' : 'Details added',
+  haStatusCls: haOpenItems ? 'pill' : 'pill pill-good',
+  pinChip: pin ? 'Resolved' : 'Choose the current value',
+  pinChipCls: pin ? 'src src-confirmed' : 'src src-conflict',
+  pinChipIc: pin ? 'ic-check' : 'ic-alert-triangle',
+  c1: { cls: pin === 'cr12' ? 'is-picked' : '', checked: pin === 'cr12' ? 'true' : 'false', pick: pick('cr12') },
+  c2: { cls: pin === 'kra' ? 'is-picked' : '', checked: pin === 'kra' ? 'true' : 'false', pick: pick('kra') },
+  pinKra: pin === 'kra',
+  pinCr12: pin === 'cr12',
+  corpMissing: !corp,
+  corpUploaded: corp,
+  uploadCorp: () => this.setState({ corp: true }),
+  rep: {
+    cls: repOn ? 'is-picked' : '',
+    checked: repOn ? 'true' : 'false',
+    srcCls: repOn ? 'src src-confirmed' : 'src src-extracted',
+    srcText: repOn ? 'Acts for it' : 'Suggested',
+    pick: () => this.setState({ repOn: !repOn })
+  },
+  footerHint: hint,
+  continueCls: reading ? 'is-disabled' : '',
+  continueDisabled: reading ? 'true' : 'false'
+};
+}
+}
+</script>
+</body>
+</html>

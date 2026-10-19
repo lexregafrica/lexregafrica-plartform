@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overlays — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.ws-tabs{overflow-x:auto;scrollbar-width:none}
+.ov-dock{position:absolute;z-index:15;left:280px;bottom:24px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 8px 8px 14px;border-radius:20px}
+.lx .help-sheet{position:absolute;z-index:20;top:12px;right:12px;bottom:12px;width:400px;display:flex;flex-direction:column}
+.help-scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding:18px 20px 20px}
+.ov-center{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px}
+.ov-top{position:absolute;inset:0;z-index:30;display:flex;align-items:flex-start;justify-content:center;padding:96px 16px 16px}
+.ov-toast{position:absolute;z-index:40;top:16px;left:0;right:0;display:flex;justify-content:center;pointer-events:none}
+.ov-toast .toast{pointer-events:auto}
+.pal-list{max-height:380px;overflow-y:auto;padding:6px}
+.lx .menu-item.pal-item{height:auto;min-height:44px;padding:6px 10px;color:var(--label);text-decoration:none}
+.lx .menu-item.pal-item .ic{color:var(--label-3)}
+.lx .menu-item.is-active,.lx .menu-item.pal-item:hover{background:var(--tint);color:var(--brand-ink)}
+.lx .menu-item.is-active .ic,.lx .menu-item.is-active .t-3,.lx .menu-item.pal-item:hover .ic,.lx .menu-item.pal-item:hover .t-3{color:rgba(255,255,255,0.86)}
+@keyframes ov-out-right{to{transform:translateX(110%)}}
+@keyframes ov-out-down{to{transform:translateY(100%)}}
+@keyframes ov-dematerialize{to{opacity:0;transform:scale(0.96) translateY(8px);filter:blur(6px)}}
+@keyframes ov-fade-out{to{opacity:0}}
+@keyframes ov-lift-out{to{opacity:0;transform:translateY(-14px) scale(0.96)}}
+.lx .help-sheet.is-leaving{animation:ov-out-right 240ms var(--ease-in) both}
+.lx .dialog.is-leaving,.lx .palette.is-leaving{animation:ov-dematerialize 200ms var(--ease-in) both}
+.lx .scrim.is-leaving{animation:ov-fade-out 200ms var(--ease-in) both}
+.lx .toast.is-leaving{animation:ov-lift-out 220ms var(--ease-in) both}
+@container lx (max-width: 720px){
+  .ov-dock{left:12px;right:12px;bottom:84px;justify-content:center;padding:8px}
+  .lx .help-sheet{top:auto;left:0;right:0;bottom:0;width:auto;max-height:88%;border-radius:22px 22px 0 0;animation-name:slide-up;animation-timing-function:var(--ease-bounce);animation-duration:var(--dur-bounce)}
+  .lx .help-sheet.is-leaving{animation:ov-out-down 240ms var(--ease-in) both}
+  .ov-top{padding-top:56px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px; position: relative; overflow: hidden">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Main navigation">
+    <a class="sb-brand" href="Dashboard.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Africa</small></span>
+    </a>
+    <button class="sb-search" type="button" aria-haspopup="dialog" onClick="{{togglePalette}}"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item is-on" href="Workspace.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">4</span></a>
+    <a class="sb-item" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance<span class="badge">2</span></a>
+    <a class="sb-item" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+    <a class="sb-item" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    <div class="sb-group">Support</div>
+    <a class="sb-item" href="Overlays.dc.html"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Get help</a>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-settings" aria-hidden="true"></span>Settings</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm">WM</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Business owner</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Dashboard.dc.html">Entities</a><span aria-hidden="true">/</span><a href="Workspace.dc.html">Amani Logistics Limited</a><span aria-hidden="true">/</span><span class="here">Overview</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Amani Logistics</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search" aria-haspopup="dialog" onClick="{{togglePalette}}"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm">WM</span></div>
+    </div>
+    <main class="content" aria-hidden="{{behindHidden}}">
+
+      <div class="stack gap-4">
+        <header class="page-head rise">
+          <div class="row gap-4" style="align-items: flex-start; min-width: 0">
+            <span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-building"></span></span>
+            <div class="stack gap-1" style="min-width: 0">
+              <p class="t-eyebrow">Entity workspace</p>
+              <h1 class="t-title1">Amani Logistics Limited</h1>
+              <div class="row wrap gap-2">
+                <span class="pill pill-brand">Private limited company</span>
+                <span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Active</span>
+                <span class="t-footnote t-3">Reg. no. <span class="t-mono" style="color: var(--label-2)">PVT-2LU7Q9XB</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-gray btn-icon" type="button" aria-label="More actions" aria-haspopup="menu"><span class="ic ic-dots" aria-hidden="true"></span></button>
+            <a class="btn btn-primary" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Request a service</a>
+          </div>
+        </header>
+        <nav class="tabs ws-tabs" aria-label="Entity sections">
+          <a class="is-on" href="Workspace.dc.html" aria-current="page"><span class="ic ic-layout-dashboard ic-sm" aria-hidden="true"></span>Overview</a>
+          <a href="WsStructure.dc.html"><span class="ic ic-hierarchy-2 ic-sm" aria-hidden="true"></span>Structure</a>
+          <a href="WsPeople.dc.html"><span class="ic ic-users ic-sm" aria-hidden="true"></span>People</a>
+          <a href="WsCompliance.dc.html"><span class="ic ic-calendar-due ic-sm" aria-hidden="true"></span>Compliance</a>
+          <a href="WsDocuments.dc.html"><span class="ic ic-folder ic-sm" aria-hidden="true"></span>Documents</a>
+        </nav>
+      </div>
+
+      <div class="grid cols-3" style="align-items: start">
+        <section class="card card-pad rise" style="--d: 1" aria-labelledby="h-health">
+          <h2 id="h-health" class="t-headline">Compliance health</h2>
+          <div class="row gap-4" style="margin-top: 14px">
+            <div style="position: relative; width: 104px; height: 104px; flex: none">
+              <svg class="ring" width="104" height="104" viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="52" stroke-width="12"></circle><circle class="bar" cx="60" cy="60" r="52" stroke-width="12" stroke-dasharray="326.7" stroke-dashoffset="58.8" style="--len: 326.7; stroke: var(--sys-green)"></circle></svg>
+              <span class="t-stat" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px">82%</span>
+            </div>
+            <div class="stack gap-1">
+              <p class="t-subhead">Good standing</p>
+              <p class="t-footnote t-3 t-pretty">1 filing overdue · 2 tasks open</p>
+              <a class="t-footnote t-strong" href="WsCompliance.dc.html">View compliance</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="card rise" style="--d: 2" aria-labelledby="h-next">
+          <div class="card-head"><h2 id="h-next">Upcoming deadlines</h2><a class="t-footnote" href="WsCompliance.dc.html">All</a></div>
+          <ul>
+            <li class="list-row has-icon"><span class="date-tile is-urgent" aria-hidden="true"><span class="m">Sep</span><span class="d">30</span></span><span class="stack grow" style="min-width: 0"><span class="t-subhead truncate">Lodge BOF-1 with BRS</span><span class="t-footnote t-bad">16 days overdue</span></span></li>
+            <li class="list-row has-icon"><span class="date-tile" aria-hidden="true"><span class="m">Mar</span><span class="d">31</span></span><span class="stack grow" style="min-width: 0"><span class="t-subhead truncate">Nairobi County business permit</span><span class="t-footnote t-3 t-num">31 Mar 2027</span></span></li>
+            <li class="list-row has-icon"><span class="date-tile" aria-hidden="true"><span class="m">Apr</span><span class="d">13</span></span><span class="stack grow" style="min-width: 0"><span class="t-subhead truncate">Annual return with BRS</span><span class="t-footnote t-3 t-num">13 Apr 2027</span></span></li>
+          </ul>
+        </section>
+
+        <section class="card rise" style="--d: 3" aria-labelledby="h-facts">
+          <div class="card-head"><h2 id="h-facts">Entity details</h2></div>
+          <dl class="stack" style="padding: 0 20px 16px; gap: 10px">
+            <div class="row between gap-3"><dt class="t-footnote t-3">KRA PIN</dt><dd class="t-subhead t-mono">P051234567X</dd></div>
+            <div class="row between gap-3"><dt class="t-footnote t-3">Incorporated</dt><dd class="t-subhead t-num">14 March 2019</dd></div>
+            <div class="row between gap-3"><dt class="t-footnote t-3">Nominal capital</dt><dd class="t-subhead t-num">KES 1,000,000</dd></div>
+            <div class="row between gap-3" style="align-items: flex-start"><dt class="t-footnote t-3">Office</dt><dd class="t-subhead" style="text-align: right">Mombasa Road, Industrial Area, Nairobi</dd></div>
+          </dl>
+        </section>
+
+        <section class="card span-2 rise" style="--d: 4" aria-labelledby="h-tasks">
+          <div class="card-head"><h2 id="h-tasks">Tasks</h2><span class="pill">2 open</span></div>
+          <ul>
+            <li class="list-row has-icon"><span class="icon-tile bad" aria-hidden="true"><span class="ic ic-file-upload"></span></span><span class="stack grow" style="min-width: 0"><span class="t-subhead">Upload signed BOF-1</span><span class="t-footnote t-3">All directors sign before you lodge it on eCitizen</span></span></li>
+            <li class="list-row has-icon"><span class="icon-tile warn" aria-hidden="true"><span class="ic ic-alert-triangle"></span></span><span class="stack grow" style="min-width: 0"><span class="t-subhead">Confirm Brian Otieno&#39;s KRA PIN</span><span class="t-footnote t-3 t-num">CR12 A019876543K vs KRA certificate A019876534K</span></span></li>
+          </ul>
+        </section>
+
+        <section class="card card-pad rise" style="--d: 5" aria-labelledby="h-danger">
+          <h2 id="h-danger" class="t-headline">Danger zone</h2>
+          <p class="t-footnote t-3 t-pretty" style="margin: 4px 0 12px">Remove this entity from your account. Kept for 30 days, then erased.</p>
+          <button class="btn btn-gray btn-sm" type="button" aria-haspopup="dialog" onClick="{{openDelete}}" style="color: var(--bad)"><span class="ic ic-trash" aria-hidden="true"></span>Delete entity</button>
+        </section>
+      </div>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab is-on" href="Workspace.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance</a>
+      <a class="m-tab" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+      <a class="m-tab" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    </nav>
+  </div>
+</div>
+
+<div class="ov-dock glass" role="toolbar" aria-label="Preview overlays">
+  <span class="t-caption t-3 hide-compact" style="margin-right: 4px">Preview</span>
+  <button class="{{dockHelp}}" type="button" aria-pressed="{{pHelp}}" onClick="{{toggleHelp}}"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Help request</button>
+  <button class="{{dockDelete}}" type="button" aria-pressed="{{pDelete}}" onClick="{{openDelete}}"><span class="ic ic-trash" aria-hidden="true"></span>Delete alert</button>
+  <button class="{{dockPalette}}" type="button" aria-pressed="{{pPalette}}" onClick="{{togglePalette}}"><span class="ic ic-command" aria-hidden="true"></span>Palette<span class="kbd hide-compact">⌘K</span></button>
+  <button class="btn btn-secondary btn-sm" type="button" onClick="{{fireToast}}"><span class="ic ic-circle-check" aria-hidden="true"></span>Toast</button>
+</div>
+
+<sc-if value="{{showHelp}}" hint-placeholder-val="{{true}}">
+  <aside class="sheet sheet-side help-sheet {{helpLeave}}" role="dialog" aria-modal="false" aria-labelledby="help-h" style="--origin: 100% 50%">
+    <div class="sheet-grabber only-compact" aria-hidden="true"></div>
+    <div class="help-scroll">
+      <div class="row between gap-3" style="align-items: flex-start">
+        <div class="stack gap-1">
+          <p class="t-eyebrow">Get help</p>
+          <h2 id="help-h" class="t-title2">Ask a LexReg lawyer</h2>
+        </div>
+        <button class="btn btn-gray btn-icon btn-sm btn-pill" type="button" aria-label="Close help request" onClick="{{closeHelp}}"><span class="ic ic-x" aria-hidden="true"></span></button>
+      </div>
+      <p class="t-footnote t-2 t-pretty">Reach our team directly — we respond during business hours and will walk you through the next steps and pricing.</p>
+
+      <div class="inset row gap-3">
+        <span class="icon-tile" aria-hidden="true"><span class="ic ic-building"></span></span>
+        <span class="stack grow" style="min-width: 0"><span class="t-caption t-3">Regarding</span><span class="t-subhead truncate">Amani Logistics Limited · Workspace</span></span>
+      </div>
+
+      <div class="stack gap-2">
+        <span class="label" id="ch-l">Reply to me by</span>
+        <div class="seg" role="group" aria-labelledby="ch-l" style="--n:2; --i:{{chIndex}}">
+          <button class="{{chEmailCls}}" type="button" aria-pressed="{{chEmailP}}" onClick="{{pickEmail}}"><span class="ic ic-mail ic-sm" aria-hidden="true"></span> Email</button>
+          <button class="{{chWaCls}}" type="button" aria-pressed="{{chWaP}}" onClick="{{pickWa}}"><span class="ic ic-message-circle ic-sm" aria-hidden="true"></span> WhatsApp</button>
+        </div>
+        <p class="help">{{channelNote}}</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="help-topic">Topic</label>
+        <select class="select" id="help-topic" value="{{topic}}" onChange="{{setTopic}}">
+          <option value="filings">Annual return &amp; statutory filings</option>
+          <option value="bo">Beneficial ownership (BOF-1)</option>
+          <option value="people">Changing directors or shareholders</option>
+          <option value="audit">Legal audit — KES 25,000</option>
+          <option value="other">Something else</option>
+        </select>
+      </div>
+
+      <div class="{{nameField}}">
+        <label class="label" for="help-name">Your name <span class="req">*</span></label>
+        <input class="input" id="help-name" type="text" value="{{name}}" onInput="{{setName}}" autocomplete="name">
+        <sc-if value="{{nameErr}}" hint-placeholder-val="{{false}}"><p class="error"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>Enter your name.</p></sc-if>
+      </div>
+      <sc-if value="{{isEmail}}" hint-placeholder-val="{{true}}">
+        <div class="{{contactField}}">
+          <label class="label" for="help-email">Your email <span class="req">*</span></label>
+          <input class="input" id="help-email" type="email" value="{{email}}" onInput="{{setEmail}}" autocomplete="email">
+          <sc-if value="{{contactErr}}" hint-placeholder-val="{{false}}"><p class="error"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>Enter your email so we can reach you.</p></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{isWa}}" hint-placeholder-val="{{false}}">
+        <div class="{{contactField}}">
+          <label class="label" for="help-phone">Phone number <span class="req">*</span></label>
+          <input class="input" id="help-phone" type="tel" placeholder="07XXXXXXXX" value="{{phone}}" onInput="{{setPhone}}" autocomplete="tel">
+          <sc-if value="{{contactErr}}" hint-placeholder-val="{{false}}"><p class="error"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>Enter your phone number so we can reach you.</p></sc-if>
+        </div>
+      </sc-if>
+
+      <div class="field">
+        <label class="label" for="help-msg">How can we help? <span class="t-3">(optional)</span></label>
+        <textarea class="textarea" id="help-msg" rows="3" placeholder="e.g. We need to add a new director before the annual return." value="{{message}}" onInput="{{setMessage}}"></textarea>
+      </div>
+
+      <sc-if value="{{noAttach}}" hint-placeholder-val="{{true}}">
+        <button class="btn btn-gray btn-sm" type="button" onClick="{{attach}}" style="align-self: flex-start"><span class="ic ic-link" aria-hidden="true"></span>Attach a document from the vault</button>
+      </sc-if>
+      <sc-if value="{{hasAttach}}" hint-placeholder-val="{{false}}">
+        <div class="file-row pop">
+          <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-file-certificate"></span></span>
+          <span class="stack grow" style="min-width: 0"><span class="name">CR12 Official Search — Amani Logistics Limited, 2 Sep 2026.pdf</span><span class="meta">From Registration · 1.2 MB</span></span>
+          <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Remove attachment" onClick="{{detach}}"><span class="ic ic-x" aria-hidden="true"></span></button>
+        </div>
+      </sc-if>
+
+      <div class="note note-info"><span class="ic ic-clock" aria-hidden="true"></span><span>{{responseNote}}</span></div>
+
+      <div class="row gap-2" style="margin-top: auto; padding-top: 4px">
+        <button class="btn btn-gray" type="button" onClick="{{closeHelp}}">Cancel</button>
+        <button class="btn btn-primary grow" type="button" onClick="{{send}}"><span class="ic {{sendIc}}" aria-hidden="true"></span>{{sendLabel}}</button>
+      </div>
+    </div>
+  </aside>
+</sc-if>
+
+<sc-if value="{{showDelete}}" hint-placeholder-val="{{false}}">
+  <div class="ov-center">
+    <div class="scrim {{delLeave}}"></div>
+    <div class="dialog {{delLeave}}" role="alertdialog" aria-modal="true" aria-labelledby="del-h" aria-describedby="del-d" style="position: relative; {{delStyle}}">
+      <sc-if value="{{delStep1}}" hint-placeholder-val="{{true}}">
+        <div class="dialog-body" style="gap: 8px; padding: 22px 18px 18px">
+          <span class="icon-tile icon-tile-lg bad" aria-hidden="true" style="align-self: center; border-radius: 50%"><span class="ic ic-trash"></span></span>
+          <h2 id="del-h" class="t-headline" style="font-size: 17px">Delete “Amani Logistics Limited”?</h2>
+          <p id="del-d" class="t-footnote t-2 t-pretty">This removes the entity and everything filed under it — directors, shareholders, beneficial owners, uploaded documents and the information document package. You and your organisation lose access straight away.</p>
+          <p class="inset t-caption t-2 t-pretty" style="text-align: left; margin-top: 4px">LexReg keeps a secured copy for 30 days, as the Kenya Data Protection Act 2019 requires, then erases it for good. Contact us within 30 days to restore it.</p>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" onClick="{{closeDelete}}">Cancel</button>
+          <button type="button" onClick="{{delNext}}" style="color: var(--bad); font-weight: 600">Continue</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{delStep2}}" hint-placeholder-val="{{false}}">
+        <div class="dialog-body enter-forward" style="gap: 10px; padding: 22px 18px 18px">
+          <h2 id="del-h" class="t-headline" style="font-size: 17px">Confirm deletion</h2>
+          <p id="del-d" class="t-footnote t-2 t-pretty">Type <strong style="color: var(--label)">Amani Logistics Limited</strong> below to confirm.</p>
+          <div class="{{delField}}" style="text-align: left">
+            <label class="sr-only" for="del-name">Entity name</label>
+            <input class="input" id="del-name" type="text" placeholder="Amani Logistics Limited" value="{{delText}}" onInput="{{setDelText}}" autocomplete="off">
+            <p class="{{delHelpCls}}">{{delHelp}}</p>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" onClick="{{delBack}}">Back</button>
+          <button type="button" onClick="{{doDelete}}" disabled="{{delDisabled}}" style="color: var(--bad); font-weight: 600; {{delBtnStyle}}">Delete</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{showPalette}}" hint-placeholder-val="{{false}}">
+  <div class="ov-top">
+    <div class="scrim {{palLeave}}" style="background: rgba(0,0,0,0.18)"></div>
+    <div class="popover palette {{palLeave}}" role="dialog" aria-modal="true" aria-label="Command palette" style="position: relative; width: 100%; max-width: 620px; padding: 0; overflow: hidden; --origin: 50% 100%">
+      <div class="input-wrap" style="padding: 4px 6px">
+        <span class="ic ic-search" aria-hidden="true" style="left: 18px"></span>
+        <label class="sr-only" for="pal-q">Search LexReg</label>
+        <input class="input" id="pal-q" type="text" placeholder="Search entities, people, documents or actions" value="{{q}}" onInput="{{setQ}}" onKeyDown="{{palKey}}" autocomplete="off" style="box-shadow: none; height: 50px; font-size: 17px; padding-left: 40px; padding-right: 56px; background: transparent">
+        <span class="trail" style="right: 16px"><span class="kbd">esc</span></span>
+      </div>
+      <div class="divider"></div>
+      <div class="pal-list" role="listbox" aria-label="Results">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+          <div class="stack" role="group" aria-label="{{g.label}}">
+            <p class="t-eyebrow" style="padding: 10px 10px 4px">{{g.label}}</p>
+            <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+              <sc-if value="{{it.isLink}}" hint-placeholder-val="{{true}}">
+                <a class="{{it.cls}}" href="{{it.href}}" role="option" aria-selected="{{it.sel}}"><span class="ic {{it.ic}}" aria-hidden="true"></span><span class="stack grow" style="min-width: 0"><span class="truncate" style="font-weight: 500">{{it.t}}</span><span class="t-caption t-3 truncate">{{it.sub}}</span></span><sc-if value="{{it.showEnter}}" hint-placeholder-val="{{false}}"><span class="kbd">↵</span></sc-if></a>
+              </sc-if>
+              <sc-if value="{{it.isBtn}}" hint-placeholder-val="{{false}}">
+                <button class="{{it.cls}}" type="button" role="option" aria-selected="{{it.sel}}" onClick="{{it.run}}"><span class="ic {{it.ic}}" aria-hidden="true"></span><span class="stack grow" style="min-width: 0"><span class="truncate" style="font-weight: 500">{{it.t}}</span><span class="t-caption t-3 truncate">{{it.sub}}</span></span><sc-if value="{{it.showEnter}}" hint-placeholder-val="{{false}}"><span class="kbd">↵</span></sc-if></button>
+              </sc-if>
+            </sc-for>
+          </div>
+        </sc-for>
+        <sc-if value="{{noResults}}" hint-placeholder-val="{{false}}">
+          <div class="stack gap-1" style="align-items: center; text-align: center; padding: 32px 16px">
+            <p class="t-headline">No results for “{{q}}”</p>
+            <p class="t-footnote t-3">Try an entity name, a person, or a form like CR12.</p>
+          </div>
+        </sc-if>
+      </div>
+      <div class="row wrap gap-4 t-caption t-3" style="padding: 10px 16px; border-top: var(--hairline-soft); background: var(--surface-3)">
+        <span class="row gap-1"><span class="kbd">↑</span><span class="kbd">↓</span>Navigate</span>
+        <span class="row gap-1"><span class="kbd">↵</span>Open</span>
+        <span class="row gap-1"><span class="kbd">esc</span>Close</span>
+        <span class="grow"></span>
+        <span class="t-num hide-compact">{{resultCount}}</span>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{showToast}}" hint-placeholder-val="{{false}}">
+  <div class="ov-toast">
+    <div class="toast {{toastLeave}}" role="status" aria-live="polite">
+      <span class="ic ic-circle-check" aria-hidden="true" style="color: var(--sys-green)"></span>
+      <span>{{toastMsg}}</span>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"overlay":{"editor":"enum","options":["none","help","delete","palette","toast"],"default":"help"},"$preview":{"width":1440,"height":920}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const propOv = this.props.overlay ?? 'help';
+const open = s.open !== undefined ? s.open : ((propOv === 'none' || propOv === 'toast') ? null : propOv);
+const toastMsg = s.toast !== undefined ? s.toast : (propOv === 'toast' ? 'Changes saved' : null);
+const leaving = s.leaving ?? null;
+const toastLeaving = s.toastLeaving ?? false;
+
+const channel = s.channel ?? 'email';
+const topic = s.topic ?? 'filings';
+const name = s.name ?? 'Wanjiku Mwangi';
+const email = s.email ?? 'wanjiku@amanilogistics.co.ke';
+const phone = s.phone ?? '+254 712 345 678';
+const message = s.message ?? '';
+const attached = s.attached ?? false;
+const err = s.err ?? null;
+
+const delStep = s.delStep ?? 1;
+const delText = s.delText ?? '';
+const q = s.q ?? '';
+const active = s.active ?? 0;
+
+const close = (k) => {
+  this.setState({ leaving: k });
+  setTimeout(() => this.setState({ open: null, leaving: null }), 230);
+};
+const show = (k) => this.setState({ open: k, leaving: null, delStep: 1, delText: '', q: '', active: 0, err: null });
+const toggle = (k) => () => (open === k ? close(k) : show(k));
+
+const fireToast = (msg) => {
+  const id = Date.now();
+  this.setState({ toast: msg, toastLeaving: false, toastId: id });
+  setTimeout(() => { if ((this.state || {}).toastId === id) this.setState({ toastLeaving: true }); }, 2600);
+  setTimeout(() => { if ((this.state || {}).toastId === id) this.setState({ toast: null, toastLeaving: false }); }, 2830);
+};
+
+// Help request
+const isEmail = channel === 'email';
+const nameErr = err === 'name';
+const contactErr = err === 'contact';
+const send = () => {
+  if (!name.trim()) { this.setState({ err: 'name' }); return; }
+  if (isEmail ? !email.trim() : !phone.trim()) { this.setState({ err: 'contact' }); return; }
+  close('help');
+  fireToast(isEmail ? 'Request ready — opening your email app' : 'Request ready — opening WhatsApp');
+};
+
+// Delete entity
+const canDel = delText.trim().toLowerCase() === 'amani logistics limited';
+const typed = delText.trim().length > 0;
+
+// Command palette
+const L = (t, sub, ic, href) => ({ t, sub, ic, href, isLink: true, isBtn: false });
+const B = (t, sub, ic, run) => ({ t, sub, ic, run, isLink: false, isBtn: true });
+const GROUPS = [
+  ['Entities', [
+    L('Amani Logistics Limited', 'Private limited company · PVT-2LU7Q9XB', 'ic-building', 'Workspace.dc.html'),
+    L('Kilele Partners', 'General partnership · BN-8XK2Q4LM', 'ic-users-group', 'Dashboard.dc.html'),
+    L('Tumaini Welfare Society', 'Society · onboarding 60% done', 'ic-heart-handshake', 'ExInstrument.dc.html'),
+    L('Jua Kali Foods Ltd', 'Draft · step 6 of 14 · saved 2 days ago', 'ic-writing', 'NewPeople.dc.html')
+  ]],
+  ['People', [
+    L('Wanjiku Mwangi', 'Director · Shareholder 60% · Amani Logistics', 'ic-user', 'WsPeople.dc.html'),
+    L('Brian Otieno', 'Director · Shareholder 30% · KRA PIN to confirm', 'ic-user', 'WsPeople.dc.html'),
+    L('Halima Abdi', 'Company secretary · Amani Logistics', 'ic-user', 'WsPeople.dc.html'),
+    L('James Kariuki', 'Beneficial owner — indirect, via Savannah Holdings', 'ic-user', 'WsPeople.dc.html')
+  ]],
+  ['Documents', [
+    L('CR12 Official Search — Amani Logistics Limited', 'Registration · 2 Sep 2026', 'ic-file-certificate', 'WsDocuments.dc.html'),
+    L('Certificate of Incorporation', 'Registration · Amani Logistics Limited', 'ic-file-certificate', 'WsDocuments.dc.html'),
+    L('BOF-1 — ready to sign', 'Generated by LexReg · 16 Sep 2026', 'ic-sparkles', 'WsDocuments.dc.html')
+  ]],
+  ['Actions', [
+    B('Ask a lawyer', 'Email first, or WhatsApp', 'ic-message-circle', () => show('help')),
+    L('Mark annual return as filed', 'Compliance · due 13 Apr 2027', 'ic-circle-check', 'WsCompliance.dc.html'),
+    L('Request a legal audit', 'Services · KES 25,000', 'ic-scale', 'Services.dc.html'),
+    L('Register a new entity', 'Start the formation questionnaire', 'ic-plus', 'NewType.dc.html'),
+    L('Onboard an existing entity', 'Upload your CR12 and we read it', 'ic-upload', 'ExType.dc.html')
+  ]]
+];
+const query = q.trim().toLowerCase();
+let flat = [];
+GROUPS.forEach(([label, items]) => {
+  items.forEach((it) => { if (!query || (it.t + ' ' + it.sub).toLowerCase().indexOf(query) >= 0) flat.push({ ...it, g: label }); });
+});
+const act = flat.length ? Math.min(active, flat.length - 1) : 0;
+const groups = GROUPS.map(([label]) => ({
+  label,
+  items: flat.map((it, i) => ({ ...it, i })).filter((it) => it.g === label).map((it) => ({
+    ...it,
+    cls: 'menu-item pal-item' + (it.i === act ? ' is-active' : ''),
+    sel: it.i === act ? 'true' : 'false',
+    showEnter: it.i === act
+  }))
+})).filter((g) => g.items.length > 0);
+const palKey = (e) => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); this.setState({ active: Math.min(act + 1, flat.length - 1) }); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); this.setState({ active: Math.max(act - 1, 0) }); }
+  else if (e.key === 'Escape') { close('palette'); }
+  else if (e.key === 'Enter' && flat[act] && flat[act].isBtn) { flat[act].run(); }
+};
+
+const dock = (k) => 'btn btn-sm ' + (open === k ? 'btn-tinted' : 'btn-secondary');
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  behindHidden: (open === 'delete' || open === 'palette') ? 'true' : 'false',
+
+  dockHelp: dock('help'), dockDelete: dock('delete'), dockPalette: dock('palette'),
+  pHelp: open === 'help' ? 'true' : 'false',
+  pDelete: open === 'delete' ? 'true' : 'false',
+  pPalette: open === 'palette' ? 'true' : 'false',
+  toggleHelp: toggle('help'),
+  togglePalette: toggle('palette'),
+  openDelete: () => show('delete'),
+  fireToast: () => fireToast('Changes saved'),
+
+  showHelp: open === 'help',
+  helpLeave: leaving === 'help' ? 'is-leaving' : '',
+  closeHelp: () => close('help'),
+  chIndex: isEmail ? 0 : 1,
+  chEmailCls: isEmail ? 'is-on' : '', chWaCls: isEmail ? '' : 'is-on',
+  chEmailP: isEmail ? 'true' : 'false', chWaP: isEmail ? 'false' : 'true',
+  pickEmail: () => this.setState({ channel: 'email', err: null }),
+  pickWa: () => this.setState({ channel: 'whatsapp', err: null }),
+  channelNote: isEmail ? 'Recommended — a written thread you can track and forward.' : 'Faster for quick questions. Opens WhatsApp with your details filled in.',
+  topic, setTopic: (e) => this.setState({ topic: e.target.value }),
+  name, setName: (e) => this.setState({ name: e.target.value, err: null }),
+  email, setEmail: (e) => this.setState({ email: e.target.value, err: null }),
+  phone, setPhone: (e) => this.setState({ phone: e.target.value, err: null }),
+  message, setMessage: (e) => this.setState({ message: e.target.value }),
+  nameField: nameErr ? 'field is-invalid' : 'field',
+  contactField: contactErr ? 'field is-invalid' : 'field',
+  nameErr, contactErr,
+  isEmail, isWa: !isEmail,
+  noAttach: !attached, hasAttach: attached,
+  attach: () => this.setState({ attached: true }),
+  detach: () => this.setState({ attached: false }),
+  responseNote: isEmail ? 'We respond during business hours, Monday to Friday. The request opens in your email app, so you keep a copy.' : 'We respond during business hours, Monday to Friday. Attach documents in the chat when asked.',
+  sendIc: isEmail ? 'ic-mail' : 'ic-message-circle',
+  sendLabel: isEmail ? 'Send via email' : 'Send via WhatsApp',
+  send,
+
+  showDelete: open === 'delete',
+  delLeave: leaving === 'delete' ? 'is-leaving' : '',
+  delStyle: 'width: min(340px, 100%); --origin: 38% 240%; transform-origin: var(--origin)',
+  delStep1: delStep === 1, delStep2: delStep === 2,
+  closeDelete: () => close('delete'),
+  delNext: () => this.setState({ delStep: 2 }),
+  delBack: () => this.setState({ delStep: 1, delText: '' }),
+  delText,
+  setDelText: (e) => this.setState({ delText: e.target.value }),
+  delField: typed && !canDel ? 'field is-invalid' : 'field',
+  delHelp: canDel ? 'Name matches. Deleting starts the 30-day retention period.' : typed ? 'That doesn’t match the entity name yet.' : 'Not case-sensitive.',
+  delHelpCls: typed && !canDel ? 'error' : 'help',
+  delDisabled: !canDel,
+  delBtnStyle: canDel ? 'opacity: 1' : 'opacity: 0.35',
+  doDelete: () => { if (!canDel) return; close('delete'); fireToast('Amani Logistics Limited deleted · restorable for 30 days'); },
+
+  showPalette: open === 'palette',
+  palLeave: leaving === 'palette' ? 'is-leaving' : '',
+  q, setQ: (e) => this.setState({ q: e.target.value, active: 0 }),
+  palKey,
+  groups,
+  noResults: flat.length === 0,
+  resultCount: flat.length === 1 ? '1 result' : flat.length + ' results',
+
+  showToast: !!toastMsg,
+  toastMsg: toastMsg || '',
+  toastLeave: toastLeaving ? 'is-leaving' : ''
+};
+}
+}
+</script>
+</body>
+</html>

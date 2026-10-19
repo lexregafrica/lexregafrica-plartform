@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review and submit — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lx a.btn-primary{color:#fff}
+.lx-dark a.btn-primary{color:#1C0008}
+.lx a.btn-gray,.lx a.btn-secondary{color:var(--label)}
+.kv{display:flex;flex-direction:column}
+.kv > div{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-top:var(--hairline-soft)}
+.kv > div:first-child{border-top:0;padding-top:0}
+.kv dt{font-size:13px;line-height:19px;color:var(--label-3);flex:0 1 auto;min-width:0}
+.kv dd{font-size:13.5px;line-height:19px;font-weight:500;text-align:right;min-width:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.sum-card{display:flex;flex-direction:column}
+.sum-card .card-head{padding-bottom:10px}
+.sum-card .kv{padding:0 20px 16px}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <a class="wz-step is-done" href="NewName.dc.html"><span class="n">3</span>Name reservation</a>
+      <span class="wz-step is-done"><span class="n">4</span>Company basics</span>
+      <a class="wz-step is-done" href="NewShares.dc.html"><span class="n">5</span>Share structure</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">6</span>Shareholders &amp; members</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">7</span>Directors &amp; partners</a>
+      <a class="wz-step is-done" href="NewOwnership.dc.html"><span class="n">8</span>Beneficial ownership</a>
+      <span class="wz-step is-done"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step is-done"><span class="n">10</span>Constitutional documents</span>
+      <a class="wz-step is-done" href="NewVault.dc.html"><span class="n">11</span>Document vault</a>
+      <span class="wz-step is-done"><span class="n">12</span>Employee information</span>
+      <a class="wz-step is-done" href="NewDeclaration.dc.html"><span class="n">13</span>Declaration &amp; consent</a>
+      <a class="wz-step is-on" aria-current="step" href="NewReview.dc.html"><span class="n">14</span>Review &amp; submit</a>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 14 of 14</span><span class="t-caption t-3 t-num">100%</span></div>
+        <div class="progress good"><span style="width: 100%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 14 of 14</p>
+        <h1 class="t-large">Review your application</h1>
+        <p class="t-body t-2 t-pretty">Check each section once. Edit anything that&#8217;s off, then submit &#8212; we&#8217;ll prepare your BRS filing pack.</p>
+      </header>
+
+      <section class="card rise" style="--d: 1" aria-labelledby="check-h">
+        <div class="card-head">
+          <div class="row gap-3">
+            <span class="icon-tile good"><span class="ic ic-checklist" aria-hidden="true"></span></span>
+            <h2 id="check-h">Ready to submit</h2>
+          </div>
+          <span class="pill pill-good t-num"><span class="ic ic-circle-check" aria-hidden="true"></span>6 of 6 required</span>
+        </div>
+        <ul class="stack gap-2" style="padding: 0 20px 18px">
+          <sc-for list="{{checks}}" as="c" hint-placeholder-count="6">
+            <li class="row gap-3" style="align-items: flex-start">
+              <span class="ic ic-circle-check t-good" aria-hidden="true" style="margin-top: 1px"></span>
+              <p class="grow t-callout t-pretty"><span class="t-strong">{{c.title}}</span> <span class="t-3">{{c.sub}}</span></p>
+            </li>
+          </sc-for>
+          <li class="row gap-3" style="align-items: flex-start">
+            <span class="ic ic-alert-triangle t-warn" aria-hidden="true" style="margin-top: 1px"></span>
+            <p class="grow t-callout t-pretty"><span class="t-strong">No company secretary</span> <span class="pill pill-warn" style="vertical-align: 1px">Optional</span> <span class="t-3">A private company doesn&#8217;t need one until its paid-up capital reaches KES 5,000,000.</span></p>
+          </li>
+        </ul>
+      </section>
+
+      <div class="grid cols-2 rise" style="--d: 2">
+        <sc-for list="{{sections}}" as="sec" hint-placeholder-count="8">
+          <section class="card sum-card" aria-labelledby="{{sec.hid}}">
+            <div class="card-head">
+              <div class="row gap-2" style="min-width: 0"><span class="ic {{sec.icon}} t-3" aria-hidden="true"></span><h2 id="{{sec.hid}}" class="truncate">{{sec.title}}</h2></div>
+              <a class="btn btn-plain btn-sm" href="{{sec.href}}" aria-label="Edit {{sec.title}}">Edit</a>
+            </div>
+            <dl class="kv">
+              <sc-for list="{{sec.rows}}" as="r" hint-placeholder-count="3">
+                <div><dt>{{r.k}}</dt><dd>{{r.v}}</dd></div>
+              </sc-for>
+            </dl>
+          </section>
+        </sc-for>
+        <section class="card sum-card" aria-labelledby="sec-sec">
+          <div class="card-head">
+            <div class="row gap-2" style="min-width: 0"><span class="ic ic-user-check t-3" aria-hidden="true"></span><h2 id="sec-sec" class="truncate">Company secretary</h2></div>
+            <span class="pill">Optional</span>
+          </div>
+          <dl class="kv">
+            <div><dt>Secretary</dt><dd>None appointed</dd></div>
+            <div><dt>Required from</dt><dd>KES 5,000,000 paid-up capital</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      <section class="card rise" style="--d: 3" aria-labelledby="gen-h">
+        <div class="card-head" style="align-items: flex-start">
+          <div class="stack gap-1">
+            <h2 id="gen-h">Documents LexReg will generate</h2>
+            <p class="t-footnote t-3 t-pretty">Filled from your answers and added to your filing pack, ready to download and sign.</p>
+          </div>
+          <span class="pill pill-brand t-num">5 forms</span>
+        </div>
+        <ul class="list" style="box-shadow: none; border: 0; border-top: var(--hairline-soft); border-radius: 0 0 var(--r-card) var(--r-card)">
+          <sc-for list="{{forms}}" as="f" hint-placeholder-count="5">
+            <li class="list-row has-icon">
+              <span class="icon-tile"><span class="ic ic-file-certificate" aria-hidden="true"></span></span>
+              <div class="grow" style="min-width: 0"><p class="list-title">{{f.code}} <span class="t-2" style="font-weight: 400">{{f.name}}</span></p><p class="list-sub t-pretty">{{f.sub}}</p></div>
+            </li>
+          </sc-for>
+        </ul>
+      </section>
+
+      <section class="card card-pad stack gap-4 rise" style="--d: 4" aria-labelledby="next-h">
+        <h2 id="next-h" class="t-title3">What happens after you submit</h2>
+        <ol class="stack gap-3">
+          <li class="row gap-3" style="align-items: flex-start"><span class="avatar avatar-sm t-num">1</span><p class="grow t-callout t-2 t-pretty">We compile your information into a document package for BRS registration.</p></li>
+          <li class="row gap-3" style="align-items: flex-start"><span class="avatar avatar-sm t-num">2</span><p class="grow t-callout t-2 t-pretty">You choose: register yourself on eCitizen with our guidance, or have LexReg assist with filing.</p></li>
+          <li class="row gap-3" style="align-items: flex-start"><span class="avatar avatar-sm t-num">3</span><p class="grow t-callout t-2 t-pretty">Once BRS issues your certificate of incorporation, upload it back here.</p></li>
+          <li class="row gap-3" style="align-items: flex-start"><span class="avatar avatar-sm t-num">4</span><p class="grow t-callout t-2 t-pretty">Your entity goes live on the dashboard with its compliance calendar set up automatically.</p></li>
+        </ol>
+        <div class="note note-info">
+          <span class="ic ic-info-circle" aria-hidden="true"></span>
+          <p class="grow t-pretty"><strong>You file on BRS eCitizen; we prepare everything.</strong> BRS has no API, so nobody can file automatically. We give you the completed pack and walk you through each eCitizen screen.</p>
+        </div>
+      </section>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewDeclaration.dc.html" aria-label="Back"><span class="ic ic-arrow-left" aria-hidden="true"></span><span class="hide-compact">Back</span></a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">Signed by Wanjiku Mwangi · 16 Oct 2026</span>
+        <a class="btn btn-primary" href="NewFiling.dc.html">Submit for preparation<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":2600}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  checks: [
+    { title: 'Entity, applicant and names', sub: '3 proposed names in order of preference' },
+    { title: 'Share capital adds up', sub: '1,000 of 1,000 shares allotted' },
+    { title: '2 directors', sub: 'At least one natural person is required' },
+    { title: '3 beneficial owners', sub: 'Each with a nature of control, ready for BOF-1' },
+    { title: 'Document vault complete', sub: '12 of 12 documents ready' },
+    { title: 'Declaration signed', sub: '16 October 2026' }
+  ],
+  sections: [
+    { hid: 's-entity', title: 'Entity', icon: 'ic-building', href: 'NewType.dc.html', rows: [
+      { k: 'Entity type', v: 'Private limited company' },
+      { k: 'Registered office', v: 'Outering Road, Kariobangi Light Industries, Nairobi' },
+      { k: 'Primary activity', v: 'Food processing and packaging' }
+    ] },
+    { hid: 's-applicant', title: 'Applicant', icon: 'ic-user', href: 'NewApplicant.dc.html', rows: [
+      { k: 'Name', v: 'Wanjiku Mwangi · Director' },
+      { k: 'Email', v: 'wanjiku@amanilogistics.co.ke' },
+      { k: 'Phone', v: '+254 712 345 678' }
+    ] },
+    { hid: 's-names', title: 'Proposed names', icon: 'ic-writing', href: 'NewName.dc.html', rows: [
+      { k: 'First choice', v: 'Jua Kali Foods Limited' },
+      { k: 'Second', v: 'Jua Kali Foods Kenya Ltd' },
+      { k: 'Third', v: 'JuaKali Fresh Foods' }
+    ] },
+    { hid: 's-capital', title: 'Share capital', icon: 'ic-coins', href: 'NewShares.dc.html', rows: [
+      { k: 'Nominal capital', v: 'KES 1,000,000' },
+      { k: 'Shares', v: '1,000 ordinary of KES 1,000' },
+      { k: 'Allotted', v: '1,000 (100%)' }
+    ] },
+    { hid: 's-holders', title: 'Shareholders', icon: 'ic-chart-pie', href: 'NewPeople.dc.html', rows: [
+      { k: 'Wanjiku Mwangi', v: '600 · 60%' },
+      { k: 'Brian Otieno', v: '300 · 30%' },
+      { k: 'Savannah Holdings Limited', v: '100 · 10% · corporate' }
+    ] },
+    { hid: 's-directors', title: 'Directors', icon: 'ic-users', href: 'NewPeople.dc.html', rows: [
+      { k: 'Wanjiku Mwangi', v: 'ID 23456789' },
+      { k: 'Brian Otieno', v: 'ID 29876543' }
+    ] },
+    { hid: 's-bo', title: 'Beneficial owners', icon: 'ic-user-shield', href: 'NewOwnership.dc.html', rows: [
+      { k: 'Wanjiku Mwangi', v: '60% · direct' },
+      { k: 'Brian Otieno', v: '30% · direct' },
+      { k: 'James Kariuki', v: '10% · via Savannah Holdings' }
+    ] },
+    { hid: 's-docs', title: 'Documents', icon: 'ic-folder', href: 'NewVault.dc.html', rows: [
+      { k: 'In the vault', v: '12 of 12 ready' },
+      { k: 'Uploaded by you', v: '7 · all read by OCR' },
+      { k: 'Prepared by LexReg', v: '5 forms' }
+    ] }
+  ],
+  forms: [
+    { code: 'CR1', name: '· Application for registration', sub: 'Company name, office, activity and share capital' },
+    { code: 'CR2', name: '· Memorandum of registration', sub: 'Subscribers and the shares each takes' },
+    { code: 'CR8', name: '· Particulars of directors', sub: 'Wanjiku Mwangi and Brian Otieno' },
+    { code: 'BOF-1', name: '· Beneficial ownership', sub: '3 beneficial owners and their nature of control' },
+    { code: 'Statement of nominal capital', name: '', sub: 'KES 1,000,000 in 1,000 ordinary shares' }
+  ]
+};
+}
+}
+</script>
+</body>
+</html>

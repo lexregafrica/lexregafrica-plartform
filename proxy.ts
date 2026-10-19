@@ -2,7 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/insights', '/studio']
-const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
+// /reset-password is deliberately not here: the recovery link signs the
+// user in first, and they still need to reach the page to set a password.
+const AUTH_ROUTES = ['/login', '/signup', '/forgot-password']
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -32,7 +34,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  const PUBLIC_PREFIXES = ['/insights', '/studio', '/legal', '/docs']
+  const PUBLIC_PREFIXES = ['/insights', '/studio', '/legal', '/docs', '/videos']
 
   // Protect all non-public routes — redirect unauthenticated users to login
   if (!user && !PUBLIC_ROUTES.some(r => path === r || path.startsWith('/invite')) && !PUBLIC_PREFIXES.some(p => path.startsWith(p))) {

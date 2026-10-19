@@ -14,6 +14,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
+  IconAlertCircle, IconAlertTriangle, IconArrowLeft, IconArrowRight, IconBook, IconCheck, IconCircleCheck,
+  IconCloudCheck, IconCloudUpload, IconFileText, IconLifebuoy, IconScan,
+} from '@tabler/icons-react'
+import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
+import {
   EXISTING_TOTAL_STEPS, EXISTING_REVIEW_STEP, EXISTING_SUPPORTED_TYPES, EXISTING_DOC_PACKS, EXISTING_BASELINES,
   COMPANY_SUBTYPES, PARTNERSHIP_SUBTYPES, PARTNERSHIP_AGREEMENT_FIELDS, LLP_AGREEMENT_FIELDS, CLG_ARTICLES_FIELDS, LIMITED_COMPANY_PACK, rankFor, entityFieldsFor, stepsFor, stepLabel, entityNounFor,
   type GovernanceRuleRecord,
@@ -41,19 +46,35 @@ import {
 } from '@/components/onboarding/new-entity-wizard'
 
 const inputCls =
-  'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
+  'w-full px-3 py-2 rounded-[10px] border text-[15px] leading-6 focus:outline-none focus:ring-[3px] focus:ring-black/[0.06] focus:border-[#86868B]'
 const inputStyle = {
-  borderColor: 'var(--system-fill-3)',
-  background: 'var(--system-bg)',
-  color: 'var(--system-label)',
+  borderColor: 'var(--ink-200)',
+  background: 'var(--surface)',
+  color: 'var(--label)',
 } as const
+
+function WizardTopBar({ title }: { title: string }) {
+  return (
+    <header className="wz-top glass sticky top-0 z-20">
+      <Link className="flex items-center gap-2" href="/dashboard" style={{ color: 'var(--label)' }}>
+        <LexRegLogoMark size={28} />
+        <span className="t-headline hide-compact">LexReg</span>
+      </Link>
+      <span className="t-3 hide-compact" aria-hidden="true">/</span>
+      <span className="t-subhead min-w-0 truncate">{title}</span>
+      <div className="flex-1" />
+      <span className="wz-saved"><IconCloudCheck size={15} stroke={1.75} aria-hidden="true" /><span className="hide-compact">Saves at every step</span></span>
+      <Link className="btn btn-gray btn-sm" href="/dashboard">Save &amp; exit</Link>
+    </header>
+  )
+}
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="block text-ios-footnote font-medium mb-1.5" style={{ color: 'var(--system-label-2)' }}>
+    <div className="field">
+      <label className="label">
         {label}
-        {required && <span style={{ color: '#dc2626' }}> *</span>}
+        {required && <span className="req">*</span>}
       </label>
       {children}
     </div>
@@ -149,21 +170,16 @@ const fmtDate = (d?: string | null) => {
   return Number.isNaN(t.getTime()) ? d : t.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const STATE_STYLE: Record<FieldState, { bg: string; fg: string }> = {
-  verified: { bg: 'rgba(22,163,74,0.12)', fg: '#15803d' },
-  extracted: { bg: 'rgba(37,99,235,0.10)', fg: '#1d4ed8' },
-  conflicting: { bg: 'rgba(220,38,38,0.10)', fg: '#b91c1c' },
-  user_confirmed: { bg: 'rgba(217,119,6,0.12)', fg: '#92400e' },
-  missing: { bg: 'var(--system-fill-3)', fg: 'var(--system-label-3)' },
+const STATE_CLASS: Record<FieldState, string> = {
+  verified: 'src-verified',
+  extracted: 'src-extracted',
+  conflicting: 'src-conflict',
+  user_confirmed: 'src-confirmed',
+  missing: 'src-missing',
 }
 
 function StateBadge({ state }: { state: FieldState }) {
-  const s = STATE_STYLE[state]
-  return (
-    <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold whitespace-nowrap" style={{ background: s.bg, color: s.fg }}>
-      {FIELD_STATE_LABEL[state]}
-    </span>
-  )
+  return <span className={`src ${STATE_CLASS[state]}`}>{FIELD_STATE_LABEL[state]}</span>
 }
 
 const PRIORITY_LABEL: Record<DocSpec['priority'], string> = {
@@ -194,6 +210,8 @@ export function ExistingEntityWizard() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [showHelp, setShowHelp] = useState(false)
+  const [shownIndex, setShownIndex] = useState(0)
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward')
 
   const api: ApiFn = useCallback(async (payload) => {
     const res = await fetch('/api/onboarding/existing-entity', {
@@ -271,6 +289,12 @@ export function ExistingEntityWizard() {
   const steps = stepsFor(entityType)
   const stepIndex = Math.max(steps.indexOf(step), 0)
   const noun = entityNounFor(entityType)
+  if (stepIndex !== shownIndex) {
+    setDirection(stepIndex > shownIndex ? 'forward' : 'back')
+    setShownIndex(stepIndex)
+  }
+  // New step starts at the top, like a new screen
+  useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
   const isSoleProp = entityType === 'sole_proprietorship'
   const isPartnership = entityType === 'partnership'
   const isLLP = entityType === 'limited_liability_partnership'
@@ -470,20 +494,33 @@ export function ExistingEntityWizard() {
   // ---- render ------------------------------------------------------
   if (loadState === 'loading') {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center">
-        <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--brand-navy)' }}>
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
+      <div className="lx wz min-h-[100dvh]">
+        <WizardTopBar title="Onboard an existing entity" />
+        <div className="wz-body" style={{ justifyContent: 'center' }}>
+          <section className="wz-main" aria-busy="true">
+            <div className="skeleton h-5 w-40" />
+            <div className="skeleton h-9 w-3/4" />
+            <div className="skeleton h-28 w-full" />
+            <div className="skeleton h-28 w-full" />
+          </section>
+        </div>
       </div>
     )
   }
 
   if (loadState === 'error') {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4">
-        <p className="text-ios-body mb-4" style={{ color: 'var(--system-label-2)' }}>We couldn’t load your application.</p>
-        <Link href="/onboarding" className="text-ios-subhead font-medium" style={{ color: 'var(--brand-navy)' }}>← Back to path selection</Link>
+      <div className="lx wz min-h-[100dvh]">
+        <WizardTopBar title="Onboard an existing entity" />
+        <div className="wz-body" style={{ justifyContent: 'center' }}>
+          <section className="wz-main">
+            <div className="note note-bad" role="alert">
+              <IconAlertCircle size={18} stroke={1.75} aria-hidden="true" />
+              <p>We couldn&rsquo;t load your application. Check your connection and try again.</p>
+            </div>
+            <Link href="/onboarding" className="btn btn-gray self-start"><IconArrowLeft size={17} stroke={2} aria-hidden="true" />Back to path selection</Link>
+          </section>
+        </div>
       </div>
     )
   }
@@ -491,34 +528,28 @@ export function ExistingEntityWizard() {
   if (loadState === 'activated') {
     const provisional = activatedStatus === 'provisionally_onboarded'
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12">
-        <div className="w-full max-w-[420px] text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(128,0,32,0.10)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#800020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-          <h1 className="text-ios-title1 font-semibold mb-2" style={{ color: 'var(--system-label)' }}>
-            {wizard.legalName ?? 'Your entity'} is live
-          </h1>
-          {activatedStatus && (
-            <p className="text-ios-subhead font-semibold mb-2" style={{ color: 'var(--brand-navy)' }}>
-              {ONBOARDING_STATUS_LABEL[activatedStatus as keyof typeof ONBOARDING_STATUS_LABEL] ?? activatedStatus}
-            </p>
-          )}
-          <p className="text-ios-body mb-8" style={{ color: 'var(--system-label-2)' }}>
-            {provisional
-              ? 'Your workspace is active. Some evidence is still outstanding — we’ve added follow-up tasks to your compliance calendar so nothing is lost.'
-              : 'Your details are verified against your documents and your compliance calendar is ready.'}
-          </p>
-          <button
-            type="button"
-            onClick={() => router.push(entityId ? `/dashboard/${entityId}` : '/dashboard')}
-            className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'var(--brand-navy)' }}
-          >
-            Go to my entity dashboard
-          </button>
+      <div className="lx wz min-h-[100dvh]">
+        <WizardTopBar title="Onboard an existing entity" />
+        <div className="wz-body" style={{ justifyContent: 'center' }}>
+          <section className="wz-main items-start" style={{ maxWidth: 560 }}>
+            <span className="icon-tile icon-tile-lg good pop" aria-hidden="true"><IconCircleCheck size={22} stroke={1.75} /></span>
+            <header className="wz-head rise">
+              <h1 className="t-large t-balance">{wizard.legalName ?? 'Your entity'} is live</h1>
+              {activatedStatus && (
+                <span className={`pill self-start ${provisional ? 'pill-warn' : 'pill-good'}`}>
+                  {ONBOARDING_STATUS_LABEL[activatedStatus as keyof typeof ONBOARDING_STATUS_LABEL] ?? activatedStatus}
+                </span>
+              )}
+              <p className="t-body t-2 t-pretty">
+                {provisional
+                  ? 'Your workspace is active. Some evidence is still outstanding — we’ve added follow-up tasks to your compliance calendar so nothing is lost.'
+                  : 'Your details are verified against your documents and your compliance calendar is ready.'}
+              </p>
+            </header>
+            <button type="button" onClick={() => router.push(entityId ? `/dashboard/${entityId}` : '/dashboard')} className="btn btn-primary btn-lg rise" style={{ '--d': 1 } as React.CSSProperties}>
+              Go to my entity dashboard<IconArrowRight size={17} stroke={2} aria-hidden="true" />
+            </button>
+          </section>
         </div>
       </div>
     )
@@ -530,97 +561,110 @@ export function ExistingEntityWizard() {
   const uploadedTypes = new Set(registryDocs.map((d) => d.document_type).filter((t): t is string => !!t))
   const gaps = documentGaps(pack, packCtx, uploadedTypes, wizard.unavailableDocuments)
 
+  const pct = Math.round(((stepIndex + 1) / steps.length) * 100)
+
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center px-4 py-12">
-      <div className="w-full max-w-[520px]">
-        <div className="flex items-center gap-1 mb-6">
+    <div className="lx wz min-h-[100dvh]">
+      <WizardTopBar title={wizard.legalName ? `Onboard an existing entity · ${wizard.legalName}` : 'Onboard an existing entity'} />
+      <div className="wz-body">
+        <nav className="wz-rail sticky top-20 self-start" aria-label="Steps">
+          <p className="t-eyebrow" style={{ padding: '0 10px 8px' }}>Steps</p>
           {steps.map((sId, i) => (
-            <div key={sId} className="h-1 flex-1 rounded-full transition-colors" style={{ background: i <= stepIndex ? 'var(--brand-navy)' : 'var(--system-fill-3)' }} />
+            <span key={sId} className={`wz-step ${i < stepIndex ? 'is-done' : i === stepIndex ? 'is-on' : ''}`} aria-current={i === stepIndex ? 'step' : undefined}>
+              <span className="n">{i < stepIndex ? <IconCheck size={13} stroke={3} aria-hidden="true" /> : i + 1}</span>
+              {stepLabel(entityType, sId)}
+            </span>
           ))}
-        </div>
+          <button type="button" onClick={() => setShowHelp(true)} className="btn btn-plain btn-sm mt-4 self-start">
+            <IconLifebuoy size={16} stroke={1.75} aria-hidden="true" />Stuck? Ask our team
+          </button>
+        </nav>
 
-        <p className="text-ios-footnote mb-2" style={{ color: 'var(--system-label-3)' }}>
-          Step {stepIndex + 1} of {steps.length} — {stepLabel(entityType, step)}
-        </p>
+        <section className="wz-main">
+          <div className="wz-progress">
+            <div className="flex items-center justify-between"><span className="t-caption t-3 t-num">Step {stepIndex + 1} of {steps.length}</span><span className="t-caption t-3 t-num">{pct}%</span></div>
+            <div className="progress"><span style={{ width: `${pct}%`, animation: 'none', transition: 'width var(--dur-spring) var(--ease-spring)' }} /></div>
+          </div>
+          <p className="t-eyebrow hide-compact">Step {stepIndex + 1} of {steps.length} · {stepLabel(entityType, step)}</p>
 
+          <div key={step} className={`${direction === 'forward' ? 'enter-forward' : 'enter-back'} flex flex-col gap-5`}>
         {/* ---------------- Step 1: entity type ---------------- */}
         {step === 1 && (
-          <div className="space-y-5">
-            <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-              What have you already registered?
-            </h1>
-            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-              This tells us which registry documents to ask for. We’ll rebuild your profile from them — no retyping.
-            </p>
-            <div className="space-y-2">
+          <div className="flex flex-col gap-5">
+            <header className="wz-head">
+              <h1 className="t-large">What have you already registered?</h1>
+              <p className="t-body t-2 t-pretty">This tells us which registry documents to ask for. We&rsquo;ll rebuild your profile from them — no retyping.</p>
+            </header>
+            <div className="flex flex-col gap-2.5" role="radiogroup" aria-label="Entity type">
               {ENTITY_TYPES.filter((t) => t.value !== 'public_limited_company').map((t) => {
                 const selected = wizard.entityType === t.value
                 const available = EXISTING_SUPPORTED_TYPES.includes(t.value)
                 return (
-                  <div key={t.value}>
+                  <div key={t.value} className="flex flex-col gap-1">
                     <button
                       type="button"
+                      role="radio"
+                      aria-checked={selected}
                       disabled={!available}
                       onClick={() => available && patch({ entityType: t.value })}
-                      className="w-full text-left rounded-xl border p-4 transition-colors disabled:cursor-not-allowed"
-                      style={{
-                        borderColor: selected ? 'var(--brand-navy)' : 'var(--system-fill-3)',
-                        background: selected ? 'var(--system-bg-2)' : 'var(--system-bg)',
-                        opacity: available ? 1 : 0.45,
-                      }}
+                      className={`choice ${selected ? 'is-selected' : ''}`}
+                      style={available ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
                     >
-                      <span className="flex items-center gap-2">
-                        <span className="text-ios-subhead font-medium" style={{ color: 'var(--system-label)' }}>{t.label}</span>
-                        {!available && (
-                          <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'var(--system-fill-3)', color: 'var(--system-label-3)' }}>
-                            Coming later
-                          </span>
-                        )}
+                      <span className="mark" aria-hidden="true" />
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="t-headline">{t.label}</span>
+                          {!available && <span className="pill">Coming later</span>}
+                        </span>
+                        <span className="t-footnote t-2">{t.description}</span>
                       </span>
-                      <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{t.description}</span>
                     </button>
-                    {t.guides?.map((g) => (
-                      <a key={g.url} href={g.url} target="_blank" rel="noopener noreferrer" className="text-ios-caption1 font-semibold underline mt-1 ml-1 mr-3 inline-block" style={{ color: 'var(--brand-navy)' }}>
-                        {g.label} →
-                      </a>
-                    ))}
+                    {available && t.guides?.length ? (
+                      <span className="flex flex-wrap gap-x-4 pl-12">
+                        {t.guides.map((g) => (
+                          <a key={g.url} href={g.url} target="_blank" rel="noopener noreferrer" className="t-footnote inline-flex min-h-8 items-center gap-1" style={{ color: 'var(--tint-text)' }}>
+                            <IconBook size={14} stroke={1.75} aria-hidden="true" />{g.label}
+                          </a>
+                        ))}
+                      </span>
+                    ) : null}
                   </div>
                 )
               })}
             </div>
 
             {wizard.entityType === 'limited_company' && (
-              <div className="ios-surface rounded-2xl p-4 space-y-2">
-                <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>Which kind of company?</p>
+              <section className="card card-pad fade flex flex-col gap-3" aria-label="Kind of company">
+                <p className="t-title3">Which kind of company?</p>
                 {COMPANY_SUBTYPES.map((s) => (
-                  <label key={s.value} className="flex items-start gap-3 rounded-xl border p-3 cursor-pointer" style={{ borderColor: wizard.subtype === s.value ? 'var(--brand-navy)' : 'var(--system-fill-3)' }}>
-                    <input type="radio" name="subtype" className="mt-1" checked={wizard.subtype === s.value} onChange={() => patch({ subtype: s.value })} />
-                    <span>
-                      <span className="block text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>{s.label}</span>
-                      <span className="block text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>{s.description}</span>
+                  <button key={s.value} type="button" role="radio" aria-checked={wizard.subtype === s.value} onClick={() => patch({ subtype: s.value })} className={`choice ${wizard.subtype === s.value ? 'is-selected' : ''}`}>
+                    <span className="mark" aria-hidden="true" />
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="t-subhead" style={{ color: 'var(--label)', fontWeight: 600 }}>{s.label}</span>
+                      <span className="t-footnote t-2">{s.description}</span>
                     </span>
-                  </label>
+                  </button>
                 ))}
-              </div>
+              </section>
             )}
 
             {wizard.entityType === 'partnership' && (
-              <div className="ios-surface rounded-2xl p-4 space-y-2">
-                <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>Which kind of partnership?</p>
+              <section className="card card-pad fade flex flex-col gap-3" aria-label="Kind of partnership">
+                <p className="t-title3">Which kind of partnership?</p>
                 {PARTNERSHIP_SUBTYPES.map((s) => (
-                  <label key={s.value} className="flex items-start gap-3 rounded-xl border p-3" style={{ borderColor: wizard.partnershipKind === s.value ? 'var(--brand-navy)' : 'var(--system-fill-3)', opacity: s.available ? 1 : 0.5, cursor: s.available ? 'pointer' : 'not-allowed' }}>
-                    <input type="radio" name="partnershipKind" className="mt-1" disabled={!s.available} checked={wizard.partnershipKind === s.value} onChange={() => patch({ partnershipKind: s.value })} />
-                    <span>
-                      <span className="block text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>{s.label}{!s.available && ' — coming later'}</span>
-                      <span className="block text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>{s.description}</span>
+                  <button key={s.value} type="button" role="radio" aria-checked={wizard.partnershipKind === s.value} disabled={!s.available} onClick={() => s.available && patch({ partnershipKind: s.value })} className={`choice ${wizard.partnershipKind === s.value ? 'is-selected' : ''}`} style={s.available ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}>
+                    <span className="mark" aria-hidden="true" />
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="t-subhead" style={{ color: 'var(--label)', fontWeight: 600 }}>{s.label}{!s.available && ' — coming later'}</span>
+                      <span className="t-footnote t-2">{s.description}</span>
                     </span>
-                  </label>
+                  </button>
                 ))}
-              </div>
+              </section>
             )}
 
             {wizard.entityType && EXISTING_SUPPORTED_TYPES.includes(wizard.entityType) && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="form-grid">
                 <Field label="Registered name (if you know it)">
                   <NoAutofillInput type="text" className={inputCls} style={inputStyle} value={wizard.legalName ?? ''} onChange={(e) => patch({ legalName: e.target.value })} />
                 </Field>
@@ -634,16 +678,16 @@ export function ExistingEntityWizard() {
 
         {/* ---------------- Step 2: registry document pack ---------------- */}
         {step === 2 && (
-          <div className="space-y-4">
-            <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-              Upload your registry documents
-            </h1>
-            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-              We read each one and propose your details — you confirm them next. Nothing is final until you do.
-              Missing something? Carry on: we’ll note the gap and add a follow-up task rather than block you.
-            </p>
+          <div className="flex flex-col gap-4">
+            <header className="wz-head">
+              <h1 className="t-large">Upload your registry documents</h1>
+              <p className="t-body t-2 t-pretty">
+                We read each one and propose your details — you confirm them next. Nothing is final until you do.
+                Missing something? Carry on: we&rsquo;ll note the gap and add a follow-up task rather than block you.
+              </p>
+            </header>
 
-            {packFor(pack, packCtx).map((spec) => {
+            {packFor(pack, packCtx).map((spec, si) => {
               const files = registryDocs.filter((d) => d.document_type === spec.documentType)
               const unavailable = wizard.unavailableDocuments?.includes(spec.documentType) ?? false
               // An ID that wasn't matched at upload may have been matched
@@ -651,71 +695,77 @@ export function ExistingEntityWizard() {
               const matchedLater = (st: FileStatus) => st.state === 'ocr_failed' && !!st.documentId &&
                 documents.some((d) => d.id === st.documentId && !!d.tags?.length)
               const live = Object.entries(statuses).filter(([, s]) => s.documentType === spec.documentType && !matchedLater(s))
+              const working = live.some(([, s]) => s.state === 'uploading' || s.state === 'extracting')
               return (
-                <div key={spec.documentType} className="ios-surface rounded-2xl p-4 space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>{spec.title}</p>
-                      <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold shrink-0" style={{ background: spec.priority === 'primary' ? 'rgba(128,0,32,0.10)' : 'var(--system-fill-3)', color: spec.priority === 'primary' ? '#800020' : 'var(--system-label-3)' }}>
-                        {PRIORITY_LABEL[spec.priority]}
-                      </span>
+                <section key={spec.documentType} className="card rise" style={{ '--d': Math.min(si + 1, 8) } as React.CSSProperties} aria-label={spec.title}>
+                  <div className="card-head" style={{ alignItems: 'flex-start' }}>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <h2>{spec.title}</h2>
+                      <p className="t-footnote t-3 t-pretty">{spec.hint}</p>
                     </div>
-                    <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{spec.hint}</p>
+                    <span className={`pill shrink-0 ${spec.priority === 'primary' ? 'pill-brand' : ''}`}>{PRIORITY_LABEL[spec.priority]}</span>
                   </div>
 
-                  {files.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ background: 'var(--system-bg-2)' }}>
-                      <div className="min-w-0">
-                        <p className="text-ios-footnote font-medium truncate" style={{ color: 'var(--system-label)' }}>{d.name}</p>
-                        <p className="text-ios-caption1" style={{ color: d.ocr_status === 'failed' ? '#92400e' : 'var(--system-label-3)' }}>
-                          {d.ocr_status === 'complete' ? `Read${d.document_date ? ` · dated ${fmtDate(d.document_date)}` : ''}` : d.ocr_status === 'failed' ? 'Couldn’t be read — enter details manually' : d.ocr_status === 'processing' ? 'Reading…' : 'Saved'}
-                        </p>
+                  <div className="flex flex-col gap-2.5 px-5 pb-5">
+                    {files.map((d) => (
+                      <div key={d.id} className="file-row">
+                        <IconFileText size={18} stroke={1.75} aria-hidden="true" style={{ color: 'var(--label-3)', flex: 'none' }} />
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <span className="name">{d.name}</span>
+                          <span className={`t-footnote ${d.ocr_status === 'failed' ? 't-warn' : d.ocr_status === 'complete' ? 't-good' : 't-3'}`}>
+                            {d.ocr_status === 'complete' ? `Read${d.document_date ? ` · dated ${fmtDate(d.document_date)}` : ''}` : d.ocr_status === 'failed' ? 'Couldn’t be read — enter details manually' : d.ocr_status === 'processing' ? 'Reading…' : 'Saved'}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {!spec.multiple && (
+                            <label className="btn btn-plain btn-sm cursor-pointer">
+                              Replace
+                              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" disabled={busy}
+                                onChange={(e) => { handleFiles(spec, e.target.files, d.file_path ?? undefined); e.target.value = '' }} />
+                            </label>
+                          )}
+                          <button type="button" className="btn btn-plain btn-sm btn-destructive-plain" onClick={() => removeDocument(d.id)}>Remove</button>
+                        </div>
                       </div>
-                      <div className="flex gap-3 shrink-0">
-                        {!spec.multiple && (
-                          <label className="text-ios-footnote font-medium cursor-pointer" style={{ color: 'var(--brand-navy)' }}>
-                            Replace
-                            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" disabled={busy}
-                              onChange={(e) => { handleFiles(spec, e.target.files, d.file_path ?? undefined); e.target.value = '' }} />
-                          </label>
-                        )}
-                        <button type="button" className="text-ios-footnote font-medium text-red-500" onClick={() => removeDocument(d.id)}>Remove</button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  {spec.documentType === 'identity_documents' && (() => {
-                    const filed = documents.filter((d) => /_(id_copy|kra_pin_copy)$/.test(d.document_type ?? '') && d.tags?.length).length
-                    return filed > 0 ? (
-                      <p className="text-ios-caption1" style={{ color: '#16a34a' }}>{filed} identity document{filed === 1 ? '' : 's'} filed under the right people.</p>
-                    ) : null
-                  })()}
-                  {live.filter(([, s]) => s.state !== 'done').concat(live.filter(([, s]) => s.state === 'done')).map(([id, s]) => (
-                    <p key={id} className="text-ios-caption1 break-words [overflow-wrap:anywhere]" style={{ color: s.state === 'done' ? '#16a34a' : s.state === 'uploading' || s.state === 'extracting' ? 'var(--system-label-2)' : '#92400e' }}>
-                      {s.name}: {s.state === 'uploading' ? 'Uploading…' : s.state === 'extracting' ? 'Reading document…' : s.summary}
-                    </p>
-                  ))}
+                    {spec.documentType === 'identity_documents' && (() => {
+                      const filed = documents.filter((d) => /_(id_copy|kra_pin_copy)$/.test(d.document_type ?? '') && d.tags?.length).length
+                      return filed > 0 ? (
+                        <p className="t-footnote t-good flex items-center gap-1.5"><IconCircleCheck size={15} stroke={1.75} aria-hidden="true" />{filed} identity document{filed === 1 ? '' : 's'} filed under the right people.</p>
+                      ) : null
+                    })()}
+                    {live.filter(([, s]) => s.state !== 'done').concat(live.filter(([, s]) => s.state === 'done')).map(([id, s]) => {
+                      const inFlight = s.state === 'uploading' || s.state === 'extracting'
+                      return (
+                        <div key={id} className={`note ${s.state === 'done' ? 'note-good' : inFlight ? 'scanline' : 'note-warn'}`} role="status">
+                          {s.state === 'done' ? <IconCircleCheck size={16} stroke={1.75} aria-hidden="true" /> : inFlight ? <IconScan size={16} stroke={1.75} aria-hidden="true" /> : <IconAlertTriangle size={16} stroke={1.75} aria-hidden="true" />}
+                          <p className="min-w-0 break-words [overflow-wrap:anywhere]"><strong>{s.name}</strong> — {s.state === 'uploading' ? 'Uploading…' : s.state === 'extracting' ? 'Reading document…' : s.summary}</p>
+                        </div>
+                      )
+                    })}
 
-                  {(spec.multiple || files.length === 0) && !unavailable && (
-                    <label className="block w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer" style={{ borderColor: 'var(--system-fill-2, #d1d1d6)' }}>
-                      <input type="file" multiple={spec.multiple} accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" disabled={busy}
-                        onChange={(e) => { handleFiles(spec, e.target.files); e.target.value = '' }} />
-                      <span className="text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
-                        {busy ? 'Working…' : files.length ? 'Add another file' : 'Choose file'}
-                      </span>
-                    </label>
-                  )}
+                    {(spec.multiple || files.length === 0) && !unavailable && (
+                      <label className={`dropzone ${working ? 'shimmer' : ''}`}>
+                        <input type="file" multiple={spec.multiple} accept=".pdf,.jpg,.jpeg,.png,.webp" className="sr-only" disabled={busy}
+                          onChange={(e) => { handleFiles(spec, e.target.files); e.target.value = '' }} />
+                        <IconCloudUpload size={22} stroke={1.75} aria-hidden="true" style={{ color: 'var(--tint-text)' }} />
+                        <span className="t-subhead" style={{ color: 'var(--label)', fontWeight: 600 }}>{busy ? 'Working…' : files.length ? 'Add another file' : `Upload ${spec.title}`}</span>
+                        <span className="t-footnote t-3">PDF, JPG, PNG or WebP · up to 10 MB</span>
+                      </label>
+                    )}
 
-                  {files.length === 0 && spec.missing.impact !== 'conditional' && (
-                    <label className="flex items-start gap-2 text-ios-caption1" style={{ color: 'var(--system-label-2)' }}>
-                      <input type="checkbox" className="mt-0.5" checked={unavailable}
-                        onChange={(e) => patch({ unavailableDocuments: e.target.checked
-                          ? [...(wizard.unavailableDocuments ?? []), spec.documentType]
-                          : (wizard.unavailableDocuments ?? []).filter((t) => t !== spec.documentType) })} />
-                      <span>I don’t have this right now.{unavailable && <> <span style={{ color: '#92400e' }}>{spec.missing.behaviour}</span></>}</span>
-                    </label>
-                  )}
-                </div>
+                    {files.length === 0 && spec.missing.impact !== 'conditional' && (
+                      <label className="flex cursor-pointer items-start gap-2.5">
+                        <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0" style={{ accentColor: 'var(--tint)' }} checked={unavailable}
+                          onChange={(e) => patch({ unavailableDocuments: e.target.checked
+                            ? [...(wizard.unavailableDocuments ?? []), spec.documentType]
+                            : (wizard.unavailableDocuments ?? []).filter((t) => t !== spec.documentType) })} />
+                        <span className="t-footnote t-2">I don&rsquo;t have this right now.{unavailable && <> <span className="t-warn">{spec.missing.behaviour}</span></>}</span>
+                      </label>
+                    )}
+                  </div>
+                </section>
               )
             })}
           </div>
@@ -792,32 +842,36 @@ export function ExistingEntityWizard() {
 
         {/* ---------------- Step 6: compliance baseline ---------------- */}
         {step === 6 && (
-          <div className="space-y-4">
-            <h1 className="text-ios-title2 font-semibold leading-snug" style={{ color: 'var(--system-label)' }}>
-              Is everything still current?
-            </h1>
-            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-              A certificate proves the {noun} exists — not that its records are up to date. Your answers set your
-              compliance baseline and create only the tasks that apply to you.
-            </p>
-            {(EXISTING_BASELINES[entityType] ?? []).filter((q) => !q.when || q.when(packCtx)).map((q) => (
-              <div key={q.key} className="ios-surface rounded-2xl p-4 space-y-2">
-                <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>{q.question}</p>
-                <div className="flex gap-2">
-                  {(['yes', 'no', 'unsure'] as BaselineAnswer[]).map((a) => {
-                    const on = wizard.baseline?.[q.key] === a
-                    return (
-                      <button key={a} type="button"
-                        onClick={() => patch({ baseline: { ...(wizard.baseline ?? {}), [q.key]: a } })}
-                        className="flex-1 py-2 rounded-full text-sm font-medium border"
-                        style={{ borderColor: on ? 'var(--brand-navy)' : 'var(--system-fill-3)', color: on ? 'var(--brand-navy)' : 'var(--system-label-2)', background: on ? 'var(--system-bg-2)' : 'transparent' }}>
-                        {a === 'yes' ? 'Yes' : a === 'no' ? 'No' : 'Not sure'}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col gap-4">
+            <header className="wz-head">
+              <h1 className="t-large">Is everything still current?</h1>
+              <p className="t-body t-2 t-pretty">
+                A certificate proves the {noun} exists — not that its records are up to date. Your answers set your
+                compliance baseline and create only the tasks that apply to you.
+              </p>
+            </header>
+            <section className="list" aria-label="Compliance baseline">
+              {(EXISTING_BASELINES[entityType] ?? []).filter((q) => !q.when || q.when(packCtx)).map((q) => {
+                const answers = ['yes', 'no', 'unsure'] as BaselineAnswer[]
+                const idx = answers.indexOf(wizard.baseline?.[q.key] as BaselineAnswer)
+                return (
+                  <div key={q.key} className="list-row flex-wrap" style={{ alignItems: 'center', paddingBlock: 14 }}>
+                    <p className="t-subhead min-w-[220px] flex-1" style={{ color: 'var(--label)' }}>{q.question}</p>
+                    <div className="seg shrink-0" role="radiogroup" aria-label={q.question} style={{ '--n': 3, '--i': idx < 0 ? 0 : idx } as React.CSSProperties} data-empty={idx < 0 || undefined}>
+                      {answers.map((a) => {
+                        const on = wizard.baseline?.[q.key] === a
+                        return (
+                          <button key={a} type="button" role="radio" aria-checked={on} className={on ? 'is-on' : ''}
+                            onClick={() => patch({ baseline: { ...(wizard.baseline ?? {}), [q.key]: a } })}>
+                            {a === 'yes' ? 'Yes' : a === 'no' ? 'No' : 'Not sure'}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </section>
             {!isSoleProp && !uploadedTypes.has('annual_return') && (
               <Field label="When was the last annual return filed? (if you know)">
                 <input type="date" className={inputCls} style={inputStyle} value={wizard.lastAnnualReturnDate ?? ''} onChange={(e) => patch({ lastAnnualReturnDate: e.target.value })} />
@@ -854,37 +908,39 @@ export function ExistingEntityWizard() {
           />
         )}
 
-        {error && <p className="text-xs text-red-500 mt-4">{error}</p>}
+          </div>
 
-        <div className="flex items-center gap-3 mt-6">
-          {step > 1 && (
-            <button type="button" onClick={() => { setError(''); setStep(steps[stepIndex - 1] ?? 1) }}
-              className="py-2.5 px-5 rounded-full text-sm font-medium border" style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}>
-              Back
-            </button>
+          {error && (
+            <div className="note note-bad" role="alert">
+              <IconAlertCircle size={18} stroke={1.75} aria-hidden="true" />
+              <p>{error}</p>
+            </div>
           )}
-          {stepIndex < steps.length - 1 ? (
-            <button type="button" onClick={handleContinue} disabled={saving || busy}
-              className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: 'var(--brand-navy)' }}>
-              {saving ? 'Saving…' : 'Continue'}
-            </button>
-          ) : (
-            <button type="button" onClick={handleActivate} disabled={saving}
-              className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: 'var(--brand-navy)' }}>
-              {saving ? 'Activating…' : 'Confirm & activate'}
-            </button>
-          )}
-        </div>
 
-        <p className="text-ios-caption1 mt-3 text-center" style={{ color: 'var(--system-label-3)' }}>
-          Your progress is saved automatically at every step.
-        </p>
-        <Link href="/dashboard" className="mt-4 block text-center text-ios-footnote font-medium" style={{ color: 'var(--system-label-3)' }}>
-          Save &amp; exit
-        </Link>
-        <button type="button" onClick={() => setShowHelp(true)} className="mt-3 block w-full text-center text-ios-footnote font-medium" style={{ color: 'var(--brand-navy)' }}>
-          Stuck? Request help from our team
-        </button>
+          <div className="wz-actions glass">
+            {step > 1 ? (
+              <button type="button" onClick={() => { setError(''); setStep(steps[stepIndex - 1] ?? 1) }} className="btn btn-gray">
+                <IconArrowLeft size={17} stroke={2} aria-hidden="true" />Back
+              </button>
+            ) : (
+              <Link href="/onboarding" className="btn btn-gray"><IconArrowLeft size={17} stroke={2} aria-hidden="true" />Change path</Link>
+            )}
+            <span className="spacer" />
+            <span className="t-footnote t-3 hide-compact">{busy ? 'Reading your documents…' : 'Saved automatically at every step'}</span>
+            {stepIndex < steps.length - 1 ? (
+              <button type="button" onClick={handleContinue} disabled={saving || busy} className="btn btn-primary">
+                {saving ? 'Saving…' : 'Continue'}<IconArrowRight size={17} stroke={2} aria-hidden="true" />
+              </button>
+            ) : (
+              <button type="button" onClick={handleActivate} disabled={saving} className="btn btn-primary">
+                {saving ? 'Activating…' : 'Confirm & activate'}
+              </button>
+            )}
+          </div>
+          <button type="button" onClick={() => setShowHelp(true)} className="btn btn-plain btn-sm only-compact self-center">
+            <IconLifebuoy size={16} stroke={1.75} aria-hidden="true" />Stuck? Ask our team
+          </button>
+        </section>
       </div>
 
       {showHelp && (

@@ -162,8 +162,17 @@ export default async function DashboardPage() {
     user.email?.split('@')[0] ??
     'Account'
 
+  // Computed on the server in Kenyan time so the greeting doesn't flip
+  // between server and client render.
+  const now = new Date()
+  const hour = Number(new Intl.DateTimeFormat('en-KE', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Africa/Nairobi' }).format(now))
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const today = new Intl.DateTimeFormat('en-KE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Nairobi' }).format(now)
+
   return (
     <EntityDashboard
+      greeting={greeting}
+      today={today}
       userName={userName}
       userEmail={user.email ?? ''}
       organisationName={org?.name ?? 'Your organisation'}

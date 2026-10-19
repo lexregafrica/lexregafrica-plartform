@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>File at BRS — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lx a.btn-primary{color:#fff}
+.lx-dark a.btn-primary{color:#1C0008}
+.lx a.btn-gray,.lx a.btn-secondary{color:var(--label)}
+.lx a.sb-item{color:var(--label-2)}
+.lx a.sb-item:hover{color:var(--label)}
+.lx a.sb-item.is-on{color:var(--tint-text)}
+.lx a.m-tab{color:var(--label-3)}
+.lx a.m-tab.is-on{color:var(--tint-text)}
+.tl{display:flex;flex-direction:column}
+.tl-item{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);gap:0 14px;padding-bottom:24px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item:not(:last-child)::before{content:"";position:absolute;left:15px;top:38px;bottom:4px;width:2px;border-radius:1px;background:var(--sep-soft)}
+.tl-item.is-done:not(:last-child)::before{background:var(--sys-green)}
+.tl-mark{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--label-3);box-shadow:inset 0 0 0 1.5px var(--ink-300);transition:background-color var(--dur-snappy) var(--ease-spring),box-shadow var(--dur-snappy) var(--ease-spring)}
+.tl-mark .ic{display:none}
+.tl-item.is-done .tl-mark{background:var(--good);color:#fff;box-shadow:none}
+.tl-item.is-done .tl-mark .ic{display:inline-block}
+.tl-item.is-done .tl-mark .n{display:none}
+.tl-item.is-on .tl-mark{background:var(--tint);color:#fff;box-shadow:0 0 0 4px var(--brand-50)}
+.tl-body{display:flex;flex-direction:column;gap:10px;min-width:0;padding-top:5px}
+.ecit{counter-reset:ec;display:flex;flex-direction:column;gap:8px}
+.ecit li{counter-increment:ec;display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;font-size:13.5px;line-height:19px;color:var(--label-2)}
+.ecit li::before{content:counter(ec);width:22px;height:22px;border-radius:50%;background:var(--fill-3);color:var(--label-2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.dz-compact{flex-direction:row;justify-content:flex-start;text-align:left;gap:12px;padding:14px 16px;width:100%}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Main navigation">
+    <a class="sb-brand" href="Dashboard.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Africa</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item is-on" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">4</span></a>
+    <a class="sb-item" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance<span class="badge">2</span></a>
+    <a class="sb-item" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+    <a class="sb-item" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    <div class="sb-group">Support</div>
+    <a class="sb-item" href="Overlays.dc.html"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Get help</a>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-settings" aria-hidden="true"></span>Settings</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm">WM</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Business owner</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Workspace.dc.html">Entities</a><span aria-hidden="true">/</span><span class="truncate">Jua Kali Foods Ltd</span><span aria-hidden="true">/</span><span class="here" aria-current="page">BRS filing</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">BRS filing</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm">WM</span></div>
+    </div>
+    <main class="content">
+      <div class="page-head rise">
+        <div class="stack gap-2" style="min-width: 0">
+          <div class="row wrap gap-2">
+            <span class="pill pill-outline">Private limited company</span>
+            <span class="pill {{statusCls}}" aria-live="polite"><span class="ic {{statusIcon}}" aria-hidden="true"></span>{{status}}</span>
+          </div>
+          <h1 class="t-title1 t-balance">{{title}}</h1>
+          <p class="t-callout t-2 t-pretty">{{lede}}</p>
+        </div>
+      </div>
+
+      <sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+        <section class="card card-lg card-pad stack gap-4 rise" aria-labelledby="ok-h" style="box-shadow: var(--shadow-card), inset 0 0 0 1px var(--good-line)">
+          <div class="row gap-4" style="align-items: flex-start">
+            <span class="icon-tile icon-tile-lg good pop"><span class="ic ic-file-certificate" aria-hidden="true"></span></span>
+            <div class="stack gap-1 grow">
+              <h2 id="ok-h" class="t-title2">Your entity is active</h2>
+              <p class="t-callout t-2 t-pretty">Your certificate of incorporation is on file and Jua Kali Foods Ltd is live on LexReg Africa. Its compliance calendar is set up.</p>
+            </div>
+          </div>
+          <div class="grid cols-3">
+            <div class="inset stack gap-1"><span class="t-caption t-3">Registration number</span><span class="t-headline t-num">PVT-7JK4R2XD</span><span class="src src-verified" style="align-self: flex-start"><span class="ic ic-circle-check" aria-hidden="true"></span>Read from certificate</span></div>
+            <div class="inset stack gap-1"><span class="t-caption t-3">Date of incorporation</span><span class="t-headline t-num">16 October 2026</span><span class="src src-verified" style="align-self: flex-start"><span class="ic ic-circle-check" aria-hidden="true"></span>Read from certificate</span></div>
+            <div class="inset stack gap-1"><span class="t-caption t-3">Name on certificate</span><span class="t-headline truncate">Jua Kali Foods Limited</span><span class="src src-verified" style="align-self: flex-start"><span class="ic ic-circle-check" aria-hidden="true"></span>Matches application</span></div>
+          </div>
+          <div class="row wrap gap-3">
+            <a class="btn btn-primary" href="Dashboard.dc.html">Go to dashboard<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+            <span class="t-footnote t-3 t-pretty">First annual return falls due within 30 days of 16 October 2027.</span>
+          </div>
+        </section>
+      </sc-if>
+
+      <div class="grid cols-12" style="gap: 20px; align-items: start">
+        <section class="card card-pad span-8 rise" style="--d: 1" aria-labelledby="steps-h">
+          <div class="row between wrap gap-2" style="margin-bottom: 18px">
+            <h2 id="steps-h" class="t-title3">Get registered</h2>
+            <span class="t-footnote t-3 t-num">{{doneLabel}}</span>
+          </div>
+          <ol class="tl">
+            <li class="tl-item is-done">
+              <span class="tl-mark"><span class="n">1</span><span class="ic ic-check" aria-hidden="true"></span></span>
+              <div class="tl-body">
+                <div class="row between wrap gap-2"><h3 class="t-headline">Download your filing pack</h3><span class="pill pill-good">Done</span></div>
+                <p class="t-footnote t-3 t-pretty">CR1, CR2, CR8, BOF-1 and the statement of nominal capital in one PDF &#8212; downloaded 16 Oct.</p>
+                <div class="file-row">
+                  <span class="icon-tile"><span class="ic ic-files" aria-hidden="true"></span></span>
+                  <div class="stack grow" style="min-width: 0"><span class="name">Jua_Kali_Foods_Ltd_Filing_Pack.pdf</span><span class="meta t-num">12 pages · 2.1 MB</span></div>
+                  <button class="btn btn-gray btn-sm" type="button" aria-label="Download filing pack again"><span class="ic ic-download" aria-hidden="true"></span><span class="hide-compact">Download</span></button>
+                </div>
+              </div>
+            </li>
+            <li class="tl-item is-done">
+              <span class="tl-mark"><span class="n">2</span><span class="ic ic-check" aria-hidden="true"></span></span>
+              <div class="tl-body">
+                <div class="row between wrap gap-2"><h3 class="t-headline">Sign the forms</h3><span class="pill pill-good">Done</span></div>
+                <p class="t-footnote t-3 t-pretty">Signed by Wanjiku Mwangi and Brian Otieno. BOF-1 signed by all three beneficial owners.</p>
+              </div>
+            </li>
+            <li class="tl-item {{c3}}">
+              <span class="tl-mark"><span class="n">3</span><span class="ic ic-check" aria-hidden="true"></span></span>
+              <div class="tl-body">
+                <div class="row between wrap gap-2"><h3 class="t-headline">File on BRS eCitizen</h3><span class="pill {{p3Cls}}">{{p3}}</span></div>
+                <sc-if value="{{isFiling}}" hint-placeholder-val="{{true}}">
+                  <p class="t-footnote t-3 t-pretty">You file this yourself &#8212; BRS has no API. Keep your filing pack open beside you; every answer is in it.</p>
+                  <div class="well">
+                    <ol class="ecit">
+                      <li><span class="t-pretty">Sign in to eCitizen and open <strong class="t-strong" style="color: var(--label)">Business Registration Service</strong>.</span></li>
+                      <li><span class="t-pretty">Choose <strong class="t-strong" style="color: var(--label)">Register a company</strong> &#8594; Private limited company, and pick your reserved name.</span></li>
+                      <li><span class="t-pretty">Copy in the office, activity, share capital, directors, shareholders and beneficial owners from the pack.</span></li>
+                      <li><span class="t-pretty">Attach the signed forms and ID copies, check the summary, then submit.</span></li>
+                    </ol>
+                  </div>
+                  <div class="row wrap gap-3">
+                    <button class="btn btn-primary" type="button"><span class="ic ic-external-link" aria-hidden="true"></span>Open BRS eCitizen</button>
+                    <span class="t-footnote t-3">Opens the government site in a new tab</span>
+                  </div>
+                </sc-if>
+              </div>
+            </li>
+            <li class="tl-item {{c4}}">
+              <span class="tl-mark"><span class="n">4</span><span class="ic ic-check" aria-hidden="true"></span></span>
+              <div class="tl-body">
+                <div class="row between wrap gap-2"><h3 class="t-headline">Pay the BRS fee</h3><span class="pill {{p4Cls}}">{{p4}}</span></div>
+                <p class="t-footnote t-3 t-pretty">Government fee &#8212; [AMOUNT]. Paid on eCitizen by M-Pesa or card when you submit. LexReg doesn&#8217;t collect or hold this fee.</p>
+              </div>
+            </li>
+            <li class="tl-item {{c5}}">
+              <span class="tl-mark"><span class="n">5</span><span class="ic ic-check" aria-hidden="true"></span></span>
+              <div class="tl-body">
+                <div class="row between wrap gap-2"><h3 class="t-headline">Upload your certificate of incorporation</h3><span class="pill {{p5Cls}}">{{p5}}</span></div>
+                <sc-if value="{{isFiling}}" hint-placeholder-val="{{true}}">
+                  <p class="t-footnote t-3 t-pretty">Already have your certificate? Upload it to activate your entity right away &#8212; we read the registration number and date for you.</p>
+                  <button class="dropzone dz-compact" type="button" onClick="{{upload}}">
+                    <span class="icon-tile gray"><span class="ic ic-file-upload" aria-hidden="true"></span></span>
+                    <span class="stack grow" style="min-width: 0"><span class="t-subhead" style="color: var(--label)">Upload certificate of incorporation</span><span class="t-footnote t-3">PDF or photo from BRS · up to 10 MB</span></span>
+                  </button>
+                </sc-if>
+                <sc-if value="{{isReading}}" hint-placeholder-val="{{false}}">
+                  <div class="stack gap-3" role="status" aria-live="polite">
+                    <div class="file-row shimmer">
+                      <span class="icon-tile info"><span class="ic ic-scan" aria-hidden="true"></span></span>
+                      <div class="stack grow" style="min-width: 0"><span class="name">Certificate_of_Incorporation_Jua_Kali_Foods.pdf</span><span class="meta t-num">820 KB · certificate uploaded, reading&#8230;</span></div>
+                      <span class="pill pill-info">Reading</span>
+                    </div>
+                    <div class="well scanline stack gap-2" aria-hidden="true">
+                      <span class="skeleton" style="height: 10px; width: 46%"></span>
+                      <span class="skeleton" style="height: 10px; width: 72%"></span>
+                      <span class="skeleton" style="height: 10px; width: 58%"></span>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+                  <div class="file-row">
+                    <span class="icon-tile good"><span class="ic ic-file-certificate" aria-hidden="true"></span></span>
+                    <div class="stack grow" style="min-width: 0"><span class="name">Certificate_of_Incorporation_Jua_Kali_Foods.pdf</span><span class="meta t-num">820 KB · details match your application</span></div>
+                    <span class="pill pill-good"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span>
+                  </div>
+                </sc-if>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <aside class="span-4 stack gap-4 rise" style="--d: 2" aria-label="Filing details and help">
+          <section class="card" aria-labelledby="facts-h">
+            <div class="card-head"><h2 id="facts-h">Application</h2><span class="pill t-num">Submitted 16 Oct</span></div>
+            <dl class="stack" style="padding: 0 20px 16px; gap: 10px">
+              <div class="row between gap-3"><dt class="t-footnote t-3">Filing route</dt><dd class="t-subhead">Self-service</dd></div>
+              <div class="row between gap-3"><dt class="t-footnote t-3">Directors</dt><dd class="t-subhead">2</dd></div>
+              <div class="row between gap-3"><dt class="t-footnote t-3">Shareholders</dt><dd class="t-subhead">3</dd></div>
+              <div class="row between gap-3"><dt class="t-footnote t-3">Beneficial owners</dt><dd class="t-subhead">3</dd></div>
+              <div class="row between gap-3"><dt class="t-footnote t-3">Nominal capital</dt><dd class="t-subhead t-num">KES 1,000,000</dd></div>
+            </dl>
+          </section>
+          <section class="card card-pad stack gap-3" aria-labelledby="help-h">
+            <span class="icon-tile"><span class="ic ic-lifebuoy" aria-hidden="true"></span></span>
+            <div class="stack gap-1">
+              <h2 id="help-h" class="t-headline">Stuck? Ask a lawyer</h2>
+              <p class="t-footnote t-2 t-pretty">A LexReg lawyer can check your eCitizen entries before you submit, or handle a query from the registrar.</p>
+            </div>
+            <a class="btn btn-secondary btn-block" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Request help with filing</a>
+          </section>
+        </aside>
+      </div>
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab is-on" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance</a>
+      <a class="m-tab" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+      <a class="m-tab" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    </nav>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"stage":{"editor":"enum","options":["filing","reading","incorporated"],"default":"filing"},"$preview":{"width":1440,"height":1800}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const base = this.props.stage ?? 'filing';
+const stage = (s.stage && s.from === base) ? s.stage : base;
+const filing = stage === 'filing';
+const reading = stage === 'reading';
+const done = stage === 'incorporated';
+const upload = () => {
+  this.setState({ stage: 'reading', from: base });
+  setTimeout(() => this.setState({ stage: 'incorporated', from: base }), 2400);
+};
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  isFiling: filing,
+  isReading: reading,
+  isDone: done,
+  upload: upload,
+  title: done ? 'Jua Kali Foods Ltd is incorporated' : 'Jua Kali Foods Ltd — ready to file at BRS',
+  lede: done ? 'Certificate read and checked against your application on 16 October 2026.' : 'We’ve prepared everything. Filing and the government fee happen on BRS eCitizen; then upload your certificate here.',
+  status: done ? 'Incorporated' : (reading ? 'Reading certificate' : 'Awaiting BRS'),
+  statusCls: done ? 'pill-good' : (reading ? 'pill-info' : 'pill-warn'),
+  statusIcon: done ? 'ic-circle-check' : (reading ? 'ic-scan' : 'ic-clock'),
+  doneLabel: done ? '5 of 5 done' : (reading ? '4 of 5 done' : '2 of 5 done'),
+  c3: filing ? 'is-on' : 'is-done',
+  p3: filing ? 'Now' : 'Done',
+  p3Cls: filing ? 'pill-brand' : 'pill-good',
+  c4: filing ? '' : 'is-done',
+  p4: filing ? 'Next' : 'Done',
+  p4Cls: filing ? '' : 'pill-good',
+  c5: done ? 'is-done' : (reading ? 'is-on' : ''),
+  p5: done ? 'Done' : (reading ? 'Reading…' : 'Last step'),
+  p5Cls: done ? 'pill-good' : (reading ? 'pill-info' : '')
+};
+}
+}
+</script>
+</body>
+</html>

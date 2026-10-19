@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Assigned matter — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lw{min-height:900px;background:var(--bg);display:flex;flex-direction:column}
+.lw-top{position:sticky;top:0;z-index:10}
+.lw-main{margin:0 auto;max-width:calc(1100px + 2 * var(--gutter))}
+.kv{display:flex;flex-direction:column}
+.kv-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:9px 0;border-top:var(--hairline-soft);font-size:13.5px}
+.kv-row:first-child{border-top:0}
+.kv-row dt{color:var(--label-3);flex:none}
+.kv-row dd{font-weight:500;text-align:right;min-width:0;overflow-wrap:anywhere}
+.ck{border-top:var(--hairline-soft)}
+.ck > summary{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 20px;cursor:pointer;list-style:none}
+.ck > summary::-webkit-details-marker{display:none}
+.ck > summary:hover{background:var(--surface-3)}
+.ck > summary .chev{color:var(--label-3);transition:transform var(--dur-snappy) var(--ease-spring)}
+.ck[open] > summary .chev{transform:rotate(90deg)}
+.ck-items{padding:0 20px 12px 64px;display:flex;flex-direction:column}
+.ck-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;font-size:13.5px}
+.ck-box{flex:none;width:18px;height:18px;margin-top:1px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--ink-300);display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.ck-box.is-done{background:var(--sys-green);box-shadow:none}
+.ck-box.is-gap{box-shadow:inset 0 0 0 1.5px var(--sys-orange)}
+.ck-box .ic{width:12px;height:12px}
+.ck-prog{width:96px;flex:none}
+.msg{max-width:78%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:20px}
+.msg-in{align-self:flex-start;background:var(--fill-4);border-bottom-left-radius:6px}
+.msg-out{align-self:flex-end;background:var(--brand-50);border-bottom-right-radius:6px}
+.msg-meta{font-size:11.5px;color:var(--label-3);margin-top:4px}
+@container lx (max-width: 720px){
+  .ck > summary{padding-inline:16px}
+  .ck-items{padding-left:16px}
+  .ck-prog{width:64px}
+  .msg{max-width:90%}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="lw">
+  <header class="topbar glass lw-top">
+    <a class="row gap-2" href="Lawyer.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline">LexReg</span></a>
+    <span class="t-3" aria-hidden="true">/</span>
+    <nav class="crumbs" aria-label="Breadcrumb"><span class="here">Assigned matter</span></nav>
+    <div class="grow"></div>
+    <span class="pill pill-outline hide-medium"><span class="ic ic-lock" aria-hidden="true"></span>1 entity · 1 service</span>
+    <div class="row gap-2">
+      <span class="avatar avatar-sm" aria-hidden="true">AO</span>
+      <div class="stack hide-medium"><span class="t-subhead">Adv. Achieng Odhiambo</span><span class="t-caption t-3">External lawyer</span></div>
+    </div>
+    <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+  </header>
+  <div class="m-topbar glass">
+    <a class="row gap-2" href="Lawyer.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Assigned matter</span></a>
+    <div class="row gap-1"><span class="avatar avatar-sm" aria-hidden="true">AO</span><button class="btn btn-plain btn-icon" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button></div>
+  </div>
+
+  <main class="content lw-main">
+
+    <div class="note note-brand rise" role="note">
+      <span class="ic ic-lock" aria-hidden="true"></span>
+      <p><strong>You’re viewing one matter: Legal audit — Amani Logistics Limited.</strong> LexReg gave you access to this entity and this service only. Nothing else in the owner’s account is visible to you.</p>
+    </div>
+
+    <header class="page-head rise" style="--d: 1">
+      <div class="stack gap-2" style="min-width: 0">
+        <p class="t-eyebrow">Legal audit · KES 25,000 · paid by client</p>
+        <h1 class="t-title1">Amani Logistics Limited</h1>
+        <div class="row wrap gap-2">
+          <span class="pill pill-info"><span class="dot" aria-hidden="true"></span>In progress</span>
+          <span class="pill pill-warn t-num"><span class="ic ic-calendar-due" aria-hidden="true"></span>Due 21 Oct 2026 · in 3 working days</span>
+          <span class="t-footnote t-3">Assigned by Charles on 14 Oct 2026</span>
+        </div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" type="button"><span class="ic ic-download" aria-hidden="true"></span>Download all</button>
+        <button class="btn btn-primary" type="button" onClick="{{trySubmit}}"><span class="ic ic-signature" aria-hidden="true"></span>Submit audit report</button>
+      </div>
+    </header>
+
+    <sc-if value="{{submitBlocked}}" hint-placeholder-val="{{false}}">
+      <div class="note note-warn pop" role="alert">
+        <span class="ic ic-alert-triangle" aria-hidden="true"></span>
+        <div class="grow stack gap-1">
+          <p><strong>15 checklist items are still open.</strong> Review each one or mark it not applicable, then sign and submit. Your draft is saved.</p>
+        </div>
+        <button class="btn btn-plain btn-sm" type="button" onClick="{{dismissSubmit}}">OK</button>
+      </div>
+    </sc-if>
+
+    <section class="grid cols-4 keep-2" aria-label="Matter at a glance">
+      <div class="stat rise" style="--d: 2">
+        <p class="stat-label"><span class="ic ic-checklist ic-sm" aria-hidden="true"></span>Checklist</p>
+        <p class="t-stat">11<span class="t-3" style="font-size: 17px"> / 26</span></p>
+        <div class="progress"><span style="width: 42%"></span></div>
+      </div>
+      <div class="stat rise" style="--d: 3">
+        <p class="stat-label"><span class="ic ic-file-alert ic-sm" aria-hidden="true"></span>Possible gaps</p>
+        <p class="t-stat">7</p>
+        <p class="stat-sub">From the AI preliminary report</p>
+      </div>
+      <div class="stat rise" style="--d: 4">
+        <p class="stat-label"><span class="ic ic-files ic-sm" aria-hidden="true"></span>Shared documents</p>
+        <p class="t-stat">8</p>
+        <p class="stat-sub t-warn">1 requested from client</p>
+      </div>
+      <div class="stat rise" style="--d: 5">
+        <p class="stat-label"><span class="ic ic-message-circle ic-sm" aria-hidden="true"></span>Messages</p>
+        <p class="t-stat">{{msgCount}}</p>
+        <p class="stat-sub">{{msgLast}}</p>
+      </div>
+    </section>
+
+    <div class="grid cols-3" style="align-items: start">
+      <div class="span-2 stack gap-4">
+
+        <section class="card rise" style="--d: 6; overflow: hidden" aria-labelledby="ck-h">
+          <div class="card-head" style="flex-wrap: wrap">
+            <div class="stack">
+              <h2 id="ck-h">Audit checklist</h2>
+              <p class="t-footnote t-3">Statutory, tax, employment, data protection, licences and contracts.</p>
+            </div>
+            <span class="t-footnote t-2 t-num">11 of 26 reviewed</span>
+          </div>
+
+          <details class="ck" open="{{secOpen}}">
+            <summary>
+              <span class="icon-tile good" aria-hidden="true"><span class="ic ic-building"></span></span>
+              <span class="stack grow"><span class="t-subhead t-strong">Statutory &amp; corporate records</span><span class="t-footnote t-3 t-num">5 of 6 · 1 gap</span></span>
+              <span class="progress good ck-prog" aria-hidden="true"><span style="width: 83%"></span></span>
+              <span class="ic ic-chevron-right chev" aria-hidden="true"></span>
+            </summary>
+            <ul class="ck-items">
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">Certificate of incorporation · 14 March 2019</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">CR12 matches the register of members (1,000 shares)</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">Directors and company secretary (Halima Abdi, CPS) on record</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">Annual returns filed with BRS to 2026</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">Memorandum &amp; Articles consistent with Companies Act 2015</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-gap" aria-hidden="true"></span><span class="grow stack"><span>Beneficial ownership register (BOF-1) lodged</span><span class="t-footnote t-warn">Gap · signed BOF-1 requested from client on 15 Oct</span></span></li>
+            </ul>
+          </details>
+
+          <details class="ck" open="{{secOpen}}">
+            <summary>
+              <span class="icon-tile warn" aria-hidden="true"><span class="ic ic-receipt"></span></span>
+              <span class="stack grow"><span class="t-subhead t-strong">Tax compliance</span><span class="t-footnote t-3 t-num">3 of 5 · 1 conflict</span></span>
+              <span class="progress warn ck-prog" aria-hidden="true"><span style="width: 60%"></span></span>
+              <span class="ic ic-chevron-right chev" aria-hidden="true"></span>
+            </summary>
+            <ul class="ck-items">
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">Company KRA PIN P051234567X verified</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">VAT returns filed to August 2026</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">PAYE returns filed to September 2026</span><span class="sr-only">Done</span></li>
+              <li class="ck-item"><span class="ck-box is-gap" aria-hidden="true"></span><span class="grow stack"><span>Directors’ KRA PINs match the CR12</span><span class="t-footnote t-warn t-num">Brian Otieno: CR12 A019876543K · KRA certificate A019876534K</span></span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Tax compliance certificate current</span></li>
+            </ul>
+          </details>
+
+          <details class="ck">
+            <summary>
+              <span class="icon-tile info" aria-hidden="true"><span class="ic ic-users"></span></span>
+              <span class="stack grow"><span class="t-subhead t-strong">Employment</span><span class="t-footnote t-3 t-num">2 of 6 · contracts, NSSF, SHIF, housing levy</span></span>
+              <span class="progress ck-prog" aria-hidden="true"><span style="width: 33%"></span></span>
+              <span class="ic ic-chevron-right chev" aria-hidden="true"></span>
+            </summary>
+            <ul class="ck-items">
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">Written contracts for all 12 employees</span></li>
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">NSSF contributions up to date</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">SHIF contributions up to date</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Affordable housing levy remitted</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">NITA levy paid</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Workplace policies (leave, disciplinary, harassment)</span></li>
+            </ul>
+          </details>
+
+          <details class="ck">
+            <summary>
+              <span class="icon-tile bad" aria-hidden="true"><span class="ic ic-shield-lock"></span></span>
+              <span class="stack grow"><span class="t-subhead t-strong">Data protection (DPA 2019)</span><span class="t-footnote t-3 t-num">0 of 4 · ODPC registration not found</span></span>
+              <span class="progress ck-prog" aria-hidden="true"><span style="width: 0%"></span></span>
+              <span class="ic ic-chevron-right chev" aria-hidden="true"></span>
+            </summary>
+            <ul class="ck-items">
+              <li class="ck-item"><span class="ck-box is-gap" aria-hidden="true"></span><span class="grow">Registered with the ODPC as a data controller</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Privacy notice for customers and staff</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Record of processing activities</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Data processing agreements with vendors</span></li>
+            </ul>
+          </details>
+
+          <details class="ck">
+            <summary>
+              <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-license"></span></span>
+              <span class="stack grow"><span class="t-subhead t-strong">Licences &amp; permits</span><span class="t-footnote t-3 t-num">1 of 2</span></span>
+              <span class="progress ck-prog" aria-hidden="true"><span style="width: 50%"></span></span>
+              <span class="ic ic-chevron-right chev" aria-hidden="true"></span>
+            </summary>
+            <ul class="ck-items">
+              <li class="ck-item"><span class="ck-box is-done" aria-hidden="true"><span class="ic ic-check"></span></span><span class="grow">Nairobi County business permit · valid to 31 Mar 2027</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Sector licences for transport and logistics</span></li>
+            </ul>
+          </details>
+
+          <details class="ck">
+            <summary>
+              <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-writing"></span></span>
+              <span class="stack grow"><span class="t-subhead t-strong">Contracts &amp; material agreements</span><span class="t-footnote t-3 t-num">0 of 3</span></span>
+              <span class="progress ck-prog" aria-hidden="true"><span style="width: 0%"></span></span>
+              <span class="ic ic-chevron-right chev" aria-hidden="true"></span>
+            </summary>
+            <ul class="ck-items">
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Leases for premises on Mombasa Road</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Key customer and supplier contracts</span></li>
+              <li class="ck-item"><span class="ck-box" aria-hidden="true"></span><span class="grow">Shareholders’ agreement with Savannah Holdings Limited</span></li>
+            </ul>
+          </details>
+        </section>
+
+        <section class="card rise" style="--d: 7; overflow: hidden" aria-labelledby="ms-h">
+          <div class="card-head">
+            <div class="stack"><h2 id="ms-h">Notes to the client</h2><p class="t-footnote t-3">Wanjiku Mwangi sees these messages. Every message is logged.</p></div>
+          </div>
+          <div class="stack gap-3" style="padding: 4px 20px 16px">
+            <div class="msg msg-out">
+              <p>Good morning Wanjiku. I’ve started the audit. Could you upload the signed BOF-1 and any ODPC registration certificate you hold?</p>
+              <p class="msg-meta t-num">You · 15 Oct, 11:04</p>
+            </div>
+            <div class="msg msg-in">
+              <p>Thank you. I’ll upload the BOF-1 today. We haven’t registered with the ODPC — do we need to?</p>
+              <p class="msg-meta t-num">Wanjiku Mwangi · 15 Oct, 14:20</p>
+            </div>
+            <div class="msg msg-out">
+              <p>Most likely yes — you hold employee and customer data. I’ll set out the steps and the deadline in the report.</p>
+              <p class="msg-meta t-num">You · Today, 08:47</p>
+            </div>
+            <sc-for list="{{sent}}" as="m" hint-placeholder-count="0">
+              <div class="msg msg-out rise">
+                <p>{{m.text}}</p>
+                <p class="msg-meta t-num">You · Today, just now</p>
+              </div>
+            </sc-for>
+          </div>
+          <div class="stack gap-2" style="padding: 14px 20px 18px; border-top: var(--hairline-soft)">
+            <label class="label" for="lw-msg">Message to Wanjiku Mwangi</label>
+            <textarea class="textarea" id="lw-msg" style="min-height: 72px" placeholder="Ask for a document or explain a finding" value="{{draft}}" onInput="{{setDraft}}"></textarea>
+            <div class="row between gap-2 wrap">
+              <span class="t-footnote t-3">Attach from the shared documents only</span>
+              <button class="btn btn-secondary btn-sm {{sendCls}}" type="button" onClick="{{sendMsg}}"><span class="ic ic-message-circle" aria-hidden="true"></span>Send to Wanjiku</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack gap-4">
+        <section class="card card-pad rise" style="--d: 6" aria-labelledby="pr-h">
+          <div class="row gap-3" style="align-items: flex-start">
+            <span class="icon-tile info" aria-hidden="true"><span class="ic ic-sparkles"></span></span>
+            <div class="stack gap-1 grow">
+              <h2 id="pr-h" class="t-headline">Preliminary report</h2>
+              <p class="t-footnote t-2 t-pretty">An AI draft found 7 possible gaps in the shared documents. Review, refine and sign off — only your signed report reaches the client.</p>
+            </div>
+          </div>
+          <ul class="stack gap-2" style="margin-top: 14px">
+            <li class="row gap-2 t-footnote"><span class="dot" style="color: var(--sys-red)" aria-hidden="true"></span><span class="grow">No ODPC registration</span><span class="t-3">High</span></li>
+            <li class="row gap-2 t-footnote"><span class="dot" style="color: var(--sys-orange)" aria-hidden="true"></span><span class="grow">BOF-1 not on file</span><span class="t-3">Medium</span></li>
+            <li class="row gap-2 t-footnote"><span class="dot" style="color: var(--sys-orange)" aria-hidden="true"></span><span class="grow">Director PIN mismatch</span><span class="t-3">Medium</span></li>
+          </ul>
+          <button class="btn btn-tinted btn-sm btn-block" type="button" style="margin-top: 14px">Review all 7 findings</button>
+        </section>
+
+        <section class="card card-pad rise" style="--d: 7" aria-labelledby="es-h">
+          <div class="row between gap-2" style="margin-bottom: 6px">
+            <h2 id="es-h" class="t-headline">Entity summary</h2>
+            <span class="pill"><span class="ic ic-eye" aria-hidden="true"></span>Read-only</span>
+          </div>
+          <dl class="kv">
+            <div class="kv-row"><dt>Type</dt><dd>Private limited company</dd></div>
+            <div class="kv-row"><dt>Registration no.</dt><dd class="t-num">PVT-2LU7Q9XB</dd></div>
+            <div class="kv-row"><dt>KRA PIN</dt><dd class="t-num">P051234567X</dd></div>
+            <div class="kv-row"><dt>Incorporated</dt><dd class="t-num">14 March 2019</dd></div>
+            <div class="kv-row"><dt>Registered office</dt><dd>Mombasa Road, Industrial Area, Nairobi</dd></div>
+            <div class="kv-row"><dt>Nominal capital</dt><dd class="t-num">KES 1,000,000</dd></div>
+          </dl>
+          <p class="t-eyebrow" style="margin: 16px 0 4px">People</p>
+          <ul class="stack">
+            <li class="row gap-3" style="padding: 7px 0"><span class="avatar avatar-sm" aria-hidden="true">WM</span><div class="grow"><p class="t-subhead truncate">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Director · 60% shareholder</p></div></li>
+            <li class="row gap-3" style="padding: 7px 0"><span class="avatar avatar-sm" aria-hidden="true">BO</span><div class="grow"><p class="t-subhead truncate">Brian Otieno</p><p class="t-caption t-3 truncate">Director · 30% shareholder</p></div></li>
+            <li class="row gap-3" style="padding: 7px 0"><span class="avatar avatar-sm avatar-corp" aria-hidden="true">SH</span><div class="grow"><p class="t-subhead truncate">Savannah Holdings Limited</p><p class="t-caption t-3 truncate">Corporate shareholder · 10%</p></div></li>
+            <li class="row gap-3" style="padding: 7px 0"><span class="avatar avatar-sm" aria-hidden="true">JK</span><div class="grow"><p class="t-subhead truncate">James Kariuki</p><p class="t-caption t-3 truncate">Beneficial owner · 10% indirect</p></div></li>
+            <li class="row gap-3" style="padding: 7px 0"><span class="avatar avatar-sm" aria-hidden="true">HA</span><div class="grow"><p class="t-subhead truncate">Halima Abdi</p><p class="t-caption t-3 truncate">Company secretary · CPS</p></div></li>
+          </ul>
+        </section>
+
+        <section class="card rise" style="--d: 8; overflow: hidden" aria-labelledby="sd-h">
+          <div class="card-head"><h2 id="sd-h">Shared documents</h2><span class="t-caption t-3 t-num">8 files</span></div>
+          <ul class="stack gap-2" style="padding: 0 12px 14px">
+            <li class="file-row"><span class="ic ic-file-text t-3" aria-hidden="true"></span><span class="name">CR12 — Amani Logistics Limited.pdf</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download CR12"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row"><span class="ic ic-file-certificate t-3" aria-hidden="true"></span><span class="name">Certificate of incorporation.pdf</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download certificate of incorporation"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row"><span class="ic ic-book t-3" aria-hidden="true"></span><span class="name">Memorandum &amp; Articles.pdf</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download memorandum and articles"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row"><span class="ic ic-id t-3" aria-hidden="true"></span><span class="name">KRA PIN certificates (company and directors).pdf</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download KRA PIN certificates"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row"><span class="ic ic-license t-3" aria-hidden="true"></span><span class="name">Nairobi County business permit 2026.pdf</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download business permit"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row"><span class="ic ic-folder t-3" aria-hidden="true"></span><span class="name">Employment contracts (12 files).zip</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download employment contracts"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row"><span class="ic ic-receipt t-3" aria-hidden="true"></span><span class="name">NSSF and SHIF statements — Sep 2026.pdf</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download NSSF and SHIF statements"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row"><span class="ic ic-sparkles t-3" aria-hidden="true"></span><span class="name">Preliminary gap report (AI draft).pdf</span><button class="btn btn-plain btn-icon" type="button" aria-label="Download preliminary gap report"><span class="ic ic-download" aria-hidden="true"></span></button></li>
+            <li class="file-row" style="background: var(--surface-3)"><span class="ic ic-clock t-warn" aria-hidden="true"></span><span class="name t-2">Signed BOF-1</span><span class="meta">Requested</span></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const sent = s.sent ?? [];
+const draft = s.draft ?? '';
+const blocked = s.blocked ?? false;
+const total = 3 + sent.length;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  secOpen: true,
+  submitBlocked: blocked,
+  trySubmit: () => this.setState({ blocked: true }),
+  dismissSubmit: () => this.setState({ blocked: false }),
+  sent: sent,
+  draft: draft,
+  setDraft: (ev) => this.setState({ draft: ev.target.value }),
+  sendCls: draft.trim() ? '' : 'is-disabled',
+  sendMsg: () => {
+    const t = draft.trim();
+    if (!t) return;
+    this.setState({ sent: sent.concat([{ text: t }]), draft: '' });
+  },
+  msgCount: total,
+  msgLast: sent.length ? 'You replied just now' : 'Last reply today, 08:47'
+};
+}
+}
+</script>
+</body>
+</html>

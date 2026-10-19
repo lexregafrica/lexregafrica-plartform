@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import { IconLifebuoy, IconX, IconDownload, IconAlertCircle, IconMail, IconBrandWhatsapp } from '@tabler/icons-react'
 
 // Charles's WhatsApp number (international format, no +). Set in .env.local:
 // NEXT_PUBLIC_WHATSAPP_NUMBER=2547XXXXXXXX
@@ -10,13 +12,6 @@ const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
 // should be offered first, with WhatsApp as the faster alternative.
 const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? ''
 
-const inputCls =
-  'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
-const inputStyle = {
-  borderColor: 'var(--system-fill-3)',
-  background: 'var(--system-bg)',
-  color: 'var(--system-label)',
-} as const
 
 export type HelpRequestContext = {
   /** Where the request came from, e.g. "Existing entity onboarding — low OCR confidence" */
@@ -99,136 +94,93 @@ export function HelpRequestSheet({
     onClose()
   }
 
-  return (
+  // Portalled to <body>: an ancestor with a transform (entrance
+  // animations) would otherwise trap position:fixed inside it.
+  return createPortal((
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-      style={{ background: 'rgba(0,0,0,0.4)' }}
+      className="lx fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
+      style={{ background: 'rgba(0,0,0,0.28)', minHeight: 0, animation: 'fade-in var(--dur-spring) var(--ease-calm) both' }}
       onClick={onClose}
+      role="presentation"
     >
       <div
-        className="w-full max-w-[440px] rounded-t-3xl p-6 sm:rounded-3xl"
-        style={{ background: 'var(--system-bg)' }}
+        className="sheet w-full max-w-[460px] rounded-b-none sm:rounded-[22px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="help-h"
+        style={{ maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-ios-title3 mb-1" style={{ color: 'var(--system-label)' }}>
-          Request assistance
-        </h2>
-        <p className="text-ios-footnote mb-4" style={{ color: 'var(--system-label-2)' }}>
-          Reach our team directly — we respond during business hours and will walk you through the next
-          steps and pricing.
-        </p>
-
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {([['email', 'Email'], ['whatsapp', 'WhatsApp']] as const).map(([v, label]) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setChannel(v)}
-              className="py-2 rounded-lg border text-sm font-medium"
-              style={{
-                borderColor: channel === v ? '#800020' : 'var(--system-fill-3)',
-                background: channel === v ? 'rgba(128,0,32,0.08)' : 'var(--system-bg)',
-                color: 'var(--system-label)',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
-              Your name <span style={{ color: '#dc2626' }}>*</span>
-            </label>
-            <input type="text" className={inputCls} style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          {channel === 'email' ? (
-            <div>
-              <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
-                Your email <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <input type="email" className={inputCls} style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <div className="sheet-grabber sm:hidden" aria-hidden="true" />
+        <div className="flex flex-col gap-5 p-6">
+          <header className="flex items-start gap-3">
+            <span className="icon-tile icon-tile-lg" aria-hidden="true"><IconLifebuoy size={22} stroke={1.75} /></span>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <h2 id="help-h" className="t-title2">Request assistance</h2>
+              <p className="t-footnote t-2 t-pretty">Reach our team directly — we respond during business hours and will walk you through the next steps and pricing.</p>
             </div>
-          ) : (
-            <div>
-              <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
-                Phone number <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <input type="tel" className={inputCls} style={inputStyle} placeholder="07XXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-          )}
-          <div>
-            <label className="text-ios-footnote mb-1.5 block font-medium" style={{ color: 'var(--system-label-2)' }}>
-              How can we help? (optional)
-            </label>
-            <textarea rows={3} className={inputCls} style={inputStyle} value={message} onChange={(e) => setMessage(e.target.value)} />
+            <button type="button" onClick={onClose} className="btn btn-gray btn-icon btn-sm btn-pill shrink-0" aria-label="Close"><IconX size={16} stroke={2} aria-hidden="true" /></button>
+          </header>
+
+          <div className="seg" role="radiogroup" aria-label="Contact channel" style={{ '--n': 2, '--i': channel === 'email' ? 0 : 1 } as React.CSSProperties}>
+            {([['email', 'Email'], ['whatsapp', 'WhatsApp']] as const).map(([v, label]) => (
+              <button key={v} type="button" role="radio" aria-checked={channel === v} className={channel === v ? 'is-on' : ''} onClick={() => setChannel(v)}>{label}</button>
+            ))}
           </div>
 
-          {context.idpUrl && (
-            <div className="rounded-xl p-3" style={{ background: 'var(--system-bg-2)' }}>
-              <p className="text-ios-footnote mb-2 font-medium" style={{ color: 'var(--system-label)' }}>
-                Have you downloaded your IDP document?
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {([true, false] as const).map((v) => (
-                  <button
-                    key={String(v)}
-                    type="button"
-                    onClick={() => setIdpDownloaded(v)}
-                    className="py-2 rounded-lg border text-sm font-medium"
-                    style={{
-                      borderColor: idpDownloaded === v ? '#800020' : 'var(--system-fill-3)',
-                      background: idpDownloaded === v ? 'rgba(128,0,32,0.08)' : 'var(--system-bg)',
-                      color: 'var(--system-label)',
-                    }}
-                  >
-                    {v ? 'Yes' : 'Not yet'}
-                  </button>
-                ))}
+          <div className="flex flex-col gap-4">
+            <div className="field">
+              <label className="label" htmlFor="help-name">Your name <span className="req">*</span></label>
+              <input id="help-name" type="text" className="input" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            {channel === 'email' ? (
+              <div className="field">
+                <label className="label" htmlFor="help-email">Your email <span className="req">*</span></label>
+                <input id="help-email" type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
-              {!idpDownloaded && (
-                <a
-                  href={context.idpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIdpDownloaded(true)}
-                  className="mt-2 block w-full rounded-lg py-2 text-center text-sm font-semibold text-white"
-                  style={{ background: '#800020' }}
-                >
-                  Download IDP now
-                </a>
-              )}
-              {idpDownloaded && (
-                <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>
-                  Great — attach it to the {channel === 'email' ? 'email' : 'WhatsApp chat'} when asked.
-                </p>
-              )}
+            ) : (
+              <div className="field">
+                <label className="label" htmlFor="help-phone">Phone number <span className="req">*</span></label>
+                <input id="help-phone" type="tel" className="input" placeholder="07XXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+            )}
+            <div className="field">
+              <label className="label" htmlFor="help-msg">How can we help? <span className="t-3">(optional)</span></label>
+              <textarea id="help-msg" rows={3} className="textarea" value={message} onChange={(e) => setMessage(e.target.value)} />
             </div>
-          )}
-        </div>
 
-        {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+            {context.idpUrl && (
+              <div className="well flex flex-col gap-3">
+                <p className="t-subhead" style={{ color: 'var(--label)', fontWeight: 600 }}>Have you downloaded your IDP document?</p>
+                <div className="seg" role="radiogroup" aria-label="IDP downloaded" style={{ '--n': 2, '--i': idpDownloaded ? 0 : 1 } as React.CSSProperties}>
+                  {([true, false] as const).map((v) => (
+                    <button key={String(v)} type="button" role="radio" aria-checked={idpDownloaded === v} className={idpDownloaded === v ? 'is-on' : ''} onClick={() => setIdpDownloaded(v)}>
+                      {v ? 'Yes' : 'Not yet'}
+                    </button>
+                  ))}
+                </div>
+                {!idpDownloaded ? (
+                  <a href={context.idpUrl} target="_blank" rel="noopener noreferrer" onClick={() => setIdpDownloaded(true)} className="btn btn-tinted btn-block">
+                    <IconDownload size={16} stroke={1.75} aria-hidden="true" />Download IDP now
+                  </a>
+                ) : (
+                  <p className="t-footnote t-3">Great — attach it to the {channel === 'email' ? 'email' : 'WhatsApp chat'} when asked.</p>
+                )}
+              </div>
+            )}
+          </div>
 
-        <div className="mt-5 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border px-5 py-2.5 text-sm font-medium"
-            style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSend}
-            className="flex-1 rounded-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: channel === 'email' ? 'var(--brand-navy)' : '#25D366' }}
-          >
-            {channel === 'email' ? 'Send via email' : 'Send via WhatsApp'}
-          </button>
+          {error && <p className="error" role="alert"><IconAlertCircle size={15} stroke={1.75} aria-hidden="true" />{error}</p>}
+
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose} className="btn btn-gray">Cancel</button>
+            <button type="button" onClick={handleSend} className="btn btn-primary flex-1">
+              {channel === 'email' ? <IconMail size={17} stroke={1.75} aria-hidden="true" /> : <IconBrandWhatsapp size={17} stroke={1.75} aria-hidden="true" />}
+              {channel === 'email' ? 'Send via email' : 'Send via WhatsApp'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  )
+  ), document.body)
 }

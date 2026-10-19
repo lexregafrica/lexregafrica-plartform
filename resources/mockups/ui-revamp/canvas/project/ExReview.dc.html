@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review &amp; activate — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.ladder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rung{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:var(--r-md);background:var(--fill-4);min-width:0}
+.rung.is-here{background:var(--brand-50);box-shadow:inset 0 0 0 1.5px var(--tint)}
+.fcell{display:flex;flex-direction:column;gap:4px;min-width:0;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2)}
+.fcell-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:4px 4px 0}
+@container lx (max-width: 720px){
+  .ladder{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Onboard an existing entity · Amani Logistics Limited</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="ExType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="ExUpload.dc.html"><span class="n">2</span>Upload documents</a>
+      <a class="wz-step is-done" href="ExDetails.dc.html"><span class="n">3</span>Entity details</a>
+      <a class="wz-step is-done" href="ExPeople.dc.html"><span class="n">4</span>People &amp; roles</a>
+      <span class="wz-step is-done"><span class="n">5</span>Beneficial ownership</span>
+      <a class="wz-step is-done" href="ExBaseline.dc.html"><span class="n">6</span>Compliance baseline</a>
+      <a class="wz-step is-on" aria-current="step" href="ExReview.dc.html"><span class="n">7</span>Review &amp; activate</a>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 7 of 7</span><span class="t-caption t-3 t-num">100%</span></div>
+        <div class="progress"><span style="width: 100%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 7 of 7 · Review &amp; activate</p>
+        <h1 class="t-large t-balance">Review &amp; activate</h1>
+        <p class="t-body t-2 t-pretty">Everything we rebuilt from your documents, what’s still outstanding, and the status Amani Logistics Limited will go live with. Confirming never upgrades unsupported data to registry-verified.</p>
+      </header>
+
+      <!-- Activation status -->
+      <section class="card card-pad stack gap-4 rise" style="--d: 1" aria-labelledby="status-h">
+        <div class="row gap-3" style="align-items: flex-start">
+          <span class="icon-tile icon-tile-lg"><span class="ic ic-progress-check" aria-hidden="true"></span></span>
+          <div class="stack gap-1 grow">
+            <p class="t-eyebrow">Will activate as</p>
+            <h2 id="status-h" class="t-title2">Compliance review due</h2>
+            <p class="t-callout t-2 t-pretty">Your details are verified; some compliance tasks are open. 5 follow-up tasks will be added to your compliance calendar.</p>
+          </div>
+        </div>
+        <div class="ladder" role="list" aria-label="Onboarding statuses">
+          <div class="rung" role="listitem">
+            <span class="t-subhead t-strong">Provisionally onboarded</span>
+            <span class="t-caption t-3 t-pretty">An anchor document is missing, or a material field is unsupported.</span>
+          </div>
+          <div class="rung is-here" role="listitem" aria-current="true">
+            <span class="row gap-1"><span class="ic ic-check ic-sm t-brand" aria-hidden="true"></span><span class="t-subhead t-strong t-brand">Compliance review due</span></span>
+            <span class="t-caption t-2 t-pretty">Anchors on file, fields supported — tasks still open.</span>
+          </div>
+          <div class="rung" role="listitem">
+            <span class="t-subhead t-strong">Verified onboarded</span>
+            <span class="t-caption t-3 t-pretty">Everything supported and no open tasks.</span>
+          </div>
+        </div>
+        <sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+          <div class="note note-good fade" role="status"><span class="ic ic-circle-check" aria-hidden="true"></span><p><strong>Ready to activate.</strong> The Certificate of Incorporation and CR12 are on file and every material field is supported by a document.</p></div>
+        </sc-if>
+        <sc-if value="{{blocked}}" hint-placeholder-val="{{false}}">
+          <div class="note note-warn fade" role="status">
+            <span class="ic ic-alert-circle" aria-hidden="true"></span>
+            <div class="stack gap-1">
+              <p><strong>{{blockedTitle}}</strong></p>
+              <sc-for list="{{blockers}}" as="b" hint-placeholder-count="2">
+                <p>· {{b.text}}</p>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </section>
+
+      <!-- Evidence summary -->
+      <div class="sec-head rise" style="--d: 2"><h2 class="t-title3">Evidence</h2><a class="btn btn-plain btn-sm" href="ExUpload.dc.html">View documents</a></div>
+      <div class="grid cols-4 keep-2 rise" style="--d: 2">
+        <div class="stat"><span class="stat-label"><span class="ic ic-scan ic-sm" aria-hidden="true"></span>Documents read</span><span class="t-stat">9</span><span class="stat-sub">Lowest confidence 81%</span></div>
+        <div class="stat"><span class="stat-label"><span class="ic ic-circle-check ic-sm t-good" aria-hidden="true"></span>Verified</span><span class="t-stat">8<span class="t-3" style="font-size: 17px"> / 10</span></span><span class="stat-sub">Fields backed by a document</span></div>
+        <div class="stat"><span class="stat-label"><span class="ic ic-user-check ic-sm t-brand" aria-hidden="true"></span>Confirmed by you</span><span class="t-stat">2</span><span class="stat-sub">Phone &amp; email — not registry fields</span></div>
+        <div class="stat"><span class="stat-label"><span class="ic ic-id ic-sm" aria-hidden="true"></span>People with ID</span><span class="t-stat">2<span class="t-3" style="font-size: 17px"> / 3</span></span><span class="stat-sub">Halima Abdi unverified</span></div>
+      </div>
+
+      <section class="card rise" style="--d: 3" aria-labelledby="fields-h">
+        <div class="card-head">
+          <h2 id="fields-h">Company details</h2>
+          <a class="btn btn-plain btn-sm" href="ExDetails.dc.html"><span class="ic ic-pencil" aria-hidden="true"></span>Edit details</a>
+        </div>
+        <div class="grid cols-2" style="gap: 8px; padding: 0 20px 16px">
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="10">
+            <div class="fcell">
+              <div class="fcell-top"><span class="t-caption t-3 truncate">{{f.label}}</span><span class="{{f.cls}}"><span class="ic {{f.ic}}" aria-hidden="true"></span>{{f.src}}</span></div>
+              <span class="t-subhead truncate {{f.valCls}}">{{f.value}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p class="t-caption t-3 t-pretty" style="padding: 0 20px 14px">Phone and email aren’t registry fields, so your confirmation is enough — they don’t affect the activation status.</p>
+        <div class="card-foot">
+          <div class="stack" style="min-width: 0">
+            <span class="t-caption t-3">People</span>
+            <span class="t-subhead t-pretty">2 directors · 3 shareholders · 3 beneficial owners · 1 company secretary</span>
+          </div>
+          <a class="btn btn-plain btn-sm" href="ExPeople.dc.html">Edit people</a>
+        </div>
+      </section>
+
+      <!-- Outstanding gaps -->
+      <section class="stack gap-2 rise" style="--d: 4" aria-labelledby="gaps-h">
+        <div class="sec-head"><h2 id="gaps-h" class="t-title3">Evidence outstanding</h2><span class="t-caption t-3 t-num">5 items · 2 become tasks</span></div>
+        <div class="list">
+          <sc-for list="{{gaps}}" as="g" hint-placeholder-count="5">
+            <div class="list-row has-icon" style="align-items: flex-start">
+              <span class="icon-tile {{g.tile}}"><span class="ic {{g.ic}}" aria-hidden="true"></span></span>
+              <div class="stack gap-1 grow">
+                <span class="row gap-2 wrap"><span class="list-title">{{g.title}}</span><span class="{{g.impactCls}}">{{g.impact}}</span></span>
+                <span class="list-sub t-pretty">{{g.behaviour}}</span>
+              </div>
+              <span class="{{g.outCls}}">{{g.out}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p class="t-footnote t-3 t-pretty" style="padding: 0 4px">High and critical document gaps become tasks, and so does anyone without identity evidence. Medium ones — historical formation records — are flagged on the verification report without cluttering your calendar.</p>
+      </section>
+
+      <!-- Follow-up tasks -->
+      <section class="stack gap-2 rise" style="--d: 5" aria-labelledby="tasks-h">
+        <div class="sec-head"><h2 id="tasks-h" class="t-title3">Follow-up tasks</h2><span class="t-caption t-3 t-num">5 tasks</span></div>
+        <div class="list">
+          <sc-for list="{{tasks}}" as="t" hint-placeholder-count="5">
+            <div class="list-row">
+              <div class="stack grow">
+                <span class="list-title t-pretty">{{t.title}}</span>
+                <span class="list-sub">{{t.from}}</span>
+              </div>
+              <span class="pill t-num">{{t.due}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- What happens -->
+      <section class="card rise" style="--d: 6" aria-labelledby="happens-h">
+        <div class="card-head"><h2 id="happens-h">What happens when you activate</h2></div>
+        <div class="stack gap-4" style="padding: 0 20px 20px">
+          <div class="row gap-3" style="align-items: flex-start">
+            <span class="icon-tile"><span class="ic ic-building" aria-hidden="true"></span></span>
+            <div class="stack grow"><p class="t-headline">Your workspace is created</p><p class="t-footnote t-2 t-pretty">Profile, people and roles, share register, beneficial ownership and document vault.</p></div>
+          </div>
+          <div class="row gap-3" style="align-items: flex-start">
+            <span class="icon-tile info"><span class="ic ic-calendar-due" aria-hidden="true"></span></span>
+            <div class="stack grow"><p class="t-headline">Compliance calendar seeded</p><p class="t-footnote t-2 t-pretty t-num">County permit 31 Mar 2027 · annual return 13 Apr 2027 · KRA return 30 Jun 2027</p></div>
+          </div>
+          <div class="row gap-3" style="align-items: flex-start">
+            <span class="icon-tile warn"><span class="ic ic-list-check" aria-hidden="true"></span></span>
+            <div class="stack grow"><p class="t-headline">5 follow-up tasks opened</p><p class="t-footnote t-2 t-pretty">Each one names the document or answer that created it.</p></div>
+          </div>
+          <div class="row gap-3" style="align-items: flex-start">
+            <span class="icon-tile good"><span class="ic ic-file-certificate" aria-hidden="true"></span></span>
+            <div class="stack gap-2 grow">
+              <div class="stack"><p class="t-headline">Verification report filed in your vault</p><p class="t-footnote t-2 t-pretty">A signed entity profile listing every value and the document behind it.</p></div>
+              <div class="file-row">
+                <span class="ic ic-file-text" aria-hidden="true" style="color: var(--label-2)"></span>
+                <span class="name">Amani Logistics Limited — Onboarding verification report.pdf</span>
+                <span class="meta hide-compact">PDF · on activation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Declaration -->
+      <section class="card card-pad stack gap-4 rise" style="--d: 7" aria-labelledby="decl-h">
+        <h2 id="decl-h" class="t-title3">Declaration</h2>
+        <button class="choice {{declCls}}" type="button" role="checkbox" aria-checked="{{declChecked}}" onClick="{{toggleDecl}}">
+          <span class="mark square" aria-hidden="true"></span>
+          <span class="t-callout t-pretty">I confirm that, to the best of my knowledge, the details above reflect the company’s current position, and that I am authorised to register it on LexReg Africa. I understand that details marked “evidence outstanding” are recorded as my confirmation, not as registry-verified.</span>
+        </button>
+        <div class="form-grid">
+          <div class="field {{sigFieldCls}}">
+            <label class="label" for="sig">Type your full legal name as a signature<span class="req">*</span></label>
+            <input class="input t-serif" id="sig" type="text" autocomplete="off" value="{{sig}}" onInput="{{setSig}}" placeholder="Wanjiku Mwangi" aria-describedby="sig-msg">
+            <sc-if value="{{sigInvalid}}" hint-placeholder-val="{{false}}">
+              <p class="error" id="sig-msg"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>Type your first and last name, as on your ID.</p>
+            </sc-if>
+            <sc-if value="{{sigHelp}}" hint-placeholder-val="{{true}}">
+              <p class="help" id="sig-msg">Must match the name on your ID — Wanjiku Mwangi.</p>
+            </sc-if>
+          </div>
+          <div class="field">
+            <span class="label">Date</span>
+            <div class="input row t-num" style="background: var(--surface-2)">16 October 2026 <span class="t-3" style="margin-left: 6px">· auto-filled</span></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="ExBaseline.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footerHint}}</span>
+        <a class="btn btn-primary {{actCls}}" href="Workspace.dc.html" aria-disabled="{{actDisabled}}"><span class="ic ic-circle-check" aria-hidden="true"></span>Activate <span class="hide-compact">Amani Logistics Limited</span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"state":{"editor":"enum","options":["ready","blocked"],"default":"ready"},"$preview":{"width":1440,"height":3100}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const mode = this.props.state ?? 'ready';
+const declared = s.declared ?? (mode === 'ready');
+const sig = s.sig ?? (mode === 'ready' ? 'Wanjiku Mwangi' : '');
+const sigOk = sig.trim().split(/\s+/).filter(Boolean).length >= 2;
+
+const V = (label, value, src, mono) => ({ label, value, src, cls: 'src src-verified', ic: 'ic-circle-check', valCls: mono ? 't-mono' : '' });
+const U = (label, value) => ({ label, value, src: 'Confirmed by you', cls: 'src src-confirmed', ic: 'ic-user-check', valCls: '' });
+const fields = [
+  V('Registered name', 'Amani Logistics Limited', 'Certificate + CR12'),
+  V('Registration number', 'PVT-2LU7Q9XB', 'Certificate + CR12', true),
+  V('Date of incorporation', '14 March 2019', 'Certificate + CR12'),
+  V('Company KRA PIN', 'P051234567X', 'KRA certificate', true),
+  V('Registered office', 'Mombasa Road, Industrial Area', 'CR12'),
+  V('County', 'Nairobi', 'CR12'),
+  V('Postal address', 'P.O. Box 48211-00100', 'CR12'),
+  V('Nominal share capital (KES)', '1,000,000 · 1,000 × KES 1,000', 'Statement of capital'),
+  U('Office telephone', '+254 712 345 678'),
+  U('Office email', 'wanjiku@amanilogistics.co.ke')
+];
+
+const gaps = [
+  { title: 'BOF-1 — Beneficial ownership filing', impact: 'High', impactCls: 'pill pill-bad', behaviour: 'A beneficial-ownership completion task is opened. Shareholders are never assumed to be beneficial owners.', out: 'Task', outCls: 'pill pill-warn', tile: 'bad', ic: 'ic-file-alert' },
+  { title: 'Identity unverified: Halima Abdi', impact: 'Identity', impactCls: 'pill', behaviour: 'Recorded provisionally without identity evidence until her ID or passport is uploaded.', out: 'Task', outCls: 'pill pill-warn', tile: 'warn', ic: 'ic-id' },
+  { title: 'CR1 — Application to register the company', impact: 'Medium', impactCls: 'pill', behaviour: 'Doesn’t block onboarding. The historical formation record stays flagged as a gap.', out: 'Report', outCls: 'pill pill-outline', tile: 'gray', ic: 'ic-file' },
+  { title: 'CR8 — Directors’ residential addresses', impact: 'Medium', impactCls: 'pill', behaviour: 'Doesn’t block onboarding. Director address history stays flagged as a gap.', out: 'Report', outCls: 'pill pill-outline', tile: 'gray', ic: 'ic-file' },
+  { title: 'Latest annual return (CR29)', impact: 'Medium', impactCls: 'pill', behaviour: 'We asked when the last annual return was filed instead.', out: 'Report', outCls: 'pill pill-outline', tile: 'gray', ic: 'ic-file' }
+];
+
+const tasks = [
+  { title: 'Upload signed BOF-1', from: 'Evidence outstanding · beneficial ownership', due: '30 Oct 2026' },
+  { title: 'Confirm Brian Otieno’s KRA PIN', from: 'People · CR12 A019876543K vs KRA certificate A019876534K', due: '30 Oct 2026' },
+  { title: 'Upload ID/passport for 1 person', from: 'People · Halima Abdi', due: '15 Nov 2026' },
+  { title: 'Bring annual returns up to date', from: 'Baseline · you answered “Not sure”', due: '15 Nov 2026' },
+  { title: 'Set up employment compliance', from: 'Baseline · PAYE, NSSF, SHIF and Housing Levy', due: '15 Nov 2026' }
+];
+
+const blockers = [];
+if (!declared) blockers.push({ text: 'Tick the declaration below.' });
+if (!sigOk) blockers.push({ text: 'Type your full legal name as a signature.' });
+const ok = blockers.length === 0;
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  fields,
+  gaps,
+  tasks,
+  ready: ok,
+  blocked: !ok,
+  blockers,
+  blockedTitle: blockers.length === 1 ? '1 thing left before you can activate' : blockers.length + ' things left before you can activate',
+  declCls: declared ? 'is-selected' : '',
+  declChecked: declared ? 'true' : 'false',
+  toggleDecl: () => this.setState({ declared: !declared }),
+  sig,
+  setSig: (e) => this.setState({ sig: e.target.value }),
+  sigFieldCls: sig.length > 0 && !sigOk ? 'is-invalid' : '',
+  sigInvalid: sig.length > 0 && !sigOk,
+  sigHelp: !(sig.length > 0 && !sigOk),
+  actCls: ok ? '' : 'is-disabled',
+  actDisabled: ok ? 'false' : 'true',
+  footerHint: ok ? 'Goes live as Compliance review due' : 'Sign the declaration to activate'
+};
+}
+}
+</script>
+</body>
+</html>

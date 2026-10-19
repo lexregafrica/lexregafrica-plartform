@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Existing entity type — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.how-step{display:flex;gap:12px;align-items:flex-start;padding:16px 18px}
+.how-step + .how-step{border-left:0.5px solid var(--sep-soft)}
+.type-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.choice[disabled]{opacity:0.5;cursor:not-allowed}
+.need-n{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;background:var(--brand-50);color:var(--tint-text);font-variant-numeric:tabular-nums}
+@container lx (max-width: 720px){.how{grid-template-columns:minmax(0,1fr)}.how-step + .how-step{border-left:0;border-top:0.5px solid var(--sep-soft)}.type-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Onboard an existing entity · Amani Logistics Limited</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-on" aria-current="step" href="ExType.dc.html"><span class="n">1</span>Entity type</a>
+      <span class="wz-step"><span class="n">2</span>Upload documents</span>
+      <span class="wz-step"><span class="n">3</span>Entity details</span>
+      <span class="wz-step"><span class="n">4</span>People &amp; roles</span>
+      <span class="wz-step"><span class="n">5</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">6</span>Compliance baseline</span>
+      <span class="wz-step"><span class="n">7</span>Review &amp; activate</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 1 of 7</span><span class="t-caption t-3 t-num">14%</span></div>
+        <div class="progress"><span style="width: 14%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 1 of 7 · Entity type</p>
+        <h1 class="t-large">What have you already registered?</h1>
+        <p class="t-body t-2 t-pretty">This tells us which registry documents to ask for. We’ll rebuild your profile from them — no retyping.</p>
+      </header>
+
+      <div class="card how rise" style="--d: 1">
+        <div class="how-step">
+          <span class="icon-tile"><span class="ic ic-cloud-upload" aria-hidden="true"></span></span>
+          <div class="stack gap-1"><p class="t-subhead t-strong">1 · Upload your pack</p><p class="t-footnote t-2">Start with the CR12 — then the certificate and any other filings.</p></div>
+        </div>
+        <div class="how-step">
+          <span class="icon-tile info"><span class="ic ic-scan" aria-hidden="true"></span></span>
+          <div class="stack gap-1"><p class="t-subhead t-strong">2 · We read every page</p><p class="t-footnote t-2">Every field, director and shareholder is pre-filled from your documents.</p></div>
+        </div>
+        <div class="how-step">
+          <span class="icon-tile good"><span class="ic ic-clipboard-check" aria-hidden="true"></span></span>
+          <div class="stack gap-1"><p class="t-subhead t-strong">3 · You check and confirm</p><p class="t-footnote t-2">Each value shows the document it came from. You only fix gaps.</p></div>
+        </div>
+      </div>
+
+      <section class="stack gap-3 rise" style="--d: 2" aria-labelledby="types-h">
+        <div class="row between">
+          <h2 id="types-h" class="t-title3">Entity type</h2>
+          <span class="t-footnote t-3">Choose one</span>
+        </div>
+        <div class="type-grid" role="radiogroup" aria-labelledby="types-h">
+          <sc-for list="{{types}}" as="t" hint-placeholder-count="7">
+            <button class="choice {{t.cls}}" type="button" role="radio" aria-checked="{{t.checked}}" disabled="{{t.disabled}}" onClick="{{t.pick}}">
+              <span class="mark" aria-hidden="true"></span>
+              <span class="stack gap-1 grow">
+                <span class="row gap-2 wrap"><span class="t-headline">{{t.label}}</span><sc-if value="{{t.soon}}" hint-placeholder-val="{{false}}"><span class="pill">Coming soon</span></sc-if></span>
+                <span class="t-footnote t-2">{{t.desc}}</span>
+              </span>
+              <span class="ic {{t.icon}} hide-compact" aria-hidden="true" style="color: var(--label-3); margin-top: 1px"></span>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+
+      <sc-if value="{{isCompany}}" hint-placeholder-val="{{true}}">
+        <div class="card card-pad stack gap-3 fade">
+          <div class="row between wrap gap-3">
+            <div class="stack gap-1">
+              <h2 class="t-headline" id="sub-h">Which kind of company?</h2>
+              <p class="t-footnote t-2">Public companies need extra secretary and governance records.</p>
+            </div>
+            <div class="seg" role="radiogroup" aria-labelledby="sub-h" style="--n:2; --i:{{subIndex}}; min-width: 220px">
+              <button class="{{privCls}}" type="button" role="radio" aria-checked="{{isPrivate}}" onClick="{{pickPrivate}}">Private</button>
+              <button class="{{pubCls}}" type="button" role="radio" aria-checked="{{isPublic}}" onClick="{{pickPublic}}">Public</button>
+            </div>
+          </div>
+          <div class="inset row gap-3">
+            <span class="ic ic-building t-3" aria-hidden="true"></span>
+            <div class="stack grow"><p class="t-subhead t-strong">{{subLabel}}</p><p class="t-footnote t-2">{{subDesc}}</p></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <div class="card card-pad stack gap-4 rise" style="--d: 3">
+        <div class="stack gap-1">
+          <h2 class="t-headline">Help us match your documents</h2>
+          <p class="t-footnote t-2">Optional. We use these to check every upload belongs to this {{noun}} — anything from another one is set aside, never merged.</p>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="label" for="ex-name">Registered name (if you know it)</label>
+            <input class="input" id="ex-name" type="text" autocomplete="off" value="{{name}}" onInput="{{setName}}" aria-describedby="ex-name-help">
+            <p class="help" id="ex-name-help">Exactly as it appears on the certificate.</p>
+          </div>
+          <div class="field {{regFieldCls}}">
+            <label class="label" for="ex-reg">Registration number</label>
+            <input class="input t-num" id="ex-reg" type="text" autocomplete="off" placeholder="{{regPlaceholder}}" value="{{reg}}" onInput="{{setReg}}" aria-invalid="{{regInvalidAria}}" aria-describedby="ex-reg-msg" style="text-transform: uppercase">
+            <sc-if value="{{regInvalid}}" hint-placeholder-val="{{false}}">
+              <p class="error" id="ex-reg-msg"><span class="ic ic-alert-circle ic-sm" aria-hidden="true" style="margin-top: 1px"></span>{{regError}}</p>
+            </sc-if>
+            <sc-if value="{{regOk}}" hint-placeholder-val="{{true}}">
+              <p class="help" id="ex-reg-msg">{{regHelp}}</p>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <div class="card rise" style="--d: 4">
+        <div class="card-head">
+          <div class="stack">
+            <h2>What you’ll need</h2>
+            <p class="t-footnote t-3">{{packName}}</p>
+          </div>
+          <span class="pill pill-brand t-num">{{needCount}} required</span>
+        </div>
+        <ol class="stack" style="padding: 0 20px 8px">
+          <sc-for list="{{needs}}" as="d" hint-placeholder-count="4">
+            <li class="row gap-3" style="padding: 10px 0; border-top: 0.5px solid var(--sep-soft)">
+              <span class="need-n" aria-hidden="true">{{d.n}}</span>
+              <div class="stack grow">
+                <p class="t-subhead" style="color: var(--label)">{{d.title}}</p>
+                <p class="t-footnote t-3">{{d.why}}</p>
+              </div>
+            </li>
+          </sc-for>
+        </ol>
+        <div class="card-foot" style="justify-content: flex-start">
+          <span class="ic ic-info-circle t-3" aria-hidden="true"></span>
+          <p class="t-footnote t-2 t-pretty">Plus <span class="t-num">{{recCount}}</span> recommended and <span class="t-num">{{optCount}}</span> optional documents. Missing something? Carry on — we note the gap and add a follow-up task rather than block you.</p>
+        </div>
+      </div>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="PathSelector.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">Next: upload your documents</span>
+        <a class="btn btn-primary" href="ExUpload.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const type = s.type ?? 'limited_company';
+const sub = s.sub ?? 'private';
+const TYPES = [
+  { id: 'limited_company', label: 'Limited company', desc: 'Separate legal entity, limited liability — the usual “Ltd”. Private or public.', icon: 'ic-building', noun: 'company', reg: 'PVT-XXXXXXXX', prefix: 'PVT-', kind: 'Private company' },
+  { id: 'sole_proprietorship', label: 'Sole proprietorship', desc: 'A registered business name with a single owner.', icon: 'ic-user', noun: 'business', reg: 'BN-XXXXXXXX', prefix: 'BN-', kind: 'Business name' },
+  { id: 'partnership', label: 'General partnership', desc: 'Two or more partners carrying on business together.', icon: 'ic-users', noun: 'partnership', reg: 'BN-XXXXXXXX', prefix: 'BN-', kind: 'Partnership' },
+  { id: 'llp', label: 'Limited liability partnership', desc: 'An LLP — a body corporate with partners and managers.', icon: 'ic-users-group', noun: 'LLP', reg: 'LLP-XXXXXXXX', prefix: 'LLP-', kind: 'LLP' },
+  { id: 'clg', label: 'Company limited by guarantee', desc: 'NGO or non-profit — members guarantee, no share capital.', icon: 'ic-heart-handshake', noun: 'company', reg: 'CLG-XXXXXXXX', prefix: 'CLG-', kind: 'Guarantee company' },
+  { id: 'society', label: 'Society', desc: 'Welfare, residents’, alumni or professional associations.', icon: 'ic-building-community', noun: 'society', reg: 'SOC/XXXXX' },
+  { id: 'trust', label: 'Trust', desc: 'Family and charitable trusts — their workflow is being built.', icon: 'ic-shield-lock', noun: 'trust', reg: '', soon: true }
+];
+const PACKS = {
+  limited_company: { name: 'Private company pack · 12 documents', needs: [
+    ['Official Search / CR12 (company status report)', 'Our anchor for current directors, shareholders and status.'],
+    ['Certificate of Incorporation', 'Registered name, number and incorporation date.'],
+    ['Statement of Nominal Capital', 'Share classes, number of shares and nominal value.'],
+    ['BOF-1 — Beneficial ownership filing', 'The natural persons who ultimately own or control the company.']
+  ], rec: 6, opt: 2 },
+  sole_proprietorship: { name: 'Business name pack · 8 documents', needs: [
+    ['Certificate of Registration (Business Name)', 'Registered name, number and registration date.'],
+    ['Official Search — Business Name (CR13)', 'The current registry snapshot. Not the company CR12.']
+  ], rec: 2, opt: 4 },
+  partnership: { name: 'General partnership pack · 10 documents', needs: [
+    ['Certificate of Registration', 'Partnership name, number and registration date.'],
+    ['Current Official Search / registry extract', 'The partners on the register today.'],
+    ['Partnership Agreement / Deed', 'Capital, profit share, authority, admission and retirement.']
+  ], rec: 3, opt: 4 },
+  llp: { name: 'LLP pack · 11 documents', needs: [
+    ['Certificate of Registration', 'LLP name, number and registration date.'],
+    ['Current Official Search / registry extract', 'Current partners and managers.'],
+    ['LLP Agreement', 'How the LLP is run and who may bind it.'],
+    ['Beneficial ownership filing / register', 'Who ultimately owns or controls the LLP.']
+  ], rec: 4, opt: 3 },
+  clg: { name: 'Company limited by guarantee pack · 14 documents', needs: [
+    ['Certificate of Incorporation', 'Registered name, number and incorporation date.'],
+    ['Official Search / CR12 (company status report)', 'Current directors and status.'],
+    ['Articles of Association (and amendments)', 'Objects, membership and governance rules.'],
+    ['Member / Guarantor Register', 'Members and the amount each guarantees.'],
+    ['Latest annual return (CR29) with attachments', 'Your compliance baseline.'],
+    ['Beneficial ownership register / filings', 'Who controls the company — no shareholding percentages.']
+  ], rec: 5, opt: 3 },
+  society: { name: 'Society pack · 13 documents', needs: [
+    ['Certificate of Registration (Form C) or Exemption (Form D)', 'The society’s identity and status.'],
+    ['Constitution / Rules (and amendments)', 'Objects, officers, meetings and members.'],
+    ['Latest annual return (Form I)', 'Your compliance baseline — due 31 March each year.'],
+    ['AGM / election minutes', 'Who the lawful officers are today.']
+  ], rec: 6, opt: 3 },
+  trust: { name: '', needs: [], rec: 0, opt: 0 }
+};
+const cur = TYPES.find((t) => t.id === type) || TYPES[0];
+const pack = PACKS[type] || PACKS.limited_company;
+let needs = pack.needs.slice();
+let packName = pack.name;
+if (type === 'limited_company' && sub === 'public') {
+  needs = needs.concat([['Company secretary appointment & particulars', 'CR10–CR12 secretary forms — required for a public company.']]);
+  packName = 'Public limited company pack · 13 documents';
+}
+const regVal = s.reg ?? 'PVT-2LU7Q9XB';
+const prefix = (type === 'limited_company' && sub === 'public') ? '' : (cur.prefix || '');
+const regInvalid = !!prefix && regVal.trim() !== '' && regVal.trim().indexOf(prefix) !== 0;
+const SUBS = {
+  private: { label: 'Private company limited by shares', desc: 'The usual “Ltd” company — most Kenyan businesses.' },
+  public: { label: 'Public limited company', desc: 'A “PLC” — extra secretary and governance records are requested.' }
+};
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  types: TYPES.map((t) => ({
+    ...t,
+    cls: t.id === type ? 'is-selected' : '',
+    checked: t.id === type ? 'true' : 'false',
+    disabled: !!t.soon,
+    soon: !!t.soon,
+    pick: () => { if (!t.soon) this.setState({ type: t.id }); }
+  })),
+  isCompany: type === 'limited_company',
+  subIndex: sub === 'public' ? 1 : 0,
+  privCls: sub === 'private' ? 'is-on' : '',
+  pubCls: sub === 'public' ? 'is-on' : '',
+  isPrivate: sub === 'private' ? 'true' : 'false',
+  isPublic: sub === 'public' ? 'true' : 'false',
+  pickPrivate: () => this.setState({ sub: 'private' }),
+  pickPublic: () => this.setState({ sub: 'public' }),
+  subLabel: SUBS[sub].label,
+  subDesc: SUBS[sub].desc,
+  noun: cur.noun,
+  regPlaceholder: cur.reg,
+  name: s.name ?? 'Amani Logistics Limited',
+  reg: regVal,
+  regInvalid: regInvalid,
+  regOk: !regInvalid,
+  regInvalidAria: regInvalid ? 'true' : 'false',
+  regFieldCls: regInvalid ? 'is-invalid' : '',
+  regError: regInvalid ? cur.kind + ' numbers start with ' + prefix + ' — check the number on your certificate.' : '',
+  regHelp: 'On your certificate. We check it against every upload.',
+  setName: (e) => this.setState({ name: e.target.value }),
+  setReg: (e) => this.setState({ reg: e.target.value.toUpperCase() }),
+  packName: packName,
+  needCount: needs.length,
+  needs: needs.map((n, i) => ({ n: i + 1, title: n[0], why: n[1] })),
+  recCount: pack.rec,
+  optCount: pack.opt
+};
+}
+}
+</script>
+</body>
+</html>

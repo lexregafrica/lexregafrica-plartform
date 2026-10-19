@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Name reservation — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.nm{display:flex;flex-direction:column;gap:10px;padding:12px 12px 14px;border-radius:var(--r-card);background:var(--surface-3);box-shadow:inset 0 0 0 0.5px var(--sep-soft)}
+.nm-top{display:flex;align-items:center;gap:8px;min-width:0}
+.nm-rank{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;background:var(--tint);color:#fff;font-variant-numeric:tabular-nums}
+.lx-dark .nm-rank{color:#1C0008}
+.chk{display:flex;align-items:flex-start;gap:6px;font-size:12.5px;line-height:17px}
+.chk .ic{margin-top:1px}
+.chk.pass{color:var(--good)}
+.chk.warn{color:var(--warn)}
+.chk.idle{color:var(--label-3)}
+@container lx (max-width: 720px){.wz-main .btn-sm{height:44px}.wz-main .btn-icon.btn-sm{width:44px}}
+.next-n{flex:none;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--fill-3);color:var(--label-2);font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <a class="wz-step is-on" aria-current="step" href="NewName.dc.html"><span class="n">3</span>Name reservation</a>
+      <span class="wz-step"><span class="n">4</span>Company basics</span>
+      <span class="wz-step"><span class="n">5</span>Share structure</span>
+      <span class="wz-step"><span class="n">6</span>Shareholders &amp; members</span>
+      <span class="wz-step"><span class="n">7</span>Directors &amp; partners</span>
+      <span class="wz-step"><span class="n">8</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step"><span class="n">10</span>Constitutional documents</span>
+      <span class="wz-step"><span class="n">11</span>Document vault</span>
+      <span class="wz-step"><span class="n">12</span>Employee information</span>
+      <span class="wz-step"><span class="n">13</span>Declaration &amp; consent</span>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 3 of 14</span><span class="t-caption t-3">21%</span></div>
+        <div class="progress"><span style="width: 21%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 3 of 14</p>
+        <h1 class="t-large">Proposed business names</h1>
+        <p class="t-body t-2 t-pretty">Give BRS your preferred names in order. You reserve the winner on eCitizen and upload the approval back here.</p>
+      </header>
+      <section class="card rise" style="--d: 1" aria-labelledby="nm-h">
+        <div class="card-head"><h2 id="nm-h">Proposed names</h2><span class="pill t-num {{countPill}}">{{countText}}</span></div>
+        <div class="stack gap-3" style="padding: 0 20px 20px">
+          <p class="t-footnote t-2 t-pretty">List names in order of preference — BRS works down your list if a name isn&#39;t available. Enter at least 3; you can add up to 6.</p>
+          <ol class="stack gap-3">
+            <sc-for list="{{rows}}" as="n" hint-placeholder-count="3">
+              <li class="nm">
+                <div class="nm-top">
+                  <span class="nm-rank" aria-hidden="true">{{n.rank}}</span>
+                  <label class="label grow truncate" for="{{n.id}}">{{n.label}}</label>
+                  <span class="pill hide-compact {{n.pillCls}}">{{n.pill}}</span>
+                  <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="{{n.upLabel}}" disabled="{{n.upDisabled}}" onClick="{{n.up}}"><span class="ic ic-chevron-up" aria-hidden="true"></span></button>
+                  <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="{{n.downLabel}}" disabled="{{n.downDisabled}}" onClick="{{n.down}}"><span class="ic ic-chevron-down" aria-hidden="true"></span></button>
+                  <button class="btn btn-destructive-plain btn-icon btn-sm" type="button" aria-label="{{n.removeLabel}}" disabled="{{n.removeDisabled}}" onClick="{{n.remove}}"><span class="ic ic-trash" aria-hidden="true"></span></button>
+                </div>
+                <input class="input" id="{{n.id}}" type="text" autocomplete="off" placeholder="{{n.ph}}" value="{{n.val}}" onInput="{{n.set}}" aria-describedby="{{n.checksId}}">
+                <ul class="stack gap-1" id="{{n.checksId}}" aria-live="polite">
+                  <li class="chk {{n.c1.cls}}"><span class="ic {{n.c1.ic}} ic-sm" aria-hidden="true"></span><span>{{n.c1.text}}</span></li>
+                  <sc-if value="{{n.hasC2}}" hint-placeholder-val="{{true}}"><li class="chk {{n.c2.cls}}"><span class="ic {{n.c2.ic}} ic-sm" aria-hidden="true"></span><span>{{n.c2.text}}</span></li></sc-if>
+                  <sc-if value="{{n.hasC3}}" hint-placeholder-val="{{false}}"><li class="chk {{n.c3.cls}}"><span class="ic {{n.c3.ic}} ic-sm" aria-hidden="true"></span><span>{{n.c3.text}}</span></li></sc-if>
+                </ul>
+              </li>
+            </sc-for>
+          </ol>
+          <button class="btn btn-secondary btn-block" type="button" onClick="{{addName}}" disabled="{{addDisabled}}"><span class="ic ic-plus" aria-hidden="true"></span>{{addLabel}}</button>
+          <p class="t-caption t-3 t-pretty">Quick format checks only. They catch common reasons BRS rejects a name; they can&#39;t tell you whether it&#39;s taken.</p>
+        </div>
+      </section>
+      <div class="note note-info rise" style="--d: 2" role="note"><span class="ic ic-info-circle" aria-hidden="true"></span><p><strong>BRS checks availability and reserves the name. LexReg can&#39;t check availability live.</strong> We store your options in this order for the filing.</p></div>
+      <section class="card rise" style="--d: 3" aria-labelledby="nx-h">
+        <div class="card-head"><h2 id="nx-h">What happens next</h2><span class="t-footnote t-3 hide-compact">After you submit</span></div>
+        <ol class="stack gap-4" style="padding: 4px 20px 20px">
+          <li class="row gap-3" style="align-items: flex-start"><span class="next-n" aria-hidden="true">1</span><div class="stack gap-1 grow"><p class="t-headline">Reserve the name on eCitizen</p><p class="t-footnote t-2 t-pretty">Search and reserve your first choice on the BRS eCitizen portal. We&#39;ll give you the exact options to paste in.</p></div></li>
+          <li class="row gap-3" style="align-items: flex-start"><span class="next-n" aria-hidden="true">2</span><div class="stack gap-1 grow"><p class="t-headline">BRS approves a name</p><p class="t-footnote t-2 t-pretty">If your first choice isn&#39;t available, move to the next one on your list — that&#39;s why the order matters.</p></div></li>
+          <li class="row gap-3" style="align-items: flex-start"><span class="next-n" aria-hidden="true">3</span><div class="stack gap-2 grow"><p class="t-headline">Upload the reservation here</p><p class="t-footnote t-2 t-pretty">We attach it to your registration pack. Already reserved one? Add it now.</p>
+            <sc-if value="{{noRes}}" hint-placeholder-val="{{true}}">
+            <button class="dropzone" type="button" onClick="{{uploadRes}}" style="padding: 18px 16px"><span class="ic ic-cloud-upload ic-lg" aria-hidden="true"></span><span class="t-subhead" style="color: var(--label)">Upload name reservation</span><span class="t-caption t-3">PDF or image from eCitizen · optional at this step</span></button>
+            </sc-if>
+            <sc-if value="{{resReading}}" hint-placeholder-val="{{false}}">
+            <div class="file-row scanline" role="status"><span class="icon-tile info" aria-hidden="true"><span class="ic ic-scan"></span></span><span class="name">BRS_name_reservation.pdf</span><span class="meta">Uploading…</span></div>
+            </sc-if>
+            <sc-if value="{{resDone}}" hint-placeholder-val="{{false}}">
+            <div class="file-row pop"><span class="icon-tile good" aria-hidden="true"><span class="ic ic-file-certificate"></span></span><span class="name">BRS_name_reservation.pdf</span><span class="meta hide-compact">Uploaded · 182 KB</span><button class="btn btn-plain btn-sm" type="button" onClick="{{clearRes}}">Remove</button></div>
+            </sc-if>
+          </div></li>
+        </ol>
+      </section>
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewApplicant.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{foot}}</span>
+        <a class="btn btn-primary {{contCls}}" aria-disabled="{{contAria}}" href="NewShares.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const names = s.names ?? [
+  { id: 'n1', val: 'Jua Kali Foods Limited' },
+  { id: 'n2', val: 'Jua Kali Foods Kenya Ltd' },
+  { id: 'n3', val: 'JuaKali Fresh Foods' }
+];
+const res = s.res ?? 'none';
+const put = (arr) => this.setState({ names: arr });
+const swap = (i, j) => { const a = names.slice(); const t = a[i]; a[i] = a[j]; a[j] = t; put(a); };
+const WORDS = ['kenya', 'kenyan', 'national', 'republic', 'government', 'county', 'bank', 'insurance', 'university', 'chartered', 'cooperative', 'commission', 'authority', 'chamber'];
+const ORD = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
+const ok = (text) => ({ cls: 'pass', ic: 'ic-circle-check', text });
+const warn = (text) => ({ cls: 'warn', ic: 'ic-alert-triangle', text });
+const idle = (text) => ({ cls: 'idle', ic: 'ic-circle-dashed', text });
+const rows = names.map((n, i) => {
+  const t = n.val.trim();
+  const low = t.toLowerCase();
+  const suffix = /\b(limited|ltd\.?)$/i.test(t);
+  const hit = WORDS.find((w) => new RegExp('\\b' + w + '\\b', 'i').test(t));
+  const dup = !!low && names.some((o, j) => j !== i && o.val.trim().toLowerCase() === low);
+  let c1, c2 = null, c3 = null;
+  if (!t) {
+    c1 = idle('Type a name to run the checks');
+  } else {
+    c1 = suffix ? ok('Ends in “Limited” or “Ltd”') : warn('Add “Limited” or “Ltd” at the end — a private company name must say it’s limited');
+    c2 = hit ? warn('“' + hit.charAt(0).toUpperCase() + hit.slice(1) + '” usually needs consent before BRS will reserve it') : ok('No words that need consent');
+    c3 = dup ? warn('Same as another option — BRS needs distinct alternatives') : null;
+  }
+  const warns = [c1, c2, c3].filter((c) => c && c.cls === 'warn').length;
+  const last = names.length - 1;
+  return {
+    id: 'nm-' + n.id,
+    checksId: 'nm-' + n.id + '-checks',
+    rank: i + 1,
+    label: ORD[i] + ' choice' + (i < 3 ? '' : ' (optional)'),
+    ph: i < 3 ? 'e.g. Jua Kali Foods Limited' : 'Optional',
+    val: n.val,
+    set: (e) => put(names.map((o) => (o.id === n.id ? { ...o, val: e.target.value } : o))),
+    pill: !t ? 'Empty' : warns ? warns + (warns > 1 ? ' warnings' : ' warning') : 'Looks good',
+    pillCls: !t ? '' : warns ? 'pill-warn' : 'pill-good',
+    c1, c2: c2 || idle(''), c3: c3 || idle(''),
+    hasC2: !!c2, hasC3: !!c3,
+    upDisabled: i === 0, downDisabled: i === last, removeDisabled: names.length <= 3,
+    upLabel: 'Move ' + (t || 'name ' + (i + 1)) + ' up',
+    downLabel: 'Move ' + (t || 'name ' + (i + 1)) + ' down',
+    removeLabel: 'Remove ' + (t || 'name ' + (i + 1)),
+    up: () => { if (i > 0) swap(i, i - 1); },
+    down: () => { if (i < last) swap(i, i + 1); },
+    remove: () => { if (names.length > 3) put(names.filter((o) => o.id !== n.id)); }
+  };
+});
+const filled = names.filter((n) => n.val.trim()).length;
+const warnRows = rows.filter((r) => r.pillCls === 'pill-warn').length;
+const ready = filled >= 3;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  rows,
+  countText: ready ? filled + ' of 6 added' : filled + ' of 3 required',
+  countPill: ready ? 'pill-good' : '',
+  addDisabled: names.length >= 6,
+  addLabel: names.length >= 6 ? 'Maximum of 6 names' : 'Add another name',
+  addName: () => { if (names.length < 6) put([...names, { id: 'n' + Date.now(), val: '' }]); },
+  noRes: res === 'none',
+  resReading: res === 'reading',
+  resDone: res === 'done',
+  uploadRes: () => { this.setState({ res: 'reading' }); setTimeout(() => this.setState({ res: 'done' }), 1400); },
+  clearRes: () => this.setState({ res: 'none' }),
+  foot: !ready ? 'Enter at least 3 proposed business names' : warnRows ? warnRows + (warnRows > 1 ? ' names have' : ' name has') + ' warnings — you can still continue' : 'All names pass the format checks',
+  contCls: ready ? '' : 'is-disabled',
+  contAria: ready ? 'false' : 'true'
+};
+}
+}
+</script>
+</body>
+</html>

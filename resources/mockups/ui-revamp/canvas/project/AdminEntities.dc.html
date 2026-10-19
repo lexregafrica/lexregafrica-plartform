@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>All entities — LexReg Admin</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.dt{min-width:1060px;font-size:13.5px}
+.dt-r{position:relative;display:grid;grid-template-columns:44px minmax(200px,2.2fr) minmax(130px,1.3fr) minmax(130px,1.2fr) 112px 128px 80px minmax(140px,1.3fr) 96px;align-items:center;border-bottom:var(--hairline-soft);transition:background-color 120ms}
+.dt-r > *{padding:12px 12px;min-width:0}
+.dt-r > :first-child{padding-left:16px;padding-right:0}
+.dt-h{font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--label-3)}
+.dt-h > *{padding-top:10px;padding-bottom:10px}
+.dt-b:hover{background:var(--surface-3)}
+.dt-b.is-selected{background:var(--brand-50)}
+.dt-b:last-child{border-bottom:0}
+.row-link{color:var(--label);font-weight:600}
+.row-link::after{content:"";position:absolute;inset:0}
+.dt-check{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin:-4px;border-radius:8px;cursor:pointer}
+.dt-check input{width:17px;height:17px;margin:0;accent-color:var(--tint);cursor:pointer}
+.mini{width:64px;flex:none}
+.bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px 10px 16px;border-bottom:var(--hairline-soft);background:var(--brand-50);animation:fade-in var(--dur-snappy) var(--ease-out) both}
+.toast-wrap{position:absolute;top:18px;left:0;right:0;z-index:30;display:flex;justify-content:center;pointer-events:none;padding:0 16px}
+@container lx (max-width: 720px){
+  .dt-check{width:44px;height:44px;margin:-12px -8px}
+  .toast-wrap{top:72px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px; position: relative; overflow: clip">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Admin navigation">
+    <a class="sb-brand" href="Admin.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Admin</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item is-on" href="AdminEntities.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">16</span></a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Service requests<span class="badge">3</span></a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-gavel" aria-hidden="true"></span>Lawyers</a>
+    <div class="sb-group">Platform</div>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-users" aria-hidden="true"></span>Users</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-cash" aria-hidden="true"></span>Payments</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-history" aria-hidden="true"></span>Audit log</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-book-2" aria-hidden="true"></span>Insights CMS</a>
+    <div class="sb-group">Switch</div>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Owner view</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm avatar-ink">CH</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Charles</p><p class="t-caption t-3 truncate">Super admin</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Admin.dc.html">Admin</a><span aria-hidden="true">/</span><span class="here">Entities</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Admin.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Admin.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Entities</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm avatar-ink">CH</span></div>
+    </div>
+    <main class="content">
+
+      <header class="page-head rise">
+        <div class="stack gap-1">
+          <p class="t-eyebrow">Platform admin</p>
+          <h1 class="t-title1">All entities</h1>
+          <p class="t-callout t-2 t-pretty">16 entities across 13 organisations. Open one to review evidence or assign a lawyer.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary" type="button"><span class="ic ic-download" aria-hidden="true"></span>Export CSV</button>
+        </div>
+      </header>
+
+      <section class="card rise" style="--d: 1; overflow: hidden" aria-label="Entities">
+        <div class="stack gap-3" style="padding: 16px">
+          <div class="row wrap gap-3">
+            <div class="input-wrap grow" style="min-width: 220px">
+              <span class="ic ic-search" aria-hidden="true"></span>
+              <label class="sr-only" for="ae-q">Search entities</label>
+              <input class="input" id="ae-q" type="search" placeholder="Search by name, registration no. or owner" value="{{query}}" onInput="{{setQuery}}">
+            </div>
+            <div class="seg" role="group" aria-label="Status" style="--n:4; --i:{{statusIndex}}">
+              <sc-for list="{{statusOpts}}" as="o" hint-placeholder-count="4">
+                <button class="{{o.cls}}" type="button" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="row wrap gap-2" style="justify-content: space-between">
+            <div class="row wrap gap-2" role="group" aria-label="Entity type">
+              <sc-for list="{{typeOpts}}" as="t" hint-placeholder-count="6">
+                <button class="btn btn-sm btn-pill {{t.cls}}" type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}">{{t.label}}</button>
+              </sc-for>
+            </div>
+            <div class="seg" role="group" aria-label="Lawyer" style="--n:3; --i:{{lawyerIndex}}">
+              <sc-for list="{{lawyerOpts}}" as="o" hint-placeholder-count="3">
+                <button class="{{o.cls}}" type="button" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{hasSel}}" hint-placeholder-val="{{false}}">
+          <div class="bulk" role="region" aria-label="Bulk actions">
+            <span class="t-subhead t-strong t-num">{{selLabel}}</span>
+            <span class="grow"></span>
+            <button class="btn btn-gray btn-sm" type="button" onClick="{{clearSel}}">Clear</button>
+            <button class="btn btn-primary btn-sm" type="button" onClick="{{remind}}"><span class="ic ic-mail" aria-hidden="true"></span>Email owners a reminder</button>
+          </div>
+        </sc-if>
+
+        <div class="table-wrap" style="border-top: var(--hairline-soft)">
+          <div class="dt" role="table" aria-label="All entities" aria-rowcount="{{rowCount}}">
+            <div class="dt-r dt-h" role="row">
+              <span role="columnheader"><label class="dt-check"><input type="checkbox" aria-label="Select all on this page" checked="{{allChecked}}" onChange="{{toggleAll}}"></label></span>
+              <span role="columnheader">Entity</span>
+              <span role="columnheader">Organisation</span>
+              <span role="columnheader">Type</span>
+              <span role="columnheader">Status</span>
+              <span role="columnheader">Onboarding</span>
+              <span role="columnheader">Health</span>
+              <span role="columnheader">Lawyer</span>
+              <span role="columnheader">Created</span>
+            </div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <div class="dt-r dt-b {{r.selCls}}" role="row">
+                <span role="cell"><label class="dt-check"><input type="checkbox" aria-label="{{r.checkLabel}}" checked="{{r.checked}}" onChange="{{r.toggle}}"></label></span>
+                <span role="cell" class="stack"><a class="row-link truncate" href="AdminEntity.dc.html">{{r.name}}</a><span class="t-footnote t-3 t-num truncate">{{r.reg}}</span></span>
+                <span role="cell" class="stack"><span class="truncate">{{r.org}}</span><span class="t-footnote t-3 truncate">{{r.orgSub}}</span></span>
+                <span role="cell" class="t-2 truncate">{{r.type}}</span>
+                <span role="cell"><span class="pill {{r.pillCls}}"><span class="dot" aria-hidden="true"></span>{{r.status}}</span></span>
+                <span role="cell" class="row gap-2"><span class="progress mini {{r.progCls}}" aria-hidden="true"><span style="width: {{r.onb}}"></span></span><span class="t-footnote t-2 t-num">{{r.onb}}</span></span>
+                <span role="cell" class="t-num {{r.healthCls}} t-strong">{{r.health}}</span>
+                <span role="cell" class="row gap-2">
+                  <sc-if value="{{r.hasLawyer}}" hint-placeholder-val="{{true}}"><span class="avatar avatar-sm" aria-hidden="true">{{r.lawyerInit}}</span><span class="truncate">{{r.lawyer}}</span></sc-if>
+                  <sc-if value="{{r.noLawyer}}" hint-placeholder-val="{{false}}"><span class="t-3">Unassigned</span></sc-if>
+                </span>
+                <span role="cell" class="t-footnote t-3 t-num">{{r.created}}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+              <div class="stack gap-3" role="row" style="align-items: center; padding: 48px 16px; text-align: center">
+                <span class="icon-tile icon-tile-lg gray" aria-hidden="true"><span class="ic ic-search"></span></span>
+                <p class="t-headline" role="cell">No entities match these filters</p>
+                <button class="btn btn-gray btn-sm" type="button" onClick="{{resetFilters}}">Clear filters</button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div class="card-foot" style="flex-wrap: wrap">
+          <span class="t-footnote t-3 t-num">{{rangeLabel}}</span>
+          <div class="row gap-2">
+            <button class="btn btn-gray btn-sm {{prevCls}}" type="button" aria-label="Previous page" onClick="{{prevPage}}"><span class="ic ic-chevron-left" aria-hidden="true"></span>Previous</button>
+            <span class="t-footnote t-2 t-num" aria-live="polite">{{pageLabel}}</span>
+            <button class="btn btn-gray btn-sm {{nextCls}}" type="button" aria-label="Next page" onClick="{{nextPage}}">Next<span class="ic ic-chevron-right" aria-hidden="true"></span></button>
+          </div>
+        </div>
+      </section>
+
+      <p class="t-footnote t-3 t-pretty">Entities are soft-deleted only and kept for 30 days under the Data Protection Act 2019. Every change here is written to the audit log.</p>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab is-on" href="AdminEntities.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Requests</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-gavel" aria-hidden="true"></span>Lawyers</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-dots" aria-hidden="true"></span>More</a>
+    </nav>
+  </div>
+</div>
+<sc-if value="{{showToast}}" hint-placeholder-val="{{false}}">
+  <div class="toast-wrap"><span class="toast" role="status"><span class="ic ic-circle-check" aria-hidden="true" style="color: var(--sys-green)"></span>{{toastText}}</span></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const query = s.query ?? '';
+const status = s.status ?? 'all';
+const type = s.type ?? 'all';
+const lawyerF = s.lawyerF ?? 'any';
+const page = s.page ?? 1;
+const sel = s.sel ?? {};
+const toast = s.toast ?? '';
+const PER = 8;
+
+const ALL = [
+  { id: 'mwangaza', name: 'Mwangaza Solar Ltd', reg: 'PVT-7RD4K2PQ', org: 'Mwangaza Solar', orgSub: 'Daniel Kiprop', type: 'Private limited company', tk: 'plc', st: 'onboarding', onb: 35, health: null, lawyer: '', created: '15 Oct 2026' },
+  { id: 'nyota', name: 'Nyota Dental Clinic', reg: 'BN-3QW8Z1TT', org: 'Dr. Faith Wekesa', orgSub: '1 entity', type: 'Business name', tk: 'bn', st: 'active', onb: 100, health: 91, lawyer: '', created: '12 Oct 2026' },
+  { id: 'jua', name: 'Jua Kali Foods Ltd', reg: 'Not yet registered', org: 'Wanjiku Mwangi', orgSub: '4 entities', type: 'Private limited company', tk: 'plc', st: 'draft', onb: 43, health: null, lawyer: '', created: '2 Oct 2026' },
+  { id: 'pwani', name: 'Pwani Fresh Exports Limited', reg: 'PVT-5MX9B3RA', org: 'Pwani Fresh Exports', orgSub: 'Amina Hassan', type: 'Private limited company', tk: 'plc', st: 'onboarding', onb: 20, health: null, lawyer: '', created: '28 Sep 2026' },
+  { id: 'tumaini', name: 'Tumaini Welfare Society', reg: 'SOC/48213', org: 'Wanjiku Mwangi', orgSub: '4 entities', type: 'Society', tk: 'soc', st: 'onboarding', onb: 60, health: null, lawyer: '', created: '21 Sep 2026' },
+  { id: 'kilele', name: 'Kilele Partners', reg: 'BN-8XK2Q4LM', org: 'Wanjiku Mwangi', orgSub: '4 entities', type: 'General partnership', tk: 'pt', st: 'active', onb: 100, health: 74, lawyer: '', created: '9 Sep 2026' },
+  { id: 'amani', name: 'Amani Logistics Limited', reg: 'PVT-2LU7Q9XB', org: 'Wanjiku Mwangi', orgSub: '4 entities', type: 'Private limited company', tk: 'plc', st: 'active', onb: 100, health: 82, lawyer: 'Adv. Achieng Odhiambo', li: 'AO', created: '2 Sep 2026' },
+  { id: 'rafiki', name: 'Rafiki Community Health Foundation', reg: 'CLG-4HT6N8WE', org: 'Rafiki Health', orgSub: 'Mercy Njeri', type: 'Company limited by guarantee', tk: 'clg', st: 'active', onb: 100, health: 68, lawyer: 'Adv. Kevin Mutua', li: 'KM', created: '19 Aug 2026' },
+  { id: 'baraka', name: 'Baraka Agrovet Ltd', reg: 'PVT-9LP2C6VD', org: 'Baraka Agrovet', orgSub: 'Samuel Rotich', type: 'Private limited company', tk: 'plc', st: 'active', onb: 100, health: 73, lawyer: '', created: '11 Aug 2026' },
+  { id: 'simba', name: 'Simba Courier Services', reg: 'BN-6TR1X9QE', org: 'Joseph Kamau', orgSub: '1 entity', type: 'Business name', tk: 'bn', st: 'onboarding', onb: 75, health: null, lawyer: '', created: '30 Jul 2026' },
+  { id: 'kahawa', name: 'Kahawa Gardens Residents Association', reg: 'SOC/47120', org: 'Kahawa Gardens RA', orgSub: 'Ruth Chebet', type: 'Society', tk: 'soc', st: 'active', onb: 100, health: 59, lawyer: '', created: '22 Jul 2026' },
+  { id: 'lake', name: 'Lake Basin Fisheries Limited', reg: 'PVT-3KX8M4NB', org: 'Lake Basin Fisheries', orgSub: 'George Owino', type: 'Private limited company', tk: 'plc', st: 'active', onb: 100, health: 77, lawyer: 'Adv. Kevin Mutua', li: 'KM', created: '8 Jul 2026' },
+  { id: 'spice', name: 'Mombasa Spice Traders Limited', reg: 'PVT-8QZ5R2LC', org: 'Mombasa Spice Traders', orgSub: 'Fatma Said', type: 'Private limited company', tk: 'plc', st: 'active', onb: 100, health: 93, lawyer: '', created: '24 Jun 2026' },
+  { id: 'ngong', name: 'Ngong Hills Partners', reg: 'BN-2VM7K5HD', org: 'Ngong Hills Partners', orgSub: 'Paul Kimani', type: 'General partnership', tk: 'pt', st: 'active', onb: 100, health: 85, lawyer: '', created: '16 Jun 2026' },
+  { id: 'upendo', name: 'Upendo Tailoring Ltd', reg: 'PVT-6WJ3T8YF', org: 'Upendo Tailoring', orgSub: 'Esther Wambui', type: 'Private limited company', tk: 'plc', st: 'active', onb: 100, health: 71, lawyer: '', created: '3 Jun 2026' },
+  { id: 'tausi', name: 'Tausi Interiors Ltd', reg: 'PVT-1BN4Q7XS', org: 'Tausi Interiors', orgSub: 'Lilian Achola', type: 'Private limited company', tk: 'plc', st: 'active', onb: 100, health: 80, lawyer: '', created: '20 May 2026' }
+];
+
+const STATUS = [
+  { id: 'all', label: 'All' },
+  { id: 'active', label: 'Active' },
+  { id: 'onboarding', label: 'Onboarding' },
+  { id: 'draft', label: 'Draft' }
+];
+const TYPES = [
+  { id: 'all', label: 'All types' },
+  { id: 'plc', label: 'Private limited' },
+  { id: 'pt', label: 'Partnership' },
+  { id: 'soc', label: 'Society' },
+  { id: 'bn', label: 'Business name' },
+  { id: 'clg', label: 'Limited by guarantee' }
+];
+const LAWYER = [
+  { id: 'any', label: 'Any lawyer' },
+  { id: 'yes', label: 'Assigned' },
+  { id: 'no', label: 'Unassigned' }
+];
+
+const q = query.trim().toLowerCase();
+const filtered = ALL.filter((e) => {
+  if (status !== 'all' && e.st !== status) return false;
+  if (type !== 'all' && e.tk !== type) return false;
+  if (lawyerF === 'yes' && !e.lawyer) return false;
+  if (lawyerF === 'no' && e.lawyer) return false;
+  if (q && (e.name + ' ' + e.reg + ' ' + e.org + ' ' + e.orgSub).toLowerCase().indexOf(q) === -1) return false;
+  return true;
+});
+const pages = Math.max(1, Math.ceil(filtered.length / PER));
+const pg = Math.min(page, pages);
+const start = (pg - 1) * PER;
+const pageRows = filtered.slice(start, start + PER);
+
+const ST_LABEL = { active: 'Active', onboarding: 'Onboarding', draft: 'Draft' };
+const ST_PILL = { active: 'pill-good', onboarding: 'pill-warn', draft: '' };
+const toggleId = (id) => {
+  const next = Object.assign({}, sel);
+  if (next[id]) delete next[id]; else next[id] = true;
+  this.setState({ sel: next });
+};
+const rows = pageRows.map((e) => {
+  const checked = !!sel[e.id];
+  return {
+    name: e.name,
+    reg: e.reg,
+    org: e.org,
+    orgSub: e.orgSub,
+    type: e.type,
+    status: ST_LABEL[e.st],
+    pillCls: ST_PILL[e.st],
+    onb: e.onb + '%',
+    progCls: e.onb === 100 ? 'good' : (e.st === 'draft' ? '' : 'warn'),
+    health: e.health == null ? '—' : e.health + '%',
+    healthCls: e.health == null ? 't-3' : (e.health >= 80 ? 't-good' : (e.health >= 65 ? 't-2' : 't-warn')),
+    hasLawyer: !!e.lawyer,
+    noLawyer: !e.lawyer,
+    lawyer: e.lawyer,
+    lawyerInit: e.li || '',
+    created: e.created,
+    checked: checked,
+    selCls: checked ? 'is-selected' : '',
+    checkLabel: 'Select ' + e.name,
+    toggle: () => toggleId(e.id)
+  };
+});
+
+const allChecked = pageRows.length > 0 && pageRows.every((e) => !!sel[e.id]);
+const toggleAll = () => {
+  const next = Object.assign({}, sel);
+  pageRows.forEach((e) => { if (allChecked) delete next[e.id]; else next[e.id] = true; });
+  this.setState({ sel: next });
+};
+const selCount = Object.keys(sel).length;
+
+const mk = (opts, cur, key, onCls, offCls) => opts.map((o) => ({
+  label: o.label,
+  cls: o.id === cur ? onCls : offCls,
+  pressed: o.id === cur ? 'true' : 'false',
+  pick: () => this.setState({ [key]: o.id, page: 1 })
+}));
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  query: query,
+  setQuery: (ev) => this.setState({ query: ev.target.value, page: 1 }),
+  statusOpts: mk(STATUS, status, 'status', 'is-on', ''),
+  statusIndex: Math.max(0, STATUS.findIndex((o) => o.id === status)),
+  typeOpts: mk(TYPES, type, 'type', 'btn-tinted', 'btn-gray'),
+  lawyerOpts: mk(LAWYER, lawyerF, 'lawyerF', 'is-on', ''),
+  lawyerIndex: Math.max(0, LAWYER.findIndex((o) => o.id === lawyerF)),
+  rows: rows,
+  rowCount: filtered.length + 1,
+  isEmpty: filtered.length === 0,
+  resetFilters: () => this.setState({ query: '', status: 'all', type: 'all', lawyerF: 'any', page: 1 }),
+  allChecked: allChecked,
+  toggleAll: toggleAll,
+  hasSel: selCount > 0,
+  selLabel: selCount + (selCount === 1 ? ' entity selected' : ' entities selected'),
+  clearSel: () => this.setState({ sel: {} }),
+  remind: () => {
+    const n = Object.keys(sel).length;
+    this.setState({ sel: {}, toast: 'Reminder emailed to ' + n + (n === 1 ? ' owner' : ' owners') });
+    setTimeout(() => this.setState({ toast: '' }), 2600);
+  },
+  showToast: !!toast,
+  toastText: toast,
+  rangeLabel: filtered.length === 0 ? 'No results' : ('Showing ' + (start + 1) + '–' + (start + pageRows.length) + ' of ' + filtered.length),
+  pageLabel: 'Page ' + pg + ' of ' + pages,
+  prevCls: pg <= 1 ? 'is-disabled' : '',
+  nextCls: pg >= pages ? 'is-disabled' : '',
+  prevPage: () => this.setState({ page: Math.max(1, pg - 1) }),
+  nextPage: () => this.setState({ page: Math.min(pages, pg + 1) })
+};
+}
+}
+</script>
+</body>
+</html>

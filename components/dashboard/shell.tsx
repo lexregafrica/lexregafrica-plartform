@@ -14,15 +14,21 @@ import {
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 import { createClient } from '@/lib/supabase/client'
 
-const NAV = [
-  { label: 'Dashboard', href: '/dashboard', icon: IconLayoutDashboard, soon: false },
+// Design system v2 shell (resources/mockups/ui-revamp): translucent sidebar
+// on regular width; floating top pill + glass tab bar on compact width.
+// Layout switches on the .lx container, not the viewport.
+
+export type ShellNavItem = { label: string; href: string; icon: typeof IconLayoutDashboard; soon: boolean; exact?: boolean }
+
+const NAV: ShellNavItem[] = [
+  { label: 'Overview', href: '/dashboard', icon: IconLayoutDashboard, soon: false },
   { label: 'Documents', href: '/dashboard/documents', icon: IconFiles, soon: true },
   { label: 'Compliance', href: '/dashboard/compliance', icon: IconCalendarTime, soon: true },
   { label: 'Services', href: '/dashboard/services', icon: IconBriefcase, soon: true },
   { label: 'Settings', href: '/dashboard/settings', icon: IconSettings, soon: true },
 ]
 
-const ADMIN_NAV_ITEM = { label: 'Admin', href: '/admin', icon: IconShieldLock, soon: false }
+const ADMIN_NAV_ITEM: ShellNavItem = { label: 'Admin', href: '/admin', icon: IconShieldLock, soon: false }
 
 function initials(name: string) {
   return name
@@ -36,16 +42,28 @@ export function DashboardShell({
   userName,
   userEmail,
   isSuperAdmin,
+  title,
+  crumbs,
+  navItems,
+  brandSub = 'Africa',
+  homeHref = '/dashboard',
   children,
 }: {
   userName: string
   userEmail: string
   isSuperAdmin?: boolean
+  title?: string
+  crumbs?: React.ReactNode
+  /** Replaces the owner navigation (the admin console passes its own) */
+  navItems?: ShellNavItem[]
+  brandSub?: string
+  homeHref?: string
   children: React.ReactNode
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const nav = isSuperAdmin ? [...NAV, ADMIN_NAV_ITEM] : NAV
+  const nav = navItems ?? (isSuperAdmin ? [...NAV, ADMIN_NAV_ITEM] : NAV)
+  const liveNav = nav.filter((item) => !item.soon)
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -53,113 +71,81 @@ export function DashboardShell({
     router.replace('/')
   }
 
-  const today = new Date().toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+  // Entity workspaces live under /dashboard/<id>, so Overview stays lit there
+  const isActive = (href: string) => {
+    const item = nav.find((n) => n.href === href)
+    return item?.exact ? pathname === href : pathname.startsWith(href)
+  }
 
   return (
-    <div className="flex min-h-[100dvh]">
-      {/* Sidebar — desktop only; mobile gets a slim top bar */}
-      <aside
-        className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col rounded-r-3xl px-4 py-6 md:flex"
-        style={{ background: 'var(--system-bg)' }}
-      >
-        <Link href="/dashboard" className="mb-8 flex items-center gap-2 px-2">
-          <LexRegLogoMark className="h-7 w-7" />
-          <span className="text-ios-headline font-bold" style={{ color: 'var(--brand-navy)' }}>
-            LexReg
-          </span>
+    <div className="lx shell min-h-[100dvh]">
+      <aside className="sidebar glass-chrome sticky top-0 h-[100dvh]" aria-label="Main navigation">
+        <Link className="sb-brand" href={homeHref}>
+          <LexRegLogoMark size={30} />
+          <span className="sb-word">LexReg<small>{brandSub}</small></span>
         </Link>
 
-        <nav className="flex flex-col gap-1">
-          {nav.map((item) => {
-            const active = item.href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.soon ? '#' : item.href}
-                aria-disabled={item.soon}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-ios-footnote font-semibold transition-colors ${item.soon ? 'cursor-default opacity-45' : ''}`}
-                style={active
-                  ? { background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }
-                  : { color: 'var(--system-label-2)' }}
-                onClick={item.soon ? (e) => e.preventDefault() : undefined}
-              >
-                <item.icon size={19} stroke={2} />
-                {item.label}
-                {item.soon && (
-                  <span className="text-ios-caption2 ml-auto rounded-full px-1.5 py-0.5" style={{ background: 'var(--system-fill-3)', color: 'var(--system-label-3)' }}>
-                    soon
-                  </span>
-                )}
-              </Link>
-            )
-          })}
-        </nav>
+        {nav.map((item) =>
+          item.soon ? (
+            <span key={item.href} className="sb-item" aria-disabled="true" style={{ opacity: 0.5, cursor: 'default' }}>
+              <item.icon size={18} stroke={1.75} aria-hidden="true" />
+              {item.label}
+              <span className="pill">Soon</span>
+            </span>
+          ) : (
+            <Link key={item.href} href={item.href} className={`sb-item ${isActive(item.href) ? 'is-on' : ''}`} aria-current={isActive(item.href) ? 'page' : undefined}>
+              <item.icon size={18} stroke={1.75} aria-hidden="true" />
+              {item.label}
+            </Link>
+          )
+        )}
 
-        {/* Profile + logout pinned to bottom */}
-        <div className="mt-auto">
-          <div className="mb-3 flex items-center gap-3 px-2">
-            <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
-              style={{ background: 'var(--brand-navy)' }}
-            >
-              {initials(userName)}
-            </div>
-            <div className="min-w-0">
-              <p className="text-ios-footnote truncate font-semibold" style={{ color: 'var(--system-label)' }}>{userName}</p>
-              <p className="text-ios-caption1 truncate" style={{ color: 'var(--system-label-3)' }}>{userEmail}</p>
-            </div>
+        <div className="sb-foot">
+          <span className="avatar avatar-sm">{initials(userName)}</span>
+          <div className="min-w-0 flex-1">
+            <p className="t-subhead truncate" style={{ color: 'var(--label)' }}>{userName}</p>
+            <p className="t-caption t-3 truncate">{userEmail}</p>
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-ios-footnote font-semibold transition-colors hover:opacity-70"
-            style={{ color: 'var(--system-label-2)' }}
-          >
-            <IconLogout size={19} stroke={2} />
-            Log out
+          <button className="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out" onClick={handleSignOut}>
+            <IconLogout size={17} stroke={1.75} aria-hidden="true" />
           </button>
         </div>
       </aside>
 
-      {/* Main column */}
-      <div className="min-w-0 flex-1">
-        {/* Mobile top bar */}
-        <header
-          className="sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 backdrop-blur-xl md:hidden"
-          style={{ borderColor: 'var(--system-fill-3)', background: 'color-mix(in srgb, var(--system-bg) 88%, transparent)' }}
-        >
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <LexRegLogoMark className="h-6 w-6" />
-            <span className="text-ios-subhead font-bold" style={{ color: 'var(--brand-navy)' }}>LexReg</span>
-          </Link>
-          <button type="button" onClick={handleSignOut} className="text-ios-footnote font-medium" style={{ color: 'var(--system-label-2)' }}>
-            Sign out
-          </button>
-        </header>
+      <div className="main">
+        {(crumbs || title) && (
+          <header className="topbar">
+            <nav className="crumbs" aria-label="Breadcrumb">
+              {crumbs ?? <span className="here">{title}</span>}
+            </nav>
+          </header>
+        )}
 
-        {/* Desktop header */}
-        <header className="hidden items-center justify-between px-8 pt-7 md:flex">
-          <div>
-            <h1 className="text-ios-title1" style={{ color: 'var(--system-label)' }}>Dashboard</h1>
-            <p className="text-ios-footnote mt-0.5" style={{ color: 'var(--system-label-3)' }}>{today}</p>
+        <div className="m-topbar glass">
+          <Link className="flex items-center gap-2" href={homeHref} style={{ color: 'var(--label)' }}>
+            <LexRegLogoMark size={26} />
+            <span className="t-headline">{title ?? 'LexReg'}</span>
+          </Link>
+          <div className="flex items-center gap-1">
+            <button type="button" className="btn btn-plain btn-sm" onClick={handleSignOut}>Sign out</button>
+            <span className="avatar avatar-sm">{initials(userName)}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold text-white"
-              style={{ background: 'var(--brand-navy)' }}
-            >
-              {initials(userName)}
-            </div>
-            <div className="hidden lg:block">
-              <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>{userName}</p>
-              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Business owner</p>
-            </div>
-          </div>
-        </header>
+        </div>
 
         {children}
+
+        {/* Phone tab bar: live destinations only — a tab bar of "soon"
+            items is noise, and one tab is no navigation at all. */}
+        {liveNav.length > 1 && (
+          <nav className="m-tabbar glass" aria-label="Tabs" style={{ gridTemplateColumns: `repeat(${liveNav.length}, minmax(0, 1fr))` }}>
+            {liveNav.map((item) => (
+              <Link key={item.href} href={item.href} className={`m-tab ${isActive(item.href) ? 'is-on' : ''}`} aria-current={isActive(item.href) ? 'page' : undefined}>
+                <item.icon size={22} stroke={1.75} aria-hidden="true" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
     </div>
   )

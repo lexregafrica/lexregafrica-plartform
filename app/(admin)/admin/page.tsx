@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { IconBuilding, IconBuildingCommunity, IconCircleCheck, IconGavel, IconArrowRight } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function AdminOverviewPage() {
@@ -23,52 +24,75 @@ export default async function AdminOverviewPage() {
 
   const totalEntities = entities?.length ?? 0
   const totalActive = entities?.filter((e) => e.status === 'active').length ?? 0
+  const totalLawyers = [...lawyerCountByOrg.values()].reduce((a, b) => a + b, 0)
+  const today = new Intl.DateTimeFormat('en-KE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Nairobi' }).format(new Date())
+
+  const stats = [
+    { label: 'Organisations', value: orgs?.length ?? 0, sub: 'Client accounts', icon: IconBuildingCommunity },
+    { label: 'Entities', value: totalEntities, sub: `${totalEntities - totalActive} in onboarding or awaiting BRS`, icon: IconBuilding },
+    { label: 'Active entities', value: totalActive, sub: totalEntities ? `${Math.round((totalActive / totalEntities) * 100)}% of all entities` : 'None yet', icon: IconCircleCheck },
+    { label: 'Lawyers', value: totalLawyers, sub: 'Invited across all organisations', icon: IconGavel },
+  ]
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
-      <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-3)' }}>Platform admin</p>
-      <h1 className="text-ios-title1 mt-0.5" style={{ color: 'var(--system-label)' }}>Organisations</h1>
+    <main className="content">
+      <header className="page-head rise">
+        <div className="flex flex-col gap-1">
+          <p className="t-eyebrow t-num">{today}</p>
+          <h1 className="t-title1">Platform overview</h1>
+          <p className="t-callout t-2">Every organisation and entity on LexReg.</p>
+        </div>
+        <div className="page-actions">
+          <Link href="/admin/entities" className="btn btn-primary">View all entities<IconArrowRight size={17} stroke={2} aria-hidden="true" /></Link>
+        </div>
+      </header>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        {[
-          ['Organisations', orgs?.length ?? 0],
-          ['Entities', totalEntities],
-          ['Active', totalActive],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-[20px] bg-white p-4">
-            <p className="text-[28px] font-bold leading-none" style={{ color: 'var(--system-label)' }}>{value}</p>
-            <p className="text-ios-caption1 mt-1.5" style={{ color: 'var(--system-label-3)' }}>{label}</p>
+      <section className="grid cols-4 keep-2 gap-4" aria-label="Summary">
+        {stats.map((s, i) => (
+          <div key={s.label} className="stat rise" style={{ '--d': i + 1 } as React.CSSProperties}>
+            <p className="stat-label"><s.icon size={15} stroke={1.75} aria-hidden="true" />{s.label}</p>
+            <p className="t-stat">{s.value}</p>
+            <p className="stat-sub">{s.sub}</p>
           </div>
         ))}
-      </div>
+      </section>
 
-      <div className="mt-6 flex items-center justify-between">
-        <h2 className="text-ios-headline font-bold" style={{ color: 'var(--system-label)' }}>All organisations</h2>
-        <Link href="/admin/entities" className="text-ios-footnote font-semibold" style={{ color: 'var(--brand-navy)' }}>
-          View all entities →
-        </Link>
-      </div>
-
-      <div className="mt-3 rounded-[20px] bg-white !p-2">
-        {(orgs ?? []).length === 0 && (
-          <p className="p-4 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>No organisations yet.</p>
+      <section className="card rise" aria-labelledby="orgs-h" style={{ '--d': 5 } as React.CSSProperties}>
+        <div className="card-head">
+          <h2 id="orgs-h">Organisations</h2>
+          <span className="t-footnote t-3 t-num">{orgs?.length ?? 0} total</span>
+        </div>
+        {(orgs ?? []).length === 0 ? (
+          <p className="t-footnote t-3 px-5 pb-5">No organisations yet.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Organisation</th>
+                  <th scope="col" className="num">Entities</th>
+                  <th scope="col" className="num">Active</th>
+                  <th scope="col" className="num">Lawyers</th>
+                  <th scope="col" className="num">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(orgs ?? []).map((org) => (
+                  <tr key={org.id}>
+                    <td>
+                      <Link href={`/admin/entities?org=${org.id}`} className="t-subhead" style={{ color: 'var(--label)', fontWeight: 600 }}>{org.name}</Link>
+                    </td>
+                    <td className="num">{entityCountByOrg.get(org.id) ?? 0}</td>
+                    <td className="num">{activeCountByOrg.get(org.id) ?? 0}</td>
+                    <td className="num">{lawyerCountByOrg.get(org.id) ?? 0}</td>
+                    <td className="num t-3 whitespace-nowrap">{new Date(org.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-        {(orgs ?? []).map((org, i) => (
-          <Link
-            key={org.id}
-            href={`/admin/entities?org=${org.id}`}
-            className="flex items-center justify-between gap-3 px-3 py-3.5 transition-opacity hover:opacity-70"
-            style={i < (orgs?.length ?? 0) - 1 ? { borderBottom: '1px solid var(--system-fill-4)' } : undefined}
-          >
-            <div className="min-w-0">
-              <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>{org.name}</p>
-              <p className="text-ios-caption1 mt-0.5" style={{ color: 'var(--system-label-3)' }}>
-                {entityCountByOrg.get(org.id) ?? 0} entities · {activeCountByOrg.get(org.id) ?? 0} active · {lawyerCountByOrg.get(org.id) ?? 0} lawyers
-              </p>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }

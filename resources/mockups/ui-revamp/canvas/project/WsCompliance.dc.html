@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Entity compliance — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.ws-tabs{overflow-x:auto;scrollbar-width:none}
+.ob-row{display:flex;gap:14px;align-items:flex-start;padding:16px 20px}
+.ob-list > li + li{border-top:var(--hairline-soft)}
+.date-tile .ic{color:var(--tint-text)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;text-align:center}
+.cal-h{font-size:11px;font-weight:600;color:var(--label-3);padding:4px 0}
+.cal-d{position:relative;display:flex;align-items:center;justify-content:center;height:34px;border-radius:50%;font-size:13px;font-variant-numeric:tabular-nums;color:var(--label)}
+.cal-d.is-out{color:var(--label-4)}
+.cal-d.is-today{background:var(--tint);color:var(--brand-ink);font-weight:700}
+.cal-d.has-due::after{content:"";position:absolute;bottom:3px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--sys-orange)}
+.cal-d.has-over::after{content:"";position:absolute;bottom:3px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--sys-red)}
+.cal-d.has-done::after{content:"";position:absolute;bottom:3px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--sys-green)}
+.task-btn{flex:none;width:44px;height:44px;margin:-10px -8px -10px -12px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:var(--label-3)}
+.task-btn.is-done{color:var(--good)}
+.is-struck{text-decoration:line-through;color:var(--label-3)}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Main navigation">
+    <a class="sb-brand" href="Dashboard.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Africa</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">4</span></a>
+    <a class="sb-item is-on" href="WsCompliance.dc.html" aria-current="page"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance<span class="badge">2</span></a>
+    <a class="sb-item" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+    <a class="sb-item" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    <div class="sb-group">Support</div>
+    <a class="sb-item" href="Overlays.dc.html"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Get help</a>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-settings" aria-hidden="true"></span>Settings</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm">WM</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Business owner</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Dashboard.dc.html">Entities</a><span aria-hidden="true">/</span><a href="Workspace.dc.html">Amani Logistics Limited</a><span aria-hidden="true">/</span><span class="here">Compliance</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Compliance</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm">WM</span></div>
+    </div>
+    <main class="content">
+
+      <div class="stack gap-4">
+        <header class="page-head rise">
+          <div class="row gap-4" style="align-items: flex-start; min-width: 0">
+            <span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-building"></span></span>
+            <div class="stack gap-1" style="min-width: 0">
+              <p class="t-eyebrow">Entity workspace</p>
+              <h1 class="t-title1">Amani Logistics Limited</h1>
+              <div class="row wrap gap-2">
+                <span class="pill pill-brand">Private limited company</span>
+                <span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Active</span>
+                <span class="t-footnote t-3">Reg. no. <span class="t-mono" style="color: var(--label-2)">PVT-2LU7Q9XB</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-gray btn-icon" type="button" aria-label="More actions" aria-haspopup="menu"><span class="ic ic-dots" aria-hidden="true"></span></button>
+            <a class="btn btn-primary" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Request a service</a>
+          </div>
+        </header>
+
+        <nav class="tabs ws-tabs" aria-label="Entity sections">
+          <a href="Workspace.dc.html"><span class="ic ic-layout-dashboard ic-sm" aria-hidden="true"></span>Overview</a>
+          <a href="WsStructure.dc.html"><span class="ic ic-hierarchy-2 ic-sm" aria-hidden="true"></span>Structure</a>
+          <a href="WsPeople.dc.html"><span class="ic ic-users ic-sm" aria-hidden="true"></span>People</a>
+          <a class="is-on" href="WsCompliance.dc.html" aria-current="page"><span class="ic ic-calendar-due ic-sm" aria-hidden="true"></span>Compliance</a>
+          <a href="WsDocuments.dc.html"><span class="ic ic-folder ic-sm" aria-hidden="true"></span>Documents</a>
+        </nav>
+      </div>
+
+      <div class="grid cols-12" style="align-items: start; gap: 20px">
+
+        <section class="card span-8 rise" style="--d: 1" aria-labelledby="ob-h">
+          <div class="card-head wrap">
+            <div class="stack">
+              <h2 id="ob-h">Obligations calendar</h2>
+              <p class="t-footnote t-3">Private limited company · Companies Act 2015, KRA and Nairobi City County</p>
+            </div>
+            <div class="seg" role="group" aria-label="Show obligations" style="--n:3; --i:{{segIndex}}; min-width: 280px">
+              <sc-for list="{{segs}}" as="g" hint-placeholder-count="3">
+                <button class="{{g.cls}}" type="button" aria-pressed="{{g.pressed}}" onClick="{{g.pick}}">{{g.label}} <span class="t-num t-3">{{g.count}}</span></button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="divider"></div>
+
+          <sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+            <div class="stack gap-2 fade" style="align-items: center; text-align: center; padding: 40px 20px">
+              <span class="icon-tile icon-tile-lg good" aria-hidden="true"><span class="ic ic-circle-check"></span></span>
+              <p class="t-headline">Nothing overdue</p>
+              <p class="t-footnote t-3">Every filing for Amani Logistics Limited is on time.</p>
+            </div>
+          </sc-if>
+
+          <ul class="ob-list" aria-live="polite">
+            <sc-for list="{{rows}}" as="o" hint-placeholder-count="4">
+              <li class="stack">
+                <div class="ob-row fade">
+                  <div class="{{o.tileCls}}" aria-hidden="true">
+                    <sc-if value="{{o.hasDate}}" hint-placeholder-val="{{true}}"><span class="m">{{o.m}}</span><span class="d">{{o.d}}</span></sc-if>
+                    <sc-if value="{{o.noDate}}" hint-placeholder-val="{{false}}"><span class="m">When</span><span class="ic ic-refresh" style="margin-top: 3px"></span></sc-if>
+                  </div>
+                  <div class="stack gap-1 grow">
+                    <div class="row wrap gap-2"><h3 class="t-headline">{{o.title}}</h3><span class="{{o.pillCls}}">{{o.status}}</span></div>
+                    <p class="t-footnote t-2 t-pretty">{{o.desc}}</p>
+                    <div class="row wrap gap-3 t-caption t-3" style="margin-top: 4px">
+                      <span class="row gap-1 t-num"><span class="ic ic-calendar ic-sm" aria-hidden="true"></span>{{o.when}}</span>
+                      <span class="row gap-1"><span class="ic {{o.whoIc}} ic-sm" aria-hidden="true"></span>{{o.who}}</span>
+                      <span class="row gap-1"><span class="ic ic-point ic-sm" aria-hidden="true"></span>{{o.cat}}</span>
+                    </div>
+                  </div>
+                  <sc-if value="{{o.canFile}}" hint-placeholder-val="{{true}}">
+                    <button class="btn btn-gray btn-sm" type="button" aria-expanded="{{o.expanded}}" onClick="{{o.toggle}}" style="flex: none"><span class="ic ic-check" aria-hidden="true"></span><span class="hide-compact">Mark as filed</span><span class="only-compact">Filed</span></button>
+                  </sc-if>
+                  <sc-if value="{{o.isDone}}" hint-placeholder-val="{{false}}">
+                    <a class="btn btn-plain btn-sm" href="WsDocuments.dc.html" style="flex: none"><span class="ic ic-clipboard-check" aria-hidden="true"></span>Proof</a>
+                  </sc-if>
+                </div>
+
+                <sc-if value="{{o.confirming}}" hint-placeholder-val="{{false}}">
+                  <div class="well rise" style="margin: 0 20px 16px; display: flex; flex-direction: column; gap: 14px">
+                    <div class="stack gap-1">
+                      <p class="t-headline">Confirm you filed: {{o.title}}</p>
+                      <p class="t-footnote t-3 t-pretty">LexReg can&#39;t see BRS, KRA or county systems — attach the acknowledgement so the record is backed by evidence.</p>
+                    </div>
+                    <div class="form-grid">
+                      <div class="field">
+                        <label class="label" for="filed-on">Date filed <span class="req">*</span></label>
+                        <input class="input t-num" id="filed-on" type="text" value="16 Oct 2026" readonly>
+                      </div>
+                      <div class="field">
+                        <label class="label" for="ref-no">Receipt or reference no.</label>
+                        <input class="input t-mono" id="ref-no" type="text" placeholder="e.g. eCitizen invoice number" value="{{refNo}}" onInput="{{setRef}}">
+                      </div>
+                    </div>
+                    <sc-if value="{{noProof}}" hint-placeholder-val="{{true}}">
+                      <button class="{{dropCls}}" type="button" onClick="{{addProof}}" onDragOver="{{dragOver}}" onDragLeave="{{dragLeave}}" onDrop="{{dropProof}}" style="width: 100%">
+                        <span class="ic ic-cloud-upload ic-lg" aria-hidden="true"></span>
+                        <span class="t-subhead" style="color: var(--label)">Upload proof of filing</span>
+                        <span class="t-footnote t-3">eCitizen receipt, BRS acknowledgement or iTax slip · PDF or photo, up to 10 MB</span>
+                      </button>
+                    </sc-if>
+                    <sc-if value="{{hasProof}}" hint-placeholder-val="{{false}}">
+                      <div class="file-row pop">
+                        <span class="icon-tile good" aria-hidden="true"><span class="ic ic-file-text"></span></span>
+                        <span class="stack grow" style="min-width: 0"><span class="name">{{proofName}}</span><span class="meta">Uploaded just now · 284 KB · saved to Correspondence</span></span>
+                        <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Remove proof" onClick="{{removeProof}}"><span class="ic ic-x" aria-hidden="true"></span></button>
+                      </div>
+                    </sc-if>
+                    <div class="row wrap gap-2" style="justify-content: flex-end">
+                      <button class="btn btn-gray btn-sm" type="button" onClick="{{o.toggle}}">Cancel</button>
+                      <button class="btn btn-primary btn-sm {{confirmCls}}" type="button" disabled="{{confirmDisabled}}" onClick="{{o.confirm}}"><span class="ic ic-circle-check" aria-hidden="true"></span>Confirm filed</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </li>
+            </sc-for>
+          </ul>
+
+          <div class="card-foot">
+            <span class="t-footnote t-3 t-pretty">Dates are calculated from your incorporation date (14 March 2019). BRS has no API — you file, we track.</span>
+          </div>
+        </section>
+
+        <div class="span-4 stack gap-5">
+
+          <sc-if value="{{justFiled}}" hint-placeholder-val="{{false}}">
+            <div class="note note-good pop" role="status"><span class="ic ic-circle-check" aria-hidden="true"></span><span><strong>{{justFiledTitle}}</strong> marked as filed. Moved to Done and logged.</span></div>
+          </sc-if>
+
+          <section class="card card-pad rise" style="--d: 2" aria-labelledby="cal-h">
+            <div class="row between" style="margin-bottom: 10px">
+              <h2 id="cal-h" class="t-headline t-num">{{monthLabel}}</h2>
+              <div class="row gap-1">
+                <button class="btn btn-plain btn-icon btn-sm {{prevCls}}" type="button" aria-label="Previous month" onClick="{{prevMonth}}" style="color: var(--label)"><span class="ic ic-chevron-left" aria-hidden="true"></span></button>
+                <button class="btn btn-plain btn-icon btn-sm {{nextCls}}" type="button" aria-label="Next month" onClick="{{nextMonth}}" style="color: var(--label)"><span class="ic ic-chevron-right" aria-hidden="true"></span></button>
+              </div>
+            </div>
+            <div class="cal" role="grid" aria-label="{{monthLabel}}">
+              <sc-for list="{{weekdays}}" as="w" hint-placeholder-count="7"><span class="cal-h" role="columnheader">{{w}}</span></sc-for>
+              <sc-for list="{{days}}" as="c" hint-placeholder-count="35"><span class="{{c.cls}}" role="gridcell" aria-label="{{c.aria}}">{{c.n}}</span></sc-for>
+            </div>
+            <div class="divider" style="margin: 12px 0 10px"></div>
+            <sc-if value="{{hasMonthItems}}" hint-placeholder-val="{{true}}">
+              <ul class="stack gap-2">
+                <sc-for list="{{monthItems}}" as="mi" hint-placeholder-count="1">
+                  <li class="row gap-2 t-footnote"><span class="dot" style="color: {{mi.color}}" aria-hidden="true"></span><span class="t-num t-strong">{{mi.day}}</span><span class="t-2 truncate">{{mi.title}}</span></li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{noMonthItems}}" hint-placeholder-val="{{false}}">
+              <p class="t-footnote t-3">Nothing due this month.</p>
+            </sc-if>
+          </section>
+
+          <section class="card card-pad rise" style="--d: 3" aria-labelledby="health-h">
+            <div class="row between" style="margin-bottom: 14px">
+              <h2 id="health-h" class="t-headline">Compliance health</h2>
+              <span class="t-stat" style="font-size: 22px; line-height: 26px">{{healthPct}}</span>
+            </div>
+            <ul class="stack gap-4">
+              <sc-for list="{{health}}" as="h" hint-placeholder-count="4">
+                <li class="stack gap-2">
+                  <div class="row between gap-2"><span class="t-subhead">{{h.label}}</span><span class="t-footnote t-num {{h.txtCls}}">{{h.pct}}</span></div>
+                  <div class="{{h.barCls}}" role="progressbar" aria-label="{{h.label}}" aria-valuenow="{{h.val}}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{h.pct}}"></span></div>
+                  <span class="t-caption t-3">{{h.note}}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </section>
+
+          <section class="card rise" style="--d: 4" aria-labelledby="tasks-h">
+            <div class="card-head">
+              <h2 id="tasks-h">Tasks</h2>
+              <span class="pill t-num">{{openTasks}}</span>
+            </div>
+            <ul>
+              <sc-for list="{{tasks}}" as="t" hint-placeholder-count="3">
+                <li class="list-row" style="align-items: flex-start">
+                  <button class="{{t.btnCls}}" type="button" aria-pressed="{{t.pressed}}" aria-label="{{t.aria}}" onClick="{{t.toggle}}"><span class="ic {{t.ic}} ic-lg" aria-hidden="true"></span></button>
+                  <span class="stack gap-1 grow">
+                    <span class="t-subhead {{t.titleCls}}">{{t.title}}</span>
+                    <span class="t-footnote t-3 t-pretty">{{t.desc}}</span>
+                    <span class="{{t.pillCls}}" style="align-self: flex-start; margin-top: 2px">{{t.due}}</span>
+                  </span>
+                </li>
+              </sc-for>
+            </ul>
+          </section>
+
+        </div>
+      </div>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab is-on" href="WsCompliance.dc.html" aria-current="page"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance</a>
+      <a class="m-tab" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+      <a class="m-tab" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    </nav>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1480}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const view = s.view ?? 'upcoming';
+const confirmKey = s.confirmKey ?? null;
+const filed = s.filed ?? {};
+const proof = s.proof ?? false;
+const over = s.over ?? false;
+const refNo = s.refNo ?? '';
+const monthIdx = s.monthIdx ?? 1;
+const taskDone = s.taskDone ?? {};
+const justFiled = s.justFiled ?? null;
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_L = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+const OB = [
+  { key: 'bof', y: 2026, mo: 8, day: 30, title: 'Lodge BOF-1 with BRS', desc: 'File the beneficial ownership register so it matches your share register — James Kariuki holds 10% indirectly through Savannah Holdings Limited.', who: 'You file on eCitizen · LexReg prepared the form', whoIc: 'ic-user', cat: 'Beneficial ownership', state: 'overdue' },
+  { key: 'permit', y: 2027, mo: 2, day: 31, title: 'Renew county single business permit', desc: 'Single business permits are renewed with your county government at the start of each year.', who: 'You, with Nairobi City County', whoIc: 'ic-building-community', cat: 'Licences', state: 'upcoming' },
+  { key: 'ar', y: 2027, mo: 3, day: 13, title: 'File annual return with BRS', desc: 'Companies must file an annual return with the Business Registration Service each year — within 30 days of the incorporation anniversary (14 March).', who: 'You file on eCitizen · LexReg prepares the return', whoIc: 'ic-user', cat: 'BRS filings', state: 'upcoming' },
+  { key: 'kra', y: 2027, mo: 5, day: 30, title: 'File income tax return with KRA', desc: 'Corporate income tax return due by 30 June following the end of the accounting period.', who: 'Your tax agent, on iTax', whoIc: 'ic-receipt', cat: 'Tax', state: 'upcoming' },
+  { key: 'bofchg', y: null, title: 'Update BOF-1 when ownership changes', desc: 'Whenever someone gains or loses 10% or more of shares, votes or control, lodge an updated BOF-1 within 14 days.', who: 'You file · LexReg flags the change', whoIc: 'ic-user', cat: 'Beneficial ownership', state: 'upcoming', event: true },
+  { key: 'ar26', y: 2026, mo: 3, day: 2, title: 'Annual return 2026', desc: 'Filed on eCitizen. Acknowledgement and payment receipt are in Correspondence.', who: 'Filed by Wanjiku Mwangi', whoIc: 'ic-user-check', cat: 'BRS filings', state: 'done' },
+  { key: 'tax25', y: 2026, mo: 5, day: 24, title: 'Income tax return 2025', desc: 'Filed on iTax by your tax agent. Acknowledgement slip on file.', who: 'Filed by your tax agent', whoIc: 'ic-user-check', cat: 'Tax', state: 'done' },
+  { key: 'permit26', y: 2026, mo: 1, day: 20, title: 'Single business permit 2026', desc: 'Renewed with Nairobi City County. Permit copy in Registration.', who: 'Renewed by Wanjiku Mwangi', whoIc: 'ic-user-check', cat: 'Licences', state: 'done' }
+];
+const today = new Date(2026, 9, 16);
+const daysTo = (o) => Math.round((new Date(o.y, o.mo, o.day) - today) / 86400000);
+const stateOf = (o) => (filed[o.key] ? 'done' : o.state);
+const fmt = (o) => o.day + ' ' + MONTHS[o.mo] + ' ' + o.y;
+
+const counts = { upcoming: 0, overdue: 0, done: 0 };
+OB.forEach((o) => { counts[stateOf(o)] += 1; });
+
+const rows = OB.filter((o) => stateOf(o) === view).map((o) => {
+  const st = stateOf(o);
+  const dt = o.event ? null : daysTo(o);
+  let status = 'Upcoming', pillCls = 'pill';
+  let when = o.event ? 'Event-driven · no fixed date' : 'Due ' + fmt(o);
+  if (st === 'overdue') { status = Math.abs(dt) + ' days overdue'; pillCls = 'pill pill-bad'; when = 'Was due ' + fmt(o); }
+  else if (st === 'done') { status = 'Filed'; pillCls = 'pill pill-good'; when = filed[o.key] ? 'Filed 16 Oct 2026 · proof attached' : 'Filed ' + fmt(o); }
+  else if (o.event) { status = 'When it happens'; pillCls = 'pill pill-info'; }
+  else if (dt <= 60) { status = 'Due in ' + dt + ' days'; pillCls = 'pill pill-warn'; }
+  else { status = 'In ' + dt + ' days'; }
+  const confirming = confirmKey === o.key;
+  return {
+    ...o,
+    m: o.event ? '' : MONTHS[o.mo],
+    d: o.event ? '' : String(o.day),
+    hasDate: !o.event,
+    noDate: !!o.event,
+    tileCls: 'date-tile' + (st === 'overdue' ? ' is-urgent' : ''),
+    status, pillCls, when,
+    desc: filed[o.key] ? 'Marked as filed by Wanjiku Mwangi. Proof saved to Correspondence.' : o.desc,
+    who: filed[o.key] ? 'Filed by Wanjiku Mwangi' : o.who,
+    canFile: st !== 'done' && !o.event,
+    isDone: st === 'done',
+    confirming,
+    expanded: confirming ? 'true' : 'false',
+    toggle: () => this.setState({ confirmKey: confirming ? null : o.key, proof: false, over: false, refNo: '' }),
+    confirm: () => {
+      if (!proof) return;
+      this.setState({ filed: { ...filed, [o.key]: true }, confirmKey: null, proof: false, refNo: '', justFiled: o.title });
+      setTimeout(() => this.setState({ justFiled: null }), 4000);
+    }
+  };
+});
+
+const SEGS = [['upcoming', 'Upcoming'], ['overdue', 'Overdue'], ['done', 'Done']];
+const segs = SEGS.map(([id, label]) => ({
+  label, count: counts[id],
+  cls: view === id ? 'is-on' : '',
+  pressed: view === id ? 'true' : 'false',
+  pick: () => this.setState({ view: id, confirmKey: null })
+}));
+
+// Mini calendar: Sep 2026 → Jun 2027 (opens on the current month)
+const CAL = [[2026, 8], [2026, 9], [2026, 10], [2026, 11], [2027, 0], [2027, 1], [2027, 2], [2027, 3], [2027, 4], [2027, 5]];
+const [cy, cm] = CAL[monthIdx];
+const first = new Date(cy, cm, 1).getDay();
+const lead = (first + 6) % 7;
+const dim = new Date(cy, cm + 1, 0).getDate();
+const prevDim = new Date(cy, cm, 0).getDate();
+const marks = {};
+const monthItems = [];
+OB.forEach((o) => {
+  if (o.event || o.y !== cy || o.mo !== cm) return;
+  const st = stateOf(o);
+  marks[o.day] = st;
+  monthItems.push({ day: o.day + ' ' + MONTHS[o.mo], title: o.title, color: st === 'overdue' ? 'var(--sys-red)' : st === 'done' ? 'var(--sys-green)' : 'var(--sys-orange)' });
+});
+const days = [];
+for (let i = 0; i < lead; i++) days.push({ n: String(prevDim - lead + 1 + i), cls: 'cal-d is-out', aria: '' });
+for (let d = 1; d <= dim; d++) {
+  const isToday = cy === 2026 && cm === 9 && d === 16;
+  const mk = marks[d];
+  let cls = 'cal-d';
+  if (isToday) cls += ' is-today';
+  if (mk === 'upcoming') cls += ' has-due';
+  if (mk === 'overdue') cls += ' has-over';
+  if (mk === 'done') cls += ' has-done';
+  days.push({ n: String(d), cls, aria: d + ' ' + MONTHS_L[cm] + (isToday ? ', today' : '') + (mk ? ', filing ' + mk : '') });
+}
+let tail = 1;
+while (days.length % 7 !== 0) days.push({ n: String(tail++), cls: 'cal-d is-out', aria: '' });
+
+const doneCount = Object.keys(filed).length;
+const bofFiled = !!filed.bof;
+const pinTask = !!taskDone.pin;
+const health = [
+  { label: 'BRS filings', val: 100, note: 'Annual return 2026 filed · next due 13 Apr 2027' },
+  { label: 'Beneficial ownership', val: bofFiled ? 100 : 40, note: bofFiled ? 'BOF-1 lodged' : 'BOF-1 not lodged — 16 days overdue' },
+  { label: 'Tax (KRA)', val: 100, note: 'Return for 2025 filed 24 Jun 2026' },
+  { label: 'Licences', val: 100, note: 'Nairobi permit valid to 31 Mar 2027' },
+  { label: 'Records & registers', val: pinTask ? 100 : 70, note: pinTask ? 'All particulars confirmed' : "Brian Otieno's KRA PIN unconfirmed" }
+].map((h) => ({
+  ...h,
+  pct: h.val + '%',
+  barCls: 'progress ' + (h.val === 100 ? 'good' : 'warn'),
+  txtCls: h.val === 100 ? 't-3' : 't-warn'
+}));
+const overall = Math.round(health.reduce((a, h) => a + h.val, 0) / health.length);
+
+const TASKS = [
+  { key: 'bof1', title: 'Upload signed BOF-1', desc: 'All directors sign, then upload it here before you lodge it on eCitizen.', due: '16 days overdue', dueCls: 'pill pill-bad' },
+  { key: 'pin', title: "Confirm Brian Otieno's KRA PIN", desc: 'CR12 says A019876543K, the KRA certificate says A019876534K.', due: 'Due 23 Oct 2026', dueCls: 'pill pill-warn' },
+  { key: 'id', title: 'Upload ID/passport for 1 person', desc: 'Recorded provisionally without identity evidence: Halima Abdi.', due: 'Due 2 Nov 2026', dueCls: 'pill' }
+];
+const tasks = TASKS.map((t) => {
+  const done = !!taskDone[t.key];
+  return {
+    ...t,
+    btnCls: 'task-btn press' + (done ? ' is-done' : ''),
+    ic: done ? 'ic-circle-check' : 'ic-circle-dashed',
+    pressed: done ? 'true' : 'false',
+    aria: (done ? 'Mark not done: ' : 'Mark done: ') + t.title,
+    titleCls: done ? 'is-struck' : '',
+    due: done ? 'Done' : t.due,
+    pillCls: done ? 'pill pill-good' : t.dueCls,
+    toggle: () => this.setState({ taskDone: { ...taskDone, [t.key]: !done } })
+  };
+});
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  segs,
+  segIndex: Math.max(0, SEGS.findIndex(([id]) => id === view)),
+  rows,
+  isEmpty: rows.length === 0,
+  refNo,
+  setRef: (e) => this.setState({ refNo: e.target.value }),
+  noProof: !proof,
+  hasProof: proof,
+  proofName: 'eCitizen receipt — ' + ((OB.find((o) => o.key === confirmKey) || {}).title || 'filing') + '.pdf',
+  dropCls: 'dropzone' + (over ? ' is-over' : ''),
+  addProof: () => this.setState({ proof: true, over: false }),
+  dragOver: (e) => { e.preventDefault(); if (!over) this.setState({ over: true }); },
+  dragLeave: () => this.setState({ over: false }),
+  dropProof: (e) => { e.preventDefault(); this.setState({ proof: true, over: false }); },
+  removeProof: () => this.setState({ proof: false }),
+  confirmCls: proof ? '' : 'is-disabled',
+  confirmDisabled: !proof,
+  justFiled: !!justFiled,
+  justFiledTitle: justFiled || '',
+  monthLabel: MONTHS_L[cm] + ' ' + cy,
+  weekdays: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+  days,
+  monthItems,
+  hasMonthItems: monthItems.length > 0,
+  noMonthItems: monthItems.length === 0,
+  prevCls: monthIdx === 0 ? 'is-disabled' : '',
+  nextCls: monthIdx === CAL.length - 1 ? 'is-disabled' : '',
+  prevMonth: () => this.setState({ monthIdx: Math.max(0, monthIdx - 1) }),
+  nextMonth: () => this.setState({ monthIdx: Math.min(CAL.length - 1, monthIdx + 1) }),
+  health,
+  healthPct: overall + '%',
+  openTasks: tasks.filter((t) => t.pressed === 'false').length + ' open',
+  tasks
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,549 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-16T01:00:00Z"
+ },
+ "title": "LexReg UI Revamp",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 3000,
+   "title": "Cover and index",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Foundations.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 7300,
+   "title": "Foundations — tokens, type, colour",
+   "expand": "fill"
+  },
+  "Components.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 6000,
+   "title": "Components and states",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Motion.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 4000,
+   "title": "Motion and materials",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Home.dc.html": {
+   "x": 0,
+   "y": 7680,
+   "w": 1440,
+   "h": 5850,
+   "title": "Home",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Insight.dc.html": {
+   "x": 1520,
+   "y": 7680,
+   "w": 1440,
+   "h": 3200,
+   "title": "Insights article",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Legal.dc.html": {
+   "x": 3040,
+   "y": 7680,
+   "w": 1440,
+   "h": 7750,
+   "title": "Terms and privacy",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Phone-Home.dc.html": {
+   "x": 4560,
+   "y": 7680,
+   "w": 390,
+   "h": 844,
+   "title": "Home — phone",
+   "is_interactive": true
+  },
+  "SignIn.dc.html": {
+   "x": 0,
+   "y": 15810,
+   "w": 1440,
+   "h": 900,
+   "title": "Sign in",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SignUp.dc.html": {
+   "x": 1520,
+   "y": 15810,
+   "w": 1440,
+   "h": 960,
+   "title": "Create account",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ResetPassword.dc.html": {
+   "x": 3040,
+   "y": 15810,
+   "w": 1440,
+   "h": 900,
+   "title": "Reset password",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "LawyerInvite.dc.html": {
+   "x": 4560,
+   "y": 15810,
+   "w": 1440,
+   "h": 1180,
+   "title": "Lawyer invitation",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "PathSelector.dc.html": {
+   "x": 0,
+   "y": 17370,
+   "w": 1440,
+   "h": 1040,
+   "title": "Choose a path",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Readiness.dc.html": {
+   "x": 1520,
+   "y": 17370,
+   "w": 1440,
+   "h": 920,
+   "title": "Readiness assessment",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ReadinessResult.dc.html": {
+   "x": 3040,
+   "y": 17370,
+   "w": 1440,
+   "h": 1980,
+   "title": "Readiness results",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewType.dc.html": {
+   "x": 0,
+   "y": 19730,
+   "w": 1440,
+   "h": 1320,
+   "title": "New 1 — Entity type",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewApplicant.dc.html": {
+   "x": 1520,
+   "y": 19730,
+   "w": 1440,
+   "h": 1720,
+   "title": "New 2 — Applicant",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewName.dc.html": {
+   "x": 3040,
+   "y": 19730,
+   "w": 1440,
+   "h": 1560,
+   "title": "New 3 — Name reservation",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewShares.dc.html": {
+   "x": 4560,
+   "y": 19730,
+   "w": 1440,
+   "h": 1640,
+   "title": "New 5 — Share structure",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewPeople.dc.html": {
+   "x": 6080,
+   "y": 19730,
+   "w": 1440,
+   "h": 4100,
+   "title": "New 6–7 — Shareholders and directors",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewOwnership.dc.html": {
+   "x": 7600,
+   "y": 19730,
+   "w": 1440,
+   "h": 2400,
+   "title": "New 8 — Beneficial ownership",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewVault.dc.html": {
+   "x": 9120,
+   "y": 19730,
+   "w": 1440,
+   "h": 2800,
+   "title": "New 11 — Document vault",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewDeclaration.dc.html": {
+   "x": 10640,
+   "y": 19730,
+   "w": 1440,
+   "h": 1800,
+   "title": "New 13 — Declaration",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewReview.dc.html": {
+   "x": 12160,
+   "y": 19730,
+   "w": 1440,
+   "h": 2600,
+   "title": "New 14 — Review and submit",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "NewFiling.dc.html": {
+   "x": 13680,
+   "y": 19730,
+   "w": 1440,
+   "h": 1800,
+   "title": "After submit — file at BRS",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Phone-NewPeople.dc.html": {
+   "x": 15200,
+   "y": 19730,
+   "w": 390,
+   "h": 844,
+   "title": "Shareholders and directors — phone",
+   "is_interactive": true
+  },
+  "ExType.dc.html": {
+   "x": 0,
+   "y": 24210,
+   "w": 1440,
+   "h": 1900,
+   "title": "Existing 1 — Entity type",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ExUpload.dc.html": {
+   "x": 1520,
+   "y": 24210,
+   "w": 1440,
+   "h": 4700,
+   "title": "Existing 2 — Upload and read",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ExDetails.dc.html": {
+   "x": 3040,
+   "y": 24210,
+   "w": 1440,
+   "h": 3300,
+   "title": "Existing 3 — Check details",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ExPeople.dc.html": {
+   "x": 4560,
+   "y": 24210,
+   "w": 1440,
+   "h": 2700,
+   "title": "Existing 4 — People",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ExInstrument.dc.html": {
+   "x": 6080,
+   "y": 24210,
+   "w": 1440,
+   "h": 2500,
+   "title": "Society — constitution rules",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ExBaseline.dc.html": {
+   "x": 7600,
+   "y": 24210,
+   "w": 1440,
+   "h": 1700,
+   "title": "Existing 6 — Compliance baseline",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ExReview.dc.html": {
+   "x": 9120,
+   "y": 24210,
+   "w": 1440,
+   "h": 3100,
+   "title": "Existing 7 — Review and activate",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Phone-ExUpload.dc.html": {
+   "x": 10640,
+   "y": 24210,
+   "w": 390,
+   "h": 844,
+   "title": "Upload and read — phone",
+   "is_interactive": true
+  },
+  "Dashboard.dc.html": {
+   "x": 0,
+   "y": 29290,
+   "w": 1440,
+   "h": 1500,
+   "title": "Owner dashboard",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Workspace.dc.html": {
+   "x": 1520,
+   "y": 29290,
+   "w": 1440,
+   "h": 1460,
+   "title": "Entity — Overview",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "WsStructure.dc.html": {
+   "x": 3040,
+   "y": 29290,
+   "w": 1440,
+   "h": 1520,
+   "title": "Entity — Structure",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "WsPeople.dc.html": {
+   "x": 4560,
+   "y": 29290,
+   "w": 1440,
+   "h": 1600,
+   "title": "Entity — People",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "WsCompliance.dc.html": {
+   "x": 6080,
+   "y": 29290,
+   "w": 1440,
+   "h": 1480,
+   "title": "Entity — Compliance",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "WsDocuments.dc.html": {
+   "x": 7600,
+   "y": 29290,
+   "w": 1440,
+   "h": 1200,
+   "title": "Entity — Documents",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Overlays.dc.html": {
+   "x": 9120,
+   "y": 29290,
+   "w": 1440,
+   "h": 920,
+   "title": "Sheets, alerts, search",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Services.dc.html": {
+   "x": 10640,
+   "y": 29290,
+   "w": 1440,
+   "h": 1280,
+   "title": "Services",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Phone-Dashboard.dc.html": {
+   "x": 12160,
+   "y": 29290,
+   "w": 390,
+   "h": 844,
+   "title": "Owner dashboard — phone",
+   "is_interactive": true
+  },
+  "Phone-Workspace.dc.html": {
+   "x": 12630,
+   "y": 29290,
+   "w": 390,
+   "h": 844,
+   "title": "Entity overview — phone",
+   "is_interactive": true
+  },
+  "Admin.dc.html": {
+   "x": 0,
+   "y": 31270,
+   "w": 1440,
+   "h": 1640,
+   "title": "Admin — overview",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "AdminEntities.dc.html": {
+   "x": 1520,
+   "y": 31270,
+   "w": 1440,
+   "h": 1160,
+   "title": "Admin — all entities",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "AdminEntity.dc.html": {
+   "x": 3040,
+   "y": 31270,
+   "w": 1440,
+   "h": 1800,
+   "title": "Admin — entity and lawyer",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Lawyer.dc.html": {
+   "x": 4560,
+   "y": 31270,
+   "w": 1440,
+   "h": 1760,
+   "title": "Lawyer view",
+   "expand": "fill",
+   "is_interactive": true
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Foundations.dc.html",
+  "Components.dc.html",
+  "Motion.dc.html",
+  "Home.dc.html",
+  "Insight.dc.html",
+  "Legal.dc.html",
+  "Phone-Home.dc.html",
+  "SignIn.dc.html",
+  "SignUp.dc.html",
+  "ResetPassword.dc.html",
+  "LawyerInvite.dc.html",
+  "PathSelector.dc.html",
+  "Readiness.dc.html",
+  "ReadinessResult.dc.html",
+  "NewType.dc.html",
+  "NewApplicant.dc.html",
+  "NewName.dc.html",
+  "NewShares.dc.html",
+  "NewPeople.dc.html",
+  "NewOwnership.dc.html",
+  "NewVault.dc.html",
+  "NewDeclaration.dc.html",
+  "NewReview.dc.html",
+  "NewFiling.dc.html",
+  "Phone-NewPeople.dc.html",
+  "ExType.dc.html",
+  "ExUpload.dc.html",
+  "ExDetails.dc.html",
+  "ExPeople.dc.html",
+  "ExInstrument.dc.html",
+  "ExBaseline.dc.html",
+  "ExReview.dc.html",
+  "Phone-ExUpload.dc.html",
+  "Dashboard.dc.html",
+  "Workspace.dc.html",
+  "WsStructure.dc.html",
+  "WsPeople.dc.html",
+  "WsCompliance.dc.html",
+  "WsDocuments.dc.html",
+  "Overlays.dc.html",
+  "Services.dc.html",
+  "Phone-Dashboard.dc.html",
+  "Phone-Workspace.dc.html",
+  "Admin.dc.html",
+  "AdminEntities.dc.html",
+  "AdminEntity.dc.html",
+  "Lawyer.dc.html"
+ ],
+ "notes": {
+  "row-foundations": {
+   "x": 0,
+   "y": -260,
+   "text": "Start here — design system",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "row-marketing": {
+   "x": 0,
+   "y": 7420,
+   "text": "Marketing site",
+   "kind": "title1",
+   "maxW": 4950
+  },
+  "row-auth": {
+   "x": 0,
+   "y": 15550,
+   "text": "Sign in and invites",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "row-start": {
+   "x": 0,
+   "y": 17110,
+   "text": "Getting started",
+   "kind": "title1",
+   "maxW": 4480
+  },
+  "row-new": {
+   "x": 0,
+   "y": 19470,
+   "text": "New entity formation",
+   "kind": "title1",
+   "maxW": 15590
+  },
+  "row-existing": {
+   "x": 0,
+   "y": 23950,
+   "text": "Existing entity onboarding",
+   "kind": "title1",
+   "maxW": 11030
+  },
+  "row-dash": {
+   "x": 0,
+   "y": 29030,
+   "text": "Dashboards and entity workspace",
+   "kind": "title1",
+   "maxW": 13020
+  },
+  "row-admin": {
+   "x": 0,
+   "y": 31010,
+   "text": "Admin console and lawyer view",
+   "kind": "title1",
+   "maxW": 6000
+  }
+ },
+ "designSystems": []
+}

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Share structure — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.span-all{grid-column:1/-1}
+.calc{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r-md);background:var(--fill-4)}
+.capbar{display:flex;height:10px;border-radius:var(--r-full);overflow:hidden;background:var(--fill-3);gap:2px}
+.capbar > span{display:block;height:100%;transition:width var(--dur-spring) var(--ease-spring)}
+.sum-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:var(--hairline-soft)}
+.sum-row:first-child{border-top:0}
+.sw{flex:none;width:10px;height:10px;border-radius:3px}
+.big{font-family:var(--font-display);font-size:40px;line-height:44px;letter-spacing:-0.03em;font-weight:700;font-variant-numeric:tabular-nums}
+@container lx (max-width: 720px){.wz-main .btn-sm{height:44px}.wz-main .btn-icon.btn-sm{width:44px}}
+@container lx (max-width: 720px){.big{font-size:32px;line-height:38px}.seg button{padding:0 6px;font-size:12.5px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <a class="wz-step is-done" href="NewName.dc.html"><span class="n">3</span>Name reservation</a>
+      <span class="wz-step is-done"><span class="n">4</span>Company basics</span>
+      <a class="wz-step is-on" aria-current="step" href="NewShares.dc.html"><span class="n">5</span>Share structure</a>
+      <span class="wz-step"><span class="n">6</span>Shareholders &amp; members</span>
+      <span class="wz-step"><span class="n">7</span>Directors &amp; partners</span>
+      <span class="wz-step"><span class="n">8</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step"><span class="n">10</span>Constitutional documents</span>
+      <span class="wz-step"><span class="n">11</span>Document vault</span>
+      <span class="wz-step"><span class="n">12</span>Employee information</span>
+      <span class="wz-step"><span class="n">13</span>Declaration &amp; consent</span>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 5 of 14</span><span class="t-caption t-3">36%</span></div>
+        <div class="progress"><span style="width: 36%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 5 of 14</p>
+        <h1 class="t-large">Share capital &amp; structure</h1>
+        <p class="t-body t-2 t-pretty">Set how many shares the company starts with and what each is worth. Together they make the statement of nominal capital BRS asks for.</p>
+      </header>
+      <section class="card card-pad stack gap-4 rise" style="--d: 1" aria-labelledby="sc-mode-l">
+        <div class="field">
+          <p class="label" id="sc-mode-l">Does the company have a single share class or multiple share classes? <span class="req" aria-hidden="true">*</span></p>
+          <div class="seg" style="--n: 2; --i: {{modeIndex}}" role="radiogroup" aria-labelledby="sc-mode-l">
+            <button class="{{singleOn}}" type="button" role="radio" aria-checked="{{singleAria}}" onClick="{{setSingle}}">Single class</button>
+            <button class="{{multiOn}}" type="button" role="radio" aria-checked="{{multiAria}}" onClick="{{setMulti}}">Multiple classes</button>
+          </div>
+        </div>
+        <div class="grid cols-2" style="gap: 10px">
+          <div class="inset stack gap-1"><p class="row gap-2 t-subhead t-strong"><span class="sw" style="background: var(--tint)" aria-hidden="true"></span>Ordinary</p><p class="t-footnote t-2 t-pretty">One vote per share and an equal share of dividends — what most founders hold.</p></div>
+          <div class="inset stack gap-1"><p class="row gap-2 t-subhead t-strong"><span class="sw" style="background: var(--sys-indigo)" aria-hidden="true"></span>Preference</p><p class="t-footnote t-2 t-pretty">Paid a fixed dividend and repaid first on winding up, usually with limited voting.</p></div>
+        </div>
+      </section>
+      <sc-if value="{{isSingle}}" hint-placeholder-val="{{false}}">
+      <section class="card rise" aria-labelledby="sc-single-h">
+        <div class="card-head"><h2 id="sc-single-h">Ordinary shares</h2><span class="t-headline t-num">{{single.totalText}}</span></div>
+        <div class="stack gap-4" style="padding: 0 20px 20px">
+          <div class="form-grid">
+            <div class="field">
+              <label class="label" for="sc-s-value">Nominal value per share (KES) <span class="req" aria-hidden="true">*</span></label>
+              <input class="input t-num" id="sc-s-value" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 1000" value="{{single.value}}" onInput="{{single.set_value}}">
+            </div>
+            <div class="field">
+              <label class="label" for="sc-s-shares">Total number of shares <span class="req" aria-hidden="true">*</span></label>
+              <input class="input t-num" id="sc-s-shares" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 1000" value="{{single.shares}}" onInput="{{single.set_shares}}">
+            </div>
+          </div>
+          <div class="field">
+            <p class="label" id="sc-vote-l">Voting rights <span class="req" aria-hidden="true">*</span></p>
+            <div class="seg" style="--n: 2; --i: {{voteIndex}}" role="radiogroup" aria-labelledby="sc-vote-l">
+              <button class="{{vote1On}}" type="button" role="radio" aria-checked="{{vote1Aria}}" onClick="{{setVote1}}">One share, one vote</button>
+              <button class="{{vote2On}}" type="button" role="radio" aria-checked="{{vote2Aria}}" onClick="{{setVote2}}">Weighted voting</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      </sc-if>
+      <sc-if value="{{isMulti}}" hint-placeholder-val="{{true}}">
+      <div class="stack gap-3">
+        <sc-for list="{{classes}}" as="c" hint-placeholder-count="1">
+          <article class="card rise" aria-labelledby="{{c.id}}-h">
+            <div class="card-head">
+              <div class="row gap-3" style="min-width: 0">
+                <span class="icon-tile" style="background: {{c.soft}}; color: {{c.color}}" aria-hidden="true"><span class="ic ic-coins"></span></span>
+                <div class="stack" style="min-width: 0"><h3 class="truncate" id="{{c.id}}-h">{{c.title}}</h3><span class="t-caption t-3 truncate">{{c.typeLabel}}</span></div>
+              </div>
+              <div class="row gap-1">
+                <span class="t-headline t-num hide-compact">{{c.totalText}}</span>
+                <button class="btn btn-destructive-plain btn-icon btn-sm" type="button" aria-label="{{c.removeLabel}}" disabled="{{c.removeDisabled}}" onClick="{{c.remove}}"><span class="ic ic-trash" aria-hidden="true"></span></button>
+              </div>
+            </div>
+            <div class="form-grid" style="padding: 0 20px 20px">
+                <div class="field">
+                  <label class="label" for="{{c.id}}-name">Class name <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="{{c.id}}-name" type="text" autocomplete="off" placeholder="e.g. Class A" value="{{c.name}}" onInput="{{c.set_name}}">
+                </div>
+                <div class="field">
+                  <label class="label" for="{{c.id}}-type">Type <span class="req" aria-hidden="true">*</span></label>
+                  <select class="select" id="{{c.id}}-type" value="{{c.type}}" onChange="{{c.set_type}}">
+                    <option value="ordinary">Ordinary</option>
+                    <option value="preference">Preference</option>
+                    <option value="non_voting">Non-voting / restricted-voting</option>
+                    <option value="redeemable">Redeemable</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="label" for="{{c.id}}-shares">Number of shares <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input t-num" id="{{c.id}}-shares" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 1000" value="{{c.shares}}" onInput="{{c.set_shares}}">
+                </div>
+                <div class="field">
+                  <label class="label" for="{{c.id}}-value">Nominal value per share (KES) <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input t-num" id="{{c.id}}-value" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 1000" value="{{c.value}}" onInput="{{c.set_value}}">
+                </div>
+                <div class="field">
+                  <label class="label" for="{{c.id}}-voting">Voting rights</label>
+                  <input class="input" id="{{c.id}}-voting" type="text" autocomplete="off" placeholder="e.g. one vote per share, or none" value="{{c.voting}}" onInput="{{c.set_voting}}">
+                </div>
+                <div class="field">
+                  <label class="label" for="{{c.id}}-dividend">Dividend rights</label>
+                  <input class="input" id="{{c.id}}-dividend" type="text" autocomplete="off" placeholder="e.g. pari passu, or fixed 8% cumulative" value="{{c.dividend}}" onInput="{{c.set_dividend}}">
+                </div>
+                <div class="calc span-all" aria-live="polite">
+                  <span class="t-footnote t-2 t-num">{{c.calcText}}</span>
+                  <span class="t-headline t-num">{{c.totalText}}</span>
+                </div>
+            </div>
+          </article>
+        </sc-for>
+        <button class="btn btn-secondary btn-block" type="button" onClick="{{addClass}}" disabled="{{addDisabled}}"><span class="ic ic-plus" aria-hidden="true"></span>{{addLabel}}</button>
+      </div>
+      </sc-if>
+      <section class="card rise" style="--d: 2" aria-labelledby="sc-sum-h">
+        <div class="card-head"><h2 id="sc-sum-h">Nominal share capital</h2><span class="pill pill-brand"><span class="dot" aria-hidden="true"></span>Live</span></div>
+        <div class="stack gap-4" style="padding: 0 20px 20px" aria-live="polite">
+          <div class="stack gap-1">
+            <p class="big">{{capText}}</p>
+            <p class="t-footnote t-3 t-num">{{capSub}}</p>
+          </div>
+          <div class="capbar" aria-hidden="true">
+            <sc-for list="{{segs}}" as="g" hint-placeholder-count="1"><span style="width: {{g.pct}}%; background: {{g.color}}"></span></sc-for>
+          </div>
+          <div class="stack">
+            <sc-for list="{{sumRows}}" as="r" hint-placeholder-count="1">
+              <div class="sum-row">
+                <span class="sw" style="background: {{r.color}}" aria-hidden="true"></span>
+                <div class="stack grow" style="min-width: 0"><span class="t-subhead truncate">{{r.title}}</span><span class="t-caption t-3 t-num truncate">{{r.calc}}</span></div>
+                <span class="t-subhead t-num">{{r.total}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div class="note {{secCls}}"><span class="ic {{secIc}}" aria-hidden="true"></span><p>{{secText}}</p></div>
+          <p class="t-footnote t-3 t-pretty">Nominal value × number of shares. Kenyan law requires shares to be fully issued, so the shareholders step will ask you to allocate all <span class="t-num">{{sharesText}}</span> shares between shareholders.</p>
+        </div>
+      </section>
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewName.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{foot}}</span>
+        <a class="btn btn-primary {{contCls}}" aria-disabled="{{contAria}}" href="NewPeople.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const mode = s.mode ?? 'multi';
+const vote = s.vote ?? 'one';
+const list = s.classes ?? [
+  { id: 'c1', name: 'Ordinary', type: 'ordinary', shares: '1000', value: '1000', voting: 'One vote per share', dividend: 'Pari passu' }
+];
+const TYPES = { ordinary: 'Ordinary', preference: 'Preference', non_voting: 'Non-voting / restricted-voting', redeemable: 'Redeemable', other: 'Other' };
+const COL = [
+  ['var(--tint)', 'var(--brand-50)'],
+  ['var(--sys-indigo)', 'color-mix(in srgb, var(--sys-indigo) 14%, var(--surface))'],
+  ['var(--sys-teal)', 'color-mix(in srgb, var(--sys-teal) 16%, var(--surface))'],
+  ['var(--sys-orange)', 'color-mix(in srgb, var(--sys-orange) 16%, var(--surface))']
+];
+const num = (x) => parseInt(String(x).replace(/[^0-9]/g, ''), 10) || 0;
+const fmt = (n) => n.toLocaleString('en-KE');
+const put = (arr) => this.setState({ classes: arr });
+const upd = (id, k) => (e) => {
+  const raw = e.target.value;
+  const val = k === 'shares' || k === 'value' ? raw.replace(/[^0-9]/g, '') : raw;
+  put(list.map((c) => (c.id === id ? { ...c, [k]: val } : c)));
+};
+const used = mode === 'single' ? [{ ...list[0], type: 'ordinary', name: list[0].name || 'Ordinary' }] : list;
+const rows = used.map((c, i) => {
+  const sh = num(c.shares);
+  const nv = num(c.value);
+  const total = sh * nv;
+  const col = COL[i % COL.length];
+  return {
+    id: 'sc-' + c.id,
+    name: c.name, type: c.type, shares: c.shares, value: c.value, voting: c.voting, dividend: c.dividend,
+    set_name: upd(c.id, 'name'), set_type: upd(c.id, 'type'), set_shares: upd(c.id, 'shares'),
+    set_value: upd(c.id, 'value'), set_voting: upd(c.id, 'voting'), set_dividend: upd(c.id, 'dividend'),
+    title: (c.name || 'Class ' + (i + 1)) + ' shares',
+    typeLabel: 'Class ' + (i + 1) + ' · ' + TYPES[c.type],
+    calcText: fmt(sh) + ' shares × KES ' + fmt(nv),
+    totalText: 'KES ' + fmt(total),
+    total, sh,
+    color: col[0], soft: col[1],
+    removeDisabled: list.length <= 1,
+    removeLabel: 'Remove ' + (c.name || 'class ' + (i + 1)),
+    remove: () => { if (list.length > 1) put(list.filter((o) => o.id !== c.id)); }
+  };
+});
+const cap = rows.reduce((a, r) => a + r.total, 0);
+const shares = rows.reduce((a, r) => a + r.sh, 0);
+const segs = rows.map((r) => ({ color: r.color, pct: cap ? Math.max(r.total / cap * 100, r.total ? 2 : 0).toFixed(2) : 0 }));
+const sumRows = rows.map((r) => ({ color: r.color, title: r.title + ' · ' + TYPES[r.type], calc: r.calcText, total: r.totalText }));
+const LET = 'ABCDEFGH';
+const over = cap > 5000000;
+const bad = rows.some((r) => !r.sh || !num(r.value)) || !cap;
+const single = rows[0];
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  isSingle: mode === 'single',
+  isMulti: mode === 'multi',
+  modeIndex: mode === 'single' ? 0 : 1,
+  singleOn: mode === 'single' ? 'is-on' : '', multiOn: mode === 'multi' ? 'is-on' : '',
+  singleAria: mode === 'single' ? 'true' : 'false', multiAria: mode === 'multi' ? 'true' : 'false',
+  setSingle: () => this.setState({ mode: 'single' }),
+  setMulti: () => this.setState({ mode: 'multi' }),
+  voteIndex: vote === 'one' ? 0 : 1,
+  vote1On: vote === 'one' ? 'is-on' : '', vote2On: vote === 'weighted' ? 'is-on' : '',
+  vote1Aria: vote === 'one' ? 'true' : 'false', vote2Aria: vote === 'weighted' ? 'true' : 'false',
+  setVote1: () => this.setState({ vote: 'one' }),
+  setVote2: () => this.setState({ vote: 'weighted' }),
+  single,
+  classes: rows,
+  addDisabled: list.length >= 4,
+  addLabel: list.length >= 4 ? 'Up to 4 classes here — ask a lawyer for more' : 'Add share class',
+  addClass: () => { if (list.length < 4) put([...list, { id: 'c' + Date.now(), name: 'Class ' + LET[list.length], type: 'preference', shares: '', value: '1000', voting: '', dividend: '' }]); },
+  capText: 'KES ' + fmt(cap),
+  capSub: fmt(shares) + ' shares across ' + rows.length + (rows.length === 1 ? ' class' : ' classes'),
+  sharesText: fmt(shares),
+  segs,
+  sumRows,
+  secCls: over ? 'note-warn' : 'note-info',
+  secIc: over ? 'ic-alert-triangle' : 'ic-info-circle',
+  secText: over ? 'Above KES 5,000,000, a private company must appoint a company secretary. We’ll ask for them in step 9.' : 'At KES 5,000,000 or below, a company secretary is optional. We’ll ask in step 9 — LexReg can provide one.',
+  foot: bad ? 'Every class needs a number of shares and a value' : fmt(shares) + ' shares to allocate in the next step',
+  contCls: bad ? 'is-disabled' : '',
+  contAria: bad ? 'true' : 'false'
+};
+}
+}
+</script>
+</body>
+</html>

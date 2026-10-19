@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Beneficial ownership — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lx a.btn-primary{color:#fff}
+.lx-dark a.btn-primary{color:#1C0008}
+.lx a.btn-gray,.lx a.btn-secondary{color:var(--label)}
+.chain{display:flex;align-items:center;gap:8px}
+.chain-node{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface);box-shadow:inset 0 0 0 1px var(--sep-soft)}
+.chain-link{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--label-3);font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px}
+.facts dt{font-size:12px;line-height:16px;color:var(--label-3)}
+.facts dd{font-size:14px;line-height:20px;font-weight:500;font-variant-numeric:tabular-nums}
+@container lx (max-width: 720px){
+.chain{flex-direction:column;align-items:stretch}
+.chain-link{flex-direction:row;justify-content:center;gap:6px}
+.chain-link .ic{transform:rotate(90deg)}
+.facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.bo-head{flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <a class="wz-step is-done" href="NewName.dc.html"><span class="n">3</span>Name reservation</a>
+      <span class="wz-step is-done"><span class="n">4</span>Company basics</span>
+      <a class="wz-step is-done" href="NewShares.dc.html"><span class="n">5</span>Share structure</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">6</span>Shareholders &amp; members</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">7</span>Directors &amp; partners</a>
+      <a class="wz-step is-on" aria-current="step" href="NewOwnership.dc.html"><span class="n">8</span>Beneficial ownership</a>
+      <span class="wz-step"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step"><span class="n">10</span>Constitutional documents</span>
+      <span class="wz-step"><span class="n">11</span>Document vault</span>
+      <span class="wz-step"><span class="n">12</span>Employee information</span>
+      <span class="wz-step"><span class="n">13</span>Declaration &amp; consent</span>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 8 of 14</span><span class="t-caption t-3 t-num">57%</span></div>
+        <div class="progress"><span style="width: 57%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 8 of 14</p>
+        <h1 class="t-large">Beneficial ownership</h1>
+        <p class="t-body t-2 t-pretty">A beneficial owner is a natural person who ultimately owns or controls 10% or more of the company &#8212; through shares, votes or the right to appoint directors &#8212; or who otherwise exercises significant influence or control.</p>
+      </header>
+
+      <div class="note note-info rise" style="--d: 1">
+        <span class="ic ic-sparkles" aria-hidden="true"></span>
+        <p class="grow t-pretty"><strong>We worked this out from your shareholders.</strong> Anyone holding 10% or more is listed directly. Savannah Holdings Limited is a company, and a company can&#8217;t itself be a beneficial owner &#8212; so we traced it to the person who owns it. Names, IDs and KRA PINs carry over; nothing to re-type.</p>
+      </div>
+
+      <section class="stack gap-3 rise" style="--d: 2" aria-labelledby="bo-h">
+        <div class="row between wrap gap-2">
+          <div class="stack">
+            <h2 id="bo-h" class="t-title3">3 beneficial owners</h2>
+            <p class="t-footnote t-3">2 direct · 1 indirect · declared separately from the shareholder register</p>
+          </div>
+          <span class="pill {{summaryCls}}" aria-live="polite"><span class="ic {{summaryIcon}}" aria-hidden="true"></span>{{summary}}</span>
+        </div>
+
+        <sc-for list="{{bos}}" as="b" hint-placeholder-count="3">
+          <article class="card" aria-labelledby="{{b.hid}}">
+            <div class="card-head bo-head" style="align-items: flex-start">
+              <div class="row gap-3" style="min-width: 0">
+                <span class="avatar">{{b.initials}}</span>
+                <div class="stack" style="min-width: 0">
+                  <h3 id="{{b.hid}}" class="truncate">{{b.name}}</h3>
+                  <p class="t-footnote t-3 t-num t-pretty">{{b.sub}}</p>
+                </div>
+              </div>
+              <div class="row gap-2 wrap" style="justify-content: flex-end">
+                <span class="pill {{b.kindCls}}">{{b.kind}}</span>
+                <span class="pill {{b.statusCls}}"><span class="ic {{b.statusIcon}}" aria-hidden="true"></span>{{b.status}}</span>
+              </div>
+            </div>
+            <div class="stack gap-4" style="padding: 0 20px 20px">
+
+              <sc-if value="{{b.isIndirect}}" hint-placeholder-val="{{true}}">
+                <div class="well stack gap-3">
+                  <p class="t-eyebrow">Ownership chain</p>
+                  <div class="chain" role="list" aria-label="James Kariuki owns 100% of Savannah Holdings Limited, which owns 10% of Jua Kali Foods Ltd">
+                    <div class="chain-node" role="listitem"><span class="avatar avatar-sm">JK</span><div class="stack" style="min-width: 0"><span class="t-subhead t-pretty" style="color: var(--label)">James Kariuki</span><span class="t-caption t-3">Natural person</span></div></div>
+                    <div class="chain-link" aria-hidden="true"><span class="ic ic-arrow-right ic-sm"></span>100%</div>
+                    <div class="chain-node" role="listitem"><span class="avatar avatar-sm avatar-corp">SH</span><div class="stack" style="min-width: 0"><span class="t-subhead t-pretty" style="color: var(--label)">Savannah Holdings Limited</span><span class="t-caption t-3 t-num">PVT-9QK3LM2A</span></div></div>
+                    <div class="chain-link" aria-hidden="true"><span class="ic ic-arrow-right ic-sm"></span>10%</div>
+                    <div class="chain-node" role="listitem" style="box-shadow: inset 0 0 0 1.5px var(--brand-200)"><span class="icon-tile"><span class="ic ic-building" aria-hidden="true"></span></span><div class="stack" style="min-width: 0"><span class="t-subhead t-pretty" style="color: var(--label)">Jua Kali Foods Ltd</span><span class="t-caption t-3">This company</span></div></div>
+                  </div>
+                  <p class="t-footnote t-2 t-num t-pretty">Effective interest <strong class="t-strong">10%</strong> = 100% of Savannah Holdings &#215; Savannah&#8217;s 10% of Jua Kali Foods. That meets the 10% threshold.</p>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{b.isDirect}}" hint-placeholder-val="{{true}}">
+                <dl class="facts">
+                  <sc-for list="{{b.facts}}" as="f" hint-placeholder-count="4">
+                    <div class="stack gap-1" style="min-width: 0"><dt>{{f.k}}</dt><dd class="truncate">{{f.v}}</dd></div>
+                  </sc-for>
+                </dl>
+                <p class="row gap-2 t-footnote t-3"><span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>From shareholder register</span><span class="t-pretty">Carried over from step 6.</span></p>
+              </sc-if>
+
+              <sc-if value="{{b.isIndirect}}" hint-placeholder-val="{{true}}">
+                <div class="form-grid">
+                  <div class="field is-extracted">
+                    <p class="label">Full name<span class="src src-extracted" style="margin-left: auto"><span class="ic ic-scan" aria-hidden="true"></span>Read from ID · step 6</span></p>
+                    <p class="input" style="display: flex; align-items: center">James Kariuki</p>
+                  </div>
+                  <div class="field is-extracted">
+                    <p class="label">ID or passport number<span class="src src-extracted" style="margin-left: auto"><span class="ic ic-scan" aria-hidden="true"></span>Read from ID · step 6</span></p>
+                    <p class="input t-num" style="display: flex; align-items: center">27654321</p>
+                  </div>
+                  <div class="field {{natCls}}">
+                    <label class="label" for="jk-nat">Nationality<span class="req" aria-hidden="true">*</span><span class="src {{natSrcCls}}" style="margin-left: auto">{{natSrc}}</span></label>
+                    <input class="input" id="jk-nat" type="text" placeholder="e.g. Kenyan" value="{{jkNat}}" onInput="{{setNat}}" aria-describedby="jk-nat-help">
+                    <p class="help" id="jk-nat-help">Not captured in step 6 &#8212; BOF-1 needs it.</p>
+                  </div>
+                  <div class="field {{dobCls}}">
+                    <label class="label" for="jk-dob">Date of birth<span class="req" aria-hidden="true">*</span><span class="src {{dobSrcCls}}" style="margin-left: auto">{{dobSrc}}</span></label>
+                    <input class="input t-num" id="jk-dob" type="date" value="{{jkDob}}" onInput="{{setDob}}" aria-describedby="jk-dob-help">
+                    <p class="help" id="jk-dob-help">BOF-1 needs it. As shown on his ID.</p>
+                  </div>
+                </div>
+              </sc-if>
+
+              <fieldset class="stack gap-2" style="border: 0; padding: 0; margin: 0; min-width: 0">
+                <legend class="row between" style="width: 100%; padding: 0 0 8px"><span class="t-subhead" style="color: var(--label)">Nature of control</span><span class="t-caption t-3 t-num">{{b.countLabel}}</span></legend>
+                <div class="grid cols-2" style="gap: 10px">
+                  <sc-for list="{{b.controls}}" as="c" hint-placeholder-count="4">
+                    <button class="choice {{c.cls}}" type="button" aria-pressed="{{c.on}}" onClick="{{c.pick}}">
+                      <span class="mark square" aria-hidden="true"></span>
+                      <span class="stack gap-1" style="min-width: 0"><span class="t-subhead" style="color: var(--label)">{{c.title}}</span><span class="t-footnote t-3 t-pretty">{{c.desc}}</span></span>
+                    </button>
+                  </sc-for>
+                </div>
+                <sc-if value="{{b.noneSelected}}" hint-placeholder-val="{{false}}">
+                  <p class="error" role="alert"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>Describe the nature of ownership or control &#8212; pick at least one.</p>
+                </sc-if>
+              </fieldset>
+            </div>
+          </article>
+        </sc-for>
+
+        <button class="btn btn-gray" type="button" style="align-self: flex-start"><span class="ic ic-user-plus" aria-hidden="true"></span>Add another beneficial owner</button>
+      </section>
+
+      <div class="note note-brand rise" style="--d: 3">
+        <span class="ic ic-signature" aria-hidden="true"></span>
+        <p class="grow t-pretty"><strong>BOF-1 is prepared for signature.</strong> LexReg fills the beneficial ownership form from this list. You&#8217;ll find it in the document vault, ready to download, sign and file with BRS alongside CR1, CR2 and CR8.</p>
+      </div>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewPeople.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footnote}}</span>
+        <a class="btn btn-primary" href="NewVault.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":2400}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const controls = s.controls ?? { wm: ['shares', 'votes', 'directors'], bo: ['shares', 'votes'], jk: ['shares', 'votes'] };
+const jkNat = s.jkNat ?? '';
+const jkDob = s.jkDob ?? '';
+const OPTIONS = [
+  { k: 'shares', title: 'Holds shares', desc: '10% or more of the issued shares, directly or indirectly' },
+  { k: 'votes', title: 'Holds voting rights', desc: '10% or more of the voting rights' },
+  { k: 'directors', title: 'Appoints or removes directors', desc: 'The right to appoint or remove a director' },
+  { k: 'influence', title: 'Significant influence or control', desc: 'Otherwise shapes how the company is run' }
+];
+const toggle = (id, k) => {
+  const cur = controls[id] || [];
+  const next = cur.indexOf(k) === -1 ? cur.concat([k]) : cur.filter((x) => x !== k);
+  const all = Object.assign({}, controls);
+  all[id] = next;
+  this.setState({ controls: all });
+};
+const jkMissing = (jkNat.trim() ? 0 : 1) + (jkDob ? 0 : 1);
+const PEOPLE = [
+  { id: 'wm', initials: 'WM', name: 'Wanjiku Mwangi', sub: 'Shareholder & director · 600 shares · 60%', direct: true,
+    facts: [{ k: 'ID number', v: '23456789' }, { k: 'KRA PIN', v: 'A012345678Z' }, { k: 'Nationality', v: 'Kenyan' }, { k: 'Date of birth', v: '12 June 1984' }] },
+  { id: 'bo', initials: 'BO', name: 'Brian Otieno', sub: 'Shareholder & director · 300 shares · 30%', direct: true,
+    facts: [{ k: 'ID number', v: '29876543' }, { k: 'KRA PIN', v: 'A019876543K' }, { k: 'Nationality', v: 'Kenyan' }, { k: 'Date of birth', v: '3 February 1988' }] },
+  { id: 'jk', initials: 'JK', name: 'James Kariuki', sub: 'Owns 100% of Savannah Holdings Limited · 10% effective', direct: false, facts: [] }
+];
+let incomplete = 0;
+const bos = PEOPLE.map((p) => {
+  const sel = controls[p.id] || [];
+  const missing = p.direct ? 0 : jkMissing;
+  const none = sel.length === 0;
+  const ready = missing === 0 && !none;
+  if (!ready) incomplete += 1;
+  let status = 'Ready for BOF-1';
+  if (missing > 0) status = missing === 1 ? '1 detail needed' : missing + ' details needed';
+  else if (none) status = 'Nature of control needed';
+  return {
+    hid: 'bo-' + p.id,
+    initials: p.initials,
+    name: p.name,
+    sub: p.sub,
+    kind: p.direct ? 'Direct' : 'Indirect',
+    kindCls: p.direct ? 'pill-outline' : 'pill-info',
+    status: status,
+    statusCls: ready ? 'pill-good' : 'pill-warn',
+    statusIcon: ready ? 'ic-circle-check' : 'ic-alert-triangle',
+    isDirect: p.direct,
+    isIndirect: !p.direct,
+    facts: p.facts,
+    noneSelected: none,
+    countLabel: sel.length + ' of 4 selected',
+    controls: OPTIONS.map((o) => {
+      const on = sel.indexOf(o.k) !== -1;
+      return { title: o.title, desc: o.desc, on: on, cls: on ? 'is-selected' : '', pick: () => toggle(p.id, o.k) };
+    })
+  };
+});
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  bos: bos,
+  jkNat: jkNat,
+  jkDob: jkDob,
+  setNat: (e) => this.setState({ jkNat: e.target.value }),
+  setDob: (e) => this.setState({ jkDob: e.target.value }),
+  natCls: jkNat.trim() ? '' : 'is-missing',
+  natSrc: jkNat.trim() ? 'Added by you' : 'Missing',
+  natSrcCls: jkNat.trim() ? 'src-confirmed' : 'src-missing',
+  dobCls: jkDob ? '' : 'is-missing',
+  dobSrc: jkDob ? 'Added by you' : 'Missing',
+  dobSrcCls: jkDob ? 'src-confirmed' : 'src-missing',
+  summary: incomplete === 0 ? 'All 3 ready for BOF-1' : (incomplete === 1 ? '1 needs details' : incomplete + ' need details'),
+  summaryCls: incomplete === 0 ? 'pill-good' : 'pill-warn',
+  summaryIcon: incomplete === 0 ? 'ic-circle-check' : 'ic-alert-triangle',
+  footnote: incomplete === 0 ? 'All beneficial owners complete' : (incomplete === 1 ? '1 beneficial owner needs details · you can finish later' : incomplete + ' beneficial owners need details')
+};
+}
+}
+</script>
+</body>
+</html>

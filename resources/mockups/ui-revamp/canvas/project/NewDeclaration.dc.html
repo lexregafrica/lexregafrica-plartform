@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Declaration and consent — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lx a.btn-primary{color:#fff}
+.lx-dark a.btn-primary{color:#1C0008}
+.lx a.btn-gray,.lx a.btn-secondary{color:var(--label)}
+.sig-line{min-height:64px;display:flex;align-items:flex-end;padding:0 4px 8px;border-bottom:1px solid var(--ink-300)}
+@container lx (max-width: 720px){.doc-links a{min-height:44px}}
+.sig-ink{font-family:var(--font-serif);font-style:italic;font-size:30px;line-height:38px;letter-spacing:0;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <a class="wz-step is-done" href="NewName.dc.html"><span class="n">3</span>Name reservation</a>
+      <span class="wz-step is-done"><span class="n">4</span>Company basics</span>
+      <a class="wz-step is-done" href="NewShares.dc.html"><span class="n">5</span>Share structure</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">6</span>Shareholders &amp; members</a>
+      <a class="wz-step is-done" href="NewPeople.dc.html"><span class="n">7</span>Directors &amp; partners</a>
+      <a class="wz-step is-done" href="NewOwnership.dc.html"><span class="n">8</span>Beneficial ownership</a>
+      <span class="wz-step is-done"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step is-done"><span class="n">10</span>Constitutional documents</span>
+      <a class="wz-step is-done" href="NewVault.dc.html"><span class="n">11</span>Document vault</a>
+      <span class="wz-step is-done"><span class="n">12</span>Employee information</span>
+      <a class="wz-step is-on" aria-current="step" href="NewDeclaration.dc.html"><span class="n">13</span>Declaration &amp; consent</a>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 13 of 14</span><span class="t-caption t-3 t-num">93%</span></div>
+        <div class="progress"><span style="width: 93%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 13 of 14</p>
+        <h1 class="t-large">Declaration &amp; consent</h1>
+        <p class="t-body t-2 t-pretty">Confirm the application is accurate, say how we may use your data, and sign by typing your full name.</p>
+      </header>
+
+      <fieldset class="card card-pad stack gap-3 rise" style="--d: 1; border: 0; margin: 0; min-width: 0">
+        <legend class="sr-only">Declarations</legend>
+        <div class="row between wrap gap-2" style="padding-bottom: 4px">
+          <h2 class="t-title3">Declarations</h2>
+          <span class="pill t-num {{tickCls}}" aria-live="polite">{{tickLabel}}</span>
+        </div>
+        <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+          <button class="choice {{c.cls}}" type="button" role="checkbox" aria-checked="{{c.on}}" onClick="{{c.toggle}}">
+            <span class="mark square" aria-hidden="true"></span>
+            <span class="stack gap-1" style="min-width: 0">
+              <span class="t-callout t-strong t-pretty" style="color: var(--label)">{{c.text}}</span>
+              <span class="t-footnote t-3 t-pretty">{{c.sub}}</span>
+            </span>
+          </button>
+        </sc-for>
+        <p class="doc-links row wrap gap-4 t-footnote" style="padding: 4px 2px 0">
+          <a href="Legal.dc.html" class="row gap-1"><span class="ic ic-file-text ic-sm" aria-hidden="true"></span>Read the Privacy Policy</a>
+          <a href="Legal.dc.html" class="row gap-1"><span class="ic ic-file-text ic-sm" aria-hidden="true"></span>Read the Terms and Conditions</a>
+        </p>
+      </fieldset>
+
+      <section class="card rise" style="--d: 2" aria-labelledby="dpa-h">
+        <div class="card-head" style="align-items: flex-start">
+          <div class="stack gap-1">
+            <p class="t-eyebrow">Data Protection Act, 2019</p>
+            <h2 id="dpa-h">What your consent means, in plain language</h2>
+          </div>
+          <span class="icon-tile"><span class="ic ic-shield-lock" aria-hidden="true"></span></span>
+        </div>
+        <ul class="list" style="box-shadow: none; border: 0; border-radius: 0 0 var(--r-card) var(--r-card)">
+          <li class="list-row has-icon" style="align-items: flex-start">
+            <span class="icon-tile gray"><span class="ic ic-id" aria-hidden="true"></span></span>
+            <div class="grow"><p class="list-title">What we use</p><p class="list-sub t-pretty">Names, ID and KRA PIN numbers, dates of birth, contact details and documents for everyone in this application.</p></div>
+          </li>
+          <li class="list-row has-icon" style="align-items: flex-start">
+            <span class="icon-tile gray"><span class="ic ic-target" aria-hidden="true"></span></span>
+            <div class="grow"><p class="list-title">Why</p><p class="list-sub t-pretty">Only to prepare your BRS filing pack and keep Jua Kali Foods&#8217; compliance records. We don&#8217;t sell it or use it for advertising.</p></div>
+          </li>
+          <li class="list-row has-icon" style="align-items: flex-start">
+            <span class="icon-tile gray"><span class="ic ic-users" aria-hidden="true"></span></span>
+            <div class="grow"><p class="list-title">Who can see it</p><p class="list-sub t-pretty">You, the LexReg team preparing your filing, and a lawyer only if you ask for one &#8212; and then only for this company.</p></div>
+          </li>
+          <li class="list-row has-icon" style="align-items: flex-start">
+            <span class="icon-tile gray"><span class="ic ic-shield-check" aria-hidden="true"></span></span>
+            <div class="grow"><p class="list-title">Your rights</p><p class="list-sub t-pretty">Ask to see, correct or delete your data at any time. Deleted records are kept for 30 days, then removed for good. Everyone you added should know you&#8217;ve shared their details.</p></div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="card card-pad stack gap-4 rise" style="--d: 3" aria-labelledby="sig-h">
+        <div class="stack gap-1">
+          <h2 id="sig-h" class="t-title3">Sign the application</h2>
+          <p class="t-footnote t-3">Signing as Wanjiku Mwangi · applicant, director and shareholder</p>
+        </div>
+        <div class="form-grid">
+          <div class="field {{sigCls}}" style="grid-column: 1 / -1">
+            <label class="label" for="sig">Signature &#8212; type your full legal name<span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="sig" type="text" autocomplete="name" placeholder="e.g. Jane Wanjiku Kamau" value="{{signature}}" onInput="{{setSig}}" aria-describedby="sig-help" style="font-style: italic">
+            <p class="help row gap-1" id="sig-help" aria-live="polite" style="align-items: flex-start"><span class="ic {{sigIcon}} ic-sm {{sigTone}}" aria-hidden="true" style="margin-top: 1px"></span><span class="t-pretty {{sigTone}}">{{sigHelp}}</span></p>
+          </div>
+        </div>
+        <div class="well stack gap-2" aria-hidden="true">
+          <div class="sig-line"><span class="sig-ink" style="color: var({{sigInk}})">{{sigPreview}}</span></div>
+          <div class="row between wrap gap-2 t-caption t-3"><span>Signature of applicant</span><span class="t-num">Date of declaration: 16 October 2026</span></div>
+        </div>
+      </section>
+
+      <p class="only-compact t-footnote t-3" aria-hidden="true" style="text-align: center">{{footnote}}</p>
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewVault.dc.html" aria-label="Back"><span class="ic ic-arrow-left" aria-hidden="true"></span><span class="hide-compact">Back</span></a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact" aria-live="polite">{{footnote}}</span>
+        <a class="btn btn-primary {{nextCls}}" href="NewReview.dc.html" aria-disabled="{{nextDisabled}}">Continue to review<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1800}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const declared = s.declared ?? false;
+const consented = s.consented ?? false;
+const agreedTerms = s.agreedTerms ?? false;
+const signature = s.signature ?? '';
+const ITEMS = [
+  { k: 'declared', on: declared, text: 'I declare that all information provided is true and accurate.', sub: 'Giving false information to the Registrar is an offence under the Companies Act, 2015.' },
+  { k: 'consented', on: consented, text: 'I consent to LexReg Africa processing my personal data for business registration purposes.', sub: 'Covers you and the people you added. See what this means below.' },
+  { k: 'agreedTerms', on: agreedTerms, text: 'I have read and agree to the Privacy Policy and Terms and Conditions.', sub: 'Links to both are just below.' }
+];
+const checks = ITEMS.map((it) => ({
+  text: it.text,
+  sub: it.sub,
+  on: it.on,
+  cls: it.on ? 'is-selected' : '',
+  toggle: () => { const p = {}; p[it.k] = !it.on; this.setState(p); }
+}));
+const ticked = ITEMS.filter((i) => i.on).length;
+const sig = signature.trim();
+const matches = sig.toLowerCase().replace(/\s+/g, ' ') === 'wanjiku mwangi';
+const signed = sig.length >= 3;
+const ready = ticked === 3 && signed;
+let sigHelp = 'Type it exactly as on your ID. This becomes your electronic signature on the application.';
+let sigTone = '';
+let sigIcon = 'ic-info-circle';
+let sigCls = '';
+if (signed && matches) { sigHelp = 'Matches the applicant name on step 2.'; sigTone = 't-good'; sigIcon = 'ic-circle-check'; }
+else if (signed) { sigHelp = 'Doesn’t match the applicant name on step 2 (Wanjiku Mwangi). Check the spelling if this is you.'; sigTone = 't-warn'; sigIcon = 'ic-alert-triangle'; sigCls = 'is-conflict'; }
+let footnote = '';
+if (ready) footnote = 'Signed and ready for review';
+else if (ticked < 3 && !signed) footnote = 'Tick ' + (3 - ticked) + ' more and sign to continue';
+else if (ticked < 3) footnote = 'Tick ' + (3 - ticked) + ' more to continue';
+else footnote = 'Type your full name to sign';
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  checks: checks,
+  tickLabel: ticked + ' of 3 confirmed',
+  tickCls: ticked === 3 ? 'pill-good' : '',
+  signature: signature,
+  setSig: (e) => this.setState({ signature: e.target.value }),
+  sigPreview: sig || 'Your signature appears here',
+  sigInk: sig ? '--label' : '--label-3',
+  sigHelp: sigHelp,
+  sigTone: sigTone,
+  sigIcon: sigIcon,
+  sigCls: sigCls,
+  footnote: footnote,
+  nextCls: ready ? '' : 'is-disabled',
+  nextDisabled: ready ? 'false' : 'true'
+};
+}
+}
+</script>
+</body>
+</html>

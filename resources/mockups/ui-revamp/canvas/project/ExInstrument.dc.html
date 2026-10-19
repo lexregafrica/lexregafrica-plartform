@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Constitution — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.wz-main.wide{max-width:none}
+.ins-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.ins-doc{position:sticky;top:76px}
+.rule{position:relative;transition:background-color var(--dur-snappy) var(--ease-spring)}
+.rule + .rule{border-top:0.5px solid var(--sep-soft)}
+.rule.is-sel{background:var(--brand-50)}
+.rule-main{display:flex;gap:12px;align-items:flex-start;width:100%;padding:14px 16px;text-align:left}
+.rule-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 16px 14px 60px}
+.paper{padding:22px 22px 26px;font-size:15px;line-height:1.62;color:var(--label-2)}
+.paper-head{font-size:12.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;color:var(--label);margin-bottom:8px}
+.hl{background:var(--brand-100);color:var(--label);border-radius:3px;padding:1px 2px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.q-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@container lx (max-width: 720px){
+  .ins-grid{grid-template-columns:minmax(0,1fr)}
+  .rule-acts{padding-left:16px}
+  .q-grid{grid-template-columns:minmax(0,1fr)}
+  .paper{padding:16px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Onboard an existing entity · Tumaini Welfare Society</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <span class="wz-step is-done"><span class="n">1</span>Entity type</span>
+      <span class="wz-step is-done"><span class="n">2</span>Upload documents</span>
+      <span class="wz-step is-done"><span class="n">3</span>Entity details</span>
+      <span class="wz-step is-done"><span class="n">4</span>Officers &amp; members</span>
+      <a class="wz-step is-on" aria-current="step" href="ExInstrument.dc.html"><span class="n">5</span>Constitution</a>
+      <span class="wz-step"><span class="n">6</span>Compliance baseline</span>
+      <span class="wz-step"><span class="n">7</span>Review &amp; activate</span>
+    </nav>
+    <section class="wz-main wide">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 5 of 7</span><span class="t-caption t-3 t-num">71%</span></div>
+        <div class="progress"><span style="width: 71%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 5 of 7 · Constitution</p>
+        <h1 class="t-large t-balance">Your constitution, as rules</h1>
+        <p class="t-body t-2 t-pretty">We read the constitution into the rules your society runs by. Check each summary against its clause — the signed constitution stays the controlling document.</p>
+      </header>
+
+      <!-- Source document + progress -->
+      <div class="card card-pad rise" style="--d: 1">
+        <div class="row gap-3 wrap">
+          <span class="icon-tile icon-tile-lg info"><span class="ic ic-book" aria-hidden="true"></span></span>
+          <div class="stack gap-1 grow" style="min-width: 200px">
+            <p class="t-headline truncate">Constitution of Tumaini Welfare Society (amended 2021).pdf</p>
+            <p class="t-footnote t-2">16 clauses · 6 pages · read 2 minutes ago</p>
+          </div>
+          <sc-if value="{{hasUnconfirmed}}" hint-placeholder-val="{{true}}">
+            <button class="btn btn-tinted btn-sm" type="button" onClick="{{confirmAll}}"><span class="ic ic-check" aria-hidden="true"></span>{{confirmAllLabel}}</button>
+          </sc-if>
+        </div>
+        <div class="row gap-4 wrap" style="margin-top: 16px">
+          <span class="row gap-2"><span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span><span class="t-num">{{nConfirmed}}</span> verified</span></span>
+          <span class="row gap-2"><span class="src src-extracted"><span class="ic ic-file-text" aria-hidden="true"></span><span class="t-num">{{nRead}}</span> to confirm</span></span>
+          <span class="row gap-2"><span class="src src-conflict"><span class="ic ic-alert-triangle" aria-hidden="true"></span><span class="t-num">2</span> not covered</span></span>
+        </div>
+        <div class="progress good" style="margin-top: 12px" aria-hidden="true"><span style="width: {{confirmedPct}}%"></span></div>
+      </div>
+
+      <div class="note note-brand rise" style="--d: 2">
+        <span class="ic ic-scale" aria-hidden="true"></span>
+        <p class="t-pretty"><strong>Where the constitution is silent, LexReg says so rather than inventing a rule.</strong> Those matters go to a legal review — the Societies Act or the Registrar’s practice may apply.</p>
+      </div>
+
+      <div class="ins-grid">
+        <!-- Rules list -->
+        <section class="stack gap-2 rise" style="--d: 3" aria-labelledby="rules-h">
+          <div class="row between" style="padding: 0 4px">
+            <h2 id="rules-h" class="t-eyebrow">Governance rules</h2>
+            <span class="t-caption t-3 t-num">11 matters · 9 found</span>
+          </div>
+          <div class="card" style="overflow: hidden">
+            <sc-for list="{{rules}}" as="r" hint-placeholder-count="11">
+              <div class="rule {{r.cls}}">
+                <button class="rule-main" type="button" aria-pressed="{{r.pressed}}" onClick="{{r.pick}}">
+                  <span class="icon-tile {{r.tileCls}}"><span class="ic {{r.tileIc}}" aria-hidden="true"></span></span>
+                  <span class="stack gap-1 grow">
+                    <span class="row between gap-2 wrap">
+                      <span class="t-headline">{{r.label}}</span>
+                      <span class="row gap-1">
+                        <sc-if value="{{r.hasClause}}" hint-placeholder-val="{{true}}"><span class="pill pill-outline t-num">{{r.clause}}</span></sc-if>
+                        <span class="{{r.stateCls}}"><span class="ic {{r.stateIc}}" aria-hidden="true"></span>{{r.stateText}}</span>
+                      </span>
+                    </span>
+                    <span class="t-callout t-2 t-pretty">{{r.summary}}</span>
+                  </span>
+                </button>
+                <sc-if value="{{r.isSel}}" hint-placeholder-val="{{false}}">
+                  <div class="rule-acts fade">
+                    <sc-if value="{{r.canConfirm}}" hint-placeholder-val="{{true}}">
+                      <button class="btn btn-tinted btn-sm" type="button" onClick="{{r.confirm}}"><span class="ic ic-check" aria-hidden="true"></span>Matches the clause</button>
+                      <button class="btn btn-gray btn-sm" type="button"><span class="ic ic-pencil" aria-hidden="true"></span>Correct summary</button>
+                    </sc-if>
+                    <sc-if value="{{r.isConfirmed}}" hint-placeholder-val="{{false}}">
+                      <button class="btn btn-plain btn-sm" type="button" onClick="{{r.unconfirm}}">Undo</button>
+                    </sc-if>
+                    <sc-if value="{{r.silent}}" hint-placeholder-val="{{false}}">
+                      <span class="t-footnote t-2 t-pretty grow">{{r.silentNote}}</span>
+                    </sc-if>
+                    <!-- Phone: excerpt inline under the selected rule -->
+                    <div class="only-compact" style="width: 100%">
+                      <sc-if value="{{r.hasClause}}" hint-placeholder-val="{{true}}">
+                        <div class="well t-serif" style="font-size: 15px; line-height: 1.6; color: var(--label-2)">
+                          <p class="paper-head t-num">{{r.head}} · page {{r.page}}</p>
+                          <p>{{r.pre}}<span class="hl">{{r.hl}}</span>{{r.post}}</p>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- Document preview (desktop) -->
+        <aside class="ins-doc hide-compact rise" style="--d: 4" aria-label="Constitution excerpt">
+          <div class="card" style="overflow: hidden">
+            <div class="card-head" style="padding-bottom: 10px">
+              <div class="stack" style="min-width: 0">
+                <p class="t-eyebrow">From the constitution</p>
+                <h3 class="truncate">{{cur.label}}</h3>
+              </div>
+              <sc-if value="{{cur.hasClause}}" hint-placeholder-val="{{true}}"><span class="pill t-num">p. {{cur.page}} of 6</span></sc-if>
+            </div>
+            <div class="divider"></div>
+            <sc-if value="{{cur.hasClause}}" hint-placeholder-val="{{true}}">
+              <div class="paper t-serif fade">
+                <p class="paper-head">{{cur.head}}</p>
+                <p>{{cur.pre}}<span class="hl">{{cur.hl}}</span>{{cur.post}}</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{cur.silent}}" hint-placeholder-val="{{false}}">
+              <div class="stack gap-3" style="padding: 18px 20px 20px">
+                <div class="row gap-3">
+                  <span class="icon-tile warn"><span class="ic ic-file-search" aria-hidden="true"></span></span>
+                  <div class="stack">
+                    <p class="t-headline">The constitution doesn’t say</p>
+                    <p class="t-footnote t-2">Searched all 16 clauses, including the 2021 amendment.</p>
+                  </div>
+                </div>
+                <p class="t-callout t-2 t-pretty">{{cur.silentNote}}</p>
+                <sc-if value="{{cur.hasNearest}}" hint-placeholder-val="{{false}}">
+                  <div class="well t-serif" style="font-size: 14.5px; line-height: 1.6; color: var(--label-2)">
+                    <p class="t-eyebrow" style="font-family: var(--font); margin-bottom: 6px">Closest mention — doesn’t answer it</p>
+                    <p>{{cur.nearest}}</p>
+                  </div>
+                </sc-if>
+                <div class="note note-warn"><span class="ic ic-gavel" aria-hidden="true"></span><p>A legal-review task is created when you activate. Nothing is assumed in the meantime.</p></div>
+              </div>
+            </sc-if>
+            <div class="card-foot">
+              <span class="t-caption t-3 truncate">Constitution (amended 2021).pdf</span>
+              <button class="btn btn-plain btn-sm" type="button"><span class="ic ic-external-link" aria-hidden="true"></span>Open</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Closing questions -->
+      <section class="card card-pad stack gap-5 rise" style="--d: 5" aria-labelledby="close-h">
+        <div class="stack gap-1">
+          <h2 id="close-h" class="t-title3">Two things the constitution can’t tell us</h2>
+          <p class="t-footnote t-2 t-pretty">Your answers decide whether a review is opened — never which side is right.</p>
+        </div>
+
+        <fieldset class="stack gap-3" style="border: 0; padding: 0; margin: 0">
+          <legend class="t-headline t-pretty" style="padding: 0; margin-bottom: 10px">Is there any dispute about who the society’s lawful officers are (e.g. rival officer lists or a contested election)?</legend>
+          <div class="q-grid" role="radiogroup" aria-label="Officer dispute">
+            <sc-for list="{{disputeOpts}}" as="o" hint-placeholder-count="3">
+              <button class="choice {{o.cls}}" type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}">
+                <span class="mark" aria-hidden="true"></span>
+                <span class="stack gap-1"><span class="t-headline">{{o.label}}</span><span class="t-footnote t-2">{{o.sub}}</span></span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{disputeYes}}" hint-placeholder-val="{{false}}">
+            <div class="note note-warn fade"><span class="ic ic-gavel" aria-hidden="true"></span><p><strong>Officer dispute — Registrar / legal review.</strong> We keep both sets of evidence and don’t decide which side is lawful. A legal review and, if needed, the Registrar’s dispute process follow.</p></div>
+          </sc-if>
+        </fieldset>
+
+        <div class="divider"></div>
+
+        <fieldset class="stack gap-3" style="border: 0; padding: 0; margin: 0">
+          <legend class="t-headline t-pretty" style="padding: 0; margin-bottom: 10px">Has the constitution, name or objects been changed?</legend>
+          <div class="q-grid" role="radiogroup" aria-label="Constitution changed">
+            <sc-for list="{{changedOpts}}" as="o" hint-placeholder-count="3">
+              <button class="choice {{o.cls}}" type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}">
+                <span class="mark" aria-hidden="true"></span>
+                <span class="stack gap-1"><span class="t-headline">{{o.label}}</span><span class="t-footnote t-2">{{o.sub}}</span></span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{changedYes}}" hint-placeholder-val="{{false}}">
+            <div class="note note-info fade"><span class="ic ic-info-circle" aria-hidden="true"></span><p>Constitution, name and object changes follow the constitution’s own procedure (Clause 15) and the Registrar’s process — upload the approval or ask us to help.</p></div>
+          </sc-if>
+        </fieldset>
+      </section>
+
+      <!-- What this step creates -->
+      <section class="stack gap-2 rise" style="--d: 6" aria-labelledby="tasks-h">
+        <div class="row between" style="padding: 0 4px">
+          <h2 id="tasks-h" class="t-eyebrow">Opened when you activate</h2>
+          <span class="t-caption t-3 t-num">{{taskCountLabel}}</span>
+        </div>
+        <div class="list">
+          <sc-for list="{{tasks}}" as="t" hint-placeholder-count="2">
+            <div class="list-row has-icon">
+              <span class="icon-tile {{t.tile}}"><span class="ic {{t.ic}}" aria-hidden="true"></span></span>
+              <div class="stack grow">
+                <span class="list-title">{{t.title}}</span>
+                <span class="list-sub t-pretty">{{t.sub}}</span>
+                <span class="t-caption t-3 t-num only-compact" style="margin-top: 2px">{{t.due}}</span>
+              </div>
+              <span class="pill t-num hide-compact">{{t.due}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="Dashboard.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footerHint}}</span>
+        <a class="btn btn-primary" href="ExBaseline.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":2500}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const sel = s.sel ?? 'officers';
+const confirmed = s.confirmed ?? { objects: true, membership: true };
+const dispute = s.dispute ?? 'no';
+const changed = s.changed ?? null;
+
+const RULES = [
+  { key: 'objects', label: 'Name & objects', clause: 'Clauses 2–3', page: 1, head: '2. Name · 3. Objects',
+    summary: 'Tumaini Welfare Society. Supports members and their families in bereavement, illness and education through pooled monthly contributions.',
+    pre: '2. The name of the Society shall be Tumaini Welfare Society (hereinafter “the Society”). ',
+    hl: '3.1 The objects of the Society shall be to support members and their immediate families in times of bereavement, illness and the education of children, through pooled monthly contributions;',
+    post: ' 3.2 to promote the welfare and unity of its members.' },
+  { key: 'membership', label: 'Membership', clause: 'Clause 5', page: 2, head: '5. Membership',
+    summary: 'Open to adults living or working in Nairobi County. KES 1,000 to join, KES 500 a month. Expulsion needs a two-thirds vote after 14 days’ written notice.',
+    pre: '5.1 Membership shall be open to any person of eighteen years and above residing or working within Nairobi County. ',
+    hl: '5.2 A member shall pay a registration fee of Kenya Shillings One Thousand (KES 1,000) and a monthly subscription of Kenya Shillings Five Hundred (KES 500).',
+    post: ' 5.6 A member may be expelled by a resolution of two-thirds of the members present at a general meeting, after fourteen (14) days’ written notice.' },
+  { key: 'officers', label: 'Officers', clause: 'Clause 7.2', page: 3, head: '7. Officers',
+    summary: 'Chairperson, Secretary and Treasurer. Elected by secret ballot at the AGM for two years, with one re-election. The committee fills a vacancy until the next AGM.',
+    pre: '7.1 The Officers of the Society shall be the Chairperson, the Secretary and the Treasurer. ',
+    hl: '7.2 The Officers shall be elected by secret ballot at the Annual General Meeting, shall hold office for two (2) years, and shall be eligible for re-election for one further term only.',
+    post: ' 7.4 Any casual vacancy shall be filled by the Executive Committee until the next Annual General Meeting.' },
+  { key: 'trustees_auditors', label: 'Trustees & auditors', silent: true,
+    summary: 'No trustees are named, and nothing says how the auditor is appointed or removed.',
+    silentNote: 'Clause 13 requires an annual audit but never says who appoints the auditor, and no clause provides for trustees to hold the society’s property.',
+    nearest: '13.2 The accounts of the Society shall be audited annually and presented to the Annual General Meeting.' },
+  { key: 'committees', label: 'Committees', clause: 'Clause 8.1', page: 3, head: '8. Executive Committee',
+    summary: 'An Executive Committee of the three officers plus four members elected at the AGM. Five members make a quorum.',
+    pre: '',
+    hl: '8.1 The Executive Committee shall consist of the Officers and four (4) other members elected at the Annual General Meeting.',
+    post: ' 8.3 Five (5) members of the Committee shall form a quorum.' },
+  { key: 'general_meetings', label: 'General meetings', clause: 'Clause 10.2', page: 4, head: '10. General Meetings',
+    summary: 'AGM every year by 31 March. 21 days’ written notice; quorum is one-third of paid-up members; decisions by simple majority.',
+    pre: '10.1 The Annual General Meeting shall be held once in every calendar year and not later than the thirty-first day of March. ',
+    hl: '10.2 Not less than twenty-one (21) days’ written notice shall be given to every member. One-third of paid-up members shall form a quorum.',
+    post: ' 10.4 Decisions shall be by a simple majority of the members present and voting.' },
+  { key: 'funds_property', label: 'Funds & property', clause: 'Clause 12.3', page: 5, head: '12. Funds',
+    summary: 'Banked in the society’s name. Any two of the Chairperson, Secretary and Treasurer sign. Nothing is paid out to members except approved welfare benefits.',
+    pre: '12.1 All moneys of the Society shall be deposited in a bank account in the name of the Society. ',
+    hl: '12.3 All cheques and withdrawals shall be signed by any two (2) of the Chairperson, the Secretary and the Treasurer.',
+    post: ' 12.5 No part of the funds shall be distributed to members save as welfare benefits approved under these rules.' },
+  { key: 'accounts_audit', label: 'Accounts & audit', clause: 'Clause 13.2', page: 5, head: '13. Accounts and Audit',
+    summary: 'The Treasurer keeps the books. Accounts are audited every year and presented at the AGM.',
+    pre: '13.1 The Treasurer shall keep proper books of account of all moneys received and paid by the Society. ',
+    hl: '13.2 The accounts of the Society shall be audited annually and presented to the Annual General Meeting.',
+    post: '' },
+  { key: 'branches', label: 'Branches', silent: true,
+    summary: 'Nothing on whether or how branches may be formed and governed.',
+    silentNote: 'No clause mentions branches. We won’t assume the society can — or can’t — form them.',
+    nearest: '' },
+  { key: 'amendments', label: 'Amendments', clause: 'Clause 15.1', page: 6, head: '15. Amendments',
+    summary: 'Two-thirds of members present at a general meeting, on 30 days’ notice — then the Registrar’s approval before it takes effect.',
+    pre: '',
+    hl: '15.1 These rules may be amended by a resolution of two-thirds of the members present at a general meeting of which thirty (30) days’ notice of the proposed amendment has been given,',
+    post: ' and no amendment shall take effect until approved by the Registrar of Societies.' },
+  { key: 'dissolution', label: 'Dissolution', clause: 'Clause 16.2', page: 6, head: '16. Dissolution',
+    summary: 'Three-fifths of all members at a general meeting. Remaining property goes to a society with similar objects — never to members.',
+    pre: '16.1 The Society shall not be dissolved except by a resolution of three-fifths of all members at a general meeting. ',
+    hl: '16.2 Upon dissolution, any remaining property shall be given to another society with similar objects and shall not be distributed among the members.',
+    post: '' }
+];
+
+const rules = RULES.map((r) => {
+  const isSel = r.key === sel;
+  const isConfirmed = !r.silent && !!confirmed[r.key];
+  const stateCls = r.silent ? 'src src-conflict' : isConfirmed ? 'src src-verified' : 'src src-extracted';
+  const stateIc = r.silent ? 'ic-alert-triangle' : isConfirmed ? 'ic-circle-check' : 'ic-file-text';
+  const stateText = r.silent ? 'The constitution doesn’t say' : isConfirmed ? 'Verified' : 'Read — please confirm';
+  return {
+    ...r,
+    silent: !!r.silent,
+    hasClause: !r.silent,
+    hasNearest: !!r.nearest,
+    isSel,
+    isConfirmed: isSel && isConfirmed,
+    canConfirm: isSel && !r.silent && !isConfirmed,
+    cls: isSel ? 'is-sel' : '',
+    pressed: isSel ? 'true' : 'false',
+    tileCls: r.silent ? 'warn' : isConfirmed ? 'good' : 'info',
+    tileIc: r.silent ? 'ic-alert-triangle' : isConfirmed ? 'ic-check' : 'ic-file-text',
+    stateCls, stateIc, stateText,
+    pick: () => this.setState({ sel: r.key }),
+    confirm: () => this.setState({ confirmed: { ...confirmed, [r.key]: true } }),
+    unconfirm: () => this.setState({ confirmed: { ...confirmed, [r.key]: false } })
+  };
+});
+const cur = rules.find((r) => r.key === sel) || rules[0];
+const readRules = rules.filter((r) => !r.silent);
+const nConfirmed = readRules.filter((r) => !!confirmed[r.key]).length;
+const nRead = readRules.length - nConfirmed;
+
+const opts = (val, setKey, list) => list.map((o) => ({
+  ...o,
+  cls: val === o.v ? 'is-selected' : '',
+  checked: val === o.v ? 'true' : 'false',
+  pick: () => this.setState({ [setKey]: o.v })
+}));
+const disputeOpts = opts(dispute, 'dispute', [
+  { v: 'no', label: 'No', sub: 'The officers on record are undisputed.' },
+  { v: 'yes', label: 'Yes', sub: 'Rival lists or a contested election.' },
+  { v: 'unsure', label: 'Not sure', sub: 'No review now — you can answer later.' }
+]);
+const changedOpts = opts(changed, 'changed', [
+  { v: 'no', label: 'No', sub: 'This is the current constitution.' },
+  { v: 'yes', label: 'Yes', sub: 'Changed after the 2021 amendment.' },
+  { v: 'unsure', label: 'Not sure', sub: 'Leave it with us to check.' }
+]);
+
+const tasks = [
+  { title: 'Legal review: matters the constitution doesn’t cover', sub: 'Silent on: trustees & auditors, branches. Statutory default rules may apply — we’ll review with you rather than assume a rule.', due: 'Due 15 Nov 2026', tile: 'warn', ic: 'ic-gavel' }
+];
+if (dispute === 'yes') tasks.push({ title: 'Officer dispute — Registrar / legal review', sub: 'Both sets of evidence are kept. Nothing is decided for either side.', due: 'Due 23 Oct 2026', tile: 'bad', ic: 'ic-scale' });
+if (changed === 'yes') tasks.push({ title: 'Regularise the constitutional change', sub: 'Upload the approval, or ask us to help with the Registrar’s process.', due: 'Due 15 Nov 2026', tile: 'info', ic: 'ic-file-certificate' });
+
+const n = tasks.length;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  rules,
+  cur,
+  nConfirmed,
+  nRead,
+  confirmedPct: Math.round((nConfirmed / readRules.length) * 100),
+  hasUnconfirmed: nRead > 0,
+  confirmAllLabel: 'Confirm ' + nRead + ' remaining',
+  confirmAll: () => {
+    const all = { ...confirmed };
+    RULES.forEach((r) => { if (!r.silent) all[r.key] = true; });
+    this.setState({ confirmed: all });
+  },
+  disputeOpts,
+  changedOpts,
+  disputeYes: dispute === 'yes',
+  changedYes: changed === 'yes',
+  tasks,
+  taskCountLabel: n + (n === 1 ? ' legal-review task' : ' review tasks'),
+  footerHint: (nRead ? nRead + ' to confirm · ' : 'All read rules confirmed · ') + n + (n === 1 ? ' review task' : ' review tasks')
+};
+}
+}
+</script>
+</body>
+</html>

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { IconAlertCircle, IconArrowLeft, IconArrowRight, IconCheck, IconCloudCheck } from '@tabler/icons-react'
+import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 import {
   ENTITY_TYPES,
   PHASE1_ENTITY_TYPES,
@@ -70,21 +72,21 @@ export function NoAutofillInput(props: React.InputHTMLAttributes<HTMLInputElemen
 }
 
 const inputCls =
-  'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
+  'w-full px-3 py-2 rounded-[10px] border text-[15px] leading-6 focus:outline-none focus:ring-[3px] focus:ring-black/[0.06] focus:border-[#86868B]'
 const inputStyle = {
-  borderColor: 'var(--system-fill-3)',
-  background: 'var(--system-bg)',
-  color: 'var(--system-label)',
+  borderColor: 'var(--ink-200)',
+  background: 'var(--surface)',
+  color: 'var(--label)',
 } as const
-const labelCls = 'block text-ios-footnote font-medium mb-1.5'
-const labelStyle = { color: 'var(--system-label-2)' } as const
+const labelCls = 'label mb-1.5'
+const labelStyle = {} as const
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className={labelCls} style={labelStyle}>
+      <label className={labelCls}>
         {label}
-        {required && <span style={{ color: '#dc2626' }}> *</span>}
+        {required && <span className="req">*</span>}
       </label>
       {children}
     </div>
@@ -102,8 +104,7 @@ function PrimaryButton({ children, onClick, disabled, type = 'button' }: {
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-      style={{ background: 'var(--brand-navy)' }}
+      className="btn btn-primary flex-1"
     >
       {children}
     </button>
@@ -115,8 +116,7 @@ function SecondaryButton({ children, onClick }: { children: React.ReactNode; onC
     <button
       type="button"
       onClick={onClick}
-      className="py-2.5 px-5 rounded-full text-sm font-medium border"
-      style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}
+      className="btn btn-gray"
     >
       {children}
     </button>
@@ -486,6 +486,15 @@ export function NewEntityWizard() {
   const editParam = searchParams.get('edit') === '1'
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [step, setStep] = useState(1)
+  // Forward steps enter from the right, Back from the left
+  const [shownStep, setShownStep] = useState(1)
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward')
+  if (step !== shownStep) {
+    setDirection(step > shownStep ? 'forward' : 'back')
+    setShownStep(step)
+  }
+  // New step starts at the top, like a new screen
+  useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
   const [entityType, setEntityType] = useState<EntityType>('limited_company')
   const [entityId, setEntityId] = useState<string | null>(null)
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -933,24 +942,33 @@ export function NewEntityWizard() {
   // ---- render states ----------------------------------------------
   if (loadState === 'loading') {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center">
-        <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--brand-navy)' }}>
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
+      <div className="lx wz min-h-[100dvh]">
+        <NewWizardTopBar title="Register a new entity" />
+        <div className="wz-body" style={{ justifyContent: 'center' }}>
+          <section className="wz-main" aria-busy="true">
+            <div className="skeleton h-5 w-40" />
+            <div className="skeleton h-9 w-3/4" />
+            <div className="skeleton h-28 w-full" />
+            <div className="skeleton h-28 w-full" />
+          </section>
+        </div>
       </div>
     )
   }
 
   if (loadState === 'error') {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4">
-        <p className="text-ios-body mb-4" style={{ color: 'var(--system-label-2)' }}>
-          We couldn’t load your application.
-        </p>
-        <Link href="/onboarding" className="text-ios-subhead font-medium" style={{ color: 'var(--brand-navy)' }}>
-          ← Back to path selection
-        </Link>
+      <div className="lx wz min-h-[100dvh]">
+        <NewWizardTopBar title="Register a new entity" />
+        <div className="wz-body" style={{ justifyContent: 'center' }}>
+          <section className="wz-main">
+            <div className="note note-bad" role="alert">
+              <IconAlertCircle size={18} stroke={1.75} aria-hidden="true" />
+              <p>We couldn&rsquo;t load your application. Check your connection and try again.</p>
+            </div>
+            <Link href="/onboarding" className="btn btn-gray self-start"><IconArrowLeft size={17} stroke={2} aria-hidden="true" />Back to path selection</Link>
+          </section>
+        </div>
       </div>
     )
   }
@@ -973,28 +991,33 @@ export function NewEntityWizard() {
     )
   }
 
+  const visibleSteps = Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).filter((n) => isStepVisible(n, entityType, wizard))
+  const stepPos = Math.max(visibleSteps.indexOf(step), 0)
+  const pct = Math.round(((stepPos + 1) / visibleSteps.length) * 100)
+  const draftName = wizard.proposedNames?.find((n) => n?.trim())
+
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center px-4 py-12">
-      <div className="w-full max-w-[480px]">
-        {/* Step indicator */}
-        <div className="flex items-center gap-1 mb-6">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div
-              key={i}
-              className="h-1 flex-1 rounded-full transition-colors"
-              style={{
-                background: i + 1 <= step
-                  ? isStepVisible(i + 1, entityType, wizard) ? 'var(--brand-navy)' : 'var(--system-fill-2, #d1d1d6)'
-                  : 'var(--system-fill-3)',
-              }}
-            />
+    <div className="lx wz min-h-[100dvh]">
+      <NewWizardTopBar title={draftName ? `Register a new entity · ${draftName}` : 'Register a new entity'} />
+      <div className="wz-body">
+        <nav className="wz-rail sticky top-20 self-start" aria-label="Steps">
+          <p className="t-eyebrow" style={{ padding: '0 10px 8px' }}>Steps</p>
+          {visibleSteps.map((n, i) => (
+            <span key={n} className={`wz-step ${i < stepPos ? 'is-done' : i === stepPos ? 'is-on' : ''}`} aria-current={i === stepPos ? 'step' : undefined}>
+              <span className="n">{i < stepPos ? <IconCheck size={13} stroke={3} aria-hidden="true" /> : i + 1}</span>
+              {stepLabel(n, entityType)}
+            </span>
           ))}
-        </div>
+        </nav>
 
-        <p className="text-ios-footnote mb-2" style={{ color: 'var(--system-label-3)' }}>
-          Step {step} of {TOTAL_STEPS} — {stepLabel(step, entityType)}
-        </p>
+        <section className="wz-main">
+          <div className="wz-progress">
+            <div className="flex items-center justify-between"><span className="t-caption t-3 t-num">Step {stepPos + 1} of {visibleSteps.length}</span><span className="t-caption t-3 t-num">{pct}%</span></div>
+            <div className="progress"><span style={{ width: `${pct}%`, animation: 'none', transition: 'width var(--dur-spring) var(--ease-spring)' }} /></div>
+          </div>
+          <p className="t-eyebrow hide-compact">Step {stepPos + 1} of {visibleSteps.length} · {stepLabel(step, entityType)}</p>
 
+          <div key={step} className={`${direction === 'forward' ? 'enter-forward' : 'enter-back'} flex flex-col gap-5`}>
         {/* ---- step bodies ---- */}
         {step === 1 && (
           <StepEntityType entityType={entityType} setEntityType={setEntityType} wizard={wizard} patch={patch} recommendedType={recommendedType} />
@@ -1147,35 +1170,52 @@ export function NewEntityWizard() {
           />
         )}
 
-        {error && <p className="text-xs text-red-500 mt-4">{error}</p>}
+          </div>
 
-        {/* ---- nav buttons ---- */}
-        <div className="flex items-center gap-3 mt-6">
-          {step > 1 && <SecondaryButton onClick={handleBack}>Back</SecondaryButton>}
-          {step < TOTAL_STEPS ? (
-            <PrimaryButton onClick={handleContinue} disabled={saving}>
-              {saving ? 'Saving…' : 'Continue'}
-            </PrimaryButton>
-          ) : (
-            <PrimaryButton onClick={handleSubmit} disabled={saving}>
-              {saving ? 'Submitting…' : 'Submit for processing'}
-            </PrimaryButton>
+          {error && (
+            <div className="note note-bad" role="alert">
+              <IconAlertCircle size={18} stroke={1.75} aria-hidden="true" />
+              <p>{error}</p>
+            </div>
           )}
-        </div>
 
-        <p className="text-ios-caption1 mt-3 text-center" style={{ color: 'var(--system-label-3)' }}>
-          Your progress is saved automatically at every step.
-        </p>
-
-        <Link
-          href="/dashboard"
-          className="mt-4 block text-center text-ios-footnote font-medium"
-          style={{ color: 'var(--system-label-3)' }}
-        >
-          Save &amp; exit
-        </Link>
+          <div className="wz-actions glass">
+            {step > 1 ? (
+              <button type="button" onClick={handleBack} className="btn btn-gray"><IconArrowLeft size={17} stroke={2} aria-hidden="true" />Back</button>
+            ) : (
+              <Link href="/onboarding" className="btn btn-gray"><IconArrowLeft size={17} stroke={2} aria-hidden="true" />Change path</Link>
+            )}
+            <span className="spacer" />
+            <span className="t-footnote t-3 hide-compact">Saved automatically at every step</span>
+            {step < TOTAL_STEPS ? (
+              <button type="button" onClick={handleContinue} disabled={saving} className="btn btn-primary">
+                {saving ? 'Saving…' : 'Continue'}<IconArrowRight size={17} stroke={2} aria-hidden="true" />
+              </button>
+            ) : (
+              <button type="button" onClick={handleSubmit} disabled={saving} className="btn btn-primary">
+                {saving ? 'Submitting…' : 'Submit for processing'}
+              </button>
+            )}
+          </div>
+        </section>
       </div>
     </div>
+  )
+}
+
+function NewWizardTopBar({ title }: { title: string }) {
+  return (
+    <header className="wz-top glass sticky top-0 z-20">
+      <Link className="flex items-center gap-2" href="/dashboard" style={{ color: 'var(--label)' }}>
+        <LexRegLogoMark size={28} />
+        <span className="t-headline hide-compact">LexReg</span>
+      </Link>
+      <span className="t-3 hide-compact" aria-hidden="true">/</span>
+      <span className="t-subhead min-w-0 truncate">{title}</span>
+      <div className="flex-1" />
+      <span className="wz-saved"><IconCloudCheck size={15} stroke={1.75} aria-hidden="true" /><span className="hide-compact">Saves at every step</span></span>
+      <Link className="btn btn-gray btn-sm" href="/dashboard">Save &amp; exit</Link>
+    </header>
   )
 }
 
@@ -8486,8 +8526,8 @@ function SubmittedScreen({ onDashboard, orgId, entityId, entityStatus, idpUrl, b
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center px-4 py-12">
-      <div className="w-full max-w-[440px]">
+    <div className="lx flex min-h-[100dvh] flex-col items-center px-4 py-12" style={{ background: 'var(--bg)' }}>
+      <div className="w-full max-w-[520px]">
         <div className="text-center mb-6">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(128,0,32,0.10)' }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#800020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -8722,7 +8762,7 @@ function CertificateUpload({ orgId, entityId, api, onActivated }: {
         placeholder="Registration number (optional)"
         value={registrationNumber}
         onChange={(e) => setRegistrationNumber(e.target.value)}
-        className="w-full px-4 py-2.5 mb-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30"
+        className="w-full px-4 py-2.5 mb-3 rounded-xl border text-sm focus:outline-none focus:ring-[3px] focus:ring-black/[0.06] focus:border-[#86868B]"
         style={{ borderColor: 'var(--system-fill-3)', background: 'var(--system-bg)', color: 'var(--system-label)' }}
       />
       <label

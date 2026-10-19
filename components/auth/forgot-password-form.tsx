@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CheckCircle2 } from 'lucide-react'
+import { IconMail, IconAlertCircle, IconMailCheck } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/client'
+import { AuthShell, AuthHeader } from '@/components/auth/auth-shell'
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('')
@@ -28,75 +29,51 @@ export function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F4F6F8] px-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-sm p-8 flex flex-col items-center text-center">
-          <CheckCircle2 className="w-12 h-12 mb-4" style={{ color: '#FFFFFF' }} />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            We sent a password reset link to{' '}
-            <span className="font-medium text-gray-900">{email}</span>.
-          </p>
-          <Link
-            href="/login"
-            className="text-sm font-medium text-gray-900 underline underline-offset-2 hover:opacity-70 transition-opacity"
-          >
-            Back to sign in
-          </Link>
+      <AuthShell>
+        <span className="icon-tile icon-tile-lg good pop" aria-hidden="true"><IconMailCheck size={22} stroke={1.75} /></span>
+        <AuthHeader
+          title="Check your email"
+          subtitle={<>We sent a password reset link to <strong style={{ color: 'var(--label)' }}>{email}</strong>. Open it on this device to choose a new password.</>}
+        />
+        <div className="flex flex-col gap-2">
+          <Link href="/login" className="btn btn-gray btn-lg btn-block">Back to sign in</Link>
+          <button type="button" className="btn btn-plain" onClick={() => setSent(false)}>Use a different email</button>
         </div>
-      </div>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F4F6F8] px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-sm p-8 flex flex-col items-center">
+    <AuthShell>
+      <AuthHeader title="Reset your password" subtitle="Enter your email and we’ll send you a reset link." />
 
-        <Link href="/" className="flex flex-col items-center gap-2 mb-7 hover:opacity-75 transition-opacity">
-          <img src="/images/logo.png" alt="LexReg Africa" className="h-14 w-14 object-contain" />
-          <div className="text-center">
-            <p className="text-sm font-semibold text-gray-900 leading-tight">LexReg Africa</p>
-            <p className="text-[11px] text-gray-400 leading-tight mt-0.5">Governance &amp; Compliance Portal</p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+        <div className={`field rise ${error ? 'is-invalid' : ''}`} style={{ '--d': 1 } as React.CSSProperties}>
+          <label className="label" htmlFor="fp-email">Email</label>
+          <div className="input-wrap">
+            <IconMail size={18} stroke={1.75} aria-hidden="true" className="absolute left-3" style={{ color: 'var(--label-3)', pointerEvents: 'none' }} />
+            <input
+              className="input"
+              id="fp-email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError('') }}
+              aria-invalid={!!error || undefined}
+              aria-describedby={error ? 'fp-error' : undefined}
+              style={{ paddingLeft: 38 }}
+            />
           </div>
-        </Link>
+          {error && <p className="error" id="fp-error"><IconAlertCircle size={15} stroke={1.75} aria-hidden="true" />{error}</p>}
+        </div>
 
-        <h1 className="text-lg font-semibold text-gray-900 mb-1 text-center">Reset your password</h1>
-        <p className="text-sm text-gray-400 mb-5 text-center">
-          Enter your email and we&apos;ll send you a reset link.
-        </p>
+        <button type="submit" disabled={loading} className="btn btn-primary btn-lg btn-block rise" style={{ '--d': 2 } as React.CSSProperties}>
+          {loading ? 'Sending…' : 'Send reset link'}
+        </button>
+      </form>
 
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            autoComplete="email"
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#800020]/30 focus:border-[#800020]"
-          />
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mt-1"
-            style={{ background: '#800020' }}
-          >
-            {loading ? 'Sending…' : 'Send reset link'}
-          </button>
-        </form>
-
-        <p className="text-[11px] text-gray-400 mt-6 text-center">
-          Remember your password?{' '}
-          <Link href="/login" className="text-gray-900 font-medium underline underline-offset-2 hover:opacity-70 transition-opacity">
-            Sign in
-          </Link>
-        </p>
-      </div>
-
-      <p className="text-[11px] text-gray-400 mt-6 text-center">
-        © {new Date().getFullYear()} LexReg Africa. All rights reserved.
-      </p>
-    </div>
+      <p className="t-footnote t-3 text-center">Remember your password? <Link href="/login">Sign in</Link></p>
+    </AuthShell>
   )
 }

@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Document vault — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.ws-tabs{overflow-x:auto;scrollbar-width:none}
+.vault{display:grid;grid-template-columns:208px minmax(0,1fr) 300px;min-height:660px}
+.v-tree{display:flex;flex-direction:column;gap:2px;padding:12px 8px;border-right:var(--hairline-soft);background:var(--surface-3);border-radius:var(--r-card) 0 0 var(--r-card)}
+.v-folder{display:flex;align-items:center;gap:8px;width:100%;min-height:36px;padding:0 10px;border-radius:var(--r-sm);font-size:13.5px;font-weight:500;color:var(--label-2);text-align:left;white-space:nowrap}
+.v-folder:hover{background:var(--fill-4);color:var(--label)}
+.v-folder .ic{color:var(--label-3)}
+.v-folder.is-on{background:var(--surface);color:var(--tint-text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.05),0 0 0 0.5px var(--sep-soft)}
+.v-folder.is-on .ic{color:var(--tint-text)}
+.v-folder .n{margin-left:auto;padding-left:8px;font-size:12px;font-weight:500;color:var(--label-3);font-variant-numeric:tabular-nums}
+.v-list{display:flex;flex-direction:column;min-width:0}
+.v-name{width:100%;max-width:0;min-width:150px}
+.v-pick{display:flex;align-items:center;gap:10px;width:100%;min-width:0;text-align:left;font-weight:500}
+.v-pick .ic{color:var(--label-3)}
+.table tbody tr.is-sel{background:var(--brand-50)}
+.table tbody tr.is-sel .v-pick .ic{color:var(--tint-text)}
+.v-preview{display:flex;flex-direction:column;gap:16px;padding:16px;border-left:var(--hairline-soft);min-width:0}
+.doc-thumb{position:relative;height:150px;border-radius:var(--r-md);background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.doc-page{width:104px;height:132px;border-radius:4px;background:var(--surface);box-shadow:var(--shadow-raise);padding:12px 10px;display:flex;flex-direction:column;gap:6px}
+.doc-page .skeleton{height:5px}
+.v-ctl{height:34px}
+.pv-row{display:flex;flex-direction:column;gap:3px;padding:9px 0;border-top:var(--hairline-soft)}
+@container lx (max-width: 1180px){.vault{grid-template-columns:200px minmax(0,1fr)}.v-preview{grid-column:1 / -1;border-left:0;border-top:var(--hairline-soft)}}
+@container lx (max-width: 720px){.vault{grid-template-columns:minmax(0,1fr)}.v-tree{flex-direction:row;overflow-x:auto;scrollbar-width:none;border-right:0;border-bottom:var(--hairline-soft);border-radius:var(--r-card) var(--r-card) 0 0}.v-folder{flex:none;width:auto;min-height:44px}.v-name{min-width:170px}.v-ctl{height:44px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Main navigation">
+    <a class="sb-brand" href="Dashboard.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Africa</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">4</span></a>
+    <a class="sb-item" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance<span class="badge">2</span></a>
+    <a class="sb-item is-on" href="WsDocuments.dc.html" aria-current="page"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+    <a class="sb-item" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    <div class="sb-group">Support</div>
+    <a class="sb-item" href="Overlays.dc.html"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Get help</a>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-settings" aria-hidden="true"></span>Settings</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm">WM</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Business owner</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Dashboard.dc.html">Entities</a><span aria-hidden="true">/</span><a href="Workspace.dc.html">Amani Logistics Limited</a><span aria-hidden="true">/</span><span class="here">Documents</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Documents</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm">WM</span></div>
+    </div>
+    <main class="content">
+
+      <div class="stack gap-4">
+        <header class="page-head rise">
+          <div class="row gap-4" style="align-items: flex-start; min-width: 0">
+            <span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-building"></span></span>
+            <div class="stack gap-1" style="min-width: 0">
+              <p class="t-eyebrow">Entity workspace</p>
+              <h1 class="t-title1">Amani Logistics Limited</h1>
+              <div class="row wrap gap-2">
+                <span class="pill pill-brand">Private limited company</span>
+                <span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Active</span>
+                <span class="t-footnote t-3">Reg. no. <span class="t-mono" style="color: var(--label-2)">PVT-2LU7Q9XB</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-gray btn-icon" type="button" aria-label="More actions" aria-haspopup="menu"><span class="ic ic-dots" aria-hidden="true"></span></button>
+            <a class="btn btn-primary" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Request a service</a>
+          </div>
+        </header>
+
+        <nav class="tabs ws-tabs" aria-label="Entity sections">
+          <a href="Workspace.dc.html"><span class="ic ic-layout-dashboard ic-sm" aria-hidden="true"></span>Overview</a>
+          <a href="WsStructure.dc.html"><span class="ic ic-hierarchy-2 ic-sm" aria-hidden="true"></span>Structure</a>
+          <a href="WsPeople.dc.html"><span class="ic ic-users ic-sm" aria-hidden="true"></span>People</a>
+          <a href="WsCompliance.dc.html"><span class="ic ic-calendar-due ic-sm" aria-hidden="true"></span>Compliance</a>
+          <a class="is-on" href="WsDocuments.dc.html" aria-current="page"><span class="ic ic-folder ic-sm" aria-hidden="true"></span>Documents</a>
+        </nav>
+      </div>
+
+      <section class="card rise" style="--d: 1" aria-labelledby="vault-h">
+        <div class="vault">
+
+          <nav class="v-tree" aria-label="Folders">
+            <p class="t-eyebrow hide-compact" style="padding: 4px 10px 8px">Folders</p>
+            <sc-for list="{{folders}}" as="fd" hint-placeholder-count="8">
+              <button class="{{fd.cls}}" type="button" aria-current="{{fd.current}}" onClick="{{fd.pick}}"><span class="ic {{fd.ic}} ic-sm" aria-hidden="true"></span><span>{{fd.label}}</span><span class="n">{{fd.count}}</span></button>
+            </sc-for>
+            <div class="stack gap-2 hide-compact" style="margin-top: auto; padding: 16px 10px 4px">
+              <div class="progress"><span style="width: 18%"></span></div>
+              <p class="t-caption t-3 t-num">{{totalText}}</p>
+            </div>
+          </nav>
+
+          <div class="v-list">
+            <div class="row wrap gap-3 between" style="padding: 14px 16px">
+              <div class="stack" style="min-width: 0">
+                <h2 id="vault-h" class="t-headline truncate">{{listTitle}}</h2>
+                <p class="t-footnote t-3 t-num">{{listSub}}</p>
+              </div>
+              <div class="row gap-2 grow" style="justify-content: flex-end; min-width: 240px">
+                <div class="input-wrap grow" style="max-width: 280px">
+                  <span class="ic ic-search ic-sm" aria-hidden="true"></span>
+                  <label class="sr-only" for="vault-q">Search documents</label>
+                  <input class="input v-ctl" id="vault-q" type="search" placeholder="Search all folders" value="{{q}}" onInput="{{setQ}}">
+                </div>
+                <button class="btn btn-tinted v-ctl" type="button" aria-expanded="{{uploadExpanded}}" onClick="{{toggleUpload}}"><span class="ic ic-upload" aria-hidden="true"></span>Upload</button>
+              </div>
+            </div>
+
+            <sc-if value="{{uploadOpen}}" hint-placeholder-val="{{false}}">
+              <div class="rise" style="padding: 0 16px 14px">
+                <button class="{{dropCls}}" type="button" onClick="{{addFile}}" onDragOver="{{dragOver}}" onDragLeave="{{dragLeave}}" onDrop="{{dropFile}}" style="width: 100%">
+                  <span class="ic ic-cloud-upload ic-xl" aria-hidden="true"></span>
+                  <span class="t-headline" style="color: var(--label)">{{dropTitle}}</span>
+                  <span class="t-footnote t-3">PDF, JPG or PNG up to 10 MB · we read it with OCR and suggest a folder</span>
+                </button>
+              </div>
+            </sc-if>
+
+            <div class="table-wrap" style="border-top: var(--hairline-soft)">
+              <table class="table">
+                <thead>
+                  <tr><th>Name</th><th class="hide-compact">Type</th><th>Source</th><th>OCR</th><th>Date</th><th class="num hide-compact">Size</th></tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{rows}}" as="f" hint-placeholder-count="5">
+                    <tr class="{{f.rowCls}}">
+                      <td class="{{f.nameCls}}"><button class="v-pick" type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" title="{{f.name}}"><span class="ic {{f.ic}}" aria-hidden="true"></span><span class="truncate">{{f.name}}</span></button></td>
+                      <td class="hide-compact t-2" style="white-space: nowrap">{{f.type}}</td>
+                      <td><span class="{{f.srcPill}}">{{f.source}}</span></td>
+                      <td><span class="{{f.ocrPill}}">{{f.ocrText}}</span></td>
+                      <td class="t-num t-2" style="white-space: nowrap">{{f.date}}</td>
+                      <td class="num t-3 hide-compact" style="white-space: nowrap">{{f.size}}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <sc-if value="{{noRows}}" hint-placeholder-val="{{false}}">
+              <div class="stack gap-2 fade" style="align-items: center; text-align: center; padding: 40px 20px">
+                <span class="icon-tile icon-tile-lg gray" aria-hidden="true"><span class="ic ic-file-search"></span></span>
+                <p class="t-headline">No documents match “{{q}}”</p>
+                <p class="t-footnote t-3">Try a person&#39;s name, a form number like CR12, or a year.</p>
+              </div>
+            </sc-if>
+          </div>
+
+          <aside class="v-preview" aria-label="Preview">
+            <sc-if value="{{hasSel}}" hint-placeholder-val="{{true}}">
+              <div class="doc-thumb {{thumbCls}}" aria-hidden="true">
+                <div class="doc-page">
+                  <span class="skeleton" style="width: 60%; background: var(--brand-200)"></span>
+                  <span class="skeleton" style="width: 90%"></span>
+                  <span class="skeleton" style="width: 80%"></span>
+                  <span class="skeleton" style="width: 86%"></span>
+                  <span class="skeleton" style="width: 40%"></span>
+                  <span class="skeleton" style="width: 76%; margin-top: 6px"></span>
+                  <span class="skeleton" style="width: 88%"></span>
+                  <span class="skeleton" style="width: 52%"></span>
+                </div>
+              </div>
+              <div class="stack gap-2">
+                <p class="t-headline clamp-2" style="overflow-wrap: anywhere">{{sel.name}}</p>
+                <div class="row wrap gap-2"><span class="{{sel.srcPill}}">{{sel.source}}</span><span class="{{sel.ocrPill}}">{{sel.ocrLong}}</span></div>
+                <p class="t-caption t-3 t-num">{{sel.type}} · {{sel.date}} · {{sel.size}} · {{sel.folderLabel}}</p>
+              </div>
+              <div class="row gap-2">
+                <button class="btn btn-gray btn-sm grow" type="button"><span class="ic ic-eye" aria-hidden="true"></span>Open</button>
+                <button class="btn btn-gray btn-sm grow" type="button"><span class="ic ic-download" aria-hidden="true"></span>Download</button>
+                <button class="btn btn-gray btn-icon btn-sm" type="button" aria-label="Replace file"><span class="ic ic-refresh" aria-hidden="true"></span></button>
+              </div>
+
+              <sc-if value="{{sel.isLow}}" hint-placeholder-val="{{false}}">
+                <div class="note note-warn"><span class="ic ic-alert-triangle" aria-hidden="true"></span><span>Read at {{sel.ocr}}% confidence — below our 60% threshold. Check the values against the original before relying on them.</span></div>
+              </sc-if>
+              <sc-if value="{{sel.isGen}}" hint-placeholder-val="{{false}}">
+                <div class="note note-brand"><span class="ic ic-sparkles" aria-hidden="true"></span><span>Generated by LexReg from your verified records. Nothing to scan — print, sign and file it yourself.</span></div>
+              </sc-if>
+              <sc-if value="{{sel.isReading}}" hint-placeholder-val="{{false}}">
+                <div class="note note-info"><span class="ic ic-scan" aria-hidden="true"></span><span>Reading the document… fields appear here in a few seconds. Your upload is already saved.</span></div>
+              </sc-if>
+
+              <sc-if value="{{sel.hasFields}}" hint-placeholder-val="{{true}}">
+                <div class="stack">
+                  <p class="t-eyebrow" style="padding-bottom: 6px">Extracted fields</p>
+                  <sc-for list="{{sel.fields}}" as="x" hint-placeholder-count="4">
+                    <div class="pv-row">
+                      <span class="t-caption t-3">{{x.label}}</span>
+                      <span class="row wrap gap-2"><span class="t-subhead {{x.valCls}}" style="overflow-wrap: anywhere">{{x.value}}</span><span class="{{x.srcCls}}"><span class="ic {{x.srcIc}}" aria-hidden="true"></span>{{x.srcText}}</span></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{sel.isLow}}" hint-placeholder-val="{{false}}">
+                <a class="btn btn-tinted btn-sm" href="WsPeople.dc.html"><span class="ic ic-user-check" aria-hidden="true"></span>Resolve on People</a>
+              </sc-if>
+            </sc-if>
+          </aside>
+
+        </div>
+      </section>
+
+      <p class="t-caption t-3 t-pretty" style="max-width: 680px">Everything you upload during onboarding and services lives here. Deleted files stay recoverable for 30 days, as the Data Protection Act 2019 requires, then are erased.</p>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance</a>
+      <a class="m-tab is-on" href="WsDocuments.dc.html" aria-current="page"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+      <a class="m-tab" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    </nav>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"upload":{"editor":"enum","options":["closed","open","drag-over"],"default":"closed"},"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const up = this.props.upload ?? 'closed';
+const folder = s.folder ?? 'reg';
+const selId = s.sel ?? 'r1';
+const q = s.q ?? '';
+const uploadOpen = s.uploadOpen ?? (up !== 'closed');
+const over = s.over ?? (up === 'drag-over');
+const added = s.added ?? null;
+
+const SRC = {
+  verified: (t) => ({ srcCls: 'src src-verified', srcIc: 'ic-circle-check', srcText: t }),
+  extracted: (t) => ({ srcCls: 'src src-extracted', srcIc: 'ic-file-text', srcText: t }),
+  conflict: (t) => ({ srcCls: 'src src-conflict', srcIc: 'ic-alert-triangle', srcText: t })
+};
+const X = (label, value, src, mono) => ({ label, value, valCls: mono ? 't-mono' : '', ...src });
+
+const FOLDERS = [
+  ['reg', 'Registration', 'ic-file-certificate'],
+  ['stat', 'Statutory forms', 'ic-clipboard-list'],
+  ['gov', 'Governance', 'ic-gavel'],
+  ['id', 'Identity documents', 'ic-id'],
+  ['tax', 'Tax', 'ic-receipt'],
+  ['corr', 'Correspondence', 'ic-mail'],
+  ['gen', 'Generated by LexReg', 'ic-sparkles']
+];
+const FL = {};
+FOLDERS.forEach(([id, label]) => { FL[id] = label; });
+
+const FILES = [
+  { id: 'r1', f: 'reg', name: 'CR12 Official Search — Amani Logistics Limited — issued by the Business Registration Service on 2 September 2026, certified copy.pdf', type: 'CR12', ocr: 94, date: '2 Sep 2026', size: '1.2 MB',
+    fields: [X('Company name', 'Amani Logistics Limited', SRC.verified('CR12 + certificate')), X('Registration number', 'PVT-2LU7Q9XB', SRC.verified('CR12 + certificate'), true), X('Directors', 'Wanjiku Mwangi, Brian Otieno', SRC.extracted('CR12')), X('Company secretary', 'Halima Abdi', SRC.extracted('CR12')), X('Shareholders', '3 holders · 1,000 shares', SRC.verified('CR12 + register')), X('Brian Otieno · KRA PIN', 'A019876543K', SRC.conflict('KRA cert differs'), true)] },
+  { id: 'r2', f: 'reg', name: 'Certificate of Incorporation — Amani Logistics Limited.pdf', type: 'Certificate', ocr: 97, date: '3 Sep 2026', size: '412 KB',
+    fields: [X('Company name', 'Amani Logistics Limited', SRC.verified('CR12 + certificate')), X('Registration number', 'PVT-2LU7Q9XB', SRC.verified('CR12 + certificate'), true), X('Date of incorporation', '14 March 2019', SRC.verified('CR12 + certificate'))] },
+  { id: 'r3', f: 'reg', name: 'KRA PIN certificate — Amani Logistics Limited.pdf', type: 'KRA PIN', ocr: 98, date: '3 Sep 2026', size: '88 KB',
+    fields: [X('KRA PIN', 'P051234567X', SRC.extracted('KRA certificate'), true), X('Tax obligation', 'Income tax — company', SRC.extracted('KRA certificate'))] },
+  { id: 'r4', f: 'reg', name: 'Nairobi County single business permit 2026.jpg', type: 'Permit', ocr: 88, date: '20 Feb 2026', size: '1.6 MB', ic: 'ic-file',
+    fields: [X('Issued by', 'Nairobi City County', SRC.extracted('Permit')), X('Valid until', '31 March 2027', SRC.extracted('Permit'))] },
+  { id: 's1', f: 'stat', name: 'CR8 — Notice of registered office, Mombasa Road.pdf', type: 'CR8', ocr: 91, date: '3 Sep 2026', size: '220 KB',
+    fields: [X('Registered office', 'Mombasa Road, Industrial Area, Nairobi', SRC.verified('CR8 + CR12')), X('Postal address', 'P.O. Box 48211-00100', SRC.extracted('CR8'))] },
+  { id: 's2', f: 'stat', name: 'CR1 — Application for registration of a company (2019).pdf', type: 'CR1', ocr: 82, date: '3 Sep 2026', size: '640 KB' },
+  { id: 's3', f: 'stat', name: 'Annual return 2026 — filed copy.pdf', type: 'Annual return', ocr: 89, date: '2 Apr 2026', size: '300 KB' },
+  { id: 'g1', f: 'gov', name: 'Memorandum and Articles of Association.pdf', type: 'Articles', ocr: 86, date: '3 Sep 2026', size: '2.1 MB',
+    fields: [X('Nominal capital', 'KES 1,000,000', SRC.verified('Articles + CR12')), X('Share class', '1,000 ordinary shares of KES 1,000', SRC.extracted('Articles'))] },
+  { id: 'g2', f: 'gov', name: 'Board resolution — appointment of company secretary, 1 July 2021.pdf', type: 'Resolution', ocr: 79, date: '3 Sep 2026', size: '180 KB' },
+  { id: 'g3', f: 'gov', name: 'Minutes of the annual general meeting 2026.docx', type: 'Minutes', ocr: 'none', date: '12 Jun 2026', size: '64 KB' },
+  { id: 'i1', f: 'id', name: 'National ID — Wanjiku Mwangi.jpg', type: 'ID copy', ocr: 96, date: '2 Sep 2026', size: '840 KB', ic: 'ic-id',
+    fields: [X('Name', 'Wanjiku Mwangi', SRC.verified('ID + CR12')), X('ID number', '23456789', SRC.verified('ID + CR12')), X('Date of birth', '12 June 1984', SRC.extracted('ID document'))] },
+  { id: 'i2', f: 'id', name: 'KRA PIN certificate — Wanjiku Mwangi.pdf', type: 'KRA PIN', ocr: 98, date: '2 Sep 2026', size: '96 KB',
+    fields: [X('KRA PIN', 'A012345678Z', SRC.verified('KRA cert + CR12'), true)] },
+  { id: 'i3', f: 'id', name: 'National ID — Brian Otieno.jpg', type: 'ID copy', ocr: 93, date: '2 Sep 2026', size: '790 KB', ic: 'ic-id',
+    fields: [X('Name', 'Brian Otieno', SRC.verified('ID + CR12')), X('ID number', '29876543', SRC.verified('ID + CR12')), X('Date of birth', '3 February 1988', SRC.extracted('ID document'))] },
+  { id: 'i4', f: 'id', name: 'KRA PIN certificate — Brian Otieno.pdf', type: 'KRA PIN', ocr: 54, date: '2 Sep 2026', size: '110 KB',
+    fields: [X('Name', 'Brian Otieno', SRC.extracted('KRA certificate')), X('KRA PIN', 'A019876534K', SRC.conflict('CR12 says …543K'), true)] },
+  { id: 'i5', f: 'id', name: 'National ID — James Kariuki.jpg', type: 'ID copy', ocr: 91, date: '4 Sep 2026', size: '760 KB', ic: 'ic-id',
+    fields: [X('Name', 'James Kariuki', SRC.extracted('ID document')), X('ID number', '27654321', SRC.extracted('ID document'))] },
+  { id: 'i6', f: 'id', name: 'CR12 — Savannah Holdings Limited.pdf', type: 'CR12', ocr: 90, date: '4 Sep 2026', size: '1.0 MB',
+    fields: [X('Company', 'Savannah Holdings Limited', SRC.verified('Both CR12s')), X('Registration number', 'PVT-9QK3LM2A', SRC.verified('Both CR12s'), true), X('Director', 'James Kariuki', SRC.extracted('Its CR12'))] },
+  { id: 't1', f: 'tax', name: 'iTax acknowledgement — income tax return 2025.pdf', type: 'iTax slip', ocr: 92, date: '24 Jun 2026', size: '150 KB' },
+  { id: 't2', f: 'tax', name: 'Tax compliance certificate 2026.pdf', type: 'TCC', ocr: 95, date: '2 Jul 2026', size: '120 KB' },
+  { id: 'c1', f: 'corr', name: 'BRS acknowledgement — annual return 2026.pdf', type: 'Letter', ocr: 89, date: '2 Apr 2026', size: '98 KB' },
+  { id: 'c2', f: 'corr', name: 'eCitizen payment receipt — annual return 2026.pdf', type: 'Receipt', ocr: 97, date: '2 Apr 2026', size: '64 KB' },
+  { id: 'x1', f: 'gen', name: 'Information Document Package (IDP) — Amani Logistics Limited.pdf', type: 'IDP', gen: true, date: '3 Sep 2026', size: '860 KB' },
+  { id: 'x2', f: 'gen', name: 'BOF-1 — beneficial ownership register, ready to sign.pdf', type: 'BOF-1', gen: true, date: '16 Sep 2026', size: '140 KB' },
+  { id: 'x3', f: 'gen', name: 'Compliance calendar 2026–2027.pdf', type: 'Calendar', gen: true, date: '16 Oct 2026', size: '72 KB' }
+];
+if (added) FILES.unshift({ id: 'new', f: added.f, name: 'Board resolution — change of bank signatories, 14 October 2026.pdf', type: 'Resolution', ocr: added.done ? 91 : 'reading', date: '16 Oct 2026', size: '236 KB',
+  fields: added.done ? [X('Resolution date', '14 October 2026', SRC.extracted('Resolution')), X('Signed by', 'Wanjiku Mwangi, Brian Otieno', SRC.verified('Resolution + CR12'))] : [] });
+
+const ocrOf = (f) => {
+  if (f.gen) return { ocrText: 'Not needed', ocrLong: 'No OCR needed', ocrPill: 'pill pill-outline' };
+  if (f.ocr === 'reading') return { ocrText: 'Reading…', ocrLong: 'Reading…', ocrPill: 'pill pill-info' };
+  if (f.ocr === 'none') return { ocrText: 'Not scanned', ocrLong: 'Not scanned — Word file', ocrPill: 'pill' };
+  if (f.ocr < 60) return { ocrText: f.ocr + '% · review', ocrLong: 'OCR ' + f.ocr + '% · needs review', ocrPill: 'pill pill-warn' };
+  if (f.ocr >= 90) return { ocrText: f.ocr + '%', ocrLong: 'OCR ' + f.ocr + '% confidence', ocrPill: 'pill pill-good' };
+  return { ocrText: f.ocr + '%', ocrLong: 'OCR ' + f.ocr + '% confidence', ocrPill: 'pill pill-info' };
+};
+const decorate = (f) => ({
+  ...f,
+  ...ocrOf(f),
+  source: f.gen ? 'Generated' : 'Uploaded',
+  srcPill: f.gen ? 'pill pill-brand' : 'pill',
+  ic: f.ic || (f.gen ? 'ic-sparkles' : 'ic-file-text'),
+  folderLabel: FL[f.f]
+});
+
+const query = q.trim().toLowerCase();
+const inView = FILES.filter((f) => (query ? (f.name + ' ' + f.type).toLowerCase().indexOf(query) >= 0 : f.f === folder));
+const rows = inView.map((f) => {
+  const d = decorate(f);
+  const on = f.id === selId;
+  return { ...d, nameCls: 'v-name' + (f.ocr === 'reading' ? ' scanline' : ''), rowCls: on ? 'is-sel' : '', pressed: on ? 'true' : 'false', pick: () => this.setState({ sel: f.id }) };
+});
+
+const folders = FOLDERS.map(([id, label, ic]) => ({
+  label, ic,
+  count: FILES.filter((f) => f.f === id).length,
+  cls: 'v-folder' + (!query && folder === id ? ' is-on' : ''),
+  current: !query && folder === id ? 'true' : 'false',
+  pick: () => this.setState({ folder: id, q: '', sel: (FILES.find((f) => f.f === id) || {}).id || null })
+}));
+
+const selRaw = FILES.find((f) => f.id === selId) || null;
+const sel = selRaw ? decorate(selRaw) : null;
+const selView = sel ? {
+  ...sel,
+  isLow: typeof sel.ocr === 'number' && sel.ocr < 60,
+  isGen: !!sel.gen,
+  isReading: sel.ocr === 'reading',
+  hasFields: !!(sel.fields && sel.fields.length),
+  fields: (sel.fields && sel.fields.length) ? sel.fields : []
+} : {};
+if (sel && !sel.gen && sel.ocr !== 'reading' && !(sel.fields && sel.fields.length) && sel.ocr !== 'none') {
+  selView.hasFields = true;
+  selView.fields = [X('Document type', sel.type, SRC.extracted('OCR')), X('Date on document', sel.date, SRC.extracted('OCR')), X('Entity', 'Amani Logistics Limited', SRC.verified('Matches CR12'))];
+}
+
+const addFile = () => {
+  const target = 'gov';
+  this.setState({ added: { f: target, done: false }, sel: 'new', over: false, uploadOpen: false, folder: target, q: '' });
+  setTimeout(() => this.setState({ added: { f: target, done: true } }), 2600);
+};
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  folders,
+  rows,
+  noRows: rows.length === 0,
+  q,
+  setQ: (e) => this.setState({ q: e.target.value }),
+  listTitle: query ? 'Search results' : FL[folder],
+  listSub: query ? rows.length + (rows.length === 1 ? ' document' : ' documents') + ' across all folders' : rows.length + (rows.length === 1 ? ' document' : ' documents') + ' · click a file to preview',
+  totalText: FILES.length + ' documents · 18% of 1 GB',
+  uploadOpen,
+  uploadExpanded: uploadOpen ? 'true' : 'false',
+  toggleUpload: () => this.setState({ uploadOpen: !uploadOpen, over: false }),
+  dropCls: 'dropzone' + (over ? ' is-over' : ''),
+  dropTitle: over ? 'Drop to upload' : 'Drag files here, or click to choose',
+  addFile,
+  dragOver: (e) => { e.preventDefault(); if (!over) this.setState({ over: true }); },
+  dragLeave: () => this.setState({ over: false }),
+  dropFile: (e) => { e.preventDefault(); addFile(); },
+  hasSel: !!sel,
+  sel: selView,
+  thumbCls: sel && sel.ocr === 'reading' ? 'scanline' : ''
+};
+}
+}
+</script>
+</body>
+</html>

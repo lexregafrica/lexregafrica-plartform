@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shareholders &amp; directors — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.span-all{grid-column:1/-1}
+.doc-drop{width:100%;min-height:118px;padding:14px 12px;gap:4px}
+.doc-card{display:flex;flex-direction:column;justify-content:space-between;gap:10px;min-height:118px;padding:12px;border-radius:var(--r-md);background:var(--surface);box-shadow:inset 0 0 0 1px var(--sep-soft)}
+.doc-card .grow{min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px}
+.legend > span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--label-2)}
+.sw{flex:none;width:10px;height:10px;border-radius:3px}
+.addwrap{position:relative}
+.addmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;width:300px;--origin:top right}
+.addmenu .menu-item{height:auto;min-height:48px;padding:8px 10px;align-items:flex-start}
+.addmenu .menu-item .ic{margin-top:2px}
+.addmenu .menu-item:hover .t-3{color:rgba(255,255,255,0.82)}
+.role-chip .ic{width:15px;height:15px}
+.sub-h{display:flex;align-items:center;gap:8px}
+@container lx (max-width: 720px){.wz-main .btn-sm{height:44px}.wz-main .btn-icon.btn-sm{width:44px}}
+@container lx (max-width: 720px){.addmenu{right:auto;left:0;--origin:top left;width:min(300px, calc(100cqi - 32px))}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <a class="wz-step is-done" href="NewName.dc.html"><span class="n">3</span>Name reservation</a>
+      <span class="wz-step is-done"><span class="n">4</span>Company basics</span>
+      <a class="wz-step is-done" href="NewShares.dc.html"><span class="n">5</span>Share structure</a>
+      <a class="wz-step is-on" aria-current="step" href="NewPeople.dc.html"><span class="n">6</span>Shareholders &amp; members</a>
+      <a class="wz-step is-on" href="NewPeople.dc.html"><span class="n">7</span>Directors &amp; partners</a>
+      <span class="wz-step"><span class="n">8</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step"><span class="n">10</span>Constitutional documents</span>
+      <span class="wz-step"><span class="n">11</span>Document vault</span>
+      <span class="wz-step"><span class="n">12</span>Employee information</span>
+      <span class="wz-step"><span class="n">13</span>Declaration &amp; consent</span>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Steps 6–7 of 14</span><span class="t-caption t-3">50%</span></div>
+        <div class="progress"><span style="width: 50%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Steps 6–7 of 14</p>
+        <h1 class="t-large">Shareholders &amp; directors</h1>
+        <p class="t-body t-2 t-pretty">Add everyone who will own shares or sit on the board. Upload their documents and we&#39;ll read the particulars for you to check.</p>
+      </header>
+      <section class="card card-pad stack gap-4 rise" style="--d: 1" aria-labelledby="al-h">
+        <div class="row between gap-3 wrap" style="align-items: flex-end">
+          <div class="stack gap-1"><h2 class="t-headline" id="al-h">Shares allocated</h2><p class="t-footnote t-3">Kenyan law requires every share to be issued to someone.</p></div>
+          <p class="t-num" aria-live="polite"><span class="t-stat">{{allocText}}</span><span class="t-callout t-3"> of 1,000</span></p>
+        </div>
+        <div class="progress {{progCls}}" role="progressbar" aria-label="Shares allocated" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="{{alloc}}"><span style="width: {{allocPct}}%"></span></div>
+        <div class="legend">
+          <sc-for list="{{legend}}" as="l" hint-placeholder-count="4"><span class="t-num"><span class="sw" style="background: {{l.color}}" aria-hidden="true"></span>{{l.text}}</span></sc-for>
+        </div>
+        <div class="note {{noteCls}}" role="status"><span class="ic {{noteIc}}" aria-hidden="true"></span><p>{{noteText}}</p></div>
+        <div class="row gap-2 t-footnote t-2"><span class="ic {{dirIc}} ic-sm {{dirTone}}" aria-hidden="true"></span><span>{{dirText}}</span></div>
+      </section>
+      <div class="row between gap-3 wrap rise" style="--d: 2">
+        <div class="stack"><h2 class="t-title3">People <span class="t-3 t-num">{{peopleCount}}</span></h2><p class="t-footnote t-3">Each person is entered once, whatever roles they hold.</p></div>
+        <div class="addwrap">
+          <button class="btn btn-tinted" type="button" aria-haspopup="menu" aria-expanded="{{menuAria}}" aria-controls="add-menu" onClick="{{toggleMenu}}"><span class="ic ic-user-plus" aria-hidden="true"></span>Add person<span class="ic ic-chevron-down ic-sm" aria-hidden="true"></span></button>
+          <sc-if value="{{menu}}" hint-placeholder-val="{{false}}">
+          <div class="popover addmenu" id="add-menu" role="menu" aria-label="Add person">
+            <button class="menu-item" type="button" role="menuitem" onClick="{{addInd}}"><span class="ic ic-user" aria-hidden="true"></span><span class="stack"><span>Individual</span><span class="t-caption t-3">A director or shareholder with a Kenyan ID or passport</span></span></button>
+            <button class="menu-item" type="button" role="menuitem" onClick="{{addCorp}}"><span class="ic ic-building" aria-hidden="true"></span><span class="stack"><span>Corporate body</span><span class="t-caption t-3">A company that will hold shares, acting through a representative</span></span></button>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+      <div class="stack gap-4">
+        <article class="card rise" style="--d: 3" aria-labelledby="p-wm">
+          <div class="card-head">
+            <div class="row gap-3" style="min-width: 0">
+              <span class="avatar">WM</span>
+              <div class="stack gap-1" style="min-width: 0">
+                <h3 class="truncate" id="p-wm">Wanjiku Mwangi</h3>
+                <div class="row gap-1 wrap">
+                  <sc-if value="{{wm.isDir}}" hint-placeholder-val="{{true}}"><span class="pill pill-brand">Director</span></sc-if>
+                  <sc-if value="{{wm.isSh}}" hint-placeholder-val="{{true}}"><span class="pill pill-brand t-num">Shareholder · {{wm.sharesText}}</span></sc-if>
+                  <sc-if value="{{wm.isYou}}" hint-placeholder-val="{{false}}"><span class="pill">You</span></sc-if>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-plain btn-icon btn-sm" type="button" aria-expanded="{{wm.expanded}}" aria-controls="pb-wm" aria-label="{{wm.toggleLabel}}" onClick="{{wm.toggle}}"><span class="ic {{wm.chev}}" aria-hidden="true"></span></button>
+          </div>
+          <sc-if value="{{wm.closed}}" hint-placeholder-val="{{false}}">
+          <p class="t-footnote t-3 t-num" style="padding: 0 20px 16px 68px">{{wm.summary}}</p>
+          </sc-if>
+          <sc-if value="{{wm.open}}" hint-placeholder-val="{{true}}">
+          <div class="stack gap-5 fade" id="pb-wm" style="padding: 0 20px 20px">
+            <div class="stack gap-2">
+              <div class="row between gap-2 wrap"><p class="t-eyebrow">Documents</p><span class="t-caption t-3">Upload once — we read the details below</span></div>
+              <div class="grid cols-3" style="gap: 10px">
+                <sc-for list="{{wm.docs}}" as="d" hint-placeholder-count="3">
+                <div>
+                  <sc-if value="{{d.isEmpty}}" hint-placeholder-val="{{false}}">
+                    <button class="dropzone doc-drop" type="button" onClick="{{d.upload}}">
+                      <span class="ic {{d.icon}} ic-lg" aria-hidden="true"></span>
+                      <span class="t-subhead" style="color: var(--label)">{{d.cta}}</span>
+                      <span class="t-caption t-3">{{d.hint}}</span>
+                    </button>
+                  </sc-if>
+                  <sc-if value="{{d.isReading}}" hint-placeholder-val="{{false}}">
+                    <div class="doc-card scanline" role="status">
+                      <div class="row gap-2"><span class="icon-tile info" aria-hidden="true"><span class="ic ic-scan"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.readingText}}</span></div></div>
+                      <div class="progress"><span style="width: 64%"></span></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{d.isFilled}}" hint-placeholder-val="{{true}}">
+                    <div class="doc-card">
+                      <div class="row gap-2"><span class="icon-tile {{d.tile}}" aria-hidden="true"><span class="ic {{d.doneIc}}"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.file}}</span></div></div>
+                      <div class="row between wrap gap-2"><span class="{{d.badgeCls}}"><span class="ic {{d.badgeIc}}" aria-hidden="true"></span>{{d.meta}}</span><button class="btn btn-plain btn-sm" type="button" aria-label="{{d.replaceLabel}}" onClick="{{d.clear}}">Replace</button></div>
+                    </div>
+                  </sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="stack gap-2">
+              <p class="t-eyebrow" id="roles-wm">Roles</p>
+              <div class="row gap-2 wrap" role="group" aria-labelledby="roles-wm">
+                <button class="btn btn-sm role-chip {{wm.dirCls}}" type="button" aria-pressed="{{wm.dirAria}}" onClick="{{wm.toggleDir}}"><span class="ic {{wm.dirIc}}" aria-hidden="true"></span>Director</button>
+                <button class="btn btn-sm role-chip {{wm.shCls}}" type="button" aria-pressed="{{wm.shAria}}" onClick="{{wm.toggleSh}}"><span class="ic {{wm.shIc}}" aria-hidden="true"></span>Shareholder</button>
+              </div>
+            </div>
+            <div class="stack gap-2">
+              <p class="t-eyebrow">Particulars</p>
+              <div class="form-grid">
+                <sc-for list="{{wm.fields}}" as="f" hint-placeholder-count="9">
+                <div class="{{f.fieldCls}}">
+                  <div class="row between gap-2"><label class="label" for="{{f.id}}">{{f.label}}</label><sc-if value="{{f.hasSrc}}" hint-placeholder-val="{{true}}"><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcTx}}</span></sc-if></div>
+                  <sc-if value="{{f.isSkel}}" hint-placeholder-val="{{false}}"><div class="skeleton shimmer" style="height: 40px; border-radius: var(--r-md)" aria-hidden="true"></div></sc-if>
+                  <sc-if value="{{f.isInput}}" hint-placeholder-val="{{true}}"><input class="input {{f.inputCls}}" id="{{f.id}}" type="{{f.type}}" inputmode="{{f.mode}}" autocomplete="off" placeholder="{{f.ph}}" value="{{f.val}}" onInput="{{f.set}}"></sc-if>
+                  <sc-if value="{{f.hasHelp}}" hint-placeholder-val="{{false}}"><p class="{{f.helpCls}}">{{f.help}}</p></sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+        </article>
+        <article class="card rise" style="--d: 4" aria-labelledby="p-bo">
+          <div class="card-head">
+            <div class="row gap-3" style="min-width: 0">
+              <span class="avatar">BO</span>
+              <div class="stack gap-1" style="min-width: 0">
+                <h3 class="truncate" id="p-bo">Brian Otieno</h3>
+                <div class="row gap-1 wrap">
+                  <sc-if value="{{bo.isDir}}" hint-placeholder-val="{{true}}"><span class="pill pill-brand">Director</span></sc-if>
+                  <sc-if value="{{bo.isSh}}" hint-placeholder-val="{{true}}"><span class="pill pill-brand t-num">Shareholder · {{bo.sharesText}}</span></sc-if>
+                  <sc-if value="{{bo.isYou}}" hint-placeholder-val="{{false}}"><span class="pill">You</span></sc-if>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-plain btn-icon btn-sm" type="button" aria-expanded="{{bo.expanded}}" aria-controls="pb-bo" aria-label="{{bo.toggleLabel}}" onClick="{{bo.toggle}}"><span class="ic {{bo.chev}}" aria-hidden="true"></span></button>
+          </div>
+          <sc-if value="{{bo.closed}}" hint-placeholder-val="{{false}}">
+          <p class="t-footnote t-3 t-num" style="padding: 0 20px 16px 68px">{{bo.summary}}</p>
+          </sc-if>
+          <sc-if value="{{bo.open}}" hint-placeholder-val="{{true}}">
+          <div class="stack gap-5 fade" id="pb-bo" style="padding: 0 20px 20px">
+            <div class="stack gap-2">
+              <div class="row between gap-2 wrap"><p class="t-eyebrow">Documents</p><span class="t-caption t-3">Upload once — we read the details below</span></div>
+              <div class="grid cols-3" style="gap: 10px">
+                <sc-for list="{{bo.docs}}" as="d" hint-placeholder-count="3">
+                <div>
+                  <sc-if value="{{d.isEmpty}}" hint-placeholder-val="{{false}}">
+                    <button class="dropzone doc-drop" type="button" onClick="{{d.upload}}">
+                      <span class="ic {{d.icon}} ic-lg" aria-hidden="true"></span>
+                      <span class="t-subhead" style="color: var(--label)">{{d.cta}}</span>
+                      <span class="t-caption t-3">{{d.hint}}</span>
+                    </button>
+                  </sc-if>
+                  <sc-if value="{{d.isReading}}" hint-placeholder-val="{{false}}">
+                    <div class="doc-card scanline" role="status">
+                      <div class="row gap-2"><span class="icon-tile info" aria-hidden="true"><span class="ic ic-scan"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.readingText}}</span></div></div>
+                      <div class="progress"><span style="width: 64%"></span></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{d.isFilled}}" hint-placeholder-val="{{true}}">
+                    <div class="doc-card">
+                      <div class="row gap-2"><span class="icon-tile {{d.tile}}" aria-hidden="true"><span class="ic {{d.doneIc}}"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.file}}</span></div></div>
+                      <div class="row between wrap gap-2"><span class="{{d.badgeCls}}"><span class="ic {{d.badgeIc}}" aria-hidden="true"></span>{{d.meta}}</span><button class="btn btn-plain btn-sm" type="button" aria-label="{{d.replaceLabel}}" onClick="{{d.clear}}">Replace</button></div>
+                    </div>
+                  </sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="stack gap-2">
+              <p class="t-eyebrow" id="roles-bo">Roles</p>
+              <div class="row gap-2 wrap" role="group" aria-labelledby="roles-bo">
+                <button class="btn btn-sm role-chip {{bo.dirCls}}" type="button" aria-pressed="{{bo.dirAria}}" onClick="{{bo.toggleDir}}"><span class="ic {{bo.dirIc}}" aria-hidden="true"></span>Director</button>
+                <button class="btn btn-sm role-chip {{bo.shCls}}" type="button" aria-pressed="{{bo.shAria}}" onClick="{{bo.toggleSh}}"><span class="ic {{bo.shIc}}" aria-hidden="true"></span>Shareholder</button>
+              </div>
+            </div>
+            <div class="stack gap-2">
+              <p class="t-eyebrow">Particulars</p>
+              <div class="form-grid">
+                <sc-for list="{{bo.fields}}" as="f" hint-placeholder-count="9">
+                <div class="{{f.fieldCls}}">
+                  <div class="row between gap-2"><label class="label" for="{{f.id}}">{{f.label}}</label><sc-if value="{{f.hasSrc}}" hint-placeholder-val="{{true}}"><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcTx}}</span></sc-if></div>
+                  <sc-if value="{{f.isSkel}}" hint-placeholder-val="{{false}}"><div class="skeleton shimmer" style="height: 40px; border-radius: var(--r-md)" aria-hidden="true"></div></sc-if>
+                  <sc-if value="{{f.isInput}}" hint-placeholder-val="{{true}}"><input class="input {{f.inputCls}}" id="{{f.id}}" type="{{f.type}}" inputmode="{{f.mode}}" autocomplete="off" placeholder="{{f.ph}}" value="{{f.val}}" onInput="{{f.set}}"></sc-if>
+                  <sc-if value="{{f.hasHelp}}" hint-placeholder-val="{{false}}"><p class="{{f.helpCls}}">{{f.help}}</p></sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+        </article>
+        <article class="card rise" style="--d: 5" aria-labelledby="p-sh">
+          <div class="card-head">
+            <div class="row gap-3" style="min-width: 0">
+              <span class="avatar avatar-corp" aria-hidden="true"><span class="ic ic-building"></span></span>
+              <div class="stack gap-1" style="min-width: 0">
+                <h3 class="truncate" id="p-sh">Savannah Holdings Limited</h3>
+                <div class="row gap-1 wrap"><span class="pill pill-info">Corporate shareholder</span><span class="pill t-num {{sh.sharesPill}}">{{sh.sharesText}}</span></div>
+              </div>
+            </div>
+            <button class="btn btn-plain btn-icon btn-sm" type="button" aria-expanded="{{sh.expanded}}" aria-controls="pb-sh" aria-label="{{sh.toggleLabel}}" onClick="{{sh.toggle}}"><span class="ic {{sh.chev}}" aria-hidden="true"></span></button>
+          </div>
+          <sc-if value="{{sh.closed}}" hint-placeholder-val="{{false}}">
+          <p class="t-footnote t-3 t-num" style="padding: 0 20px 16px 68px">{{sh.summary}}</p>
+          </sc-if>
+          <sc-if value="{{sh.open}}" hint-placeholder-val="{{true}}">
+          <div class="stack gap-5 fade" id="pb-sh" style="padding: 0 20px 20px">
+            <div class="stack gap-2">
+              <div class="row between gap-2 wrap"><p class="t-eyebrow">Company documents</p><span class="t-caption t-3">The organisation&#39;s own documents</span></div>
+              <div class="grid cols-3" style="gap: 10px">
+                <sc-for list="{{sh.docs}}" as="d" hint-placeholder-count="3">
+                <div>
+                  <sc-if value="{{d.isEmpty}}" hint-placeholder-val="{{false}}">
+                    <button class="dropzone doc-drop" type="button" onClick="{{d.upload}}">
+                      <span class="ic {{d.icon}} ic-lg" aria-hidden="true"></span>
+                      <span class="t-subhead" style="color: var(--label)">{{d.cta}}</span>
+                      <span class="t-caption t-3">{{d.hint}}</span>
+                    </button>
+                  </sc-if>
+                  <sc-if value="{{d.isReading}}" hint-placeholder-val="{{false}}">
+                    <div class="doc-card scanline" role="status">
+                      <div class="row gap-2"><span class="icon-tile info" aria-hidden="true"><span class="ic ic-scan"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.readingText}}</span></div></div>
+                      <div class="progress"><span style="width: 64%"></span></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{d.isFilled}}" hint-placeholder-val="{{true}}">
+                    <div class="doc-card">
+                      <div class="row gap-2"><span class="icon-tile {{d.tile}}" aria-hidden="true"><span class="ic {{d.doneIc}}"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.file}}</span></div></div>
+                      <div class="row between wrap gap-2"><span class="{{d.badgeCls}}"><span class="ic {{d.badgeIc}}" aria-hidden="true"></span>{{d.meta}}</span><button class="btn btn-plain btn-sm" type="button" aria-label="{{d.replaceLabel}}" onClick="{{d.clear}}">Replace</button></div>
+                    </div>
+                  </sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="stack gap-2">
+              <p class="t-eyebrow">Company particulars</p>
+              <div class="form-grid">
+                <sc-for list="{{sh.fields}}" as="f" hint-placeholder-count="6">
+                <div class="{{f.fieldCls}}">
+                  <div class="row between gap-2"><label class="label" for="{{f.id}}">{{f.label}}</label><sc-if value="{{f.hasSrc}}" hint-placeholder-val="{{true}}"><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcTx}}</span></sc-if></div>
+                  <sc-if value="{{f.isSkel}}" hint-placeholder-val="{{false}}"><div class="skeleton shimmer" style="height: 40px; border-radius: var(--r-md)" aria-hidden="true"></div></sc-if>
+                  <sc-if value="{{f.isInput}}" hint-placeholder-val="{{true}}"><input class="input {{f.inputCls}}" id="{{f.id}}" type="{{f.type}}" inputmode="{{f.mode}}" autocomplete="off" placeholder="{{f.ph}}" value="{{f.val}}" onInput="{{f.set}}"></sc-if>
+                  <sc-if value="{{f.hasHelp}}" hint-placeholder-val="{{false}}"><p class="{{f.helpCls}}">{{f.help}}</p></sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="stack gap-1">
+                <p class="sub-h t-headline"><span class="ic ic-user-shield t-3" aria-hidden="true"></span>Representative</p>
+                <p class="t-footnote t-2 t-pretty">Upload the representative&#39;s ID or passport and KRA PIN certificate to fill in their details, plus the board resolution or other authority showing they can act.</p>
+              </div>
+              <div class="grid cols-4 keep-2" style="gap: 10px">
+                <sc-for list="{{rp.docs}}" as="d" hint-placeholder-count="3">
+                <div>
+                  <sc-if value="{{d.isEmpty}}" hint-placeholder-val="{{false}}">
+                    <button class="dropzone doc-drop" type="button" onClick="{{d.upload}}">
+                      <span class="ic {{d.icon}} ic-lg" aria-hidden="true"></span>
+                      <span class="t-subhead" style="color: var(--label)">{{d.cta}}</span>
+                      <span class="t-caption t-3">{{d.hint}}</span>
+                    </button>
+                  </sc-if>
+                  <sc-if value="{{d.isReading}}" hint-placeholder-val="{{false}}">
+                    <div class="doc-card scanline" role="status">
+                      <div class="row gap-2"><span class="icon-tile info" aria-hidden="true"><span class="ic ic-scan"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.readingText}}</span></div></div>
+                      <div class="progress"><span style="width: 64%"></span></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{d.isFilled}}" hint-placeholder-val="{{true}}">
+                    <div class="doc-card">
+                      <div class="row gap-2"><span class="icon-tile {{d.tile}}" aria-hidden="true"><span class="ic {{d.doneIc}}"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.file}}</span></div></div>
+                      <div class="row between wrap gap-2"><span class="{{d.badgeCls}}"><span class="ic {{d.badgeIc}}" aria-hidden="true"></span>{{d.meta}}</span><button class="btn btn-plain btn-sm" type="button" aria-label="{{d.replaceLabel}}" onClick="{{d.clear}}">Replace</button></div>
+                    </div>
+                  </sc-if>
+                </div>
+                </sc-for>
+              </div>
+              <div class="form-grid">
+                <sc-for list="{{rp.fields}}" as="f" hint-placeholder-count="5">
+                <div class="{{f.fieldCls}}">
+                  <div class="row between gap-2"><label class="label" for="{{f.id}}">{{f.label}}</label><sc-if value="{{f.hasSrc}}" hint-placeholder-val="{{true}}"><span class="{{f.srcCls}}"><span class="ic {{f.srcIc}}" aria-hidden="true"></span>{{f.srcTx}}</span></sc-if></div>
+                  <sc-if value="{{f.isSkel}}" hint-placeholder-val="{{false}}"><div class="skeleton shimmer" style="height: 40px; border-radius: var(--r-md)" aria-hidden="true"></div></sc-if>
+                  <sc-if value="{{f.isInput}}" hint-placeholder-val="{{true}}"><input class="input {{f.inputCls}}" id="{{f.id}}" type="{{f.type}}" inputmode="{{f.mode}}" autocomplete="off" placeholder="{{f.ph}}" value="{{f.val}}" onInput="{{f.set}}"></sc-if>
+                  <sc-if value="{{f.hasHelp}}" hint-placeholder-val="{{false}}"><p class="{{f.helpCls}}">{{f.help}}</p></sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="form-section">
+              <p class="t-eyebrow">Shareholding</p>
+              <div class="form-grid">
+                <div class="{{shSharesField}}">
+                  <div class="row between gap-2"><label class="label" for="f-shShares">Shares held <span class="req" aria-hidden="true">*</span></label><sc-if value="{{shSharesMissing}}" hint-placeholder-val="{{true}}"><span class="src src-missing"><span class="ic ic-circle-dashed" aria-hidden="true"></span>Missing</span></sc-if></div>
+                  <input class="input t-num" id="f-shShares" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 100" value="{{shSharesVal}}" onInput="{{setShShares}}" aria-describedby="f-shShares-help">
+                  <p class="{{shSharesHelpCls}}" id="f-shShares-help">{{shSharesHelp}}</p>
+                </div>
+              </div>
+              <div class="note note-brand"><span class="ic ic-hierarchy-2" aria-hidden="true"></span><p><strong>Corporate shareholders holding 10% or more</strong> — you&#39;ll declare who ultimately owns or controls Savannah Holdings in the next step, <a href="NewOwnership.dc.html">Beneficial ownership</a>.</p></div>
+            </div>
+          </div>
+          </sc-if>
+        </article>
+        <sc-for list="{{added}}" as="a" hint-placeholder-count="0">
+          <article class="card rise" aria-labelledby="{{a.hid}}">
+            <div class="card-head">
+              <div class="row gap-3" style="min-width: 0">
+                <span class="{{a.avCls}}" aria-hidden="true"><span class="ic {{a.icon}}"></span></span>
+                <div class="stack" style="min-width: 0"><h3 class="truncate" id="{{a.hid}}">{{a.title}}</h3><span class="t-caption t-3 truncate">{{a.sub}}</span></div>
+              </div>
+              <button class="btn btn-destructive-plain btn-sm" type="button" onClick="{{a.remove}}">Remove</button>
+            </div>
+            <div class="stack gap-3" style="padding: 0 20px 20px">
+              <div class="grid cols-3" style="gap: 10px">
+                <sc-for list="{{a.docs}}" as="d" hint-placeholder-count="3">
+                <div>
+                  <sc-if value="{{d.isEmpty}}" hint-placeholder-val="{{false}}">
+                    <button class="dropzone doc-drop" type="button" onClick="{{d.upload}}">
+                      <span class="ic {{d.icon}} ic-lg" aria-hidden="true"></span>
+                      <span class="t-subhead" style="color: var(--label)">{{d.cta}}</span>
+                      <span class="t-caption t-3">{{d.hint}}</span>
+                    </button>
+                  </sc-if>
+                  <sc-if value="{{d.isReading}}" hint-placeholder-val="{{false}}">
+                    <div class="doc-card scanline" role="status">
+                      <div class="row gap-2"><span class="icon-tile info" aria-hidden="true"><span class="ic ic-scan"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.readingText}}</span></div></div>
+                      <div class="progress"><span style="width: 64%"></span></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{d.isFilled}}" hint-placeholder-val="{{true}}">
+                    <div class="doc-card">
+                      <div class="row gap-2"><span class="icon-tile {{d.tile}}" aria-hidden="true"><span class="ic {{d.doneIc}}"></span></span><div class="stack grow"><span class="t-subhead truncate">{{d.label}}</span><span class="t-caption t-3 truncate">{{d.file}}</span></div></div>
+                      <div class="row between wrap gap-2"><span class="{{d.badgeCls}}"><span class="ic {{d.badgeIc}}" aria-hidden="true"></span>{{d.meta}}</span><button class="btn btn-plain btn-sm" type="button" aria-label="{{d.replaceLabel}}" onClick="{{d.clear}}">Replace</button></div>
+                    </div>
+                  </sc-if>
+                </div>
+                </sc-for>
+              </div>
+              <p class="t-footnote t-3">Start with the documents — we&#39;ll read the particulars and you check them.</p>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewShares.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{foot}}</span>
+        <a class="btn btn-primary {{contCls}}" aria-disabled="{{contAria}}" href="NewOwnership.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"ocr":{"editor":"enum","options":["empty","reading","filled"],"default":"filled"},"$preview":{"width":1440,"height":4100}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const ocr = this.props.ocr ?? 'filled';
+const docSt = s.docSt ?? {};
+const vals = s.vals ?? {};
+const open = s.open ?? { wm: true, bo: true, sh: true };
+const roles = s.roles ?? { wm: { dir: true, sh: true }, bo: { dir: true, sh: true } };
+const menu = s.menu ?? false;
+const added = s.added ?? [];
+const TOTAL = 1000;
+const fmt = (n) => n.toLocaleString('en-KE');
+const num = (x) => parseInt(String(x).replace(/[^0-9]/g, ''), 10) || 0;
+const st = (k, def) => docSt[k] ?? def ?? ocr;
+const setDoc = (k, v) => this.setState({ docSt: { ...((this.state || {}).docSt || {}), [k]: v } });
+const setVal = (k, v) => this.setState({ vals: { ...((this.state || {}).vals || {}), [k]: v } });
+
+const doc = (k, label, cta, hint, icon, file, conf, def) => {
+  const x = st(k, def);
+  const low = conf && conf < 60;
+  return {
+    label, cta, hint, icon, file,
+    isEmpty: x === 'empty', isReading: x === 'reading', isFilled: x === 'filled',
+    readingText: conf ? 'Reading ' + file + '…' : 'Uploading ' + file + '…',
+    tile: low ? 'warn' : 'good',
+    doneIc: low ? 'ic-alert-triangle' : 'ic-check',
+    badgeCls: conf ? (low ? 'src src-conflict' : 'src src-extracted') : 'src src-confirmed',
+    badgeIc: conf ? (low ? 'ic-alert-triangle' : 'ic-scan') : 'ic-check',
+    meta: conf ? (low ? 'Read · ' + conf + '% — check' : 'Read · ' + conf + '%') : 'Uploaded',
+    replaceLabel: 'Replace ' + label,
+    upload: () => { setDoc(k, 'reading'); setTimeout(() => setDoc(k, 'filled'), 1600); },
+    clear: () => setDoc(k, 'empty')
+  };
+};
+const fld = (key, label, value, docKey, srcText, o) => {
+  o = o || {};
+  const x = docKey ? st(docKey) : 'filled';
+  const typed = vals[key];
+  const val = typed !== undefined ? typed : (x === 'filled' ? value : '');
+  const edited = typed !== undefined && typed !== value;
+  let cls = 'field', srcCls = '', srcIc = '', srcTx = '', help = o.help || '', helpCls = 'help';
+  if (docKey && x === 'reading') {
+    srcCls = 'src src-extracted'; srcIc = 'ic-scan'; srcTx = 'Reading…';
+  } else if (edited) {
+    srcCls = 'src src-confirmed'; srcIc = 'ic-pencil'; srcTx = 'Edited by you';
+  } else if (docKey && x === 'filled') {
+    if (o.low) { cls = 'field is-conflict'; srcCls = 'src src-conflict'; srcIc = 'ic-alert-triangle'; srcTx = 'Check · ' + o.low + '%'; help = 'Read below the 60% confidence threshold — check each character against the certificate and correct it here.'; helpCls = 'help t-warn'; }
+    else { cls = 'field is-extracted'; srcCls = 'src src-extracted'; srcIc = 'ic-file-text'; srcTx = srcText; }
+  } else if (docKey && x === 'empty') {
+    cls = 'field is-missing'; srcCls = 'src src-missing'; srcIc = 'ic-circle-dashed'; srcTx = 'Upload to fill';
+  } else if (o.from) {
+    srcCls = 'src src-confirmed'; srcIc = 'ic-user-check'; srcTx = o.from;
+  }
+  return {
+    id: 'f-' + key, label, val, ph: o.ph || '', type: o.type || 'text', mode: o.mode || 'text',
+    inputCls: o.mono ? 't-mono' : (o.mode === 'numeric' ? 't-num' : ''),
+    fieldCls: cls + (o.span ? ' span-all' : ''),
+    hasSrc: !!srcTx, srcCls, srcIc, srcTx,
+    isSkel: !!docKey && x === 'reading', isInput: !(docKey && x === 'reading'),
+    hasHelp: !!help, help, helpCls,
+    set: (e) => setVal(key, o.mode === 'numeric' ? e.target.value.replace(/[^0-9]/g, '') : e.target.value)
+  };
+};
+const shareOf = (key, def) => num(vals[key] !== undefined ? vals[key] : def);
+
+const wmSh = roles.wm.sh ? shareOf('wmShares', '600') : 0;
+const boSh = roles.bo.sh ? shareOf('boShares', '300') : 0;
+const shSh = shareOf('shShares', '');
+const alloc = wmSh + boSh + shSh;
+const remaining = TOTAL - alloc;
+const pctOf = (n) => (Math.round(n / TOTAL * 1000) / 10) + '%';
+
+const sharesField = (key, def, n) => ({
+  ...fld(key, 'Shares held', def, null, '', { mode: 'numeric', ph: 'e.g. 100' }),
+  hasHelp: true,
+  help: n ? pctOf(n) + ' of the company · ' + (remaining > 0 ? fmt(remaining) + ' of 1,000 still unallocated' : remaining === 0 ? 'all 1,000 allocated' : fmt(-remaining) + ' over the total') : 'Enter how many of the 1,000 shares they hold',
+  helpCls: remaining < 0 ? 'help t-bad' : 'help'
+});
+
+const person = (k, cfg) => {
+  const r = roles[k];
+  const isOpen = open[k] !== false;
+  const d = cfg.docs;
+  const f = cfg.fields.slice();
+  if (r.sh) f.push(sharesField(k + 'Shares', cfg.shares, k === 'wm' ? wmSh : boSh));
+  const done = d.filter((x) => x.isFilled).length;
+  const read = f.filter((x) => x.srcCls === 'src src-extracted' || x.srcCls === 'src src-conflict').length;
+  const toggleRole = (role) => () => this.setState({ roles: { ...roles, [k]: { ...r, [role]: !r[role] } } });
+  return {
+    docs: d, fields: f,
+    isDir: r.dir, isSh: r.sh, isYou: k === 'wm',
+    sharesText: fmt(k === 'wm' ? wmSh : boSh) + ' shares',
+    open: isOpen, closed: !isOpen,
+    expanded: isOpen ? 'true' : 'false',
+    chev: isOpen ? 'ic-chevron-up' : 'ic-chevron-down',
+    toggleLabel: (isOpen ? 'Collapse ' : 'Expand ') + cfg.name,
+    toggle: () => this.setState({ open: { ...open, [k]: !isOpen } }),
+    summary: done + ' of ' + d.length + ' documents uploaded · ' + read + ' fields read from documents',
+    dirCls: r.dir ? 'btn-tinted' : 'btn-gray', dirAria: r.dir ? 'true' : 'false', dirIc: r.dir ? 'ic-check' : 'ic-plus', toggleDir: toggleRole('dir'),
+    shCls: r.sh ? 'btn-tinted' : 'btn-gray', shAria: r.sh ? 'true' : 'false', shIc: r.sh ? 'ic-check' : 'ic-plus', toggleSh: toggleRole('sh')
+  };
+};
+
+const indDocs = (p, first, last, confId, confPin) => [
+  doc(p + '-id', 'ID / passport', 'Upload ID/passport to auto-fill', 'Fills name, ID number, date of birth', 'ic-id', 'ID_' + first + '_' + last + '.jpg', confId),
+  doc(p + '-pin', 'KRA PIN certificate', 'Upload KRA PIN certificate to auto-fill', 'Fills the KRA PIN', 'ic-file-certificate', 'KRA_PIN_' + first + '_' + last + '.pdf', confPin),
+  doc(p + '-photo', 'Passport-size photo', 'Upload passport-size photo', 'Needed for the BRS filing', 'ic-user', 'Photo_' + first + '.jpg', 0)
+];
+
+const wm = person('wm', {
+  name: 'Wanjiku Mwangi', shares: '600',
+  docs: indDocs('wm', 'Wanjiku', 'Mwangi', 96, 94),
+  fields: [
+    fld('wmName', 'Full name', 'Wanjiku Mwangi', 'wm-id', 'Read from ID', { span: true }),
+    fld('wmId', 'National ID number', '23456789', 'wm-id', 'Read from ID', { mono: true }),
+    fld('wmPin', 'KRA PIN', 'A012345678Z', 'wm-pin', 'Read from KRA cert', { mono: true }),
+    fld('wmDob', 'Date of birth', '12 June 1984', 'wm-id', 'Read from ID'),
+    fld('wmNat', 'Nationality', 'Kenyan', 'wm-id', 'Read from ID'),
+    fld('wmPhone', 'Phone', '+254 712 345 678', null, '', { from: 'From step 2', type: 'tel' }),
+    fld('wmEmail', 'Email', 'wanjiku@amanilogistics.co.ke', null, '', { from: 'From step 2', type: 'email' }),
+    fld('wmAddr', 'Residential address', 'Riverside Square, Riverside Drive, Nairobi 00100', null, '', { from: 'From step 2', span: true }),
+    fld('wmOcc', 'Occupation', 'Business owner', null, '', {})
+  ]
+});
+const bo = person('bo', {
+  name: 'Brian Otieno', shares: '300',
+  docs: indDocs('bo', 'Brian', 'Otieno', 93, 58),
+  fields: [
+    fld('boName', 'Full name', 'Brian Otieno', 'bo-id', 'Read from ID', { span: true }),
+    fld('boId', 'National ID number', '29876543', 'bo-id', 'Read from ID', { mono: true }),
+    fld('boPin', 'KRA PIN', 'A019876534K', 'bo-pin', 'Read from KRA cert', { mono: true, low: 58 }),
+    fld('boDob', 'Date of birth', '3 February 1988', 'bo-id', 'Read from ID'),
+    fld('boNat', 'Nationality', 'Kenyan', 'bo-id', 'Read from ID'),
+    fld('boPhone', 'Phone', '+254 733 210 987', null, '', { type: 'tel' }),
+    fld('boEmail', 'Email', 'brian@juakalifoods.co.ke', null, '', { type: 'email' }),
+    fld('boAddr', 'Residential address', 'Kileleshwa, Nairobi 00100', null, '', { span: true }),
+    fld('boOcc', 'Occupation', 'Food technologist', null, '', {})
+  ]
+});
+const shDocs = [
+  doc('sh-cert', 'Certificate of Incorporation', 'Upload Certificate of Incorporation', 'Fills name, number, country', 'ic-certificate', 'Savannah_Certificate_of_Incorporation.pdf', 97),
+  doc('sh-pin', 'Company KRA PIN certificate', 'Upload company KRA PIN certificate', 'Fills the company KRA PIN', 'ic-file-certificate', 'Savannah_KRA_PIN.pdf', 95),
+  doc('sh-cr12', 'Company Search (CR12)', 'Upload Company Search (CR12)', 'Fills type and registered office', 'ic-file-search', 'Savannah_CR12_Oct_2026.pdf', 91)
+];
+const shFields = [
+  fld('shName', 'Registered name', 'Savannah Holdings Limited', 'sh-cert', 'Read from certificate', { span: true }),
+  fld('shReg', 'Registration number', 'PVT-9QK3LM2A', 'sh-cert', 'Read from certificate', { mono: true }),
+  fld('shType', 'Corporate entity type', 'Private limited company', 'sh-cr12', 'Read from CR12'),
+  fld('shCountry', 'Country of incorporation', 'Kenya', 'sh-cert', 'Read from certificate'),
+  fld('shPin', 'Company KRA PIN', 'P052468135M', 'sh-pin', 'Read from KRA cert', { mono: true }),
+  fld('shOffice', 'Registered office address', 'Westlands, Nairobi', 'sh-cr12', 'Read from CR12', { span: true })
+];
+const rpDocs = [
+  doc('rp-id', 'Representative’s ID/passport', 'Upload representative’s ID/passport', 'Fills their name and ID', 'ic-id', 'ID_James_Kariuki.jpg', 95),
+  doc('rp-pin', 'Representative’s KRA PIN', 'Upload representative’s KRA PIN certificate', 'Fills their KRA PIN', 'ic-file-certificate', 'KRA_PIN_James_Kariuki.pdf', 92),
+  doc('rp-photo', 'Representative’s photo', 'Upload representative’s passport-size photo', 'Needed for the BRS filing', 'ic-user', 'Photo_James_Kariuki.jpg', 0),
+  doc('rp-auth', 'Authority to act', 'Upload board resolution / authority to act', 'Shows they can sign for the company', 'ic-signature', 'Savannah_board_resolution.pdf', 0)
+];
+const rpFields = [
+  fld('rpName', 'Representative full name', 'James Kariuki', 'rp-id', 'Read from ID', { span: true }),
+  fld('rpId', 'ID number', '27654321', 'rp-id', 'Read from ID', { mono: true }),
+  fld('rpTitle', 'Title / capacity', 'Director', null, '', { ph: 'e.g. Director, Company Secretary' }),
+  fld('rpEmail', 'Email', 'james@savannahholdings.co.ke', null, '', { type: 'email' }),
+  fld('rpPhone', 'Phone', '+254 722 456 789', null, '', { type: 'tel' })
+];
+const shOpen = open.sh !== false;
+const shDone = shDocs.concat(rpDocs).filter((x) => x.isFilled).length;
+const shRaw = vals.shShares !== undefined ? vals.shShares : '';
+
+const addedRows = added.map((a, i) => {
+  const corp = a.kind === 'corp';
+  return {
+    hid: 'new-' + a.id,
+    title: corp ? 'New corporate body' : 'New individual',
+    sub: corp ? 'Corporate shareholder · draft' : 'Director or shareholder · draft',
+    avCls: corp ? 'avatar avatar-corp' : 'avatar',
+    icon: corp ? 'ic-building' : 'ic-user',
+    docs: corp ? [
+      doc('new-' + a.id + '-cert', 'Certificate of Incorporation', 'Upload Certificate of Incorporation', 'Fills name, number, country', 'ic-certificate', 'Certificate_of_Incorporation.pdf', 96, 'empty'),
+      doc('new-' + a.id + '-pin', 'Company KRA PIN certificate', 'Upload company KRA PIN certificate', 'Fills the company KRA PIN', 'ic-file-certificate', 'Company_KRA_PIN.pdf', 94, 'empty'),
+      doc('new-' + a.id + '-cr12', 'Company Search (CR12)', 'Upload Company Search (CR12)', 'Fills type and registered office', 'ic-file-search', 'CR12.pdf', 92, 'empty')
+    ] : [
+      doc('new-' + a.id + '-id', 'ID / passport', 'Upload ID/passport to auto-fill', 'Fills name, ID number, date of birth', 'ic-id', 'ID_scan.jpg', 95, 'empty'),
+      doc('new-' + a.id + '-pin', 'KRA PIN certificate', 'Upload KRA PIN certificate to auto-fill', 'Fills the KRA PIN', 'ic-file-certificate', 'KRA_PIN_certificate.pdf', 93, 'empty'),
+      doc('new-' + a.id + '-photo', 'Passport-size photo', 'Upload passport-size photo', 'Needed for the BRS filing', 'ic-user', 'Photo.jpg', 0, 'empty')
+    ],
+    remove: () => this.setState({ added: added.filter((o) => o.id !== a.id) })
+  };
+});
+const addKind = (kind) => () => this.setState({ menu: false, added: [...added, { id: String(Date.now()), kind }] });
+
+const directors = (roles.wm.dir ? 1 : 0) + (roles.bo.dir ? 1 : 0);
+const exact = remaining === 0;
+const under = remaining > 0;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  wm, bo,
+  sh: {
+    docs: shDocs, fields: shFields,
+    open: shOpen, closed: !shOpen,
+    expanded: shOpen ? 'true' : 'false',
+    chev: shOpen ? 'ic-chevron-up' : 'ic-chevron-down',
+    toggleLabel: (shOpen ? 'Collapse ' : 'Expand ') + 'Savannah Holdings Limited',
+    toggle: () => this.setState({ open: { ...open, sh: !shOpen } }),
+    summary: shDone + ' of 7 documents uploaded · representative James Kariuki',
+    sharesText: shSh ? fmt(shSh) + ' shares' : 'No shares yet',
+    sharesPill: shSh ? 'pill-brand' : 'pill-warn'
+  },
+  rp: { docs: rpDocs, fields: rpFields },
+  shSharesVal: shRaw,
+  setShShares: (e) => setVal('shShares', e.target.value.replace(/[^0-9]/g, '')),
+  shSharesMissing: !shSh,
+  shSharesField: shSh ? 'field' : 'field is-missing',
+  shSharesHelp: shSh ? pctOf(shSh) + ' of the company' + (remaining ? ' · ' + (remaining > 0 ? fmt(remaining) + ' still unallocated' : fmt(-remaining) + ' over the total') : ' · all 1,000 allocated') : fmt(Math.max(remaining, 0)) + ' of 1,000 shares still unallocated.',
+  shSharesHelpCls: remaining < 0 ? 'help t-bad' : 'help',
+  alloc,
+  allocText: fmt(alloc),
+  allocPct: Math.min(100, alloc / TOTAL * 100),
+  progCls: exact ? 'good' : 'warn',
+  legend: [
+    { color: 'var(--tint)', text: 'Wanjiku Mwangi · ' + fmt(wmSh) },
+    { color: 'var(--sys-indigo)', text: 'Brian Otieno · ' + fmt(boSh) },
+    { color: 'var(--sys-teal)', text: 'Savannah Holdings · ' + (shSh ? fmt(shSh) : '—') },
+    { color: 'var(--fill)', text: (under ? fmt(remaining) : '0') + ' unallocated' }
+  ],
+  noteCls: exact ? 'note-good' : under ? 'note-warn' : 'note-bad',
+  noteIc: exact ? 'ic-circle-check' : under ? 'ic-alert-triangle' : 'ic-alert-circle',
+  noteText: exact ? 'All 1,000 shares are allocated.' : under ? 'All 1,000 shares must be allocated before continuing — ' + fmt(alloc) + ' allocated so far.' : 'Only 1,000 shares exist — ' + fmt(alloc) + ' are allocated. Reduce a holding by ' + fmt(-remaining) + '.',
+  dirIc: directors ? 'ic-circle-check' : 'ic-alert-circle',
+  dirTone: directors ? 't-good' : 't-bad',
+  dirText: directors ? directors + (directors > 1 ? ' directors' : ' director') + ' · a private company needs at least one director who is a natural person' : 'Add at least one director — a private company needs one who is a natural person',
+  peopleCount: 3 + added.length,
+  menu,
+  menuAria: menu ? 'true' : 'false',
+  toggleMenu: () => this.setState({ menu: !menu }),
+  addInd: addKind('ind'),
+  addCorp: addKind('corp'),
+  added: addedRows,
+  foot: exact && directors ? 'Ready for beneficial ownership' : under ? fmt(remaining) + ' shares to allocate' : !directors ? 'Add a director to continue' : 'Too many shares allocated',
+  contCls: exact && directors ? '' : 'is-disabled',
+  contAria: exact && directors ? 'false' : 'true'
+};
+}
+}
+</script>
+</body>
+</html>

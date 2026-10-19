@@ -115,6 +115,9 @@ export default async function EntityWorkspacePage({
 
   return (
     <EntityWorkspace
+      userName={(user.user_metadata?.full_name as string | undefined) ?? user.email?.split('@')[0] ?? 'Account'}
+      userEmail={user.email ?? ''}
+      isSuperAdmin={isSuperAdmin === true}
       entity={{
         id: entity.id,
         name: entity.legal_name ?? entity.trading_name ?? proposed ?? 'Unnamed entity',

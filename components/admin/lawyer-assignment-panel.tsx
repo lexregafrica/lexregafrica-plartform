@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { IconGavel, IconMail, IconPlus, IconAlertCircle, IconLock } from '@tabler/icons-react'
 
 export type LawyerAssignment = {
   id: string
@@ -17,9 +18,6 @@ const SERVICE_TYPES = [
   { value: 'legal_audit', label: 'Legal audit' },
 ]
 
-const CARD = 'rounded-[24px] bg-white p-5'
-const inputCls = 'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
-const inputStyle = { borderColor: 'var(--system-fill-3)', background: 'var(--system-bg)', color: 'var(--system-label)' } as const
 
 export function LawyerAssignmentPanel({ entityId, assignments }: { entityId: string; assignments: LawyerAssignment[] }) {
   const [list, setList] = useState(assignments)
@@ -78,70 +76,76 @@ export function LawyerAssignmentPanel({ entityId, assignments }: { entityId: str
   }
 
   return (
-    <div className={CARD}>
-      <h3 className="text-ios-subhead mb-3 font-bold" style={{ color: 'var(--system-label)' }}>Assigned lawyers</h3>
+    <section className="card" aria-labelledby="lawyers-h">
+      <div className="card-head">
+        <h2 id="lawyers-h">Assigned lawyers</h2>
+        <span className="t-footnote t-3 t-num">{active.length}</span>
+      </div>
 
       {active.length === 0 && !showForm && (
-        <p className="text-ios-footnote mb-3" style={{ color: 'var(--system-label-2)' }}>No lawyer assigned to this entity yet.</p>
+        <p className="t-footnote t-3 px-5 pb-3">No lawyer assigned to this entity yet.</p>
       )}
 
-      {active.map((a) => (
-        <div key={a.id} className="flex items-center justify-between gap-3 py-2 border-b last:border-0" style={{ borderColor: 'var(--system-fill-4)' }}>
-          <div className="min-w-0">
-            <p className="text-ios-footnote font-semibold truncate" style={{ color: 'var(--system-label)' }}>{a.lawyerEmail ?? a.lawyerUserId}</p>
-            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-              {SERVICE_TYPES.find((s) => s.value === a.serviceType)?.label ?? a.serviceType}
-            </p>
+      {active.length > 0 && (
+        <div className="flex flex-col pb-1.5">
+          {active.map((a) => (
+            <div key={a.id} className="list-row" style={{ paddingInline: 20 }}>
+              <span className="icon-tile" aria-hidden="true"><IconGavel size={17} stroke={1.75} /></span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="t-subhead truncate" style={{ color: 'var(--label)' }}>{a.lawyerEmail ?? a.lawyerUserId}</span>
+                <span className="t-footnote t-3">{SERVICE_TYPES.find((s) => s.value === a.serviceType)?.label ?? a.serviceType}</span>
+              </span>
+              <button type="button" disabled={busy} onClick={() => unassign(a.id)} className="btn btn-plain btn-sm btn-destructive-plain shrink-0">
+                Unassign
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 px-5 pb-5">
+        {showForm ? (
+          <div className="fade flex flex-col gap-3">
+            <div className="field">
+              <label className="label" htmlFor="lw-email">Lawyer&rsquo;s email</label>
+              <div className="input-wrap">
+                <IconMail size={18} stroke={1.75} aria-hidden="true" className="absolute left-3" style={{ color: 'var(--label-3)', pointerEvents: 'none' }} />
+                <input id="lw-email" type="email" className="input" placeholder="lawyer@example.com" value={email} onChange={(e) => setEmail(e.target.value)} style={{ paddingLeft: 38 }} />
+              </div>
+            </div>
+            <div className="field">
+              <label className="label" htmlFor="lw-service">Service</label>
+              <select id="lw-service" className="select" value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
+                {SERVICE_TYPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label className="label" htmlFor="lw-notes">Notes <span className="t-3">(optional)</span></label>
+              <input id="lw-notes" type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+            <div className="note note-brand">
+              <IconLock size={16} stroke={1.75} aria-hidden="true" />
+              <p>We email a magic link. The lawyer sets their own password — you never see it — and sees only this entity and this service.</p>
+            </div>
+            {error && (
+              <p className="error"><IconAlertCircle size={15} stroke={1.75} aria-hidden="true" />{error}</p>
+            )}
+            <div className="flex gap-2">
+              <button type="button" onClick={invite} disabled={busy} className="btn btn-primary flex-1">
+                {busy ? 'Sending invite…' : 'Send invite'}
+              </button>
+              <button type="button" onClick={() => { setShowForm(false); setError('') }} className="btn btn-gray">Cancel</button>
+            </div>
           </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => unassign(a.id)}
-            className="text-ios-caption1 shrink-0 font-semibold text-red-500 disabled:opacity-50"
-          >
-            Unassign
+        ) : (
+          <button type="button" onClick={() => setShowForm(true)} className="btn btn-tinted btn-block">
+            <IconPlus size={17} stroke={2} aria-hidden="true" />Invite a lawyer
           </button>
-        </div>
-      ))}
-
-      {showForm ? (
-        <div className="mt-3 space-y-2.5">
-          <input type="email" className={inputCls} style={inputStyle} placeholder="lawyer@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <select className={inputCls} style={inputStyle} value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
-            {SERVICE_TYPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-          <input type="text" className={inputCls} style={inputStyle} placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          {error && <p className="text-ios-caption1" style={{ color: '#D70015' }}>{error}</p>}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={invite}
-              disabled={busy}
-              className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'var(--brand-navy)' }}
-            >
-              {busy ? 'Sending invite…' : 'Send invite'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowForm(false); setError('') }}
-              className="py-2.5 px-5 rounded-full text-sm font-medium border"
-              style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="mt-2 w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
-          style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
-        >
-          + Invite a lawyer
-        </button>
-      )}
-    </div>
+        )}
+        {!showForm && error && (
+          <p className="error"><IconAlertCircle size={15} stroke={1.75} aria-hidden="true" />{error}</p>
+        )}
+      </div>
+    </section>
   )
 }

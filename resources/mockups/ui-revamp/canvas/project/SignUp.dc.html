@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create account — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.auth{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);min-height:inherit}
+.auth-brand{display:flex;flex-direction:column;gap:40px;padding:40px 48px;background:var(--bg);border-right:0.5px solid var(--sep-soft)}
+.auth-main{display:flex;flex-direction:column;align-items:center;padding:24px 32px;background:var(--surface)}
+.auth-form{width:100%;max-width:400px;margin-block:auto;display:flex;flex-direction:column;gap:24px;padding:40px 0}
+.auth-foot{width:100%;max-width:400px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px}
+.pw-meter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.pw-meter span{height:4px;border-radius:2px;transition:background-color var(--dur-snappy) var(--ease-spring)}
+.consent{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-card);background:var(--fill-4);cursor:pointer}
+.consent input{flex:none;width:20px;height:20px;margin:0;accent-color:var(--tint);cursor:pointer}
+.tap{display:inline-flex;align-items:center}
+@container lx (max-width: 720px){.tap,.auth-foot a{display:inline-flex;align-items:center;min-height:44px}.auth{grid-template-columns:minmax(0,1fr)}.auth-main{padding:16px}.auth-form{padding:20px 0 28px}.consent input{width:22px;height:22px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 960px">
+  <div class="auth">
+    <aside class="auth-brand hide-compact" aria-label="About LexReg">
+      <a class="row gap-3" href="Home.dc.html" style="color: var(--label); text-decoration: none">
+        <img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 30px; height: 30px">
+        <span class="sb-word">LexReg<small>Africa</small></span>
+      </a>
+      <div class="stack gap-8" style="margin-block: auto">
+        <div class="stack gap-2 rise">
+          <p class="t-eyebrow">Governance &amp; Compliance Portal</p>
+          <p class="t-title1 t-balance">Every entity, filing and deadline in one calm place.</p>
+        </div>
+        <div class="card rise" style="--d: 1; max-width: 420px">
+          <div class="card-pad row gap-4">
+            <div style="position: relative; width: 64px; height: 64px; flex: none">
+              <svg class="ring" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle class="track" cx="32" cy="32" r="27" stroke-width="7"></circle><circle class="bar" cx="32" cy="32" r="27" stroke-width="7" stroke-dasharray="169.6" stroke-dashoffset="30.5" style="--len: 169.6; stroke: var(--sys-green)"></circle></svg>
+              <span class="t-subhead t-num t-strong" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--label)">82%</span>
+            </div>
+            <div class="grow stack gap-1">
+              <p class="t-headline truncate">Amani Logistics Limited</p>
+              <p class="t-footnote t-3 t-num truncate">PVT-2LU7Q9XB · Private limited company</p>
+              <div class="row gap-2"><span class="pill pill-good"><span class="dot"></span>Active</span><span class="pill pill-warn t-num">2 tasks open</span></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <ul class="stack">
+            <li class="row gap-3" style="padding: 12px 20px"><span class="date-tile"><span class="m">Mar</span><span class="d">31</span></span><div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Nairobi County business permit</p><p class="t-footnote t-3 t-num">Due 31 Mar 2027</p></div></li>
+            <li class="row gap-3" style="padding: 12px 20px; border-top: var(--hairline-soft)"><span class="date-tile"><span class="m">Apr</span><span class="d">13</span></span><div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Annual return</p><p class="t-footnote t-3 t-num">Due 13 Apr 2027</p></div></li>
+          </ul>
+        </div>
+        <ul class="stack gap-4">
+          <li class="row gap-3 rise" style="--d: 2; align-items: flex-start"><span class="icon-tile" aria-hidden="true"><span class="ic ic-building"></span></span><div class="grow"><p class="t-subhead" style="color: var(--label)">Register, onboard or assess</p><p class="t-footnote t-3">New company, existing entity, or an informal business readiness check.</p></div></li>
+          <li class="row gap-3 rise" style="--d: 3; align-items: flex-start"><span class="icon-tile" aria-hidden="true"><span class="ic ic-cloud-check"></span></span><div class="grow"><p class="t-subhead" style="color: var(--label)">Your progress always saves</p><p class="t-footnote t-3">Every step is kept as a draft. Leave and come back any time.</p></div></li>
+          <li class="row gap-3 rise" style="--d: 4; align-items: flex-start"><span class="icon-tile" aria-hidden="true"><span class="ic ic-shield-lock"></span></span><div class="grow"><p class="t-subhead" style="color: var(--label)">Protected under the Kenya Data Protection Act 2019</p><p class="t-footnote t-3">Every change is logged; lawyers see only what you assign.</p></div></li>
+        </ul>
+      </div>
+      <p class="t-footnote t-3">© 2026 LexReg Africa · Data hosted in Frankfurt, EU</p>
+    </aside>
+
+    <main class="auth-main">
+      <a class="row gap-2 only-compact" href="Home.dc.html" style="align-self: flex-start; color: var(--label); text-decoration: none; min-height: 44px">
+        <img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 28px; height: 28px">
+        <span class="t-headline">LexReg</span>
+      </a>
+      <div class="auth-form">
+        <header class="stack gap-2 rise">
+          <h1 class="t-large">Create your account</h1>
+          <p class="t-body t-2 t-pretty">Set up LexReg for your business. It takes about two minutes.</p>
+        </header>
+
+        <div class="stack gap-4 rise" style="--d: 1">
+          <div class="field">
+            <label class="label" for="su-name">Full name</label>
+            <div class="input-wrap">
+              <span class="ic ic-user" aria-hidden="true"></span>
+              <input class="input" id="su-name" type="text" autocomplete="name" placeholder="Jane Wanjiku" value="{{name}}" onChange="{{setName}}">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="su-email">Email</label>
+            <div class="input-wrap">
+              <span class="ic ic-mail" aria-hidden="true"></span>
+              <input class="input" id="su-email" type="email" autocomplete="email" placeholder="you@example.com" value="{{email}}" onChange="{{setEmail}}">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="su-phone">Mobile number</label>
+            <div class="input-wrap">
+              <span class="t-body t-2 t-num" aria-hidden="true" style="position: absolute; left: 12px; pointer-events: none">+254</span>
+              <input class="input t-num" id="su-phone" type="tel" autocomplete="tel-national" inputmode="tel" placeholder="712 345 678" value="{{phone}}" onChange="{{setPhone}}" aria-describedby="su-phone-help" style="padding-left: 60px">
+            </div>
+            <p class="help" id="su-phone-help">Used for filing reminders and if your lawyer needs to reach you.</p>
+          </div>
+          <div class="field">
+            <label class="label" for="su-password">Password</label>
+            <div class="input-wrap">
+              <span class="ic ic-lock" aria-hidden="true"></span>
+              <input class="input" id="su-password" type="{{pwType}}" autocomplete="new-password" placeholder="8+ characters" value="{{pw}}" onChange="{{setPw}}" aria-describedby="su-pw-strength" style="padding-right: 56px">
+              <span class="trail"><button class="btn btn-plain btn-icon" type="button" aria-label="{{eyeLabel}}" aria-pressed="{{eyePressed}}" onClick="{{toggleEye}}" style="color: var(--label-3)"><span class="ic {{eyeIcon}}" aria-hidden="true"></span></button></span>
+            </div>
+            <div class="stack gap-2" id="su-pw-strength" style="padding-top: 4px">
+              <div class="row gap-3">
+                <div class="pw-meter grow" aria-hidden="true">
+                  <sc-for list="{{segs}}" as="seg" hint-placeholder-count="4">
+                    <span style="background: {{seg.bg}}"></span>
+                  </sc-for>
+                </div>
+                <span class="t-footnote t-strong {{strengthCls}}" style="min-width: 48px; text-align: right" aria-live="polite">{{strengthLabel}}</span>
+              </div>
+              <ul class="grid cols-2" style="gap: 4px 12px">
+                <sc-for list="{{rules}}" as="rule" hint-placeholder-count="4">
+                  <li class="row gap-2 t-footnote {{rule.cls}}" style="align-items: flex-start"><span class="ic ic-sm {{rule.icon}}" aria-hidden="true" style="margin-top: 1px"></span><span>{{rule.label}}<span class="sr-only">{{rule.sr}}</span></span></li>
+                </sc-for>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <label class="consent rise" for="su-consent" style="--d: 2">
+          <input id="su-consent" type="checkbox" checked="{{agreed}}" onChange="{{toggleAgree}}">
+          <span class="t-footnote t-2 t-pretty">I agree to the <a href="Legal.dc.html">Terms &amp; Conditions</a> and <a href="Legal.dc.html">Privacy Policy</a>, and consent to LexReg processing my personal data under the Kenya Data Protection Act 2019.</span>
+        </label>
+
+        <div class="stack gap-3 rise" style="--d: 3">
+          <a class="btn btn-primary btn-lg btn-block {{submitCls}}" href="PathSelector.dc.html" aria-disabled="{{submitDisabled}}">Create account</a>
+          <sc-if value="{{needsConsent}}" hint-placeholder-val="{{true}}">
+            <p class="t-footnote t-3" style="text-align: center">Tick the agreement above to continue.</p>
+          </sc-if>
+          <p class="t-subhead t-2" style="text-align: center">Already have an account? <a href="SignIn.dc.html">Sign in</a></p>
+        </div>
+      </div>
+      <nav class="auth-foot t-footnote" aria-label="Legal">
+        <a href="Legal.dc.html">Terms</a>
+        <a href="Legal.dc.html">Privacy Policy</a>
+        <span class="t-3 only-compact">© 2026 LexReg Africa</span>
+      </nav>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const show = s.show ?? false;
+const pw = s.pw ?? 'Amani2026';
+const agreed = s.agreed ?? false;
+const checks = [
+  { label: 'At least 8 characters', ok: pw.length >= 8 },
+  { label: 'Upper and lower case', ok: /[a-z]/.test(pw) && /[A-Z]/.test(pw) },
+  { label: 'At least one number', ok: /[0-9]/.test(pw) },
+  { label: 'At least one symbol', ok: /[^A-Za-z0-9]/.test(pw) }
+];
+const score = pw.length === 0 ? 0 : checks.filter((c) => c.ok).length;
+const colours = ['var(--fill-3)', 'var(--sys-red)', 'var(--sys-orange)', 'var(--sys-green)', 'var(--sys-green)'];
+const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+const labelCls = ['t-3', 't-bad', 't-warn', 't-good', 't-good'];
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  name: s.name ?? 'Wanjiku Mwangi',
+  setName: (e) => this.setState({ name: e.target.value }),
+  email: s.email ?? 'wanjiku@amanilogistics.co.ke',
+  setEmail: (e) => this.setState({ email: e.target.value }),
+  phone: s.phone ?? '712 345 678',
+  setPhone: (e) => this.setState({ phone: e.target.value }),
+  pw: pw,
+  setPw: (e) => this.setState({ pw: e.target.value }),
+  pwType: show ? 'text' : 'password',
+  eyeIcon: show ? 'ic-eye-off' : 'ic-eye',
+  eyeLabel: show ? 'Hide password' : 'Show password',
+  eyePressed: show ? 'true' : 'false',
+  toggleEye: () => this.setState({ show: !show }),
+  segs: [0, 1, 2, 3].map((i) => ({ bg: i < score ? colours[score] : 'var(--fill-3)' })),
+  strengthLabel: labels[score],
+  strengthCls: labelCls[score],
+  rules: checks.map((c) => ({ label: c.label, icon: c.ok ? 'ic-circle-check' : 'ic-circle-dashed', cls: c.ok ? 't-good' : 't-3', sr: c.ok ? ' (met)' : ' (not met)' })),
+  agreed: agreed,
+  toggleAgree: () => this.setState({ agreed: !agreed }),
+  needsConsent: !agreed,
+  submitCls: agreed ? '' : 'is-disabled',
+  submitDisabled: agreed ? 'false' : 'true'
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,40 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
+import { IconMail, IconAlertCircle, IconClock, IconAlertTriangle } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/client'
+import { AuthShell, AuthHeader, PasswordField, GoogleIcon } from '@/components/auth/auth-shell'
 
 const CALLBACK_ERROR_MESSAGE =
   'We couldn’t complete that sign-in. Please try again — if it keeps happening, contact support.'
-
-const GoogleIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-  </svg>
-)
 
 export function GlassLogin() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(() => (searchParams.get('error') === 'auth_callback_failed' ? CALLBACK_ERROR_MESSAGE : ''))
   const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
   const [resendSent, setResendSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-
-  useEffect(() => {
-    if (searchParams.get('error') === 'auth_callback_failed') {
-      setError(CALLBACK_ERROR_MESSAGE)
-    }
-  }, [searchParams])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,112 +65,81 @@ export function GlassLogin() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F4F6F8] px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-sm p-8 flex flex-col items-center">
+    <AuthShell>
+      <AuthHeader title="Sign in to your account" subtitle="Welcome back. Pick up where you left off." />
 
-        {/* Logo */}
-        <Link href="/" className="flex flex-col items-center gap-2 mb-7 hover:opacity-75 transition-opacity">
-          <img src="/images/logo.png" alt="LexReg Africa" className="h-14 w-14 object-contain" />
-          <div className="text-center">
-            <p className="text-sm font-semibold text-gray-900 leading-tight">LexReg Africa</p>
-            <p className="text-[11px] text-gray-400 leading-tight mt-0.5">Governance &amp; Compliance Portal</p>
+      {error && (
+        <div className="note note-bad rise" role="alert">
+          <IconAlertCircle size={18} stroke={1.75} aria-hidden="true" />
+          <p>{error}</p>
+        </div>
+      )}
+
+      {unconfirmedEmail && (
+        <div className="note note-warn rise" role="status">
+          <IconAlertTriangle size={18} stroke={1.75} aria-hidden="true" />
+          <div className="flex flex-col gap-1">
+            <p>Your email isn&rsquo;t confirmed yet. Check your inbox for the link we sent to <strong>{unconfirmedEmail}</strong>.</p>
+            {resendSent ? (
+              <p className="t-good">Confirmation email resent.</p>
+            ) : (
+              <button type="button" onClick={handleResendConfirmation} disabled={loading} className="btn btn-plain btn-sm self-start" style={{ paddingInline: 0 }}>
+                Resend confirmation email
+              </button>
+            )}
           </div>
-        </Link>
+        </div>
+      )}
 
-        <h1 className="text-lg font-semibold text-gray-900 mb-5 text-center">Sign in to your account</h1>
-
-        <form onSubmit={handleSignIn} className="w-full flex flex-col gap-3">
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            autoComplete="email"
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#800020]/30 focus:border-[#800020]"
-          />
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
-              value={password}
-              autoComplete="current-password"
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 pr-10 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#800020]/30 focus:border-[#800020]"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
-
-          {unconfirmedEmail && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-              <p className="text-xs text-amber-800">
-                Your email isn&apos;t confirmed yet. Check your inbox for the confirmation link we sent to{' '}
-                <span className="font-medium">{unconfirmedEmail}</span>.
-              </p>
-              {resendSent ? (
-                <p className="text-xs text-amber-700 mt-1.5">Confirmation email resent.</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResendConfirmation}
-                  disabled={loading}
-                  className="text-xs font-medium text-amber-900 underline underline-offset-2 mt-1.5 hover:opacity-70 transition-opacity disabled:opacity-50"
-                >
-                  Resend confirmation email
-                </button>
-              )}
+      <form onSubmit={handleSignIn} className="flex flex-col gap-6" noValidate>
+        <div className="rise flex flex-col gap-4" style={{ '--d': 1 } as React.CSSProperties}>
+          <div className={`field ${error ? 'is-invalid' : ''}`}>
+            <label className="label" htmlFor="si-email">Email</label>
+            <div className="input-wrap">
+              <IconMail size={18} stroke={1.75} aria-hidden="true" className="absolute left-3" style={{ color: 'var(--label-3)', pointerEvents: 'none' }} />
+              <input
+                className="input"
+                id="si-email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError('') }}
+                aria-invalid={!!error || undefined}
+                style={{ paddingLeft: 38 }}
+              />
             </div>
-          )}
-
-          <div className="flex justify-end -mt-1">
-            <Link href="/forgot-password" className="text-[11px] text-gray-400 hover:text-gray-700 underline underline-offset-2 transition-colors">
-              Forgot password?
-            </Link>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mt-1"
-            style={{ background: '#800020' }}
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <div className="flex items-center gap-3 w-full my-4">
-          <hr className="flex-1 border-gray-200" />
-          <span className="text-[11px] text-gray-400 shrink-0">or continue with</span>
-          <hr className="flex-1 border-gray-200" />
+          <PasswordField
+            id="si-password"
+            label="Password"
+            value={password}
+            onChange={(v) => { setPassword(v); setError('') }}
+            autoComplete="current-password"
+            invalid={!!error}
+            trailingLabel={<Link className="t-subhead inline-flex min-h-8 items-center" href="/forgot-password">Forgot password?</Link>}
+          />
         </div>
 
-        <button
-          onClick={handleGoogle}
-          disabled={googleLoading}
-          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-        >
-          <GoogleIcon />
-          {googleLoading ? 'Redirecting…' : 'Google'}
+        <div className="rise flex flex-col gap-3" style={{ '--d': 2 } as React.CSSProperties}>
+          <button type="submit" disabled={loading} className="btn btn-primary btn-lg btn-block">
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
+          <p className="t-footnote t-3 flex items-center justify-center gap-2 text-center">
+            <IconClock size={15} stroke={1.75} aria-hidden="true" />You&rsquo;ll be signed out after 30 minutes of inactivity.
+          </p>
+        </div>
+      </form>
+
+      <div className="auth-or t-caption t-3 rise" style={{ '--d': 3 } as React.CSSProperties}>or</div>
+
+      <div className="rise flex flex-col gap-2" style={{ '--d': 4 } as React.CSSProperties}>
+        <button type="button" onClick={handleGoogle} disabled={googleLoading} className="btn btn-secondary btn-lg btn-block">
+          <GoogleIcon />{googleLoading ? 'Redirecting…' : 'Continue with Google'}
         </button>
-
-        <p className="text-[11px] text-gray-400 mt-6 text-center">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-gray-900 font-medium underline underline-offset-2 hover:opacity-70 transition-opacity">
-            Create one
-          </Link>
-        </p>
+        <Link href="/signup" className="btn btn-gray btn-lg btn-block">Create an account</Link>
+        <p className="t-footnote t-3 text-center">Invited by LexReg as a lawyer? Use the link in your invitation email.</p>
       </div>
-
-      <p className="text-[11px] text-gray-400 mt-6 text-center">
-        © {new Date().getFullYear()} LexReg Africa. All rights reserved.
-      </p>
-    </div>
+    </AuthShell>
   )
 }

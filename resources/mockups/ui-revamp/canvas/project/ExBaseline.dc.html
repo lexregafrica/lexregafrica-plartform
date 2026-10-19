@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Compliance baseline — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.wz-main.wide{max-width:none}
+.bl-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:start}
+.bl-side{position:sticky;top:76px}
+.q{display:flex;flex-direction:column;gap:12px;padding:16px 20px}
+.q + .q{border-top:0.5px solid var(--sep-soft)}
+.q-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.q-row .seg{flex:0 0 240px}
+.seg.is-empty::before{opacity:0}
+.effect{display:flex;align-items:flex-start;gap:6px;font-size:12.5px;line-height:17px}
+.effect .ic{width:14px;height:14px;margin-top:1px}
+@container lx (max-width: 720px){
+  .bl-grid{grid-template-columns:minmax(0,1fr)}
+  .bl-side{position:static}
+  .q{padding:14px 16px}
+  .q-row{flex-direction:column;align-items:stretch}
+  .q-row .seg{flex:none}
+  .q-row .seg button{height:44px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Onboard an existing entity · Amani Logistics Limited</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="ExType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="ExUpload.dc.html"><span class="n">2</span>Upload documents</a>
+      <a class="wz-step is-done" href="ExDetails.dc.html"><span class="n">3</span>Entity details</a>
+      <a class="wz-step is-done" href="ExPeople.dc.html"><span class="n">4</span>People &amp; roles</a>
+      <span class="wz-step is-done"><span class="n">5</span>Beneficial ownership</span>
+      <a class="wz-step is-on" aria-current="step" href="ExBaseline.dc.html"><span class="n">6</span>Compliance baseline</a>
+      <span class="wz-step"><span class="n">7</span>Review &amp; activate</span>
+    </nav>
+    <section class="wz-main wide">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 6 of 7</span><span class="t-caption t-3 t-num">86%</span></div>
+        <div class="progress"><span style="width: 86%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 6 of 7 · Compliance baseline</p>
+        <h1 class="t-large t-balance">Is everything still current?</h1>
+        <p class="t-body t-2 t-pretty">A certificate proves the company exists — not that its records are up to date. Your answers set your compliance baseline and create only the tasks that apply to you.</p>
+      </header>
+
+      <div class="bl-grid">
+        <div class="stack gap-4">
+          <!-- Changes since the latest record -->
+          <section class="stack gap-2 rise" style="--d: 1" aria-labelledby="g1">
+            <div class="row between" style="padding: 0 4px">
+              <h2 id="g1" class="t-eyebrow">Since your CR12 of 2 Oct 2026</h2>
+              <span class="t-caption t-3 t-num">{{g1Answered}} of 4 answered</span>
+            </div>
+            <div class="card">
+              <sc-for list="{{group1}}" as="q" hint-placeholder-count="4">
+                <div class="q">
+                  <div class="q-row">
+                    <p class="t-headline t-pretty" id="{{q.qid}}">{{q.question}}</p>
+                    <div class="seg {{q.segCls}}" style="--n:3; --i:{{q.segI}}" role="radiogroup" aria-labelledby="{{q.qid}}">
+                      <sc-for list="{{q.opts}}" as="o" hint-placeholder-count="3">
+                        <button class="{{o.cls}}" type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}">{{o.label}}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <p class="effect {{q.effectCls}}"><span class="ic {{q.effectIc}}" aria-hidden="true"></span><span class="t-pretty">{{q.effect}}</span></p>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <!-- Filing & operations -->
+          <section class="stack gap-2 rise" style="--d: 2" aria-labelledby="g2">
+            <div class="row between" style="padding: 0 4px">
+              <h2 id="g2" class="t-eyebrow">Filings &amp; operations</h2>
+              <span class="t-caption t-3 t-num">{{g2Answered}} of 3 answered</span>
+            </div>
+            <div class="card">
+              <sc-for list="{{group2}}" as="q" hint-placeholder-count="3">
+                <div class="q">
+                  <div class="q-row">
+                    <p class="t-headline t-pretty" id="{{q.qid}}">{{q.question}}</p>
+                    <div class="seg {{q.segCls}}" style="--n:3; --i:{{q.segI}}" role="radiogroup" aria-labelledby="{{q.qid}}">
+                      <sc-for list="{{q.opts}}" as="o" hint-placeholder-count="3">
+                        <button class="{{o.cls}}" type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}">{{o.label}}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <p class="effect {{q.effectCls}}"><span class="ic {{q.effectIc}}" aria-hidden="true"></span><span class="t-pretty">{{q.effect}}</span></p>
+                </div>
+              </sc-for>
+              <div class="q">
+                <div class="field">
+                  <label class="label" for="last-ar">When was the last annual return filed? (if you know)</label>
+                  <input class="input" id="last-ar" type="date" value="{{lastAr}}" onInput="{{setLastAr}}" style="max-width: 260px">
+                  <p class="help">No CR29 was uploaded, so we ask instead. Leave it blank if you’re not sure.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="note rise" style="--d: 3">
+            <span class="ic ic-info-circle" aria-hidden="true"></span>
+            <p class="t-pretty"><strong>Not asked: company secretary.</strong> Amani’s nominal capital is KES 1,000,000 — below KES 5 million — so a secretary is optional for a private company. Halima Abdi is recorded anyway.</p>
+          </div>
+        </div>
+
+        <!-- Live preview -->
+        <aside class="bl-side rise" style="--d: 2" aria-labelledby="preview-h" aria-live="polite">
+          <div class="card">
+            <div class="card-head">
+              <div class="stack">
+                <p class="t-eyebrow">Live preview</p>
+                <h2 id="preview-h">What LexReg will set up</h2>
+              </div>
+              <span class="icon-tile"><span class="ic ic-sparkles" aria-hidden="true"></span></span>
+            </div>
+            <div class="stack gap-3" style="padding: 4px 20px 16px">
+              <p class="t-eyebrow">Compliance calendar · 3 dates</p>
+              <sc-for list="{{calendar}}" as="c" hint-placeholder-count="3">
+                <div class="row gap-3">
+                  <span class="date-tile"><span class="m">{{c.m}}</span><span class="d">{{c.d}}</span></span>
+                  <div class="stack" style="min-width: 0">
+                    <p class="t-subhead t-strong t-pretty">{{c.title}}</p>
+                    <p class="t-caption t-3 t-num">{{c.sub}}</p>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div class="divider"></div>
+            <div class="stack gap-3" style="padding: 16px 20px">
+              <div class="row between">
+                <p class="t-eyebrow">Tasks from your answers</p>
+                <span class="{{taskPillCls}}">{{taskCount}}</span>
+              </div>
+              <sc-if value="{{hasTasks}}" hint-placeholder-val="{{true}}">
+                <sc-for list="{{tasks}}" as="t" hint-placeholder-count="2">
+                  <div class="row gap-3 pop" style="align-items: flex-start">
+                    <span class="icon-tile warn"><span class="ic ic-flag" aria-hidden="true"></span></span>
+                    <div class="stack" style="min-width: 0">
+                      <p class="t-subhead t-strong t-pretty">{{t.title}}</p>
+                      <p class="t-caption t-3 t-num">{{t.due}}</p>
+                    </div>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{noTasks}}" hint-placeholder-val="{{false}}">
+                <div class="row gap-3 fade">
+                  <span class="icon-tile good"><span class="ic ic-circle-check" aria-hidden="true"></span></span>
+                  <p class="t-footnote t-2 t-pretty">Nothing behind — your answers add no extra tasks.</p>
+                </div>
+              </sc-if>
+              <sc-if value="{{hasLastAr}}" hint-placeholder-val="{{false}}">
+                <div class="inset t-footnote t-2 fade">Last annual return on record: <span class="t-strong t-num" style="color: var(--label)">{{lastArText}}</span> · confirmed by you</div>
+              </sc-if>
+            </div>
+            <div class="card-foot">
+              <span class="t-caption t-3 t-pretty">Plus 3 tasks from earlier steps, shown on the review.</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="ExPeople.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footerHint}}</span>
+        <a class="btn btn-primary" href="ExReview.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const answers = s.answers ?? { changes_directors: 'no', changes_shares: 'no', changes_office: 'no', annual_returns_current: 'unsure', employs_staff: 'yes' };
+const lastAr = s.lastAr ?? '';
+
+const Q = [
+  { key: 'changes_directors', g: 1, question: 'Have any directors joined or left since your latest registry record?', taskOn: 'yes', title: 'Confirm director changes are filed with BRS', days: 14 },
+  { key: 'changes_shares', g: 1, question: 'Have shares been allotted or transferred, or the share capital changed?', taskOn: 'yes', title: 'Confirm share allotments / transfers are filed', days: 14 },
+  { key: 'changes_office', g: 1, question: 'Has the registered office or company name changed?', taskOn: 'yes', title: 'Confirm registered office / name change is filed', days: 14 },
+  { key: 'changes_bo', g: 1, question: 'Have your beneficial owners changed since the last BO filing?', taskOn: 'yes', title: 'Update beneficial ownership filing', days: 14 },
+  { key: 'annual_returns_current', g: 2, question: 'Are your annual returns filed up to date?', taskOn: 'no_or_unsure', title: 'Bring annual returns up to date', days: 30 },
+  { key: 'employs_staff', g: 2, question: 'Does the company employ staff?', taskOn: 'yes', title: 'Set up employment compliance', days: 30, note: 'PAYE, NSSF, SHIF and Housing Levy' },
+  { key: 'regulated_activity', g: 2, question: 'Does the company carry on a regulated activity or need a sector licence?', taskOn: 'yes', title: 'Record sector licences', days: 30 }
+];
+const DUE_DATE = { 14: '30 Oct 2026', 30: '15 Nov 2026' };
+const DUE = { 14: 'Due ' + DUE_DATE[14], 30: 'Due ' + DUE_DATE[30] };
+const triggers = (q, a) => !!a && (q.taskOn === 'yes' ? a === 'yes' : q.taskOn === 'no' ? a === 'no' : (a === 'no' || a === 'unsure'));
+const OPTS = [{ v: 'yes', label: 'Yes' }, { v: 'no', label: 'No' }, { v: 'unsure', label: 'Not sure' }];
+
+const view = Q.map((q) => {
+  const a = answers[q.key];
+  const hit = triggers(q, a);
+  const idx = OPTS.findIndex((o) => o.v === a);
+  return {
+    ...q,
+    qid: 'q-' + q.key,
+    segI: idx < 0 ? 0 : idx,
+    segCls: idx < 0 ? 'is-empty' : '',
+    opts: OPTS.map((o) => ({
+      ...o,
+      cls: a === o.v ? 'is-on' : '',
+      checked: a === o.v ? 'true' : 'false',
+      pick: () => this.setState({ answers: { ...answers, [q.key]: o.v } })
+    })),
+    hit,
+    effect: !a ? 'Not answered yet' : hit ? 'Creates a task · ' + q.title + (q.note ? ' (' + q.note + ')' : '') + ' · due ' + DUE_DATE[q.days] : 'No task needed',
+    effectCls: !a ? 't-3' : hit ? 't-warn' : 't-good',
+    effectIc: !a ? 'ic-circle-dashed' : hit ? 'ic-flag' : 'ic-check'
+  };
+});
+const tasks = view.filter((q) => q.hit).map((q) => ({ title: q.title, due: DUE[q.days] }));
+const answered = (g) => view.filter((q) => q.g === g && !!answers[q.key]).length;
+const unanswered = view.filter((q) => !answers[q.key]).length;
+
+let lastArText = '';
+if (lastAr) {
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const p = lastAr.split('-');
+  lastArText = p.length === 3 ? parseInt(p[2], 10) + ' ' + M[parseInt(p[1], 10) - 1] + ' ' + p[0] : lastAr;
+}
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  group1: view.filter((q) => q.g === 1),
+  group2: view.filter((q) => q.g === 2),
+  g1Answered: answered(1),
+  g2Answered: answered(2),
+  calendar: [
+    { m: 'Mar', d: '31', title: 'Renew county single business permit', sub: 'Nairobi County · 31 Mar 2027' },
+    { m: 'Apr', d: '13', title: 'File annual return with BRS', sub: 'Every year · 13 Apr 2027' },
+    { m: 'Jun', d: '30', title: 'File income tax return with KRA', sub: 'Corporate tax · 30 Jun 2027' }
+  ],
+  tasks,
+  taskCount: tasks.length,
+  taskPillCls: tasks.length ? 'pill pill-warn t-num' : 'pill pill-good t-num',
+  hasTasks: tasks.length > 0,
+  noTasks: tasks.length === 0,
+  lastAr,
+  setLastAr: (e) => this.setState({ lastAr: e.target.value }),
+  hasLastAr: !!lastAr,
+  lastArText,
+  footerHint: (unanswered ? unanswered + ' unanswered · ' : 'All answered · ') + tasks.length + (tasks.length === 1 ? ' task' : ' tasks')
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { IconChevronRight, IconExternalLink, IconFileText, IconFolder, IconUser } from '@tabler/icons-react'
 
 export type VaultDocument = {
   id: string
@@ -48,8 +49,8 @@ export function DocumentVaultTree({ documents, onOpen, previewingId }: {
 
   if (documents.length === 0) {
     return (
-      <div className="ios-surface rounded-2xl p-4">
-        <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>No documents on file yet.</p>
+      <div className="card card-pad">
+        <p className="t-footnote t-3">No documents on file yet.</p>
       </div>
     )
   }
@@ -62,106 +63,104 @@ export function DocumentVaultTree({ documents, onOpen, previewingId }: {
   const categories = VAULT_CATEGORY_ORDER.filter((c) => byCategory.has(c))
 
   const DocLink = ({ doc }: { doc: VaultDocument }) => {
+    const body = (
+      <>
+        <IconFileText size={17} stroke={1.75} aria-hidden="true" style={{ color: 'var(--label-3)', flex: 'none' }} />
+        <span className="name t-subhead" style={{ fontWeight: 500 }}>{previewingId === doc.id ? 'Opening…' : doc.name}</span>
+        <IconExternalLink size={15} stroke={1.75} aria-hidden="true" style={{ color: 'var(--label-3)', flex: 'none' }} />
+      </>
+    )
     if (doc.url) {
       return (
-        <a
-          href={doc.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full text-left text-ios-caption1 truncate underline decoration-dotted"
-          style={{ color: 'var(--system-label)' }}
-        >
-          {doc.name}
+        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="file-row vault-file" style={{ color: 'var(--label)' }} title={doc.name}>
+          {body}
         </a>
       )
     }
     return (
-      <button
-        type="button"
-        onClick={() => onOpen?.(doc)}
-        disabled={previewingId === doc.id}
-        className="block w-full text-left text-ios-caption1 truncate underline decoration-dotted disabled:opacity-50"
-        style={{ color: 'var(--system-label)' }}
-      >
-        {previewingId === doc.id ? 'Opening…' : doc.name}
+      <button type="button" onClick={() => onOpen?.(doc)} disabled={previewingId === doc.id} className="file-row vault-file w-full text-left disabled:opacity-50" style={{ color: 'var(--label)' }} title={doc.name}>
+        {body}
       </button>
     )
   }
 
+  const Chevron = ({ open }: { open: boolean }) => (
+    <IconChevronRight size={15} stroke={2} aria-hidden="true" className="shrink-0" style={{ color: 'var(--label-3)', transform: open ? 'rotate(90deg)' : undefined, transition: 'transform var(--dur-snappy) var(--ease-spring)' }} />
+  )
+
   return (
-    <div className="ios-surface rounded-2xl p-4 space-y-1">
-      <p className="text-ios-caption1 font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--system-label-3)' }}>
-        All documents ({documents.length})
-      </p>
-      {categories.map((cat) => {
-        const docs = byCategory.get(cat)!
-        const isOpen = openCategories[cat] ?? true
-        const byPerson = new Map<string, VaultDocument[]>()
-        for (const d of docs) {
-          const person = d.tags?.[0]?.person ?? null
-          const key = person ?? '__none__'
-          byPerson.set(key, [...(byPerson.get(key) ?? []), d])
-        }
-        const people = [...byPerson.keys()].filter((k) => k !== '__none__')
-        const unassigned = byPerson.get('__none__') ?? []
+    <section className="card" aria-label="Document vault">
+      <div className="card-head">
+        <h2>All documents</h2>
+        <span className="pill t-num">{documents.length}</span>
+      </div>
+      <div className="flex flex-col pb-2">
+        {categories.map((cat) => {
+          const docs = byCategory.get(cat)!
+          const isOpen = openCategories[cat] ?? true
+          const byPerson = new Map<string, VaultDocument[]>()
+          for (const d of docs) {
+            const person = d.tags?.[0]?.person ?? null
+            const key = person ?? '__none__'
+            byPerson.set(key, [...(byPerson.get(key) ?? []), d])
+          }
+          const people = [...byPerson.keys()].filter((k) => k !== '__none__')
+          const unassigned = byPerson.get('__none__') ?? []
 
-        return (
-          <div key={cat} className="border-t first:border-t-0" style={{ borderColor: 'var(--system-fill-3)' }}>
-            <button
-              type="button"
-              onClick={() => setOpenCategories((prev) => ({ ...prev, [cat]: !isOpen }))}
-              className="w-full flex items-center gap-2 py-2.5 text-left"
-            >
-              <svg className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="var(--system-label-3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 6 15 12 9 18" />
-              </svg>
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="var(--brand-navy)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-              </svg>
-              <span className="text-ios-footnote font-semibold flex-1" style={{ color: 'var(--system-label)' }}>{cat}</span>
-              <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{docs.length}</span>
-            </button>
+          return (
+            <div key={cat} style={{ borderTop: 'var(--hairline-soft)' }}>
+              <button
+                type="button"
+                onClick={() => setOpenCategories((prev) => ({ ...prev, [cat]: !isOpen }))}
+                aria-expanded={isOpen}
+                className="list-row is-link"
+                style={{ paddingInline: 20, minHeight: 48 }}
+              >
+                <Chevron open={isOpen} />
+                <span className="icon-tile" aria-hidden="true" style={{ width: 28, height: 28 }}><IconFolder size={16} stroke={1.75} /></span>
+                <span className="t-subhead flex-1" style={{ color: 'var(--label)', fontWeight: 600 }}>{cat}</span>
+                <span className="t-footnote t-3 t-num">{docs.length}</span>
+              </button>
 
-            {isOpen && (
-              <div className="pl-6 pb-2 space-y-0.5">
-                {people.map((person) => {
-                  const personKey = `${cat}:${person}`
-                  const personOpen = openPeople[personKey] ?? true
-                  const personDocs = byPerson.get(person)!
-                  return (
-                    <div key={person}>
-                      <button
-                        type="button"
-                        onClick={() => setOpenPeople((prev) => ({ ...prev, [personKey]: !personOpen }))}
-                        className="w-full flex items-center gap-2 py-1.5 text-left"
-                      >
-                        <svg className={`w-3 h-3 shrink-0 transition-transform ${personOpen ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="var(--system-label-3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="9 6 15 12 9 18" />
-                        </svg>
-                        <span className="text-ios-caption1 font-medium flex-1" style={{ color: 'var(--system-label-2)' }}>{person}</span>
-                        <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{personDocs.length}</span>
-                      </button>
-                      {personOpen && (
-                        <div className="pl-5 space-y-1 pb-1">
-                          {personDocs.map((d) => <DocLink key={d.id} doc={d} />)}
-                        </div>
-                      )}
+              {isOpen && (
+                <div className="fade flex flex-col gap-1.5 pb-3 pl-[52px] pr-5">
+                  {people.map((person) => {
+                    const personKey = `${cat}:${person}`
+                    const personOpen = openPeople[personKey] ?? true
+                    const personDocs = byPerson.get(person)!
+                    return (
+                      <div key={person} className="flex flex-col gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setOpenPeople((prev) => ({ ...prev, [personKey]: !personOpen }))}
+                          aria-expanded={personOpen}
+                          className="flex min-h-9 w-full items-center gap-2 text-left"
+                        >
+                          <Chevron open={personOpen} />
+                          <IconUser size={15} stroke={1.75} aria-hidden="true" style={{ color: 'var(--label-3)' }} />
+                          <span className="t-footnote t-2 flex-1" style={{ fontWeight: 500 }}>{person}</span>
+                          <span className="t-footnote t-3 t-num">{personDocs.length}</span>
+                        </button>
+                        {personOpen && (
+                          <div className="fade flex flex-col gap-1.5 pl-6">
+                            {personDocs.map((d) => <DocLink key={d.id} doc={d} />)}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {unassigned.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      {people.length > 0 && <p className="t-eyebrow pt-1">General</p>}
+                      {unassigned.map((d) => <DocLink key={d.id} doc={d} />)}
                     </div>
-                  )
-                })}
-                {unassigned.length > 0 && (
-                  <div className="space-y-1 pt-1">
-                    {people.length > 0 && (
-                      <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>General</p>
-                    )}
-                    {unassigned.map((d) => <DocLink key={d.id} doc={d} />)}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }

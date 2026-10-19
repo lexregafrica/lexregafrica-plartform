@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin overview — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.ch{display:grid;grid-template-columns:20px minmax(0,1fr);column-gap:10px;row-gap:8px}
+.ch-y{height:190px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font-size:11px;line-height:0;color:var(--label-3);font-variant-numeric:tabular-nums}
+.ch-plot{position:relative;height:190px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;align-items:end;padding:0 4px}
+.ch-lines{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.ch-lines span{display:block;border-top:0.5px solid var(--sep-soft)}
+.ch-lines span:last-child{border-top-color:var(--sep)}
+.ch-col{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.ch-bar{display:block;width:100%;max-width:46px;border-radius:6px 6px 2px 2px;background:var(--tint);transform-origin:bottom;animation:ch-grow var(--dur-gentle) var(--ease-spring) both;animation-delay:calc(var(--d,0) * 40ms)}
+.ch-bar.is-partial{background:var(--brand-300)}
+.ch-val{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--label-2);margin-bottom:6px}
+.ch-x{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;padding:0 4px;font-size:11.5px;color:var(--label-3);text-align:center}
+@keyframes ch-grow{from{transform:scaleY(0)}}
+.key{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
+.donut{position:relative;flex:none;width:164px;height:164px;border-radius:50%;animation:pop-in var(--dur-gentle) var(--ease-spring) both}
+.donut::after{content:"";position:absolute;inset:24px;border-radius:50%;background:var(--surface)}
+.donut-c{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.legend{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1 1 180px}
+.legend li{display:flex;align-items:center;gap:8px;font-size:13px}
+.hl-sec{display:flex;flex-direction:column;min-width:0}
+.hl-sec + .hl-sec{border-left:var(--hairline-soft)}
+.hl-row{display:flex;align-items:flex-start;gap:10px;padding:10px 20px;border-top:var(--hairline-soft)}
+@container lx (max-width: 720px){
+  .hl-sec + .hl-sec{border-left:0;border-top:var(--hairline)}
+  .donut{width:140px;height:140px}
+  .donut::after{inset:20px}
+  .ch-plot,.ch-x{gap:8px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Admin navigation">
+    <a class="sb-brand" href="Admin.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Admin</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item is-on" href="Admin.dc.html" aria-current="page"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item" href="AdminEntities.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">16</span></a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Service requests<span class="badge">3</span></a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-gavel" aria-hidden="true"></span>Lawyers</a>
+    <div class="sb-group">Platform</div>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-users" aria-hidden="true"></span>Users</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-cash" aria-hidden="true"></span>Payments</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-history" aria-hidden="true"></span>Audit log</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-book-2" aria-hidden="true"></span>Insights CMS</a>
+    <div class="sb-group">Switch</div>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Owner view</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm avatar-ink">CH</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Charles</p><p class="t-caption t-3 truncate">Super admin</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><span>Admin</span><span aria-hidden="true">/</span><span class="here">Overview</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="AdminEntities.dc.html"><span class="ic ic-building" aria-hidden="true"></span>All entities</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Admin.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Platform</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm avatar-ink">CH</span></div>
+    </div>
+    <main class="content">
+
+      <header class="page-head rise">
+        <div class="stack gap-1">
+          <h1 class="t-title1">Platform overview</h1>
+          <p class="t-callout t-2 t-pretty">Every organisation, entity and service request on LexReg, in one place.</p>
+        </div>
+        <p class="t-footnote t-3 t-num">Friday, 16 October 2026</p>
+      </header>
+
+      <section class="grid cols-4 keep-2" aria-label="Key metrics">
+        <div class="stat rise" style="--d: 1">
+          <p class="stat-label"><span class="ic ic-users-group ic-sm" aria-hidden="true"></span>Organisations</p>
+          <p class="t-stat">13</p>
+          <p class="stat-sub t-good">+2 signed up this month</p>
+        </div>
+        <div class="stat rise" style="--d: 2">
+          <p class="stat-label"><span class="ic ic-building ic-sm" aria-hidden="true"></span>Entities</p>
+          <p class="t-stat">16</p>
+          <p class="stat-sub">11 active across 13 organisations</p>
+        </div>
+        <div class="stat rise" style="--d: 3">
+          <p class="stat-label"><span class="ic ic-progress-check ic-sm" aria-hidden="true"></span>Onboarding in progress</p>
+          <p class="t-stat">5</p>
+          <p class="stat-sub t-warn">Incl. 1 draft · 2 stuck 7+ days</p>
+        </div>
+        <div class="stat rise" style="--d: 4">
+          <p class="stat-label"><span class="ic ic-briefcase ic-sm" aria-hidden="true"></span>Open service requests</p>
+          <p class="t-stat">4</p>
+          <p class="stat-sub t-bad">3 need a lawyer</p>
+        </div>
+      </section>
+
+      <section class="grid cols-5 keep" aria-label="Growth and entity mix">
+        <div class="card card-pad span-3 stack gap-4 rise" style="--d: 5">
+          <div class="row between gap-3 wrap">
+            <h2 class="t-headline">New entities by month</h2>
+            <div class="row gap-3">
+              <span class="row gap-1 t-caption t-3"><span class="key" style="background: var(--tint)" aria-hidden="true"></span>Added</span>
+              <span class="row gap-1 t-caption t-3"><span class="key" style="background: var(--brand-300)" aria-hidden="true"></span>Month to date</span>
+              <span class="t-caption t-3 hide-compact">Last 6 months</span>
+            </div>
+          </div>
+          <div class="ch" role="img" aria-label="Entities added per month: May 1, June 3, July 3, August 2, September 4, October 3 so far">
+            <div class="ch-y" aria-hidden="true"><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+            <div class="ch-plot" aria-hidden="true">
+              <div class="ch-lines"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="ch-col"><span class="ch-val">1</span><span class="ch-bar" style="height: 20%; --d: 6"></span></div>
+              <div class="ch-col"><span class="ch-val">3</span><span class="ch-bar" style="height: 60%; --d: 7"></span></div>
+              <div class="ch-col"><span class="ch-val">3</span><span class="ch-bar" style="height: 60%; --d: 8"></span></div>
+              <div class="ch-col"><span class="ch-val">2</span><span class="ch-bar" style="height: 40%; --d: 8"></span></div>
+              <div class="ch-col"><span class="ch-val">4</span><span class="ch-bar" style="height: 80%; --d: 8"></span></div>
+              <div class="ch-col"><span class="ch-val">3</span><span class="ch-bar is-partial" style="height: 60%; --d: 8"></span></div>
+            </div>
+            <span aria-hidden="true"></span>
+            <div class="ch-x" aria-hidden="true"><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span></div>
+          </div>
+          <p class="t-footnote t-3">16 entities added since May · September was the busiest month.</p>
+        </div>
+
+        <div class="card card-pad span-2 stack gap-4 rise" style="--d: 6">
+          <div class="row between gap-3">
+            <h2 class="t-headline">Entity mix by type</h2>
+            <span class="t-caption t-3">All organisations</span>
+          </div>
+          <div class="row wrap gap-6" style="align-items: center">
+            <div class="donut" role="img" aria-label="Entity mix: 9 private limited companies, 2 partnerships, 2 societies, 2 business names, 1 company limited by guarantee" style="background: conic-gradient(var(--tint) 0 56.25%, var(--sys-indigo) 0 68.75%, var(--sys-teal) 0 81.25%, var(--sys-orange) 0 93.75%, var(--sys-yellow) 0 100%)">
+              <div class="donut-c"><span class="t-stat" style="font-size: 24px">16</span><span class="t-caption t-3">entities</span></div>
+            </div>
+            <ul class="legend">
+              <li><span class="key" style="background: var(--tint)" aria-hidden="true"></span><span class="grow truncate t-2">Private limited company</span><span class="t-strong t-num">9</span><span class="t-3 t-num" style="width: 36px; text-align: right">56%</span></li>
+              <li><span class="key" style="background: var(--sys-indigo)" aria-hidden="true"></span><span class="grow truncate t-2">Partnership</span><span class="t-strong t-num">2</span><span class="t-3 t-num" style="width: 36px; text-align: right">13%</span></li>
+              <li><span class="key" style="background: var(--sys-teal)" aria-hidden="true"></span><span class="grow truncate t-2">Society</span><span class="t-strong t-num">2</span><span class="t-3 t-num" style="width: 36px; text-align: right">13%</span></li>
+              <li><span class="key" style="background: var(--sys-orange)" aria-hidden="true"></span><span class="grow truncate t-2">Business name</span><span class="t-strong t-num">2</span><span class="t-3 t-num" style="width: 36px; text-align: right">13%</span></li>
+              <li><span class="key" style="background: var(--sys-yellow)" aria-hidden="true"></span><span class="grow truncate t-2">Company limited by guarantee</span><span class="t-strong t-num">1</span><span class="t-3 t-num" style="width: 36px; text-align: right">6%</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid cols-5 keep" aria-label="Activity">
+        <div class="card span-3 rise" style="--d: 7; overflow: hidden">
+          <div class="card-head">
+            <div class="row gap-2"><h2>Service requests needing a lawyer</h2><span class="pill pill-bad t-num">3</span></div>
+            <a class="t-footnote t-strong" href="Admin.dc.html">View all</a>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th scope="col">Matter</th><th scope="col">Requested</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Action</span></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><p class="t-strong">Legal audit</p><p class="t-footnote t-3">Baraka Agrovet Ltd · KES 25,000</p></td>
+                  <td class="t-num t-2" style="white-space: nowrap">15 Oct 2026</td>
+                  <td><span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Paid</span></td>
+                  <td class="num"><a class="btn btn-tinted btn-sm" href="AdminEntity.dc.html"><span class="ic ic-user-plus" aria-hidden="true"></span>Assign</a></td>
+                </tr>
+                <tr>
+                  <td><p class="t-strong">AGM notice &amp; minutes</p><p class="t-footnote t-3">Kahawa Gardens Residents Association · Corporate services</p></td>
+                  <td class="t-num t-2" style="white-space: nowrap">14 Oct 2026</td>
+                  <td><span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Paid</span></td>
+                  <td class="num"><a class="btn btn-tinted btn-sm" href="AdminEntity.dc.html"><span class="ic ic-user-plus" aria-hidden="true"></span>Assign</a></td>
+                </tr>
+                <tr>
+                  <td><p class="t-strong">Resolution: change of registered office</p><p class="t-footnote t-3">Lake Basin Fisheries Limited · Corporate services</p></td>
+                  <td class="t-num t-2" style="white-space: nowrap">13 Oct 2026</td>
+                  <td><span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Paid</span></td>
+                  <td class="num"><a class="btn btn-tinted btn-sm" href="AdminEntity.dc.html"><span class="ic ic-user-plus" aria-hidden="true"></span>Assign</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <span class="t-footnote t-3">Lawyers only ever see the one entity and one service you assign.</span>
+          </div>
+        </div>
+
+        <div class="card span-2 rise" style="--d: 8; overflow: hidden">
+          <div class="card-head">
+            <h2>Recent signups</h2>
+            <a class="t-footnote t-strong" href="Admin.dc.html">View all</a>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <tbody>
+                <tr>
+                  <td><p class="t-strong truncate" style="max-width: 200px">Mwangaza Solar</p><p class="t-footnote t-3 truncate" style="max-width: 200px">daniel@mwangazasolar.co.ke</p></td>
+                  <td><span class="pill pill-warn">Onboarding</span></td>
+                  <td class="num t-3" style="white-space: nowrap">15 Oct</td>
+                </tr>
+                <tr>
+                  <td><p class="t-strong truncate" style="max-width: 200px">Dr. Faith Wekesa</p><p class="t-footnote t-3 truncate" style="max-width: 200px">faith@nyotadental.co.ke</p></td>
+                  <td><span class="pill pill-good">Active</span></td>
+                  <td class="num t-3" style="white-space: nowrap">12 Oct</td>
+                </tr>
+                <tr>
+                  <td><p class="t-strong truncate" style="max-width: 200px">Pwani Fresh Exports</p><p class="t-footnote t-3 truncate" style="max-width: 200px">amina@pwanifresh.co.ke</p></td>
+                  <td><span class="pill pill-bad">Stuck</span></td>
+                  <td class="num t-3" style="white-space: nowrap">28 Sep</td>
+                </tr>
+                <tr>
+                  <td><p class="t-strong truncate" style="max-width: 200px">Wanjiku Mwangi</p><p class="t-footnote t-3 truncate" style="max-width: 200px">wanjiku@amanilogistics.co.ke</p></td>
+                  <td><span class="pill pill-good">Active</span></td>
+                  <td class="num t-3" style="white-space: nowrap">2 Sep</td>
+                </tr>
+                <tr>
+                  <td><p class="t-strong truncate" style="max-width: 200px">Rafiki Health</p><p class="t-footnote t-3 truncate" style="max-width: 200px">mercy@rafikihealth.or.ke</p></td>
+                  <td><span class="pill pill-good">Active</span></td>
+                  <td class="num t-3" style="white-space: nowrap">19 Aug</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="card rise" style="--d: 8; overflow: hidden" aria-labelledby="hl-h">
+        <div class="card-head" style="flex-wrap: wrap">
+          <div class="stack">
+            <h2 id="hl-h">Platform health</h2>
+            <p class="t-footnote t-3">Everything that needs a human, in one place.</p>
+          </div>
+          <span class="pill pill-warn"><span class="dot" aria-hidden="true"></span>7 items need attention</span>
+        </div>
+        <div class="grid cols-3" style="gap: 0; border-top: var(--hairline-soft)">
+          <div class="hl-sec">
+            <div class="row gap-2" style="padding: 14px 20px 10px"><span class="ic ic-clock ic-sm t-warn" aria-hidden="true"></span><h3 class="t-subhead t-strong">Stuck in onboarding (7+ days)</h3><span class="pill pill-warn t-num">2</span></div>
+            <div class="hl-row">
+              <div class="grow"><a class="t-subhead" href="AdminEntities.dc.html">Pwani Fresh Exports Limited</a><p class="t-footnote t-3">Stopped at Upload documents</p></div>
+              <span class="t-footnote t-warn t-num" style="white-space: nowrap">14 days</span>
+            </div>
+            <div class="hl-row">
+              <div class="grow"><a class="t-subhead" href="AdminEntities.dc.html">Simba Courier Services</a><p class="t-footnote t-3">Stopped at Beneficial ownership</p></div>
+              <span class="t-footnote t-warn t-num" style="white-space: nowrap">9 days</span>
+            </div>
+          </div>
+          <div class="hl-sec">
+            <div class="row gap-2" style="padding: 14px 20px 10px"><span class="ic ic-scan ic-sm t-bad" aria-hidden="true"></span><h3 class="t-subhead t-strong">Failed OCR reads</h3><span class="pill pill-bad t-num">2</span></div>
+            <div class="hl-row">
+              <div class="grow"><a class="t-subhead" href="AdminEntities.dc.html">Mwangaza Solar Ltd</a><p class="t-footnote t-3">CR12 · confidence 41%, below the 60% threshold</p></div>
+              <span class="t-footnote t-3" style="white-space: nowrap">Manual entry</span>
+            </div>
+            <div class="hl-row">
+              <div class="grow"><a class="t-subhead" href="AdminEntities.dc.html">Pwani Fresh Exports Limited</a><p class="t-footnote t-3">Certificate of incorporation · unreadable scan</p></div>
+              <span class="t-footnote t-3" style="white-space: nowrap">Re-upload asked</span>
+            </div>
+          </div>
+          <div class="hl-sec">
+            <div class="row gap-2" style="padding: 14px 20px 10px"><span class="ic ic-calendar-due ic-sm t-warn" aria-hidden="true"></span><h3 class="t-subhead t-strong">Overdue obligations</h3><span class="pill pill-warn t-num">3</span></div>
+            <div class="hl-row">
+              <div class="grow"><a class="t-subhead" href="AdminEntities.dc.html">Kahawa Gardens Residents Association</a><p class="t-footnote t-3">Annual returns · Registrar of Societies</p></div>
+              <span class="t-footnote t-bad t-num" style="white-space: nowrap">due 30 Sep</span>
+            </div>
+            <div class="hl-row">
+              <div class="grow"><a class="t-subhead" href="AdminEntities.dc.html">Baraka Agrovet Ltd</a><p class="t-footnote t-3">Annual return · BRS</p></div>
+              <span class="t-footnote t-bad t-num" style="white-space: nowrap">due 30 Sep</span>
+            </div>
+            <div class="hl-row">
+              <div class="grow"><a class="t-subhead" href="AdminEntities.dc.html">Upendo Tailoring Ltd</a><p class="t-footnote t-3">PAYE return (September) · KRA</p></div>
+              <span class="t-footnote t-bad t-num" style="white-space: nowrap">due 9 Oct</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab is-on" href="Admin.dc.html" aria-current="page"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab" href="AdminEntities.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Requests</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-gavel" aria-hidden="true"></span>Lawyers</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-dots" aria-hidden="true"></span>More</a>
+    </nav>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+return {
+  theme: this.props.dark ? 'lx-dark' : ''
+};
+}
+}
+</script>
+</body>
+</html>

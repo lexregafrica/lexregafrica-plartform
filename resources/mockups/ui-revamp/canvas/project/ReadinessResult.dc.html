@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Readiness results — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.bandbar{position:relative;display:grid;grid-template-columns:30fr 30fr 40fr;gap:4px}
+.bandbar > span{height:8px;border-radius:var(--r-full);background:var(--fill-3)}
+.bandbar > span.is-here{background:var(--sys-orange)}
+.bandmark{position:absolute;top:-5px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 4px var(--sys-orange),var(--shadow-raise)}
+.scorecard{padding:28px}
+@container lx (max-width: 720px){.scorecard{padding:20px}}
+.gapnum{flex:none;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:var(--brand-50);color:var(--tint-text);font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+  <div class="wz">
+    <header class="wz-top glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+      <span class="t-3 hide-compact" aria-hidden="true">/</span>
+      <span class="t-subhead truncate">Get started · Readiness results</span>
+      <div class="grow"></div>
+      <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Results saved</span></span>
+      <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+    </header>
+
+    <main class="container" style="padding-top: 32px; padding-bottom: 72px">
+      <div class="grid cols-12" style="gap: 24px; align-items: start">
+
+        <div class="span-8 stack gap-6">
+          <section class="card card-lg scorecard rise" aria-labelledby="score-title">
+            <div class="row wrap gap-8" style="align-items: center; justify-content: center">
+              <div style="position: relative; width: 168px; height: 168px; flex: none">
+                <svg class="ring" width="168" height="168" viewBox="0 0 168 168" aria-hidden="true"><circle class="track" cx="84" cy="84" r="72" stroke-width="14"></circle><circle class="bar" cx="84" cy="84" r="72" stroke-width="14" stroke-dasharray="452.4" stroke-dashoffset="199.1" style="--len: 452.4; stroke: var(--sys-orange)"></circle></svg>
+                <div class="stack" style="position: absolute; inset: 0; align-items: center; justify-content: center">
+                  <span class="t-num" style="font-family: var(--font-display); font-size: 52px; line-height: 1; font-weight: 700; letter-spacing: -0.03em">56</span>
+                  <span class="t-footnote t-3 t-num">out of 100</span>
+                </div>
+              </div>
+              <div class="stack gap-3 grow" style="min-width: 240px">
+                <p class="t-eyebrow">Your readiness score</p>
+                <span class="row"><span class="pill pill-warn"><span class="dot" aria-hidden="true"></span>Moderate readiness</span></span>
+                <h1 class="t-large t-balance" id="score-title">You’re on your way</h1>
+                <p class="t-body t-2 t-pretty">You have a workable foundation. Close the gaps below and you can start formalisation now — with guided support if you want it.</p>
+              </div>
+            </div>
+            <div class="stack gap-2" style="margin-top: 28px">
+              <div class="bandbar" role="img" aria-label="Score bands: 56 sits in moderate readiness">
+                <span></span><span class="is-here"></span><span></span>
+                <span class="bandmark" style="left: 56%" aria-hidden="true"></span>
+              </div>
+              <div class="t-caption t-3" style="display: grid; grid-template-columns: 30fr 30fr 40fr; gap: 4px">
+                <span class="stack"><span class="t-num">0–29</span><span>Significant gaps</span></span>
+                <span class="stack" style="color: var(--label); font-weight: 600"><span class="t-num">30–59</span><span>Moderate readiness</span></span>
+                <span class="stack"><span class="t-num">60–100</span><span>Ready to formalise</span></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card rise" style="--d: 1" aria-labelledby="cat-title">
+            <div class="card-head" style="flex-wrap: wrap; row-gap: 2px">
+              <h2 id="cat-title">Category breakdown</h2>
+              <span class="t-footnote t-3">Under 70% is flagged as a gap</span>
+            </div>
+            <div class="stack gap-4" style="padding: 4px 20px 20px">
+              <sc-for list="{{cats}}" as="c" hint-placeholder-count="5">
+                <div class="stack gap-2">
+                  <div class="row between gap-3">
+                    <span class="row gap-2 t-callout" style="min-width: 0"><span class="ic ic-sm {{c.icon}} t-3" aria-hidden="true"></span><span class="truncate">{{c.label}}</span></span>
+                    <span class="row gap-2"><span class="pill {{c.pillCls}}">{{c.status}}</span><span class="t-headline t-num" style="width: 44px; text-align: right">{{c.score}}%</span></span>
+                  </div>
+                  <div class="progress {{c.barCls}}"><span style="width: {{c.score}}%"></span></div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="card rise" style="--d: 2" aria-labelledby="gap-title">
+            <div class="card-head">
+              <h2 id="gap-title">Priority gaps to close</h2>
+              <span class="pill pill-warn t-num">4 gaps</span>
+            </div>
+            <ol class="stack">
+              <sc-for list="{{gaps}}" as="g" hint-placeholder-count="4">
+                <li class="row gap-4" style="align-items: flex-start; padding: 16px 20px; border-top: 0.5px solid var(--sep-soft)">
+                  <span class="gapnum">{{g.rank}}</span>
+                  <div class="stack gap-3 grow">
+                    <div class="row wrap between gap-2">
+                      <span class="t-title3">{{g.label}}</span>
+                      <span class="pill {{g.pillCls}} t-num">{{g.score}}% · {{g.priority}}</span>
+                    </div>
+                    <div class="stack gap-1">
+                      <p class="t-eyebrow">Why it matters</p>
+                      <p class="t-callout t-2 t-pretty">{{g.advice}}</p>
+                    </div>
+                    <p class="t-footnote t-3">From your answers: <span style="color: var(--label-2)">{{g.evidence}}</span></p>
+                    <div class="inset row gap-3" style="align-items: flex-start">
+                      <span class="ic ic-arrow-right t-brand" aria-hidden="true" style="margin-top: 1px"></span>
+                      <div class="stack gap-1">
+                        <p class="t-subhead" style="color: var(--label)">Next action</p>
+                        <p class="t-callout t-2 t-pretty">{{g.action}}</p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </sc-for>
+            </ol>
+          </section>
+        </div>
+
+        <aside class="span-4 stack gap-4" aria-label="Next steps">
+          <section class="card card-pad stack gap-4 rise" style="--d: 1">
+            <div class="row gap-3">
+              <span class="icon-tile" aria-hidden="true"><span class="ic ic-building"></span></span>
+              <div class="stack">
+                <p class="t-headline">Recommended next step</p>
+                <p class="t-footnote t-3 t-num">Based on your score of 56 / 100</p>
+              </div>
+            </div>
+            <p class="t-callout t-2 t-pretty">You can start formalisation now and close the gaps as you go. LexReg prepares your registration documents; you file them on BRS eCitizen and upload the certificate when it is issued.</p>
+            <a class="btn btn-primary btn-block" href="NewType.dc.html">Start formalisation now<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+            <a class="btn btn-secondary btn-block" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Get guided support from a lawyer</a>
+            <sc-if value="{{dlIdle}}" hint-placeholder-val="{{true}}">
+              <button class="btn btn-plain btn-block" type="button" onClick="{{download}}"><span class="ic ic-download" aria-hidden="true"></span>Download report (PDF)</button>
+            </sc-if>
+            <sc-if value="{{dlBusy}}" hint-placeholder-val="{{false}}">
+              <button class="btn btn-plain btn-block" type="button" disabled="disabled"><span class="ic ic-refresh" aria-hidden="true"></span>Preparing your report…</button>
+            </sc-if>
+            <sc-if value="{{dlDone}}" hint-placeholder-val="{{false}}">
+              <p class="row gap-2 t-footnote fade" role="status" style="justify-content: center; min-height: 44px; color: var(--good)"><span class="ic ic-circle-check ic-sm" aria-hidden="true"></span>Readiness report downloaded</p>
+            </sc-if>
+            <div class="divider"></div>
+            <div class="row between gap-2 wrap" style="margin: -6px -8px">
+              <a class="btn btn-plain" href="Dashboard.dc.html">Explore dashboard instead</a>
+              <a class="btn btn-plain" href="Readiness.dc.html"><span class="ic ic-pencil" aria-hidden="true"></span>Edit answers</a>
+            </div>
+          </section>
+
+          <section class="card rise" style="--d: 2" aria-labelledby="ans-title">
+            <div class="card-head">
+              <h2 id="ans-title">Your answers</h2>
+              <span class="t-footnote t-3 t-num">25 of 45 pts</span>
+            </div>
+            <p class="t-footnote t-3 t-pretty" style="padding: 0 20px 10px">Each answer earns 0–3 points. 25 ÷ 45 × 100 = 55.6, rounded to 56.</p>
+            <ul class="stack" style="padding-bottom: 8px">
+              <sc-for list="{{answers}}" as="a" hint-placeholder-count="15">
+                <li class="row gap-3" style="padding: 7px 20px; border-top: 0.5px solid var(--sep-soft); align-items: flex-start">
+                  <span class="t-caption t-3 t-num" style="width: 22px; flex: none; padding-top: 1px">{{a.n}}</span>
+                  <span class="t-footnote grow t-pretty" style="color: var(--label-2)">{{a.answer}}</span>
+                  <span class="t-caption t-num t-strong" style="flex: none; color: var(--label)">{{a.pts}}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </section>
+        </aside>
+
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1980}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const dl = s.dl ?? 'idle';
+const cats = [
+  { label: 'Registration Status', icon: 'ic-file-certificate', score: 44 },
+  { label: 'Tax Compliance', icon: 'ic-receipt', score: 33 },
+  { label: 'Governance Practices', icon: 'ic-users-group', score: 67 },
+  { label: 'Record-Keeping', icon: 'ic-folder', score: 78 },
+  { label: 'Contracts', icon: 'ic-signature', score: 56 }
+].map((c) => ({
+  ...c,
+  status: c.score < 70 ? 'Gap' : 'On track',
+  pillCls: c.score < 70 ? 'pill-warn' : 'pill-good',
+  barCls: c.score < 70 ? 'warn' : 'good'
+}));
+const gaps = [
+  {
+    label: 'Tax Compliance', score: 33, priority: 'Highest',
+    advice: 'Regular KRA filing and proper invoicing protect you from penalties and build the compliance record tenders and lenders check for.',
+    evidence: 'Filed once or twice, irregularly · Receipts sometimes, informally · Aware of turnover tax, but not compliant',
+    action: 'File your next KRA return on time and start issuing sequentially numbered receipts for every sale.'
+  },
+  {
+    label: 'Registration Status', score: 44, priority: 'High',
+    advice: 'Registering with BRS gives your business a legal identity — it unlocks contracts, loans, and tenders that require a certificate of incorporation.',
+    evidence: 'Not registered with BRS · Business KRA PIN applied, waiting for approval',
+    action: 'Register a new entity. LexReg prepares your documents; you file them on BRS eCitizen and upload the certificate.'
+  },
+  {
+    label: 'Contracts', score: 56, priority: 'Medium',
+    advice: 'Written agreements with clients, suppliers, and staff protect you legally and are usually required once you register formally.',
+    evidence: 'Employment agreements verbal only',
+    action: 'Put written employment agreements in place for your staff and casual workers.'
+  },
+  {
+    label: 'Governance Practices', score: 67, priority: 'Medium',
+    advice: 'Clear roles and documented decisions prevent disputes between owners and make the business easier to hand over or sell later.',
+    evidence: 'Continuity plan is an informal understanding only',
+    action: 'Write a short continuity plan naming who runs the business if you become unavailable.'
+  }
+].map((g, k) => ({ ...g, rank: k + 1, pillCls: g.score < 50 ? 'pill-bad' : 'pill-warn' }));
+const picks = [
+  ['BRS registration', 'Not registered', 0],
+  ['Business KRA PIN', 'Applied, waiting for approval', 1],
+  ['County business permit', 'Yes, current', 3],
+  ['Tax returns', 'Filed once or twice, irregularly', 1],
+  ['Receipts / invoices', 'Sometimes, informally', 1],
+  ['Turnover / presumptive tax', 'Aware, but not compliant', 1],
+  ['Owner roles', 'Written and current (or single owner)', 3],
+  ['Decision meetings', 'Occasionally, informal notes', 2],
+  ['Continuity plan', 'Informal understanding only', 1],
+  ['Separate finances', 'Mostly separated, manual records', 2],
+  ['Document storage', 'Physical files, organised', 2],
+  ['Assets and inventory', 'Systematic tracking (spreadsheet or software)', 3],
+  ['Supplier / client contracts', 'Sometimes, informal templates', 2],
+  ['Employment agreements', 'Verbal only', 1],
+  ['Undocumented disputes', 'Rarely', 2]
+];
+const answers = picks.map((p, k) => ({ n: k + 1, answer: p[0] + ' — ' + p[1], pts: p[2] + '/3' }));
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  cats: cats,
+  gaps: gaps,
+  answers: answers,
+  dlIdle: dl === 'idle',
+  dlBusy: dl === 'busy',
+  dlDone: dl === 'done',
+  download: () => { this.setState({ dl: 'busy' }); setTimeout(() => this.setState({ dl: 'done' }), 1200); }
+};
+}
+}
+</script>
+</body>
+</html>

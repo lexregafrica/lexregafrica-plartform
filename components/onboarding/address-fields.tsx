@@ -14,22 +14,22 @@ import { KENYA_COUNTIES, KENYA_POSTAL_CODES, readLegacyAddress, formatAddress, t
 export type { AddressData }
 export { readLegacyAddress, formatAddress }
 
+// Same field look as the design-system .input / .label (app/lexreg-ui.css)
 const inputCls =
-  'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#800020]/30'
+  'w-full px-3 py-2 rounded-[10px] border text-[15px] leading-6 focus:outline-none focus:ring-[3px] focus:ring-black/[0.06] focus:border-[#86868B]'
 const inputStyle = {
-  borderColor: 'var(--system-fill-3)',
-  background: 'var(--system-bg)',
-  color: 'var(--system-label)',
+  borderColor: 'var(--ink-200)',
+  background: 'var(--surface)',
+  color: 'var(--label)',
 } as const
-const labelCls = 'block text-ios-footnote font-medium mb-1.5'
-const labelStyle = { color: 'var(--system-label-2)' } as const
+const labelCls = 'label mb-1.5'
 
 function AddressField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className={labelCls} style={labelStyle}>
+      <label className={labelCls}>
         {label}
-        {required && <span style={{ color: '#dc2626' }}> *</span>}
+        {required && <span className="req">*</span>}
       </label>
       {children}
     </div>

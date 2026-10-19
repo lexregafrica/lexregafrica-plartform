@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { IconBuilding, IconFileText } from '@tabler/icons-react'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -6,7 +6,9 @@ import { ENTITY_TYPES } from '@/lib/onboarding/new-entity'
 import { StatusBoard } from '@/components/dashboard/entity-workspace'
 import { LawyerAssignmentPanel, type LawyerAssignment } from '@/components/admin/lawyer-assignment-panel'
 
-const CARD = 'rounded-[24px] bg-white p-5'
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('')
+}
 
 function displayName(e: { legal_name: string | null; trading_name: string | null; proposed_names: unknown }): string {
   if (e.legal_name) return e.legal_name
@@ -56,86 +58,89 @@ export default async function AdminEntityDetailPage({
     })
   )
 
+  const people = (directors?.length ?? 0) + (shareholders?.length ?? 0)
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
-      <Link href="/admin/entities" className="text-ios-footnote font-medium" style={{ color: 'var(--system-label-2)' }}>
-        ← All entities
-      </Link>
-
-      <div className="mt-2 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-3)' }}>
-            {(entity.organisations as { name: string } | null)?.name ?? '—'} · {ENTITY_TYPES.find((t) => t.value === entity.entity_type)?.label ?? entity.entity_type}
-          </p>
-          <h1 className="text-ios-title1 mt-0.5" style={{ color: 'var(--system-label)' }}>{displayName(entity)}</h1>
-        </div>
-        <span
-          className="text-ios-caption1 shrink-0 rounded-full px-3 py-1.5 font-semibold"
-          style={entity.status === 'active'
-            ? { background: 'rgba(52,199,89,0.14)', color: '#1E9E45' }
-            : { background: 'rgba(255,149,0,0.14)', color: '#C77700' }}
-        >
-          {entity.status === 'active' ? 'Active' : 'Pending'}
-        </span>
-      </div>
-
-      <div className="mt-5 grid gap-4 lg:grid-cols-3">
-        <div className="grid content-start gap-4 lg:col-span-2">
-          <div className={CARD}>
-            <h3 className="text-ios-subhead mb-2 font-bold" style={{ color: 'var(--system-label)' }}>Identity</h3>
-            {[
-              ['Registration no.', entity.registration_number],
-              ['KRA PIN', entity.kra_pin],
-            ].filter(([, v]) => v).map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-4 py-1.5 border-b last:border-0" style={{ borderColor: 'var(--system-fill-4)' }}>
-                <span className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>{label}</span>
-                <span className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>{value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className={CARD}>
-            <h3 className="text-ios-subhead mb-2 font-bold" style={{ color: 'var(--system-label)' }}>
-              People ({(directors?.length ?? 0) + (shareholders?.length ?? 0)})
-            </h3>
-            {(directors ?? []).map((d) => (
-              <div key={d.id} className="flex justify-between gap-4 py-1.5 border-b" style={{ borderColor: 'var(--system-fill-4)' }}>
-                <span className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>{d.full_name}</span>
-                <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>Director{d.kra_pin ? ` · ${d.kra_pin}` : ''}</span>
-              </div>
-            ))}
-            {(shareholders ?? []).map((s) => (
-              <div key={s.id} className="flex justify-between gap-4 py-1.5 border-b last:border-0" style={{ borderColor: 'var(--system-fill-4)' }}>
-                <span className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>{s.legal_name}</span>
-                <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-                  Shareholder · {s.shares_held.toLocaleString()} shares{s.share_percentage != null ? ` (${s.share_percentage}%)` : ''}
-                </span>
-              </div>
-            ))}
-            {(directors?.length ?? 0) + (shareholders?.length ?? 0) === 0 && (
-              <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>No people recorded yet.</p>
-            )}
-          </div>
-
-          <div className={CARD}>
-            <h3 className="text-ios-subhead mb-2 font-bold" style={{ color: 'var(--system-label)' }}>Documents ({documents?.length ?? 0})</h3>
-            {(documents ?? []).map((doc) => (
-              <div key={doc.id} className="py-1.5 border-b last:border-0" style={{ borderColor: 'var(--system-fill-4)' }}>
-                <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label)' }}>{doc.name}</p>
-                <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{doc.document_type?.replaceAll('_', ' ')}</p>
-              </div>
-            ))}
-            {(documents?.length ?? 0) === 0 && (
-              <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>No documents on file.</p>
-            )}
+    <main className="content">
+      <header className="page-head rise">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="icon-tile icon-tile-lg" aria-hidden="true"><IconBuilding size={22} stroke={1.75} /></span>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <h1 className="t-title1 break-words">{displayName(entity)}</h1>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="pill">{ENTITY_TYPES.find((t) => t.value === entity.entity_type)?.label ?? entity.entity_type}</span>
+              <span className={`pill ${entity.status === 'active' ? 'pill-good' : 'pill-warn'}`}><span className="dot" aria-hidden="true" />{entity.status === 'active' ? 'Active' : 'Pending'}</span>
+              <span className="t-footnote t-3">{(entity.organisations as { name: string } | null)?.name ?? '—'}</span>
+            </div>
           </div>
         </div>
+      </header>
 
-        <div className="grid content-start gap-4">
+      <div className="grid cols-5 keep gap-4">
+        <div className="span-3 flex flex-col gap-4">
+          <section className="card rise" aria-labelledby="id-h" style={{ '--d': 1 } as React.CSSProperties}>
+            <div className="card-head"><h2 id="id-h">Identity</h2></div>
+            {[['Registration no.', entity.registration_number], ['KRA PIN', entity.kra_pin]].filter(([, v]) => v).length === 0 ? (
+              <p className="t-footnote t-3 px-5 pb-5">No registration details on file yet.</p>
+            ) : (
+              <dl className="flex flex-col pb-1.5">
+                {[['Registration no.', entity.registration_number], ['KRA PIN', entity.kra_pin]].filter(([, v]) => v).map(([label, value]) => (
+                  <div key={label} className="list-row" style={{ paddingInline: 20, minHeight: 44 }}>
+                    <dt className="t-footnote t-3 w-40 shrink-0">{label}</dt>
+                    <dd className="t-subhead t-num" style={{ color: 'var(--label)' }}>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </section>
+
+          <section className="card rise" aria-labelledby="people-h" style={{ '--d': 2 } as React.CSSProperties}>
+            <div className="card-head"><h2 id="people-h">People</h2><span className="t-footnote t-3 t-num">{people}</span></div>
+            {people === 0 ? (
+              <p className="t-footnote t-3 px-5 pb-5">No people recorded yet.</p>
+            ) : (
+              <div className="flex flex-col pb-1.5">
+                {(directors ?? []).map((d) => (
+                  <div key={d.id} className="list-row" style={{ paddingInline: 20 }}>
+                    <span className="avatar avatar-sm" aria-hidden="true">{initials(d.full_name)}</span>
+                    <span className="t-subhead min-w-0 flex-1 truncate" style={{ color: 'var(--label)' }}>{d.full_name}</span>
+                    <span className="t-footnote t-3 shrink-0 t-num">Director{d.kra_pin ? ` · ${d.kra_pin}` : ''}</span>
+                  </div>
+                ))}
+                {(shareholders ?? []).map((sh) => (
+                  <div key={sh.id} className="list-row" style={{ paddingInline: 20 }}>
+                    <span className="avatar avatar-sm" aria-hidden="true">{initials(sh.legal_name)}</span>
+                    <span className="t-subhead min-w-0 flex-1 truncate" style={{ color: 'var(--label)' }}>{sh.legal_name}</span>
+                    <span className="t-footnote t-3 shrink-0 t-num">Shareholder · {sh.shares_held.toLocaleString()} shares{sh.share_percentage != null ? ` (${sh.share_percentage}%)` : ''}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="card rise" aria-labelledby="docs-h" style={{ '--d': 3 } as React.CSSProperties}>
+            <div className="card-head"><h2 id="docs-h">Documents</h2><span className="t-footnote t-3 t-num">{documents?.length ?? 0}</span></div>
+            {(documents?.length ?? 0) === 0 ? (
+              <p className="t-footnote t-3 px-5 pb-5">No documents on file.</p>
+            ) : (
+              <div className="flex flex-col gap-2 px-5 pb-5">
+                {(documents ?? []).map((doc) => (
+                  <div key={doc.id} className="file-row">
+                    <IconFileText size={18} stroke={1.75} aria-hidden="true" style={{ color: 'var(--label-3)', flex: 'none' }} />
+                    <span className="name">{doc.name}</span>
+                    <span className="meta">{doc.document_type?.replaceAll('_', ' ')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="span-2 flex flex-col gap-4">
           <StatusBoard entityId={entity.id} registrationStatus={entity.registration_status} canManage />
           <LawyerAssignmentPanel entityId={entity.id} assignments={lawyerAssignments} />
         </div>
       </div>
-    </div>
+    </main>
   )
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { IconX } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/server'
 import { ENTITY_TYPES } from '@/lib/onboarding/new-entity'
 import { REGISTRATION_STAGES } from '@/lib/onboarding/registration-status'
@@ -27,52 +28,64 @@ export default async function AdminEntitiesPage({
   if (orgFilter) query = query.eq('organisation_id', orgFilter)
 
   const { data: entities } = await query
+  const orgName = orgFilter ? (entities?.[0]?.organisations as { name: string } | null)?.name : null
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
-      <Link href="/admin" className="text-ios-footnote font-medium" style={{ color: 'var(--system-label-2)' }}>
-        ← Organisations
-      </Link>
-      <h1 className="text-ios-title1 mt-2" style={{ color: 'var(--system-label)' }}>
-        {orgFilter ? 'Entities' : 'All entities'}
-      </h1>
-
-      <div className="mt-5 rounded-[20px] bg-white !p-2">
-        {(entities ?? []).length === 0 && (
-          <p className="p-4 text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>No entities found.</p>
+    <main className="content">
+      <header className="page-head rise">
+        <div className="flex flex-col gap-1">
+          <h1 className="t-title1">{orgFilter ? 'Entities' : 'All entities'}</h1>
+          <p className="t-callout t-2 t-num">{entities?.length ?? 0} {entities?.length === 1 ? 'entity' : 'entities'}{orgName ? ` in ${orgName}` : ' across all organisations'}</p>
+        </div>
+        {orgFilter && (
+          <div className="page-actions">
+            <Link href="/admin/entities" className="btn btn-gray btn-sm"><IconX size={15} stroke={2} aria-hidden="true" />Clear organisation filter</Link>
+          </div>
         )}
-        {(entities ?? []).map((e, i) => {
-          const stage = REGISTRATION_STAGES.find((s) => s.value === e.registration_status)
-          return (
-            <Link
-              key={e.id}
-              href={`/admin/entities/${e.id}`}
-              className="flex items-center justify-between gap-3 px-3 py-3.5 transition-opacity hover:opacity-70"
-              style={i < (entities?.length ?? 0) - 1 ? { borderBottom: '1px solid var(--system-fill-4)' } : undefined}
-            >
-              <div className="min-w-0">
-                <p className="text-ios-footnote font-semibold" style={{ color: 'var(--system-label)' }}>{displayName(e)}</p>
-                <p className="text-ios-caption1 mt-0.5" style={{ color: 'var(--system-label-3)' }}>
-                  {(e.organisations as { name: string } | null)?.name ?? '—'} · {ENTITY_TYPES.find((t) => t.value === e.entity_type)?.label ?? e.entity_type}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1">
-                <span
-                  className="text-ios-caption1 rounded-full px-2.5 py-1 font-semibold"
-                  style={e.status === 'active'
-                    ? { background: 'rgba(52,199,89,0.14)', color: '#1E9E45' }
-                    : { background: 'rgba(255,149,0,0.14)', color: '#C77700' }}
-                >
-                  {e.status === 'active' ? 'Active' : 'Pending'}
-                </span>
-                {stage && (
-                  <span className="text-ios-caption2" style={{ color: 'var(--system-label-3)' }}>{stage.label}</span>
-                )}
-              </div>
-            </Link>
-          )
-        })}
-      </div>
-    </div>
+      </header>
+
+      <section className="card rise" style={{ '--d': 1 } as React.CSSProperties} aria-label="Entities">
+        {(entities ?? []).length === 0 ? (
+          <p className="t-footnote t-3 p-5">No entities found.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Entity</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Filing stage</th>
+                  <th scope="col" className="num">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(entities ?? []).map((e) => {
+                  const stage = REGISTRATION_STAGES.find((s) => s.value === e.registration_status)
+                  return (
+                    <tr key={e.id}>
+                      <td>
+                        <Link href={`/admin/entities/${e.id}`} className="flex flex-col" style={{ color: 'var(--label)' }}>
+                          <span className="t-subhead" style={{ fontWeight: 600 }}>{displayName(e)}</span>
+                          <span className="t-footnote t-3">{(e.organisations as { name: string } | null)?.name ?? '—'}</span>
+                        </Link>
+                      </td>
+                      <td className="t-2">{ENTITY_TYPES.find((t) => t.value === e.entity_type)?.label ?? e.entity_type}</td>
+                      <td>
+                        <span className={`pill ${e.status === 'active' ? 'pill-good' : 'pill-warn'}`}>
+                          <span className="dot" aria-hidden="true" />{e.status === 'active' ? 'Active' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="t-2">{stage?.label ?? '—'}</td>
+                      <td className="num t-3 whitespace-nowrap">{new Date(e.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </main>
   )
 }

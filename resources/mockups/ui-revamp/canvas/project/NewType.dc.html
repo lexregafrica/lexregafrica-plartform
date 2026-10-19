@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Entity type — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.guides{display:flex;flex-wrap:wrap;gap:4px 14px;padding-left:48px}
+.guide{display:inline-flex;align-items:center;gap:5px;min-height:28px;font-size:12.5px;font-weight:500;color:var(--tint-text)}
+.choice.is-off{opacity:.55;cursor:not-allowed}
+.choice.is-off:hover{background:var(--surface)}
+.choice.is-off:active{transform:none}
+.sub-panel{transform-origin:50% 0}
+.choice.is-selected .icon-tile{background:var(--surface)}
+@container lx (max-width: 720px){.guide{min-height:44px}.guides{gap:0 16px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-on" aria-current="step" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <span class="wz-step"><span class="n">2</span>Applicant &amp; contact</span>
+      <span class="wz-step"><span class="n">3</span>Name reservation</span>
+      <span class="wz-step"><span class="n">4</span>Company basics</span>
+      <span class="wz-step"><span class="n">5</span>Share structure</span>
+      <span class="wz-step"><span class="n">6</span>Shareholders &amp; members</span>
+      <span class="wz-step"><span class="n">7</span>Directors &amp; partners</span>
+      <span class="wz-step"><span class="n">8</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step"><span class="n">10</span>Constitutional documents</span>
+      <span class="wz-step"><span class="n">11</span>Document vault</span>
+      <span class="wz-step"><span class="n">12</span>Employee information</span>
+      <span class="wz-step"><span class="n">13</span>Declaration &amp; consent</span>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 1 of 14</span><span class="t-caption t-3">7%</span></div>
+        <div class="progress"><span style="width: 7%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 1 of 14</p>
+        <h1 class="t-large">What kind of entity are you forming?</h1>
+        <p class="t-body t-2 t-pretty">Your choice decides which questions, documents and BRS forms come next. You can change it until you submit.</p>
+      </header>
+      <section class="stack gap-3 rise" style="--d: 1" aria-labelledby="et-avail">
+        <div class="row between gap-3 wrap"><h2 class="t-title3" id="et-avail">Available now</h2><span class="t-footnote t-3">Choose one</span></div>
+        <div class="grid cols-2" style="gap: 12px" role="radiogroup" aria-labelledby="et-avail">
+          <sc-for list="{{types}}" as="t" hint-placeholder-count="5">
+            <div class="stack gap-1">
+              <button class="choice {{t.cls}}" type="button" role="radio" aria-checked="{{t.checked}}" onClick="{{t.pick}}">
+                <span class="mark" aria-hidden="true"></span>
+                <span class="stack gap-1 grow"><span class="t-headline">{{t.label}}</span><span class="t-footnote t-2 t-pretty">{{t.desc}}</span></span>
+                <span class="icon-tile" aria-hidden="true"><span class="ic {{t.icon}}"></span></span>
+              </button>
+              <div class="guides">
+                <a class="guide" href="Insight.dc.html"><span class="ic ic-book ic-sm" aria-hidden="true"></span>{{t.g1}}</a>
+                <sc-if value="{{t.hasG2}}" hint-placeholder-val="{{false}}"><a class="guide" href="Insight.dc.html"><span class="ic ic-book ic-sm" aria-hidden="true"></span>{{t.g2}}</a></sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+      <sc-if value="{{showPart}}" hint-placeholder-val="{{false}}">
+      <section class="card card-pad stack gap-4 rise sub-panel" aria-labelledby="et-pk">
+        <div class="stack gap-1"><p class="t-eyebrow">Partnership</p><h2 class="t-title3" id="et-pk">What type of partnership would you like to establish?</h2><p class="t-footnote t-2 t-pretty">General Partnership, LLP and LP are legally distinct, so each has its own workflow.</p></div>
+        <div class="stack gap-2" role="radiogroup" aria-labelledby="et-pk">
+          <sc-for list="{{pkinds}}" as="k" hint-placeholder-count="3">
+            <div class="stack gap-1">
+              <button class="choice {{k.cls}}" type="button" role="radio" aria-checked="{{k.checked}}" disabled="{{k.disabled}}" onClick="{{k.pick}}">
+                <span class="mark" aria-hidden="true"></span>
+                <span class="stack gap-1 grow"><span class="row gap-2 wrap"><span class="t-headline">{{k.label}}</span><sc-if value="{{k.off}}" hint-placeholder-val="{{false}}"><span class="pill">Coming later</span></sc-if></span><span class="t-footnote t-2 t-pretty">{{k.desc}}</span></span>
+              </button>
+              <div class="guides"><a class="guide" href="Insight.dc.html"><span class="ic ic-book ic-sm" aria-hidden="true"></span>{{k.guide}}</a></div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+      </sc-if>
+      <sc-if value="{{showTrust}}" hint-placeholder-val="{{false}}">
+      <section class="card card-pad stack gap-4 rise sub-panel" aria-labelledby="et-tk">
+        <div class="stack gap-1"><p class="t-eyebrow">Trust</p><h2 class="t-title3" id="et-tk">What type of trust do you wish to establish?</h2><p class="t-footnote t-2 t-pretty">The kind of trust decides who you name next: settlor, trustees, beneficiaries and any protector.</p></div>
+        <div class="stack gap-2" role="radiogroup" aria-labelledby="et-tk">
+          <sc-for list="{{tkinds}}" as="k" hint-placeholder-count="3">
+            <div class="stack gap-1">
+              <button class="choice {{k.cls}}" type="button" role="radio" aria-checked="{{k.checked}}" onClick="{{k.pick}}">
+                <span class="mark" aria-hidden="true"></span>
+                <span class="stack gap-1 grow"><span class="row gap-2 wrap"><span class="t-headline">{{k.label}}</span><sc-if value="{{k.assisted}}" hint-placeholder-val="{{false}}"><span class="pill pill-brand">Assisted</span></sc-if></span><span class="t-footnote t-2 t-pretty">{{k.desc}}</span></span>
+              </button>
+              <sc-if value="{{k.hasGuide}}" hint-placeholder-val="{{true}}"><div class="guides"><a class="guide" href="Insight.dc.html"><span class="ic ic-book ic-sm" aria-hidden="true"></span>{{k.guide}}</a></div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{needTrustKind}}" hint-placeholder-val="{{true}}">
+        <div class="note note-warn" role="status"><span class="ic ic-alert-circle" aria-hidden="true"></span><p>Choose what type of trust you want to establish.</p></div>
+        </sc-if>
+        <sc-if value="{{trustOther}}" hint-placeholder-val="{{false}}">
+        <div class="note note-brand" role="status"><span class="ic ic-gavel" aria-hidden="true"></span><p><strong>A LexReg lawyer will guide this one.</strong> Purpose, discretionary and testamentary trusts go through assisted legal onboarding rather than the self-serve questions.</p></div>
+        </sc-if>
+      </section>
+      </sc-if>
+      <section class="stack gap-3 rise" style="--d: 3" aria-labelledby="et-soon">
+        <div class="row between gap-3 wrap"><h2 class="t-title3" id="et-soon">Coming soon</h2></div>
+        <div class="grid cols-2" style="gap: 12px">
+        <div class="stack gap-1">
+          <button class="choice is-off" type="button" disabled="disabled" aria-disabled="true">
+            <span class="mark" aria-hidden="true"></span>
+            <span class="stack gap-1 grow"><span class="row gap-2 wrap"><span class="t-headline">Public Limited Company</span><span class="pill">Coming soon</span></span><span class="t-footnote t-2 t-pretty">Can offer shares to public, complex governance</span></span>
+            <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-building-bank"></span></span>
+          </button>
+          <div class="guides"><a class="guide" href="Insight.dc.html"><span class="ic ic-book ic-sm" aria-hidden="true"></span>What is a public limited company?</a></div>
+        </div>
+        <div class="stack gap-1">
+          <button class="choice is-off" type="button" disabled="disabled" aria-disabled="true">
+            <span class="mark" aria-hidden="true"></span>
+            <span class="stack gap-1 grow"><span class="row gap-2 wrap"><span class="t-headline">NGO / Non-Profit</span><span class="pill">Coming soon</span></span><span class="t-footnote t-2 t-pretty">Charitable or social purpose, no profit distribution</span></span>
+            <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-heart-handshake"></span></span>
+          </button>
+          <div class="guides"><a class="guide" href="Insight.dc.html"><span class="ic ic-book ic-sm" aria-hidden="true"></span>What is a company limited by guarantee?</a></div>
+        </div>
+        <div class="stack gap-1">
+          <button class="choice is-off" type="button" disabled="disabled" aria-disabled="true">
+            <span class="mark" aria-hidden="true"></span>
+            <span class="stack gap-1 grow"><span class="row gap-2 wrap"><span class="t-headline">Cooperative</span><span class="pill">Coming soon</span></span><span class="t-footnote t-2 t-pretty">Member-owned, democratic control, profit-sharing</span></span>
+            <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-building-community"></span></span>
+          </button>
+        </div>
+        <div class="stack gap-1">
+          <button class="choice is-off" type="button" disabled="disabled" aria-disabled="true">
+            <span class="mark" aria-hidden="true"></span>
+            <span class="stack gap-1 grow"><span class="row gap-2 wrap"><span class="t-headline">LLP</span><span class="pill">Coming soon</span></span><span class="t-footnote t-2 t-pretty">Limited Liability Partnership, hybrid structure</span></span>
+            <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-briefcase"></span></span>
+          </button>
+          <div class="guides"><a class="guide" href="Insight.dc.html"><span class="ic ic-book ic-sm" aria-hidden="true"></span>What is an LLP?</a></div>
+        </div>
+        </div>
+        <p class="t-footnote t-3 t-pretty">LexReg currently supports Limited Companies, Partnerships, Sole Proprietorships, Trusts, and Societies. Other entity types are on the roadmap.</p>
+      </section>
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="PathSelector.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{foot}}</span>
+        <a class="btn btn-primary {{contCls}}" aria-disabled="{{contAria}}" href="NewApplicant.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1320}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const sel = s.sel ?? 'limited_company';
+const pk = s.pk ?? 'general_partnership';
+const tk = s.tk ?? null;
+const A = [
+  { value: 'limited_company', label: 'Limited Company', desc: 'Separate legal entity, limited liability, most common', icon: 'ic-building', g1: 'What is a private limited company?', g2: '' },
+  { value: 'sole_proprietorship', label: 'Sole Proprietorship', desc: 'Single owner, unlimited liability, simplest structure', icon: 'ic-user', g1: 'What is a sole proprietorship?', g2: '' },
+  { value: 'partnership', label: 'Partnership', desc: 'Two or more partners, shared liability', icon: 'ic-users', g1: 'What is a general partnership?', g2: 'What is a limited partnership?' },
+  { value: 'trust', label: 'Trust', desc: 'Property held for beneficiaries, fiduciary arrangement', icon: 'ic-shield-lock', g1: 'What is a family trust?', g2: 'What is a charitable trust?' },
+  { value: 'society', label: 'Society', desc: 'Membership-based organisation — residents’, welfare, alumni, or professional associations', icon: 'ic-users-group', g1: 'What is a society?', g2: '' }
+];
+const types = A.map((t) => ({
+  ...t,
+  hasG2: !!t.g2,
+  cls: sel === t.value ? 'is-selected' : '',
+  checked: sel === t.value ? 'true' : 'false',
+  pick: () => this.setState({ sel: t.value })
+}));
+const PK = [
+  { value: 'general_partnership', label: 'General Partnership', desc: 'A business carried on jointly by two or more partners, who generally assume personal responsibility for its obligations.', enabled: true, guide: 'What is a general partnership?' },
+  { value: 'llp', label: 'Limited Liability Partnership (LLP)', desc: 'A registered body corporate with a legal identity separate from its partners and limited liability characteristics.', enabled: false, guide: 'What is an LLP?' },
+  { value: 'lp', label: 'Limited Partnership (LP)', desc: 'A partnership with at least one general partner and one limited partner, with different liability arrangements.', enabled: false, guide: 'What is a limited partnership?' }
+];
+const pkinds = PK.map((k) => ({
+  ...k,
+  off: !k.enabled,
+  disabled: !k.enabled,
+  cls: (pk === k.value ? 'is-selected' : '') + (k.enabled ? '' : ' is-off'),
+  checked: pk === k.value ? 'true' : 'false',
+  pick: () => { if (k.enabled) this.setState({ pk: k.value }); }
+}));
+const TK = [
+  { value: 'family_trust', label: 'Family Trust', desc: 'Established principally for estate planning, preservation, or creation of wealth for beneficiaries and future generations.', guide: 'What is a family trust?' },
+  { value: 'charitable_trust', label: 'Charitable Trust', desc: 'Established for legally recognised charitable purposes, governed for the benefit of those objects rather than private profit.', guide: 'What is a charitable trust?' },
+  { value: 'other', label: 'Other / Not sure', desc: 'Non-charitable purpose trusts, discretionary trusts, testamentary trusts, and other specialised structures.', guide: '' }
+];
+const tkinds = TK.map((k) => ({
+  ...k,
+  hasGuide: !!k.guide,
+  assisted: k.value === 'other',
+  cls: tk === k.value ? 'is-selected' : '',
+  checked: tk === k.value ? 'true' : 'false',
+  pick: () => this.setState({ tk: k.value })
+}));
+const cur = A.find((t) => t.value === sel) || A[0];
+const blocked = sel === 'trust' && !tk;
+const tkLabel = (TK.find((k) => k.value === tk) || {}).label;
+const foot = blocked ? 'Choose a type of trust to continue'
+  : 'Selected: ' + cur.label + (sel === 'partnership' ? ' · General Partnership' : sel === 'trust' ? ' · ' + tkLabel : '');
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  types,
+  pkinds,
+  tkinds,
+  showPart: sel === 'partnership',
+  showTrust: sel === 'trust',
+  needTrustKind: blocked,
+  trustOther: sel === 'trust' && tk === 'other',
+  foot,
+  contCls: blocked ? 'is-disabled' : '',
+  contAria: blocked ? 'true' : 'false'
+};
+}
+}
+</script>
+</body>
+</html>

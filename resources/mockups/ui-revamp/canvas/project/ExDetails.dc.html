@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Entity details — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.dist{display:flex;gap:3px;height:8px;border-radius:var(--r-full);overflow:hidden}
+.dist > span{display:block;min-width:4px;transition:flex-grow var(--dur-spring) var(--ease-spring)}
+.grp-body{padding:4px 20px 20px}
+.fhead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.cand-src{display:flex;align-items:center;gap:6px;min-width:0}
+.use-link{color:var(--tint-text);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+@container lx (max-width: 720px){
+  .grp-body{padding:4px 16px 16px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Onboard an existing entity · Amani Logistics Limited</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="ExType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-done" href="ExUpload.dc.html"><span class="n">2</span>Upload documents</a>
+      <a class="wz-step is-on" aria-current="step" href="ExDetails.dc.html"><span class="n">3</span>Entity details</a>
+      <span class="wz-step"><span class="n">4</span>People &amp; roles</span>
+      <span class="wz-step"><span class="n">5</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">6</span>Compliance baseline</span>
+      <span class="wz-step"><span class="n">7</span>Review &amp; activate</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 3 of 7</span><span class="t-caption t-3 t-num">43%</span></div>
+        <div class="progress"><span style="width: 43%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 3 of 7 · Entity details</p>
+        <h1 class="t-large t-balance">Confirm your company details</h1>
+        <p class="t-body t-2 t-pretty">Each detail shows where it came from. Correct anything that’s out of date — where your documents disagree, choose the value that reflects the position today.</p>
+      </header>
+
+      <div class="card card-pad stack gap-4 rise" style="--d: 1">
+        <div class="row between wrap gap-3">
+          <div class="row gap-2 wrap" role="status" aria-live="polite">
+            <sc-for list="{{summary}}" as="m" hint-placeholder-count="4">
+              <span class="src {{m.cls}}"><span class="ic {{m.icon}}" aria-hidden="true"></span><span class="t-num">{{m.n}}</span> {{m.label}}</span>
+            </sc-for>
+          </div>
+          <div class="seg" role="tablist" aria-label="Show fields" style="--n:2; --i:{{segIndex}}; min-width: 240px">
+            <button class="{{allCls}}" type="button" role="tab" aria-selected="{{allSel}}" onClick="{{showAll}}">All <span class="t-num t-3">{{total}}</span></button>
+            <button class="{{attnCls}}" type="button" role="tab" aria-selected="{{attnSel}}" onClick="{{showAttn}}">Needs attention <span class="t-num t-3">{{attnCount}}</span></button>
+          </div>
+        </div>
+        <div class="dist" aria-hidden="true">
+          <sc-for list="{{dist}}" as="b" hint-placeholder-count="4">
+            <span style="flex: {{b.n}} 1 0; background: {{b.color}}"></span>
+          </sc-for>
+        </div>
+        <div class="stack gap-2">
+          <p class="t-caption t-3">Read from</p>
+          <div class="row gap-2 wrap">
+            <span class="pill pill-outline"><span class="ic ic-file-search" aria-hidden="true"></span>CR12 · 2 Sep 2026</span>
+            <span class="pill pill-outline"><span class="ic ic-file-certificate" aria-hidden="true"></span>Certificate · 14 Mar 2019</span>
+            <span class="pill pill-outline"><span class="ic ic-receipt" aria-hidden="true"></span>KRA PIN cert. · 20 Mar 2019</span>
+            <span class="pill pill-outline"><span class="ic ic-coins" aria-hidden="true"></span>Nominal Capital · 14 Mar 2019</span>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{noneLeft}}" hint-placeholder-val="{{false}}">
+        <div class="note note-good fade">
+          <span class="ic ic-circle-check" aria-hidden="true"></span>
+          <p><strong>Nothing needs your attention.</strong> Extracted values are still worth a glance under All.</p>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="6">
+        <section class="card rise" style="--d: {{g.delay}}" aria-labelledby="g-{{g.key}}">
+          <div class="card-head">
+            <div class="row gap-3 grow">
+              <span class="icon-tile gray"><span class="ic {{g.icon}}" aria-hidden="true"></span></span>
+              <div class="stack grow">
+                <h2 id="g-{{g.key}}">{{g.title}}</h2>
+                <p class="t-footnote t-3 t-num">{{g.meta}}</p>
+              </div>
+            </div>
+          </div>
+          <div class="grp-body stack gap-4">
+            <div class="form-grid">
+              <sc-for list="{{g.fields}}" as="f" hint-placeholder-count="4">
+                <div class="field {{f.fieldCls}} {{f.spanCls}}">
+                  <div class="fhead">
+                    <label class="label" for="fd-{{f.k}}">{{f.label}}</label>
+                    <span class="src {{f.chipCls}}"><span class="ic {{f.chipIcon}}" aria-hidden="true"></span>{{f.chip}}</span>
+                  </div>
+                  <sc-if value="{{f.isConflict}}" hint-placeholder-val="{{false}}">
+                    <div class="stack gap-2" role="radiogroup" aria-label="Choose the current {{f.label}}">
+                      <sc-for list="{{f.cands}}" as="c" hint-placeholder-count="2">
+                        <div class="candidate {{c.cls}}">
+                          <span class="ic {{c.icon}}" aria-hidden="true" style="color: var(--label-3)"></span>
+                          <div class="stack grow" style="min-width: 0">
+                            <p class="t-headline t-num">{{c.value}}</p>
+                            <p class="t-footnote t-3 t-pretty">{{c.source}}</p>
+                          </div>
+                          <sc-if value="{{c.suggested}}" hint-placeholder-val="{{false}}"><span class="pill pill-info hide-compact">Identity anchor</span></sc-if>
+                          <sc-if value="{{c.picked}}" hint-placeholder-val="{{false}}"><span class="pill pill-brand pop"><span class="ic ic-check" aria-hidden="true"></span>Using</span></sc-if>
+                          <sc-if value="{{c.notPicked}}" hint-placeholder-val="{{true}}"><button class="btn btn-tinted" type="button" role="radio" aria-checked="false" aria-label="Use {{c.value}} from {{c.short}}" onClick="{{c.pick}}">Use this</button></sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <input class="input t-num" id="fd-{{f.k}}" type="text" autocomplete="off" value="{{f.value}}" placeholder="{{f.ph}}" onInput="{{f.set}}">
+                  <p class="help t-pretty">{{f.help}}<sc-if value="{{f.docDiff}}" hint-placeholder-val="{{false}}"> <button class="use-link" type="button" onClick="{{f.useDoc}}">Restore the document value</button>, or keep yours if it’s more current.</sc-if></p>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{g.hasNote}}" hint-placeholder-val="{{false}}">
+              <div class="note">
+                <span class="ic ic-info-circle" aria-hidden="true"></span>
+                <p class="t-pretty">{{g.note}}</p>
+              </div>
+            </sc-if>
+          </div>
+        </section>
+      </sc-for>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="ExUpload.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footNote}}</span>
+        <sc-if value="{{blocked}}" hint-placeholder-val="{{true}}">
+          <button class="btn btn-primary is-disabled" type="button" aria-disabled="true"><span class="ic ic-alert-triangle" aria-hidden="true"></span><span class="t-num">1</span> conflict to resolve</button>
+        </sc-if>
+        <sc-if value="{{ready}}" hint-placeholder-val="{{false}}">
+          <a class="btn btn-primary pop" href="ExPeople.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+        </sc-if>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":3300}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const vals = s.vals ?? {};
+const filter = s.filter ?? 'all';
+const norm = (v) => String(v ?? '').toLowerCase().replace(/[.,]/g, '').replace(/\blimited\b/g, 'ltd').replace(/\s+/g, ' ').trim();
+const setVal = (k, v) => this.setState({ vals: { ...(this.state?.vals ?? {}), [k]: v } });
+
+const CR12 = 'CR12 · 2 Sep 2026';
+const COI = 'Certificate of Incorporation · 14 Mar 2019';
+const KRA = 'KRA PIN certificate · 20 Mar 2019';
+const SNC = 'Statement of Nominal Capital · 14 Mar 2019';
+const V = (k, label, doc, src, srcB, opts) => Object.assign({ k: k, label: label, doc: doc, base: 'verified', src: src + ' and ' + srcB, short: src.split(' · ')[0] }, opts || {});
+const E = (k, label, doc, src, opts) => Object.assign({ k: k, label: label, doc: doc, base: 'extracted', src: src, short: src.split(' · ')[0] }, opts || {});
+const M = (k, label, ph) => ({ k: k, label: label, doc: '', base: 'missing', ph: ph, src: '', short: '' });
+
+const GROUPS = [
+  { key: 'identity', title: 'Identity', icon: 'ic-building', fields: [
+    V('name', 'Registered name', 'Amani Logistics Limited', 'CR12', 'Certificate of Incorporation'),
+    V('regno', 'Registration number', 'PVT-2LU7Q9XB', 'CR12', 'Certificate of Incorporation'),
+    { k: 'inc', label: 'Date of incorporation', base: 'conflict', doc: '', ph: 'Choose above, or type the date', span: true, cands: [
+      { value: '4 March 2019', short: 'the CR12', icon: 'ic-file-search', source: 'Official Search / CR12 · dated 2 Sep 2026' },
+      { value: '14 March 2019', short: 'the Certificate of Incorporation', icon: 'ic-file-certificate', source: 'Certificate of Incorporation · issued 14 Mar 2019', suggested: true }
+    ] },
+    V('ctype', 'Company type', 'Private company limited by shares', 'CR12', 'Certificate of Incorporation'),
+    E('status', 'Registry status', 'Registered', CR12),
+    E('former', 'Former names', 'None', CR12)
+  ] },
+  { key: 'tax', title: 'Tax', icon: 'ic-receipt', fields: [
+    V('pin', 'Company KRA PIN', 'P051234567X', 'KRA PIN certificate', 'Certificate of Incorporation'),
+    E('oblig', 'Tax obligations', 'Income Tax – Company, PAYE, VAT', KRA)
+  ] },
+  { key: 'office', title: 'Registered office', icon: 'ic-map-pin', fields: [
+    V('plot', 'Building / plot', 'LR 209/8411', 'CR12', 'KRA PIN certificate'),
+    V('road', 'Road / street', 'Mombasa Road', 'CR12', 'KRA PIN certificate'),
+    V('area', 'Area', 'Industrial Area', 'CR12', 'KRA PIN certificate'),
+    V('town', 'Town / city', 'Nairobi', 'CR12', 'KRA PIN certificate'),
+    V('county', 'County', 'Nairobi', 'CR12', 'KRA PIN certificate'),
+    V('pobox', 'Postal address', 'P.O. Box 48211', 'CR12', 'KRA PIN certificate'),
+    E('pcode', 'Postal code', '00100', CR12)
+  ] },
+  { key: 'contact', title: 'Contact', icon: 'ic-phone', note: 'Not on any of your documents — add them now or later. We never guess contact details.', fields: [
+    M('phone', 'Office telephone', '+254 7XX XXX XXX'),
+    M('email', 'Office email', 'office@amanilogistics.co.ke')
+  ] },
+  { key: 'capital', title: 'Share capital', icon: 'ic-coins', note: 'As at incorporation. If shares have been allotted since, add the change filings on the Upload documents step and we’ll update the register.', fields: [
+    V('nominal', 'Nominal share capital (KES)', '1,000,000', 'Statement of Nominal Capital', 'CR12'),
+    V('class', 'Share class', 'Ordinary', 'Statement of Nominal Capital', 'CR12'),
+    V('nshares', 'Number of shares', '1,000', 'Statement of Nominal Capital', 'CR12'),
+    V('par', 'Nominal value per share (KES)', '1,000', 'Statement of Nominal Capital', 'CR12'),
+    E('issued', 'Shares issued', '1,000', CR12)
+  ] },
+  { key: 'nature', title: 'Nature of business', icon: 'ic-briefcase', fields: [
+    E('nature', 'Nature of business', 'Freight forwarding, haulage and logistics services', CR12, { span: true })
+  ] }
+];
+
+const CHIP = {
+  verified: ['src-verified', 'ic-circle-check', 'Verified', ''],
+  extracted: ['src-extracted', 'ic-scan', 'Extracted', 'is-extracted'],
+  conflict: ['src-conflict', 'ic-alert-triangle', 'Conflict', 'is-conflict'],
+  confirmed: ['src-confirmed', 'ic-user-check', 'You confirmed', ''],
+  missing: ['src-missing', 'ic-circle-dashed', 'Missing', 'is-missing']
+};
+const tally = { verified: 0, extracted: 0, conflict: 0, confirmed: 0, missing: 0 };
+
+const built = GROUPS.map((g, gi) => {
+  const fields = g.fields.map((f) => {
+    let value;
+    let state;
+    let help = '';
+    let docDiff = false;
+    let cands = [];
+    if (f.base === 'conflict') {
+      value = vals[f.k] ?? '';
+      const hit = f.cands.find((c) => norm(c.value) === norm(value));
+      state = value.trim() ? 'confirmed' : 'conflict';
+      if (!value.trim()) help = 'Your documents disagree. Choose the value that reflects the position today — the other is kept as history.';
+      else if (hit) {
+        const other = f.cands.find((c) => c !== hit);
+        help = other.value + ' (from ' + other.short + ') is kept as history.';
+      } else help = 'Saved as you entered it — both document values are kept as history.';
+      cands = f.cands.map((c) => {
+        const picked = !!value.trim() && norm(c.value) === norm(value);
+        return { ...c, suggested: !!c.suggested, picked: picked, notPicked: !picked, cls: picked ? 'is-picked' : '', pick: () => setVal(f.k, c.value) };
+      });
+    } else if (f.base === 'missing') {
+      value = vals[f.k] ?? '';
+      state = value.trim() ? 'confirmed' : 'missing';
+      help = value.trim() ? 'Saved as you entered it — evidence outstanding.' : 'Not on any document yet.';
+    } else {
+      value = vals[f.k] ?? f.doc;
+      if (norm(value) === norm(f.doc)) {
+        state = f.base;
+        help = f.base === 'verified' ? f.src + ' agree.' : 'From ' + f.src + ' — please confirm.';
+      } else {
+        state = 'confirmed';
+        docDiff = true;
+        help = 'Your documents show “' + f.doc + '” (' + f.short + ').';
+      }
+    }
+    tally[state] += 1;
+    const ch = CHIP[state];
+    return {
+      k: f.k,
+      label: f.label,
+      value: value,
+      ph: f.ph ?? '',
+      chipCls: ch[0],
+      chipIcon: ch[1],
+      chip: ch[2],
+      fieldCls: ch[3],
+      spanCls: f.span ? 'span-12' : '',
+      isConflict: f.base === 'conflict',
+      cands: cands,
+      help: help,
+      docDiff: docDiff,
+      attn: f.base === 'conflict' || f.base === 'missing',
+      st: state,
+      set: (e) => setVal(f.k, e.target.value),
+      useDoc: () => setVal(f.k, f.doc)
+    };
+  });
+  return { ...g, gi: gi, all: fields };
+});
+
+const groups = built.map((g) => {
+  const shown = filter === 'attn' ? g.all.filter((f) => f.attn) : g.all;
+  const c = { verified: 0, extracted: 0, conflict: 0, confirmed: 0, missing: 0 };
+  g.all.forEach((f) => { c[f.st] += 1; });
+  const parts = [];
+  if (c.verified) parts.push(c.verified + ' verified');
+  if (c.extracted) parts.push(c.extracted + ' extracted');
+  if (c.conflict) parts.push(c.conflict + ' conflict');
+  if (c.confirmed) parts.push(c.confirmed + ' you confirmed');
+  if (c.missing) parts.push(c.missing + ' missing');
+  return { key: g.key, title: g.title, icon: g.icon, delay: Math.min(g.gi + 2, 8), meta: parts.join(' · '), fields: shown, hasNote: !!g.note && filter === 'all', note: g.note ?? '' };
+}).filter((g) => g.fields.length > 0);
+
+const total = built.reduce((n, g) => n + g.all.length, 0);
+const attnCount = tally.conflict + tally.missing;
+const ORDER = [
+  ['verified', 'verified', 'var(--sys-green)'],
+  ['extracted', 'extracted', 'var(--sys-blue)'],
+  ['conflict', 'conflict', 'var(--sys-orange)'],
+  ['confirmed', 'you confirmed', 'var(--tint)'],
+  ['missing', 'missing', 'var(--fill)']
+];
+const summary = ORDER.filter((o) => tally[o[0]] > 0).map((o) => ({ cls: CHIP[o[0]][0], icon: CHIP[o[0]][1], n: tally[o[0]], label: o[1] }));
+const dist = ORDER.filter((o) => tally[o[0]] > 0).map((o) => ({ n: tally[o[0]], color: o[2] }));
+const blocked = tally.conflict > 0;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  summary: summary,
+  dist: dist,
+  total: total,
+  attnCount: attnCount,
+  segIndex: filter === 'attn' ? 1 : 0,
+  allCls: filter === 'all' ? 'is-on' : '',
+  attnCls: filter === 'attn' ? 'is-on' : '',
+  allSel: filter === 'all' ? 'true' : 'false',
+  attnSel: filter === 'attn' ? 'true' : 'false',
+  showAll: () => this.setState({ filter: 'all' }),
+  showAttn: () => this.setState({ filter: 'attn' }),
+  noneLeft: filter === 'attn' && attnCount === 0,
+  groups: groups,
+  blocked: blocked,
+  ready: !blocked,
+  footNote: blocked ? 'Choose the date of incorporation to continue' : (tally.missing ? tally.missing + ' details left for later — that’s fine' : 'All details checked')
+};
+}
+}
+</script>
+</body>
+</html>

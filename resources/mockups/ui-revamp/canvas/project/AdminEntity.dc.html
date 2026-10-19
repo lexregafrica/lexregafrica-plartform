@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Amani Logistics — LexReg Admin</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+.kv-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border-top:var(--hairline-soft);font-size:13.5px;min-width:0}
+.kv-row dt{color:var(--label-3);flex:none}
+.kv-row dd{font-weight:500;text-align:right;min-width:0;overflow-wrap:anywhere}
+.ev-row{display:flex;align-items:center;gap:12px;padding:11px 20px;border-top:var(--hairline-soft)}
+.as-row{display:flex;align-items:flex-start;gap:12px;padding:14px 20px;border-top:var(--hairline-soft)}
+.add-btn{border:1.5px dashed var(--ink-300);background:transparent;color:var(--tint-text);box-shadow:none}
+.add-btn:hover{border-color:var(--tint);background:var(--brand-50)}
+.tl{display:flex;flex-direction:column}
+.tl-row{position:relative;display:flex;gap:12px;padding:0 20px 16px}
+.tl-row::before{content:"";position:absolute;left:35px;top:32px;bottom:0;border-left:var(--hairline)}
+.tl-row:last-child::before{display:none}
+.tl-row .icon-tile{width:30px;height:30px;border-radius:50%}
+.toast-wrap{position:absolute;top:18px;left:0;right:0;z-index:30;display:flex;justify-content:center;pointer-events:none;padding:0 16px}
+@container lx (max-width: 720px){
+  .kv{grid-template-columns:minmax(0,1fr)}
+  .ev-row,.as-row{padding-inline:16px}
+  .toast-wrap{top:72px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px; position: relative; overflow: clip">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Admin navigation">
+    <a class="sb-brand" href="Admin.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Admin</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item is-on" href="AdminEntities.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">16</span></a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Service requests<span class="badge">3</span></a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-gavel" aria-hidden="true"></span>Lawyers</a>
+    <div class="sb-group">Platform</div>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-users" aria-hidden="true"></span>Users</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-cash" aria-hidden="true"></span>Payments</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-history" aria-hidden="true"></span>Audit log</a>
+    <a class="sb-item" href="Admin.dc.html"><span class="ic ic-book-2" aria-hidden="true"></span>Insights CMS</a>
+    <div class="sb-group">Switch</div>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Owner view</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm avatar-ink">CH</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Charles</p><p class="t-caption t-3 truncate">Super admin</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Admin.dc.html">Admin</a><span aria-hidden="true">/</span><a href="AdminEntities.dc.html">Entities</a><span aria-hidden="true">/</span><span class="here">Amani Logistics Limited</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Workspace.dc.html"><span class="ic ic-eye" aria-hidden="true"></span>Owner’s workspace</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Admin.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Amani Logistics</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm avatar-ink">CH</span></div>
+    </div>
+    <main class="content">
+
+      <header class="page-head rise">
+        <div class="stack gap-2" style="min-width: 0">
+          <a class="t-footnote t-2 row gap-1" href="AdminEntities.dc.html"><span class="ic ic-arrow-left ic-sm" aria-hidden="true"></span>All entities</a>
+          <p class="t-eyebrow">Wanjiku Mwangi · Private limited company</p>
+          <h1 class="t-title1">Amani Logistics Limited</h1>
+          <div class="row wrap gap-2">
+            <span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Active</span>
+            <span class="pill pill-outline t-num">PVT-2LU7Q9XB</span>
+            <span class="pill pill-outline t-num">KRA P051234567X</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid cols-4 keep-2" aria-label="Entity at a glance">
+        <div class="stat rise" style="--d: 1">
+          <p class="stat-label"><span class="ic ic-shield-check ic-sm" aria-hidden="true"></span>Compliance health</p>
+          <p class="t-stat">82%</p>
+          <p class="stat-sub t-warn">2 items outstanding</p>
+        </div>
+        <div class="stat rise" style="--d: 2">
+          <p class="stat-label"><span class="ic ic-progress-check ic-sm" aria-hidden="true"></span>Onboarding</p>
+          <p class="t-stat">100%</p>
+          <p class="stat-sub">Activated 2 Sep 2026</p>
+        </div>
+        <div class="stat rise" style="--d: 3">
+          <p class="stat-label"><span class="ic ic-files ic-sm" aria-hidden="true"></span>Documents</p>
+          <p class="t-stat">14</p>
+          <p class="stat-sub">Last upload 14 Oct 2026</p>
+        </div>
+        <div class="stat rise" style="--d: 4">
+          <p class="stat-label"><span class="ic ic-briefcase ic-sm" aria-hidden="true"></span>Service requests</p>
+          <p class="t-stat">1</p>
+          <p class="stat-sub">Legal audit · paid</p>
+        </div>
+      </section>
+
+      <div class="grid cols-3" style="align-items: start">
+        <div class="span-2 stack gap-4">
+
+          <section class="card card-pad rise" style="--d: 5" aria-labelledby="kf-h">
+            <div class="row between gap-3" style="margin-bottom: 8px">
+              <h2 id="kf-h" class="t-headline">Key facts</h2>
+              <span class="t-caption t-3">From onboarding · verified 2 Sep 2026</span>
+            </div>
+            <dl class="kv">
+              <div class="kv-row"><dt>Owner</dt><dd>Wanjiku Mwangi</dd></div>
+              <div class="kv-row"><dt>Incorporated</dt><dd class="t-num">14 March 2019</dd></div>
+              <div class="kv-row"><dt>Email</dt><dd>wanjiku@amanilogistics.co.ke</dd></div>
+              <div class="kv-row"><dt>Registration no.</dt><dd class="t-num">PVT-2LU7Q9XB</dd></div>
+              <div class="kv-row"><dt>Phone</dt><dd class="t-num">+254 712 345 678</dd></div>
+              <div class="kv-row"><dt>KRA PIN</dt><dd class="t-num">P051234567X</dd></div>
+              <div class="kv-row"><dt>Registered office</dt><dd>Mombasa Road, Industrial Area, Nairobi</dd></div>
+              <div class="kv-row"><dt>Postal address</dt><dd class="t-num">P.O. Box 48211-00100</dd></div>
+              <div class="kv-row"><dt>County</dt><dd>Nairobi County</dd></div>
+              <div class="kv-row"><dt>Nominal capital</dt><dd class="t-num">KES 1,000,000 · 1,000 × KES 1,000</dd></div>
+            </dl>
+          </section>
+
+          <section class="card rise" style="--d: 6; overflow: hidden" aria-labelledby="ev-h">
+            <div class="card-head" style="flex-wrap: wrap">
+              <h2 id="ev-h">Onboarding evidence</h2>
+              <div class="row wrap gap-1">
+                <span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>12 verified</span>
+                <span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>3 from one document</span>
+                <span class="src src-conflict"><span class="ic ic-alert-triangle" aria-hidden="true"></span>1 conflict</span>
+                <span class="src src-missing">1 missing</span>
+              </div>
+            </div>
+            <div class="ev-row">
+              <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-file-certificate"></span></span>
+              <div class="grow"><p class="t-subhead truncate">Certificate of incorporation</p><p class="t-footnote t-3 t-num">Uploaded 28 Aug 2026 · OCR confidence 96%</p></div>
+              <span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span>
+            </div>
+            <div class="ev-row">
+              <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-file-text"></span></span>
+              <div class="grow"><p class="t-subhead truncate">CR12 — official search</p><p class="t-footnote t-3 t-num">Uploaded 28 Aug 2026 · OCR confidence 91%</p></div>
+              <span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span>
+            </div>
+            <div class="ev-row">
+              <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-book"></span></span>
+              <div class="grow"><p class="t-subhead truncate">Memorandum &amp; Articles of Association</p><p class="t-footnote t-3 t-num">Uploaded 28 Aug 2026 · OCR confidence 88%</p></div>
+              <span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span>
+            </div>
+            <div class="ev-row">
+              <span class="icon-tile warn" aria-hidden="true"><span class="ic ic-id"></span></span>
+              <div class="grow"><p class="t-subhead truncate">KRA PIN certificate — Brian Otieno</p><p class="t-footnote t-warn t-num">CR12 reads A019876543K · certificate reads A019876534K</p></div>
+              <span class="src src-conflict"><span class="ic ic-alert-triangle" aria-hidden="true"></span>Conflict</span>
+            </div>
+            <div class="ev-row">
+              <span class="icon-tile gray" aria-hidden="true"><span class="ic ic-file-upload"></span></span>
+              <div class="grow"><p class="t-subhead truncate">BOF-1 — beneficial ownership</p><p class="t-footnote t-3">Owner asked to upload the signed form</p></div>
+              <span class="src src-missing">Missing</span>
+            </div>
+          </section>
+
+          <section class="card rise" style="--d: 7; overflow: hidden" aria-labelledby="pp-h">
+            <div class="card-head"><h2 id="pp-h">People</h2><span class="t-caption t-3 t-num">5 people · 1,000 shares</span></div>
+            <ul class="stack">
+              <li class="ev-row"><span class="avatar avatar-sm" aria-hidden="true">WM</span><div class="grow"><p class="t-subhead truncate">Wanjiku Mwangi</p><p class="t-footnote t-3 truncate">Director &amp; shareholder · ID 23456789</p></div><span class="t-footnote t-2 t-num" style="white-space: nowrap">600 · 60%</span></li>
+              <li class="ev-row"><span class="avatar avatar-sm" aria-hidden="true">BO</span><div class="grow"><p class="t-subhead truncate">Brian Otieno</p><p class="t-footnote t-3 truncate">Director &amp; shareholder · ID 29876543</p></div><span class="t-footnote t-2 t-num" style="white-space: nowrap">300 · 30%</span></li>
+              <li class="ev-row"><span class="avatar avatar-sm avatar-corp" aria-hidden="true">SH</span><div class="grow"><p class="t-subhead truncate">Savannah Holdings Limited</p><p class="t-footnote t-3 truncate">Corporate shareholder · PVT-9QK3LM2A</p></div><span class="t-footnote t-2 t-num" style="white-space: nowrap">100 · 10%</span></li>
+              <li class="ev-row"><span class="avatar avatar-sm" aria-hidden="true">JK</span><div class="grow"><p class="t-subhead truncate">James Kariuki</p><p class="t-footnote t-3 truncate">Beneficial owner · indirect via Savannah Holdings</p></div><span class="t-footnote t-2 t-num" style="white-space: nowrap">10%</span></li>
+              <li class="ev-row"><span class="avatar avatar-sm" aria-hidden="true">HA</span><div class="grow"><p class="t-subhead truncate">Halima Abdi</p><p class="t-footnote t-3 truncate">Company secretary · CPS</p></div></li>
+            </ul>
+          </section>
+
+          <section class="card rise" style="--d: 8; overflow: hidden" aria-labelledby="sr-h">
+            <div class="card-head"><h2 id="sr-h">Service requests</h2></div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th scope="col">Service</th><th scope="col">Requested</th><th scope="col">Payment</th><th scope="col">Status</th><th scope="col">Lawyer</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><p class="t-strong">Legal audit</p><p class="t-footnote t-3 t-num">KES 25,000 · one-time</p></td>
+                    <td class="t-num t-2" style="white-space: nowrap">14 Oct 2026</td>
+                    <td><span class="pill pill-good"><span class="ic ic-circle-check" aria-hidden="true"></span>Paid</span><p class="t-caption t-3" style="margin-top: 4px">M-Pesa via Paystack</p></td>
+                    <td><span class="pill {{reqPillCls}}"><span class="dot" aria-hidden="true"></span>{{reqStatus}}</span></td>
+                    <td class="t-2" style="white-space: nowrap">{{reqLawyer}}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div class="stack gap-4">
+          <section class="card rise" style="--d: 5; overflow: hidden" aria-labelledby="la-h">
+            <div class="card-head">
+              <h2 id="la-h">Assigned lawyers</h2>
+              <span class="pill t-num">{{activeCount}}</span>
+            </div>
+
+            <sc-if value="{{showCurrent}}" hint-placeholder-val="{{true}}">
+              <div class="as-row">
+                <span class="avatar" aria-hidden="true">AO</span>
+                <div class="grow stack gap-1">
+                  <div class="row between gap-2"><p class="t-subhead t-strong truncate">Adv. Achieng Odhiambo</p><span class="pill {{curPillCls}}"><span class="dot" aria-hidden="true"></span>{{curStatus}}</span></div>
+                  <p class="t-footnote t-3 truncate">achieng@odhiamboadvocates.co.ke</p>
+                  <p class="t-footnote t-2"><span class="ic ic-lock ic-sm" aria-hidden="true"></span> Legal audit · Amani Logistics Limited only</p>
+                  <p class="t-caption t-3 t-num">{{curMeta}}</p>
+                  <sc-if value="{{showRevokeBtn}}" hint-placeholder-val="{{true}}">
+                    <div><button class="btn btn-destructive-plain btn-sm" type="button" style="padding: 0" onClick="{{askRevoke}}">Revoke access</button></div>
+                  </sc-if>
+                  <sc-if value="{{revokeAsk}}" hint-placeholder-val="{{false}}">
+                    <div class="note note-bad pop" role="alertdialog" aria-labelledby="rv-t" style="margin-top: 6px">
+                      <span class="ic ic-alert-triangle" aria-hidden="true"></span>
+                      <div class="stack gap-2 grow">
+                        <p id="rv-t"><strong>Revoke Achieng’s access?</strong> She loses access to this matter immediately. Her work so far stays on file.</p>
+                        <div class="row gap-2"><button class="btn btn-gray btn-sm" type="button" onClick="{{cancelRevoke}}">Cancel</button><button class="btn btn-destructive btn-sm" type="button" onClick="{{doRevoke}}">Revoke</button></div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{isRevoked}}" hint-placeholder-val="{{false}}">
+              <div class="as-row">
+                <span class="avatar" aria-hidden="true" style="background: var(--fill-3); color: var(--label-3)">AO</span>
+                <div class="grow stack gap-1">
+                  <div class="row between gap-2"><p class="t-subhead t-strong truncate t-3">Adv. Achieng Odhiambo</p><span class="pill pill-bad">Revoked</span></div>
+                  <p class="t-footnote t-3">Access revoked today · Legal audit now needs a lawyer.</p>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-for list="{{invites}}" as="iv" hint-placeholder-count="0">
+              <div class="as-row rise">
+                <span class="avatar" aria-hidden="true">{{iv.init}}</span>
+                <div class="grow stack gap-1">
+                  <div class="row between gap-2"><p class="t-subhead t-strong truncate">{{iv.email}}</p><span class="pill pill-warn"><span class="dot" aria-hidden="true"></span>Invited</span></div>
+                  <p class="t-footnote t-2"><span class="ic ic-lock ic-sm" aria-hidden="true"></span> {{iv.scope}}</p>
+                  <p class="t-caption t-3">Magic link sent just now · waiting for them to set a password</p>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="padding: 14px 20px 18px; border-top: var(--hairline-soft)">
+              <sc-if value="{{formClosed}}" hint-placeholder-val="{{false}}">
+                <button class="btn btn-block add-btn" type="button" aria-expanded="false" onClick="{{openForm}}"><span class="ic ic-user-plus" aria-hidden="true"></span>Invite a lawyer</button>
+              </sc-if>
+              <sc-if value="{{formOpen}}" hint-placeholder-val="{{true}}">
+                <div class="stack gap-4 enter-forward">
+                  <div class="field {{emailCls}}">
+                    <label class="label" for="la-email">Lawyer’s email<span class="req" aria-hidden="true">*</span></label>
+                    <input class="input" id="la-email" type="email" placeholder="lawyer@example.com" value="{{email}}" onInput="{{setEmail}}" aria-describedby="la-email-msg">
+                    <sc-if value="{{hasErr}}" hint-placeholder-val="{{false}}">
+                      <p class="error" id="la-email-msg"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>{{err}}</p>
+                    </sc-if>
+                  </div>
+
+                  <div class="stack gap-2" role="group" aria-labelledby="la-scope">
+                    <p class="label" id="la-scope">Access scope</p>
+                    <div class="inset row gap-3">
+                      <span class="ic ic-building t-3" aria-hidden="true"></span>
+                      <div class="grow"><p class="t-subhead truncate">Amani Logistics Limited</p><p class="t-caption t-3">This entity only</p></div>
+                      <span class="ic ic-lock ic-sm t-3" aria-hidden="true"></span>
+                    </div>
+                    <sc-for list="{{svcOpts}}" as="sv" hint-placeholder-count="2">
+                      <button class="choice {{sv.cls}}" type="button" aria-pressed="{{sv.pressed}}" onClick="{{sv.pick}}">
+                        <span class="mark" aria-hidden="true"></span>
+                        <span class="stack grow"><span class="t-subhead t-strong">{{sv.label}}</span><span class="t-footnote t-3">{{sv.sub}}</span></span>
+                      </button>
+                    </sc-for>
+                    <p class="help">They see this entity and this one service — nothing else in Wanjiku Mwangi’s account.</p>
+                  </div>
+
+                  <div class="field">
+                    <label class="label" for="la-notes">Notes for the lawyer <span class="t-3">(optional)</span></label>
+                    <textarea class="textarea" id="la-notes" style="min-height: 72px" placeholder="e.g. Focus on employment and data protection" value="{{notes}}" onInput="{{setNotes}}"></textarea>
+                  </div>
+
+                  <div class="note note-info">
+                    <span class="ic ic-mail" aria-hidden="true"></span>
+                    <p>We’ll email a magic link. They set their own password; you never see it.</p>
+                  </div>
+
+                  <div class="row gap-2">
+                    <button class="btn btn-gray" type="button" onClick="{{closeForm}}">Cancel</button>
+                    <button class="btn btn-primary grow {{sendCls}}" type="button" onClick="{{sendInvite}}"><span class="ic ic-mail" aria-hidden="true"></span>{{sendLabel}}</button>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </section>
+
+          <section class="card rise" style="--d: 6; overflow: hidden" aria-labelledby="at-h">
+            <div class="card-head"><h2 id="at-h">Assignment audit trail</h2><span class="ic ic-history t-3" aria-hidden="true"></span></div>
+            <ol class="tl" style="padding-top: 4px">
+              <sc-for list="{{trail}}" as="ev" hint-placeholder-count="5">
+                <li class="tl-row">
+                  <span class="icon-tile {{ev.tone}}" aria-hidden="true"><span class="ic {{ev.icon}} ic-sm"></span></span>
+                  <div class="grow" style="padding-top: 4px">
+                    <p class="t-footnote" style="color: var(--label)">{{ev.text}}</p>
+                    <p class="t-caption t-3 t-num">{{ev.when}}</p>
+                  </div>
+                </li>
+              </sc-for>
+            </ol>
+          </section>
+        </div>
+      </div>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab is-on" href="AdminEntities.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Requests</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-gavel" aria-hidden="true"></span>Lawyers</a>
+      <a class="m-tab" href="Admin.dc.html"><span class="ic ic-dots" aria-hidden="true"></span>More</a>
+    </nav>
+  </div>
+</div>
+<sc-if value="{{showToast}}" hint-placeholder-val="{{false}}">
+  <div class="toast-wrap"><span class="toast" role="status"><span class="ic ic-circle-check" aria-hidden="true" style="color: var(--sys-green)"></span>{{toastText}}</span></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"assignment":{"editor":"enum","options":["invited","active"],"default":"active"},"$preview":{"width":1440,"height":1800}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const assignment = this.props.assignment ?? 'active';
+const formOpen = s.formOpen ?? true;
+const email = s.email ?? '';
+const notes = s.notes ?? '';
+const svc = s.svc ?? 'legal_audit';
+const err = s.err ?? '';
+const busy = s.busy ?? false;
+const invites = s.invites ?? [];
+const revokeAsk = s.revokeAsk ?? false;
+const revoked = s.revoked ?? false;
+const toast = s.toast ?? '';
+const added = s.added ?? [];
+
+const SVC = [
+  { id: 'legal_audit', label: 'Legal audit', sub: 'Paid · KES 25,000 · requested 14 Oct 2026' },
+  { id: 'corporate_services', label: 'Corporate services', sub: 'Minutes, notices and resolutions · no open request' }
+];
+const svcLabel = (id) => (SVC.find((x) => x.id === id) || SVC[0]).label;
+
+const isActive = assignment === 'active';
+const showToastFor = (text) => {
+  this.setState({ toast: text });
+  setTimeout(() => this.setState({ toast: '' }), 2800);
+};
+
+const sendInvite = () => {
+  if (busy) return;
+  const v = email.trim();
+  if (!v) { this.setState({ err: 'Enter the lawyer’s email.' }); return; }
+  if (v.indexOf('@') < 1 || v.indexOf('.') === -1) { this.setState({ err: 'Enter a valid email address, like name@firm.co.ke.' }); return; }
+  this.setState({ busy: true, err: '' });
+  setTimeout(() => {
+    const st = this.state || {};
+    const list = (st.invites ?? []).concat([{ email: v, init: v.slice(0, 2).toUpperCase(), scope: svcLabel(svc) + ' · Amani Logistics Limited only' }]);
+    const log = [
+      { icon: 'ic-mail', tone: 'info', text: 'Magic link emailed to ' + v, when: 'Today, just now' },
+      { icon: 'ic-user-plus', tone: '', text: 'Charles invited ' + v + ' — ' + svcLabel(svc) + ', this entity only', when: 'Today, just now' }
+    ].concat(st.added ?? []);
+    this.setState({ busy: false, formOpen: false, email: '', notes: '', invites: list, added: log });
+    showToastFor('Invite sent to ' + v);
+  }, 900);
+};
+
+const base = [];
+if (isActive) base.push({ icon: 'ic-user-check', tone: 'good', text: 'Adv. Achieng Odhiambo set her own password and signed in', when: '15 Oct 2026, 09:12' });
+base.push({ icon: 'ic-mail', tone: 'info', text: 'Magic link emailed to achieng@odhiamboadvocates.co.ke', when: '14 Oct 2026, 10:43' });
+base.push({ icon: 'ic-user-plus', tone: '', text: 'Charles assigned Adv. Achieng Odhiambo — Legal audit, this entity only', when: '14 Oct 2026, 10:42' });
+base.push({ icon: 'ic-cash', tone: 'good', text: 'Wanjiku Mwangi paid KES 25,000 for a Legal audit (M-Pesa via Paystack)', when: '14 Oct 2026, 09:31' });
+base.push({ icon: 'ic-briefcase', tone: 'gray', text: 'Wanjiku Mwangi requested a Legal audit', when: '14 Oct 2026, 09:28' });
+const trail = added.concat(base);
+
+const curStatus = isActive ? 'Active' : 'Invited';
+const activeCount = (revoked ? 0 : 1) + invites.length;
+const reqState = revoked ? 'none' : (isActive ? 'active' : 'invited');
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  showCurrent: !revoked,
+  isRevoked: revoked,
+  curStatus: curStatus,
+  curPillCls: isActive ? 'pill-good' : 'pill-warn',
+  curMeta: isActive ? 'Invited 14 Oct 2026 · signed in 15 Oct 2026' : 'Invited 14 Oct 2026 · magic link not opened yet',
+  showRevokeBtn: !revokeAsk,
+  revokeAsk: revokeAsk,
+  askRevoke: () => this.setState({ revokeAsk: true }),
+  cancelRevoke: () => this.setState({ revokeAsk: false }),
+  doRevoke: () => {
+    const st = this.state || {};
+    this.setState({ revoked: true, revokeAsk: false, added: [{ icon: 'ic-lock', tone: 'bad', text: 'Charles revoked Adv. Achieng Odhiambo’s access', when: 'Today, just now' }].concat(st.added ?? []) });
+    showToastFor('Access revoked');
+  },
+  invites: invites,
+  activeCount: activeCount + (activeCount === 1 ? ' lawyer' : ' lawyers'),
+  formOpen: formOpen,
+  formClosed: !formOpen,
+  openForm: () => this.setState({ formOpen: true, err: '' }),
+  closeForm: () => this.setState({ formOpen: false, err: '', busy: false }),
+  email: email,
+  setEmail: (ev) => this.setState({ email: ev.target.value, err: '' }),
+  notes: notes,
+  setNotes: (ev) => this.setState({ notes: ev.target.value }),
+  hasErr: !!err,
+  err: err,
+  emailCls: err ? 'is-invalid' : '',
+  svcOpts: SVC.map((o) => ({
+    label: o.label,
+    sub: o.sub,
+    cls: o.id === svc ? 'is-selected' : '',
+    pressed: o.id === svc ? 'true' : 'false',
+    pick: () => this.setState({ svc: o.id })
+  })),
+  sendInvite: sendInvite,
+  sendLabel: busy ? 'Sending invite…' : 'Send invite',
+  sendCls: busy ? 'is-disabled' : '',
+  trail: trail,
+  reqStatus: reqState === 'none' ? 'Needs a lawyer' : (reqState === 'invited' ? 'Lawyer invited' : 'In progress'),
+  reqPillCls: reqState === 'none' ? 'pill-bad' : (reqState === 'invited' ? 'pill-warn' : 'pill-info'),
+  reqLawyer: revoked ? 'Unassigned' : 'Adv. Achieng Odhiambo',
+  showToast: !!toast,
+  toastText: toast
+};
+}
+}
+</script>
+</body>
+</html>

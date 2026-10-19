@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Readiness assessment — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.qprog > span{transition:width var(--dur-spring) var(--ease-spring)}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+  <div class="wz">
+    <header class="wz-top glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+      <span class="t-3 hide-compact" aria-hidden="true">/</span>
+      <span class="t-subhead truncate">Get started · Readiness assessment</span>
+      <div class="grow"></div>
+      <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">{{savedText}}</span></span>
+      <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+    </header>
+
+    <main class="container narrow" style="padding-top: 40px; padding-bottom: 96px">
+      <div class="stack gap-6">
+        <div class="stack gap-3">
+          <div class="row between gap-3">
+            <span class="t-subhead t-num" style="color: var(--label)">Question {{n}} of 15</span>
+            <span class="t-caption t-3 t-num">{{answeredText}}</span>
+          </div>
+          <div class="progress qprog" role="progressbar" aria-label="Assessment progress" aria-valuemin="0" aria-valuemax="15" aria-valuenow="{{n}}"><span style="width: {{pct}}%"></span></div>
+          <div class="row wrap gap-2 hide-compact" role="group" aria-label="Categories">
+            <sc-for list="{{cats}}" as="c" hint-placeholder-count="5">
+              <span class="pill {{c.cls}}"><span class="ic {{c.icon}}" aria-hidden="true"></span>{{c.label}}</span>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{showA}}" hint-placeholder-val="{{true}}">
+          <section class="stack gap-5 {{dirCls}}" aria-live="polite">
+            <header class="stack gap-2">
+              <p class="t-eyebrow t-brand">{{catLabel}}</p>
+              <h1 class="t-title1 t-pretty">{{prompt}}</h1>
+            </header>
+            <div class="stack gap-2" role="radiogroup" aria-label="{{prompt}}">
+              <sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+                <button class="choice {{o.cls}}" type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="align-items: center; min-height: 56px">
+                  <span class="mark" aria-hidden="true"></span>
+                  <span class="t-body grow" style="color: var(--label)">{{o.label}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+        <sc-if value="{{showB}}" hint-placeholder-val="{{false}}">
+          <section class="stack gap-5 {{dirCls}}" aria-live="polite">
+            <header class="stack gap-2">
+              <p class="t-eyebrow t-brand">{{catLabel}}</p>
+              <h1 class="t-title1 t-pretty">{{prompt}}</h1>
+            </header>
+            <div class="stack gap-2" role="radiogroup" aria-label="{{prompt}}">
+              <sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+                <button class="choice {{o.cls}}" type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="align-items: center; min-height: 56px">
+                  <span class="mark" aria-hidden="true"></span>
+                  <span class="t-body grow" style="color: var(--label)">{{o.label}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+
+        <p class="row gap-2 t-footnote t-3"><span class="ic ic-info-circle ic-sm" aria-hidden="true"></span>Answer for how the business runs today. You can change any answer before you see your results.</p>
+
+        <div class="wz-actions glass">
+          <sc-if value="{{isFirst}}" hint-placeholder-val="{{true}}">
+            <a class="btn btn-gray" href="PathSelector.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Change path</a>
+          </sc-if>
+          <sc-if value="{{notFirst}}" hint-placeholder-val="{{false}}">
+            <button class="btn btn-gray" type="button" onClick="{{goBack}}"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</button>
+          </sc-if>
+          <span class="spacer"></span>
+          <span class="t-footnote t-3 hide-compact">{{hintText}}</span>
+          <sc-if value="{{nextOn}}" hint-placeholder-val="{{false}}">
+            <button class="btn btn-primary" type="button" onClick="{{goNext}}">Next<span class="ic ic-arrow-right" aria-hidden="true"></span></button>
+          </sc-if>
+          <sc-if value="{{nextOff}}" hint-placeholder-val="{{true}}">
+            <button class="btn btn-primary" type="button" disabled="disabled">Next<span class="ic ic-arrow-right" aria-hidden="true"></span></button>
+          </sc-if>
+          <sc-if value="{{resultsOn}}" hint-placeholder-val="{{false}}">
+            <a class="btn btn-primary" href="ReadinessResult.dc.html">See my results<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+          </sc-if>
+          <sc-if value="{{resultsOff}}" hint-placeholder-val="{{false}}">
+            <button class="btn btn-primary" type="button" disabled="disabled">See my results<span class="ic ic-arrow-right" aria-hidden="true"></span></button>
+          </sc-if>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":920}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const CAT = {
+  registration: { label: 'Registration Status', short: 'Registration', icon: 'ic-file-certificate' },
+  tax: { label: 'Tax Compliance', short: 'Tax', icon: 'ic-receipt' },
+  governance: { label: 'Governance Practices', short: 'Governance', icon: 'ic-users-group' },
+  records: { label: 'Record-Keeping', short: 'Records', icon: 'ic-folder' },
+  contracts: { label: 'Contracts', short: 'Contracts', icon: 'ic-signature' }
+};
+const ORDER = ['registration', 'tax', 'governance', 'records', 'contracts'];
+const Q = [
+  { id: 'reg_1', cat: 'registration', prompt: 'Is your business registered with the Business Registration Service (BRS)?', options: ['Not registered', 'Registered, certificate not yet received', 'Registered, certificate received but not on file with LexReg', 'Fully registered and certificate on file'] },
+  { id: 'reg_2', cat: 'registration', prompt: 'Do you have a KRA PIN for your business, separate from your personal PIN?', options: ['No', 'Applied, waiting for approval', 'Yes, but not fully linked on iTax', 'Yes, fully active'] },
+  { id: 'reg_3', cat: 'registration', prompt: 'Have you obtained a single business permit from your county government?', options: ['No', 'In progress', 'Yes, but expired and needs renewal', 'Yes, current'] },
+  { id: 'tax_1', cat: 'tax', prompt: 'How often do you file tax returns (VAT / Income Tax) with KRA?', options: ['Never filed', 'Filed once or twice, irregularly', 'File most periods but sometimes late', 'File every period, on time'] },
+  { id: 'tax_2', cat: 'tax', prompt: 'Do you issue receipts or invoices for sales?', options: ['No', 'Sometimes, informally', 'Yes, but not sequentially numbered', 'Yes, sequentially numbered and recorded'] },
+  { id: 'tax_3', cat: 'tax', prompt: 'Are you aware of and compliant with turnover tax or presumptive tax obligations (if applicable to you)?', options: ['Not aware', 'Aware, but not compliant', 'Partially compliant', 'Fully compliant'] },
+  { id: 'gov_1', cat: 'governance', prompt: 'If there is more than one owner or partner, are roles clearly defined?', options: ['No — informal arrangement only', 'Verbal agreement only', 'Written, but outdated', 'Written and current (or single owner)'] },
+  { id: 'gov_2', cat: 'governance', prompt: 'Do you hold regular meetings or reviews to make business decisions?', options: ['Never', 'Rarely, ad hoc', 'Occasionally, informal notes', 'Regularly, documented'] },
+  { id: 'gov_3', cat: 'governance', prompt: 'Is there a succession or continuity plan if the owner becomes unavailable?', options: ['No plan', 'Informal understanding only', 'Partial written plan', 'Full written plan'] },
+  { id: 'rec_1', cat: 'records', prompt: 'Do you keep business finances separate from personal finances?', options: ['No — all mixed', 'Partially separated', 'Mostly separated, manual records', 'Fully separated, digital bookkeeping'] },
+  { id: 'rec_2', cat: 'records', prompt: 'How do you store important business documents (permits, contracts, receipts)?', options: ['Not stored / scattered', 'Physical files, disorganised', 'Physical files, organised', 'Digital and physical, organised'] },
+  { id: 'rec_3', cat: 'records', prompt: 'Do you track your business assets and inventory?', options: ['No tracking', 'Rough mental estimate', 'Basic written log', 'Systematic tracking (spreadsheet or software)'] },
+  { id: 'con_1', cat: 'contracts', prompt: 'Do you use written contracts or agreements with suppliers and clients?', options: ['Never — verbal only', 'Rarely', 'Sometimes, informal templates', 'Yes, consistently'] },
+  { id: 'con_2', cat: 'contracts', prompt: 'Do you have written employment agreements with any staff or casual workers?', options: ['No staff, or no agreements', 'Verbal only', 'Written, but informal', 'Written, formal contracts'] },
+  { id: 'con_3', cat: 'contracts', prompt: 'Have you had a business dispute (payment, supplier, staff) that lacked written proof to resolve it?', options: ['Yes, frequently', 'Yes, occasionally', 'Rarely', 'Never — always documented'] }
+];
+const total = Q.length;
+const i = Math.min(Math.max(s.i ?? 0, 0), total - 1);
+const answers = s.answers ?? {};
+const dir = s.dir ?? null;
+const q = Q[i];
+const sel = answers[q.id];
+const answered = sel !== undefined;
+const isLast = i === total - 1;
+const answeredCount = Object.keys(answers).length;
+const curCatIdx = ORDER.indexOf(q.cat);
+const opts = q.options.map((label, k) => ({
+  label: label,
+  cls: sel === k ? 'is-selected' : '',
+  checked: sel === k ? 'true' : 'false',
+  pick: () => this.setState({ answers: { ...answers, [q.id]: k }, i: i, dir: dir })
+}));
+const cats = ORDER.map((c, k) => ({
+  label: CAT[c].short,
+  icon: k < curCatIdx ? 'ic-check' : CAT[c].icon,
+  cls: k < curCatIdx ? 'pill-good' : (k === curCatIdx ? 'pill-brand' : '')
+}));
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  n: i + 1,
+  pct: Math.round(((i + 1) / total) * 100),
+  answeredText: answeredCount + ' of 15 answered',
+  savedText: answeredCount > 0 ? 'Answers saved · just now' : 'Saves after each answer',
+  cats: cats,
+  catLabel: CAT[q.cat].label,
+  prompt: q.prompt,
+  opts: opts,
+  showA: i % 2 === 0,
+  showB: i % 2 === 1,
+  dirCls: dir === 'back' ? 'enter-back' : (dir === 'forward' ? 'enter-forward' : 'rise'),
+  isFirst: i === 0,
+  notFirst: i > 0,
+  nextOn: !isLast && answered,
+  nextOff: !isLast && !answered,
+  resultsOn: isLast && answered,
+  resultsOff: isLast && !answered,
+  hintText: answered ? (isLast ? 'All set — see your score' : 'Answer saved') : 'Choose one answer to continue',
+  goNext: () => this.setState({ i: Math.min(i + 1, total - 1), dir: 'forward', answers: answers }),
+  goBack: () => this.setState({ i: Math.max(i - 1, 0), dir: 'back', answers: answers })
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Entity structure — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.ws-tabs{overflow-x:auto;scrollbar-width:none}
+.org-scroll{overflow-x:auto;border-top:var(--hairline-soft);background-color:var(--surface-3);background-image:radial-gradient(var(--fill-2) 1px,transparent 1px);background-size:20px 20px}
+.org{position:relative;width:960px;height:624px;margin:0 auto}
+.org svg{position:absolute;inset:0}
+.sn{position:absolute;width:210px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-card);background:var(--surface);box-shadow:inset 0 0 0 1px var(--sep),var(--shadow-card)}
+.sn .k{display:block;font-size:10.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--label-3);line-height:14px}
+.sn .nm{display:block;font-size:13px;font-weight:600;line-height:17px;color:var(--label)}
+.sn .sb{display:block;font-size:11.5px;line-height:15px;color:var(--label-2);font-variant-numeric:tabular-nums}
+.sn-owner{background:var(--good-bg);box-shadow:inset 0 0 0 1px var(--good-line),var(--shadow-card)}
+.sn-corp{background:var(--info-bg);box-shadow:inset 0 0 0 1px var(--info-line),var(--shadow-card)}
+.sn-officer{background:var(--surface-2)}
+.sn-entity{width:260px;background:var(--brand);box-shadow:var(--shadow-raise)}
+.sn-entity .k,.sn-entity .nm,.sn-entity .sb{color:var(--brand-ink)}
+.sn-entity .k{opacity:0.78}
+.sn-entity .nm{font-size:14px}
+.sl{position:absolute;transform:translate(-50%,-50%);font-variant-numeric:tabular-nums}
+.tier-l{position:absolute;left:16px;width:104px}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;border-radius:var(--r-md);background:var(--surface);box-shadow:var(--shadow-raise),0 0 0 0.5px var(--sep-soft)}
+.lg-line{display:inline-block;width:18px;height:0;border-top:2px solid var(--tint)}
+.lg-dash{display:inline-block;width:18px;height:0;border-top:2px dashed var(--good)}
+.lg-off{display:inline-block;width:18px;height:0;border-top:1.5px solid var(--label-3)}
+.lg-sq{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--info-bg);box-shadow:inset 0 0 0 1px var(--info-line)}
+.table tfoot td{font-weight:600;border-top:var(--hairline);border-bottom:0}
+.bo-list .list-row + .list-row::before{left:56px}
+@container lx (max-width: 720px){.ws-tabs a{height:44px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Main navigation">
+    <a class="sb-brand" href="Dashboard.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Africa</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item is-on" href="Workspace.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">4</span></a>
+    <a class="sb-item" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance<span class="badge">2</span></a>
+    <a class="sb-item" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+    <a class="sb-item" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    <div class="sb-group">Support</div>
+    <a class="sb-item" href="Overlays.dc.html"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Get help</a>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-settings" aria-hidden="true"></span>Settings</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm">WM</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Business owner</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Dashboard.dc.html">Entities</a><span aria-hidden="true">/</span><a href="Workspace.dc.html">Amani Logistics Limited</a><span aria-hidden="true">/</span><span class="here">Structure</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Structure</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm">WM</span></div>
+    </div>
+    <main class="content">
+
+      <div class="stack gap-4">
+        <header class="page-head rise">
+          <div class="row gap-4" style="align-items: flex-start; min-width: 0">
+            <span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-building"></span></span>
+            <div class="stack gap-1" style="min-width: 0">
+              <p class="t-eyebrow">Entity workspace</p>
+              <h1 class="t-title1">Amani Logistics Limited</h1>
+              <div class="row wrap gap-2">
+                <span class="pill pill-brand">Private limited company</span>
+                <span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Active</span>
+                <span class="t-footnote t-3">Reg. no. <span class="t-mono" style="color: var(--label-2)">PVT-2LU7Q9XB</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-gray btn-icon" type="button" aria-label="More actions" aria-haspopup="menu"><span class="ic ic-dots" aria-hidden="true"></span></button>
+            <a class="btn btn-primary" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Request a service</a>
+          </div>
+        </header>
+
+        <nav class="tabs ws-tabs" aria-label="Entity sections">
+          <a href="Workspace.dc.html"><span class="ic ic-layout-dashboard ic-sm" aria-hidden="true"></span>Overview</a>
+          <a class="is-on" href="WsStructure.dc.html" aria-current="page"><span class="ic ic-hierarchy-2 ic-sm" aria-hidden="true"></span>Structure</a>
+          <a href="WsPeople.dc.html"><span class="ic ic-users ic-sm" aria-hidden="true"></span>People</a>
+          <a href="WsCompliance.dc.html"><span class="ic ic-calendar-due ic-sm" aria-hidden="true"></span>Compliance</a>
+          <a href="WsDocuments.dc.html"><span class="ic ic-folder ic-sm" aria-hidden="true"></span>Documents</a>
+        </nav>
+      </div>
+
+      <section class="card rise" style="--d: 1; overflow: hidden" aria-labelledby="chart-h">
+        <div class="card-head wrap">
+          <div class="stack">
+            <h2 id="chart-h">Ownership structure</h2>
+            <p class="t-footnote t-3">Who ultimately owns the company, who holds its shares, and who runs it.</p>
+          </div>
+          <ul class="row wrap gap-4 t-caption t-2" aria-label="Legend">
+            <li class="row gap-2"><span class="lg-line" aria-hidden="true"></span>Shareholding (stake)</li>
+            <li class="row gap-2"><span class="lg-dash" aria-hidden="true"></span>Ultimate ownership / control</li>
+            <li class="row gap-2"><span class="lg-sq" aria-hidden="true"></span>Corporate holder</li>
+            <li class="row gap-2"><span class="lg-off" aria-hidden="true"></span>Officer</li>
+          </ul>
+        </div>
+        <div style="position: relative">
+          <div class="org-scroll">
+            <div class="org" role="img" aria-label="Ownership chart. Beneficial owners: Wanjiku Mwangi 60% direct, Brian Otieno 30% direct, James Kariuki 10% indirect through Savannah Holdings Limited. Shareholders: Wanjiku Mwangi 600 shares, Brian Otieno 300 shares, Savannah Holdings Limited 100 shares. Officers: directors Wanjiku Mwangi and Brian Otieno, company secretary Halima Abdi.">
+              <svg width="960" height="624" viewBox="0 0 960 624" aria-hidden="true">
+                <path d="M240 102 V180" style="fill: none; stroke: var(--good); stroke-width: 1.5; stroke-dasharray: 5 4"></path>
+                <path d="M480 102 V180" style="fill: none; stroke: var(--good); stroke-width: 1.5; stroke-dasharray: 5 4"></path>
+                <path d="M720 102 V180" style="fill: none; stroke: var(--good); stroke-width: 1.5; stroke-dasharray: 5 4"></path>
+                <path d="M240 264 V302 H720 M720 264 V302 M480 264 V340" style="fill: none; stroke: var(--tint); stroke-width: 1.5; stroke-linejoin: round"></path>
+                <path d="M480 418 V470 M240 470 H720 M240 470 V522 M480 470 V522 M720 470 V522" style="fill: none; stroke: var(--label-3); stroke-width: 1.25; stroke-linejoin: round"></path>
+              </svg>
+
+              <p class="tier-l t-eyebrow" style="top: 55px">Beneficial owners</p>
+              <p class="tier-l t-eyebrow" style="top: 214px">Shareholders</p>
+              <p class="tier-l t-eyebrow" style="top: 372px">Company</p>
+              <p class="tier-l t-eyebrow" style="top: 546px">Officers</p>
+
+              <div class="sn sn-owner fade" style="left: 135px; top: 36px; height: 66px; --d: 2">
+                <span class="avatar avatar-sm" aria-hidden="true">WM</span>
+                <span class="grow"><span class="k">Beneficial owner</span><span class="nm">Wanjiku Mwangi</span><span class="sb">60% · direct</span></span>
+              </div>
+              <div class="sn sn-owner fade" style="left: 375px; top: 36px; height: 66px; --d: 2">
+                <span class="avatar avatar-sm" aria-hidden="true">BO</span>
+                <span class="grow"><span class="k">Beneficial owner</span><span class="nm">Brian Otieno</span><span class="sb">30% · direct</span></span>
+              </div>
+              <div class="sn sn-owner fade" style="left: 615px; top: 36px; height: 66px; --d: 2">
+                <span class="avatar avatar-sm" aria-hidden="true">JK</span>
+                <span class="grow"><span class="k">Beneficial owner</span><span class="nm">James Kariuki</span><span class="sb">10% · indirect</span></span>
+              </div>
+
+              <span class="sl pill pill-good" style="left: 240px; top: 141px">Direct</span>
+              <span class="sl pill pill-good" style="left: 480px; top: 141px">Direct</span>
+              <span class="sl pill pill-good" style="left: 720px; top: 141px">Via Savannah</span>
+
+              <div class="sn fade" style="left: 135px; top: 180px; height: 84px; --d: 3">
+                <span class="avatar avatar-sm" aria-hidden="true">WM</span>
+                <span class="grow"><span class="k">Individual · 60%</span><span class="nm">Wanjiku Mwangi</span><span class="sb">600 ordinary shares</span></span>
+              </div>
+              <div class="sn fade" style="left: 375px; top: 180px; height: 84px; --d: 3">
+                <span class="avatar avatar-sm" aria-hidden="true">BO</span>
+                <span class="grow"><span class="k">Individual · 30%</span><span class="nm">Brian Otieno</span><span class="sb">300 ordinary shares</span></span>
+              </div>
+              <div class="sn sn-corp fade" style="left: 615px; top: 180px; height: 84px; --d: 3">
+                <span class="avatar avatar-sm avatar-corp" aria-hidden="true"><span class="ic ic-building ic-sm"></span></span>
+                <span class="grow"><span class="k">Corporate · 10%</span><span class="nm">Savannah Holdings Limited</span><span class="sb">100 ordinary shares</span></span>
+              </div>
+
+              <span class="sl pill pill-brand" style="left: 240px; top: 283px">60%</span>
+              <span class="sl pill pill-brand" style="left: 480px; top: 302px">30%</span>
+              <span class="sl pill pill-brand" style="left: 720px; top: 283px">10%</span>
+
+              <div class="sn sn-entity fade" style="left: 350px; top: 340px; height: 78px; --d: 4">
+                <span class="avatar avatar-sm" style="background: var(--surface); color: var(--tint-text)" aria-hidden="true"><span class="ic ic-building ic-sm"></span></span>
+                <span class="grow"><span class="k">Private limited company</span><span class="nm">Amani Logistics Limited</span><span class="sb">1,000 shares · PVT-2LU7Q9XB</span></span>
+              </div>
+
+              <div class="sn sn-officer fade" style="left: 135px; top: 522px; height: 66px; --d: 5">
+                <span class="avatar avatar-sm" aria-hidden="true">WM</span>
+                <span class="grow"><span class="k">Director</span><span class="nm">Wanjiku Mwangi</span><span class="sb">Also shareholder</span></span>
+              </div>
+              <div class="sn sn-officer fade" style="left: 375px; top: 522px; height: 66px; --d: 5">
+                <span class="avatar avatar-sm" aria-hidden="true">BO</span>
+                <span class="grow"><span class="k">Director</span><span class="nm">Brian Otieno</span><span class="sb">Also shareholder</span></span>
+              </div>
+              <div class="sn sn-officer fade" style="left: 615px; top: 522px; height: 66px; --d: 5">
+                <span class="avatar avatar-sm avatar-ink" aria-hidden="true">HA</span>
+                <span class="grow"><span class="k">Company secretary</span><span class="nm">Halima Abdi</span><span class="sb">Certified Public Secretary</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="zoom hide-compact" role="group" aria-label="Zoom">
+            <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Zoom in" style="color: var(--label)"><span class="ic ic-plus" aria-hidden="true"></span></button>
+            <span class="t-caption t-3 t-num">100%</span>
+            <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Zoom out" style="color: var(--label)"><span class="ic ic-minus" aria-hidden="true"></span></button>
+            <div class="divider" style="width: 20px; margin: 2px 0"></div>
+            <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Fit to view" style="color: var(--label)"><span class="ic ic-target" aria-hidden="true"></span></button>
+          </div>
+        </div>
+        <div class="card-foot">
+          <span class="t-footnote t-3 t-pretty"><span class="only-compact">Scroll sideways or pinch to see the whole chart. </span>Built from your CR12, BOF-1 details and share records.</span>
+        </div>
+      </section>
+
+      <div class="grid cols-5 keep">
+        <section class="card span-3 rise" style="--d: 2" aria-labelledby="reg-h">
+          <div class="card-head">
+            <h2 id="reg-h">Share register</h2>
+            <span class="t-footnote t-3">Nominal capital KES 1,000,000</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Holder</th><th>Type</th><th>Class</th><th class="num">Shares</th><th class="num">%</th><th>Since</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="row gap-2"><span class="avatar avatar-sm" aria-hidden="true">WM</span><span class="t-strong" style="white-space: nowrap">Wanjiku Mwangi</span></span></td>
+                  <td>Individual</td><td>Ordinary</td><td class="num">600</td><td class="num">60%</td><td class="t-num" style="white-space: nowrap">14 Mar 2019</td>
+                </tr>
+                <tr>
+                  <td><span class="row gap-2"><span class="avatar avatar-sm" aria-hidden="true">BO</span><span class="t-strong" style="white-space: nowrap">Brian Otieno</span></span></td>
+                  <td>Individual</td><td>Ordinary</td><td class="num">300</td><td class="num">30%</td><td class="t-num" style="white-space: nowrap">14 Mar 2019</td>
+                </tr>
+                <tr>
+                  <td><span class="row gap-2"><span class="avatar avatar-sm avatar-corp" aria-hidden="true"><span class="ic ic-building ic-sm"></span></span><span class="stack"><span class="t-strong" style="white-space: nowrap">Savannah Holdings Limited</span><span class="t-caption t-3 t-mono">PVT-9QK3LM2A</span></span></span></td>
+                  <td><span class="pill pill-info">Corporate</span></td><td>Ordinary</td><td class="num">100</td><td class="num">10%</td><td class="t-num" style="white-space: nowrap">14 Mar 2019</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr><td colspan="3">Total issued</td><td class="num">1,000</td><td class="num">100%</td><td class="t-3" style="font-weight: 400; white-space: nowrap">KES 1,000 each</td></tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section class="card span-2 rise" style="--d: 3" aria-labelledby="bo-h">
+          <div class="card-head">
+            <h2 id="bo-h">Beneficial ownership register</h2>
+            <span class="pill">3 owners</span>
+          </div>
+          <ul class="stack bo-list" style="padding: 0 0 4px">
+            <li class="list-row">
+              <span class="avatar avatar-sm" aria-hidden="true">WM</span>
+              <span class="stack grow"><span class="t-subhead">Wanjiku Mwangi</span><span class="t-footnote t-3">Holds 60% of shares directly</span></span>
+              <span class="t-headline t-num">60%</span>
+            </li>
+            <li class="list-row">
+              <span class="avatar avatar-sm" aria-hidden="true">BO</span>
+              <span class="stack grow"><span class="t-subhead">Brian Otieno</span><span class="t-footnote t-3">Holds 30% of shares directly</span></span>
+              <span class="t-headline t-num">30%</span>
+            </li>
+            <li class="list-row">
+              <span class="avatar avatar-sm" aria-hidden="true">JK</span>
+              <span class="stack grow"><span class="t-subhead">James Kariuki</span><span class="t-footnote t-3">10% indirectly, through Savannah Holdings Limited</span></span>
+              <span class="t-headline t-num">10%</span>
+            </li>
+          </ul>
+          <div class="stack gap-3" style="padding: 4px 20px 20px">
+            <div class="note note-warn">
+              <span class="ic ic-alert-triangle" aria-hidden="true"></span>
+              <span><strong>Last lodged with BRS: BOF-1 — not yet uploaded.</strong> Upload the signed BOF-1 so this register is backed by the filing.</span>
+            </div>
+            <a class="btn btn-tinted btn-block" href="WsDocuments.dc.html"><span class="ic ic-file-upload" aria-hidden="true"></span>Upload signed BOF-1</a>
+            <p class="t-caption t-3 t-pretty">Shareholders aren't automatically beneficial owners — we record only the people who ultimately own or control the company.</p>
+          </div>
+        </section>
+      </div>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab is-on" href="Workspace.dc.html" aria-current="page"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance</a>
+      <a class="m-tab" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+      <a class="m-tab" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    </nav>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1520}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+  theme: this.props.dark ? 'lx-dark' : ''
+};
+}
+}
+</script>
+</body>
+</html>

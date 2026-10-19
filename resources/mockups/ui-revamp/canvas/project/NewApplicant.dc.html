@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Applicant &amp; contact — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.span-all{grid-column:1/-1}
+.sub-h{display:flex;align-items:center;gap:8px}
+@container lx (max-width: 720px){.wz-main .btn-sm{height:44px}.wz-main .btn-icon.btn-sm{width:44px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Register a new entity · Jua Kali Foods Ltd</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="NewType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-on" aria-current="step" href="NewApplicant.dc.html"><span class="n">2</span>Applicant &amp; contact</a>
+      <span class="wz-step"><span class="n">3</span>Name reservation</span>
+      <span class="wz-step"><span class="n">4</span>Company basics</span>
+      <span class="wz-step"><span class="n">5</span>Share structure</span>
+      <span class="wz-step"><span class="n">6</span>Shareholders &amp; members</span>
+      <span class="wz-step"><span class="n">7</span>Directors &amp; partners</span>
+      <span class="wz-step"><span class="n">8</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">9</span>Company secretary</span>
+      <span class="wz-step"><span class="n">10</span>Constitutional documents</span>
+      <span class="wz-step"><span class="n">11</span>Document vault</span>
+      <span class="wz-step"><span class="n">12</span>Employee information</span>
+      <span class="wz-step"><span class="n">13</span>Declaration &amp; consent</span>
+      <span class="wz-step"><span class="n">14</span>Review &amp; submit</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 2 of 14</span><span class="t-caption t-3">14%</span></div>
+        <div class="progress"><span style="width: 14%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 2 of 14</p>
+        <h1 class="t-large">Applicant &amp; primary contact</h1>
+        <p class="t-body t-2 t-pretty">Who is filing this application? We use this to reach you about your matter.</p>
+      </header>
+      <section class="card rise" style="--d: 1" aria-labelledby="ap-who">
+        <div class="card-head"><h2 id="ap-who">Who is applying</h2></div>
+        <div class="stack gap-3" style="padding: 0 20px 20px">
+          <div class="field">
+            <p class="label" id="ap-rel-l">Relationship to company <span class="req" aria-hidden="true">*</span></p>
+            <div class="row wrap gap-2" role="radiogroup" aria-labelledby="ap-rel-l">
+              <sc-for list="{{rels}}" as="r" hint-placeholder-count="5">
+                <button class="btn btn-sm {{r.cls}}" type="button" role="radio" aria-checked="{{r.checked}}" onClick="{{r.pick}}"><sc-if value="{{r.on}}" hint-placeholder-val="{{false}}"><span class="ic ic-check" aria-hidden="true"></span></sc-if>{{r.label}}</button>
+              </sc-for>
+            </div>
+            <p class="help">{{relHelp}}</p>
+          </div>
+        </div>
+      </section>
+      <section class="card rise" style="--d: 2" aria-labelledby="ap-det">
+        <div class="card-head"><h2 id="ap-det">Applicant details</h2></div>
+        <div class="form-grid" style="padding: 0 20px 20px">
+              <div class="field span-all">
+                <div class="row between gap-2"><label class="label" for="ap-name">Applicant full name <span class="req" aria-hidden="true">*</span></label><span class="src src-confirmed"><span class="ic ic-user-check" aria-hidden="true"></span>From your account</span></div>
+                <input class="input" id="ap-name" type="text" autocomplete="name" placeholder="" value="{{v.name}}" onInput="{{on.name}}" aria-required="true">
+              </div>
+              <div class="field">
+                <div class="row between gap-2"><label class="label" for="ap-email">Email <span class="req" aria-hidden="true">*</span></label><span class="src src-confirmed"><span class="ic ic-user-check" aria-hidden="true"></span>From your account</span></div>
+                <input class="input" id="ap-email" type="email" autocomplete="email" placeholder="" value="{{v.email}}" onInput="{{on.email}}" aria-required="true">
+              </div>
+              <div class="{{phoneField}}">
+                <div class="row between gap-2"><label class="label" for="ap-phone">Mobile number <span class="req" aria-hidden="true">*</span></label><span class="src src-confirmed"><span class="ic ic-user-check" aria-hidden="true"></span>From your account</span></div>
+                <input class="input t-num" id="ap-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXX" value="{{v.phone}}" onInput="{{on.phone}}" aria-describedby="ap-phone-help" aria-invalid="{{phoneAria}}" aria-required="true">
+                <sc-if value="{{phoneOk}}" hint-placeholder-val="{{true}}"><p class="help" id="ap-phone-help">Use +2547XXXXXXXX or 07XXXXXXXX.</p></sc-if>
+                <sc-if value="{{phoneBad}}" hint-placeholder-val="{{false}}"><p class="error" id="ap-phone-help"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>Applicant phone must be +2547XXXXXXXX or 07XXXXXXXX.</p></sc-if>
+              </div>
+              <div class="{{idField}}">
+                <label class="label" for="ap-idno">ID or passport number <span class="req" aria-hidden="true">*</span></label>
+                <input class="input t-num" id="ap-idno" type="text" autocomplete="off" placeholder="8-digit national ID" value="{{v.idno}}" onInput="{{on.idno}}" aria-describedby="ap-idno-help" aria-invalid="{{idAria}}" aria-required="true">
+                <sc-if value="{{idOk}}" hint-placeholder-val="{{true}}"><p class="help" id="ap-idno-help">Kenyan national IDs are 7–10 digits. Not resident in Kenya? Enter your passport number.</p></sc-if>
+                <sc-if value="{{idBad}}" hint-placeholder-val="{{false}}"><p class="error" id="ap-idno-help"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>Kenyan national ID must be 7–10 digits.</p></sc-if>
+              </div>
+              <div class="{{pinField}}">
+                <label class="label" for="ap-pin">KRA PIN <span class="req" aria-hidden="true">*</span></label>
+                <input class="input t-mono" id="ap-pin" type="text" autocomplete="off" placeholder="A123456789B" value="{{v.pin}}" onInput="{{on.pin}}" aria-describedby="ap-pin-help" aria-invalid="{{pinAria}}" aria-required="true">
+                <sc-if value="{{pinBad}}" hint-placeholder-val="{{true}}"><p class="error" id="ap-pin-help"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>KRA PIN must be a letter, 9 digits, then a letter — e.g. A012345678Z.</p></sc-if>
+                <sc-if value="{{pinOk}}" hint-placeholder-val="{{false}}"><p class="help" id="ap-pin-help"><span class="t-good">Format looks right.</span> It&#39;s on your KRA PIN certificate.</p></sc-if>
+              </div>
+        </div>
+      </section>
+      <section class="card rise" style="--d: 3" aria-labelledby="ap-addr">
+        <div class="card-head"><h2 id="ap-addr">Address</h2><span class="t-footnote t-3 hide-compact">Where you live and receive post</span></div>
+        <div class="stack gap-5" style="padding: 0 20px 20px">
+          <div class="form-section">
+            <p class="sub-h t-subhead t-strong"><span class="ic ic-map-pin ic-sm t-3" aria-hidden="true"></span>Physical address</p>
+            <div class="form-grid">
+              <div class="field">
+                <label class="label" for="ap-building">Building name</label>
+                <input class="input" id="ap-building" type="text" autocomplete="off" placeholder="" value="{{v.building}}" onInput="{{on.building}}">
+              </div>
+              <div class="field">
+                <label class="label" for="ap-street">Street name</label>
+                <input class="input" id="ap-street" type="text" autocomplete="off" placeholder="" value="{{v.street}}" onInput="{{on.street}}">
+              </div>
+              <div class="field span-all">
+                <label class="label" for="ap-city">City / Town <span class="req" aria-hidden="true">*</span></label>
+                <input class="input" id="ap-city" type="text" autocomplete="address-level2" placeholder="" value="{{v.city}}" onInput="{{on.city}}" aria-required="true">
+              </div>
+              <div class="field">
+                <label class="label" for="ap-floor">Floor</label>
+                <input class="input" id="ap-floor" type="text" autocomplete="off" placeholder="" value="{{v.floor}}" onInput="{{on.floor}}">
+              </div>
+              <div class="field">
+                <label class="label" for="ap-door">Door / unit number</label>
+                <input class="input" id="ap-door" type="text" autocomplete="off" placeholder="" value="{{v.door}}" onInput="{{on.door}}">
+              </div>
+              <div class="field span-all">
+                <label class="label" for="ap-county">County <span class="req" aria-hidden="true">*</span></label>
+                <select class="select" id="ap-county" value="{{county}}" onChange="{{setCounty}}" aria-required="true">
+                  <option value="">—</option>
+                  <option value="Baringo">Baringo</option>
+                  <option value="Bomet">Bomet</option>
+                  <option value="Bungoma">Bungoma</option>
+                  <option value="Busia">Busia</option>
+                  <option value="Elgeyo-Marakwet">Elgeyo-Marakwet</option>
+                  <option value="Embu">Embu</option>
+                  <option value="Garissa">Garissa</option>
+                  <option value="Homa Bay">Homa Bay</option>
+                  <option value="Isiolo">Isiolo</option>
+                  <option value="Kajiado">Kajiado</option>
+                  <option value="Kakamega">Kakamega</option>
+                  <option value="Kericho">Kericho</option>
+                  <option value="Kiambu">Kiambu</option>
+                  <option value="Kilifi">Kilifi</option>
+                  <option value="Kirinyaga">Kirinyaga</option>
+                  <option value="Kisii">Kisii</option>
+                  <option value="Kisumu">Kisumu</option>
+                  <option value="Kitui">Kitui</option>
+                  <option value="Kwale">Kwale</option>
+                  <option value="Laikipia">Laikipia</option>
+                  <option value="Lamu">Lamu</option>
+                  <option value="Machakos">Machakos</option>
+                  <option value="Makueni">Makueni</option>
+                  <option value="Mandera">Mandera</option>
+                  <option value="Marsabit">Marsabit</option>
+                  <option value="Meru">Meru</option>
+                  <option value="Migori">Migori</option>
+                  <option value="Mombasa">Mombasa</option>
+                  <option value="Murang&#39;a">Murang&#39;a</option>
+                  <option value="Nairobi">Nairobi</option>
+                  <option value="Nakuru">Nakuru</option>
+                  <option value="Nandi">Nandi</option>
+                  <option value="Narok">Narok</option>
+                  <option value="Nyamira">Nyamira</option>
+                  <option value="Nyandarua">Nyandarua</option>
+                  <option value="Nyeri">Nyeri</option>
+                  <option value="Samburu">Samburu</option>
+                  <option value="Siaya">Siaya</option>
+                  <option value="Taita-Taveta">Taita-Taveta</option>
+                  <option value="Tana River">Tana River</option>
+                  <option value="Tharaka-Nithi">Tharaka-Nithi</option>
+                  <option value="Trans Nzoia">Trans Nzoia</option>
+                  <option value="Turkana">Turkana</option>
+                  <option value="Uasin Gishu">Uasin Gishu</option>
+                  <option value="Vihiga">Vihiga</option>
+                  <option value="Wajir">Wajir</option>
+                  <option value="West Pokot">West Pokot</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <p class="sub-h t-subhead t-strong"><span class="ic ic-mail ic-sm t-3" aria-hidden="true"></span>Postal address</p>
+            <div class="form-grid">
+              <div class="field">
+                <label class="label" for="ap-pobox">P.O. Box <span class="req" aria-hidden="true">*</span></label>
+                <input class="input" id="ap-pobox" type="text" autocomplete="off" placeholder="e.g. P.O. Box 1234-00100, Nairobi" value="{{v.pobox}}" onInput="{{on.pobox}}" aria-required="true">
+              </div>
+              <div class="field">
+                <label class="label" for="ap-postal">Postal code <span class="req" aria-hidden="true">*</span></label>
+                <select class="select t-num" id="ap-postal" value="{{postal}}" onChange="{{setPostal}}" aria-describedby="ap-postal-help" aria-required="true">
+                  <option value="">—</option>
+                  <option value="00100">00100 — Nairobi GPO</option>
+                  <option value="00200">00200 — City Square</option>
+                  <option value="00300">00300 — Nairobi</option>
+                  <option value="00400">00400 — Nairobi</option>
+                  <option value="00500">00500 — Nairobi</option>
+                  <option value="00506">00506 — Nairobi South</option>
+                  <option value="00517">00517 — Industrial Area</option>
+                  <option value="00521">00521 — Nairobi</option>
+                  <option value="00606">00606 — Sarit Centre</option>
+                </select>
+                <p class="help" id="ap-postal-help">{{postalHelp}}</p>
+              </div>
+              <div class="field span-all">
+                <label class="label" for="ap-country">Country</label>
+                <input class="input" id="ap-country" type="text" autocomplete="country-name" placeholder="" value="{{v.country}}" onInput="{{on.country}}">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="NewType.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{foot}}</span>
+        <a class="btn btn-primary {{contCls}}" aria-disabled="{{contAria}}" href="NewName.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1720}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const D = {
+  name: 'Wanjiku Mwangi',
+  email: 'wanjiku@amanilogistics.co.ke',
+  phone: '+254 712 345 678',
+  idno: '23456789',
+  pin: 'A01234567Z',
+  building: 'Riverside Square',
+  street: 'Riverside Drive',
+  city: 'Nairobi',
+  floor: '4',
+  door: '4C',
+  pobox: 'P.O. Box 48211-00100, Nairobi',
+  country: 'Kenya'
+};
+const v = {};
+const on = {};
+Object.keys(D).forEach((k) => {
+  v[k] = s[k] ?? D[k];
+  on[k] = (e) => this.setState({ [k]: e.target.value });
+});
+const rel = s.rel ?? 'director';
+const county = s.county ?? 'Nairobi';
+const postal = s.postal ?? '00100';
+const R = [
+  { value: 'promoter', label: 'Promoter', help: 'You are setting up the company but won’t necessarily be a director or shareholder.' },
+  { value: 'director', label: 'Director', help: 'You’ll also be a director — we’ll copy these details into step 7 so you don’t type them twice.' },
+  { value: 'shareholder', label: 'Shareholder', help: 'You’ll also hold shares — we’ll copy these details into step 6 so you don’t type them twice.' },
+  { value: 'advocate', label: 'Advocate', help: 'Advocates and authorised agents can file on anyone’s behalf.' },
+  { value: 'authorised_agent', label: 'Authorised Agent', help: 'Advocates and authorised agents can file on anyone’s behalf.' }
+];
+const rels = R.map((r) => ({
+  ...r,
+  on: rel === r.value,
+  cls: rel === r.value ? 'btn-tinted' : 'btn-gray',
+  checked: rel === r.value ? 'true' : 'false',
+  pick: () => this.setState({ rel: r.value })
+}));
+const relHelp = (R.find((r) => r.value === rel) || R[1]).help;
+const pin = v.pin.trim().toUpperCase();
+const pinBad = !/^[A-Z][0-9]{9}[A-Z]$/.test(pin);
+const phone = v.phone.replace(/\s+/g, '');
+const phoneBad = !/^(?:\+254|0)([17][0-9]{8})$/.test(phone);
+const idv = v.idno.trim();
+const idBad = /^[0-9]+$/.test(idv) ? !/^[0-9]{7,10}$/.test(idv) : idv.length < 6;
+const issues = [pinBad, phoneBad, idBad, !v.name.trim(), !v.city.trim(), !county, !postal].filter(Boolean).length;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  v,
+  on,
+  rels,
+  relHelp,
+  county,
+  postal,
+  setCounty: (e) => this.setState({ county: e.target.value, postal: '' }),
+  setPostal: (e) => this.setState({ postal: e.target.value }),
+  postalHelp: county === 'Nairobi' ? 'Codes for Nairobi County.' : 'Showing Nairobi codes — other counties list their main post office code.',
+  pinBad,
+  pinOk: !pinBad,
+  pinAria: pinBad ? 'true' : 'false',
+  pinField: pinBad ? 'field is-invalid' : 'field',
+  phoneBad,
+  phoneOk: !phoneBad,
+  phoneAria: phoneBad ? 'true' : 'false',
+  phoneField: phoneBad ? 'field is-invalid' : 'field',
+  idBad,
+  idOk: !idBad,
+  idAria: idBad ? 'true' : 'false',
+  idField: idBad ? 'field is-invalid' : 'field',
+  foot: issues === 0 ? 'All required fields complete' : issues === 1 ? '1 field needs attention' : issues + ' fields need attention',
+  contCls: issues ? 'is-disabled' : '',
+  contAria: issues ? 'true' : 'false'
+};
+}
+}
+</script>
+</body>
+</html>

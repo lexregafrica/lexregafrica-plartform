@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.auth{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);min-height:inherit}
+.auth-brand{display:flex;flex-direction:column;gap:40px;padding:40px 48px;background:var(--bg);border-right:0.5px solid var(--sep-soft)}
+.auth-main{display:flex;flex-direction:column;align-items:center;padding:24px 32px;background:var(--surface)}
+.auth-form{width:100%;max-width:400px;margin-block:auto;display:flex;flex-direction:column;gap:24px;padding:40px 0}
+.auth-foot{width:100%;max-width:400px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px}
+.or{display:flex;align-items:center;gap:12px}
+.or::before,.or::after{content:"";flex:1;border-top:var(--hairline-soft)}
+.tap{display:inline-flex;align-items:center}
+@container lx (max-width: 720px){.tap,.auth-foot a{display:inline-flex;align-items:center;min-height:44px}.auth{grid-template-columns:minmax(0,1fr)}.auth-main{padding:16px}.auth-form{padding:20px 0 28px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+  <div class="auth">
+    <aside class="auth-brand hide-compact" aria-label="About LexReg">
+      <a class="row gap-3" href="Home.dc.html" style="color: var(--label); text-decoration: none">
+        <img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 30px; height: 30px">
+        <span class="sb-word">LexReg<small>Africa</small></span>
+      </a>
+      <div class="stack gap-8" style="margin-block: auto">
+        <div class="stack gap-2 rise">
+          <p class="t-eyebrow">Governance &amp; Compliance Portal</p>
+          <p class="t-title1 t-balance">Every entity, filing and deadline in one calm place.</p>
+        </div>
+        <div class="card rise" style="--d: 1; max-width: 420px">
+          <div class="card-pad row gap-4">
+            <div style="position: relative; width: 64px; height: 64px; flex: none">
+              <svg class="ring" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle class="track" cx="32" cy="32" r="27" stroke-width="7"></circle><circle class="bar" cx="32" cy="32" r="27" stroke-width="7" stroke-dasharray="169.6" stroke-dashoffset="30.5" style="--len: 169.6; stroke: var(--sys-green)"></circle></svg>
+              <span class="t-subhead t-num t-strong" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--label)">82%</span>
+            </div>
+            <div class="grow stack gap-1">
+              <p class="t-headline truncate">Amani Logistics Limited</p>
+              <p class="t-footnote t-3 t-num truncate">PVT-2LU7Q9XB · Private limited company</p>
+              <div class="row gap-2"><span class="pill pill-good"><span class="dot"></span>Active</span><span class="pill pill-warn t-num">2 tasks open</span></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <ul class="stack">
+            <li class="row gap-3" style="padding: 12px 20px"><span class="date-tile"><span class="m">Mar</span><span class="d">31</span></span><div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Nairobi County business permit</p><p class="t-footnote t-3 t-num">Due 31 Mar 2027</p></div></li>
+            <li class="row gap-3" style="padding: 12px 20px; border-top: var(--hairline-soft)"><span class="date-tile"><span class="m">Apr</span><span class="d">13</span></span><div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Annual return</p><p class="t-footnote t-3 t-num">Due 13 Apr 2027</p></div></li>
+          </ul>
+        </div>
+        <ul class="stack gap-4">
+          <li class="row gap-3 rise" style="--d: 2; align-items: flex-start"><span class="icon-tile" aria-hidden="true"><span class="ic ic-shield-lock"></span></span><div class="grow"><p class="t-subhead" style="color: var(--label)">Protected under the Kenya Data Protection Act 2019</p><p class="t-footnote t-3">Records are never hard-deleted; removals are held for 30 days.</p></div></li>
+          <li class="row gap-3 rise" style="--d: 3; align-items: flex-start"><span class="icon-tile" aria-hidden="true"><span class="ic ic-history"></span></span><div class="grow"><p class="t-subhead" style="color: var(--label)">Every change is logged</p><p class="t-footnote t-3">Who did what, and when, in your audit log.</p></div></li>
+          <li class="row gap-3 rise" style="--d: 4; align-items: flex-start"><span class="icon-tile" aria-hidden="true"><span class="ic ic-user-shield"></span></span><div class="grow"><p class="t-subhead" style="color: var(--label)">You decide who sees what</p><p class="t-footnote t-3">Lawyers see only the entity and service you assign.</p></div></li>
+        </ul>
+      </div>
+      <p class="t-footnote t-3">© 2026 LexReg Africa · Data hosted in Frankfurt, EU</p>
+    </aside>
+
+    <main class="auth-main">
+      <a class="row gap-2 only-compact" href="Home.dc.html" style="align-self: flex-start; color: var(--label); text-decoration: none; min-height: 44px">
+        <img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 28px; height: 28px">
+        <span class="t-headline">LexReg</span>
+      </a>
+      <div class="auth-form">
+        <header class="stack gap-2 rise">
+          <h1 class="t-large">Sign in to your account</h1>
+          <p class="t-body t-2">Welcome back. Pick up where you left off.</p>
+        </header>
+
+        <sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+          <div class="note note-bad rise" role="alert">
+            <span class="ic ic-alert-circle" aria-hidden="true"></span>
+            <div><strong>Email or password is incorrect.</strong> Check both and try again, or reset your password.</div>
+          </div>
+        </sc-if>
+
+        <div class="stack gap-4 rise" style="--d: 1">
+          <div class="field {{fieldCls}}">
+            <label class="label" for="si-email">Email</label>
+            <div class="input-wrap">
+              <span class="ic ic-mail" aria-hidden="true"></span>
+              <input class="input" id="si-email" type="email" autocomplete="email" placeholder="you@example.com" value="{{email}}" onChange="{{setEmail}}" aria-invalid="{{ariaInvalid}}">
+            </div>
+          </div>
+          <div class="field {{fieldCls}}">
+            <div class="row between">
+              <label class="label" for="si-password">Password</label>
+              <a class="t-subhead tap" href="ResetPassword.dc.html">Forgot password?</a>
+            </div>
+            <div class="input-wrap">
+              <span class="ic ic-lock" aria-hidden="true"></span>
+              <input class="input" id="si-password" type="{{pwType}}" autocomplete="current-password" placeholder="••••••••" value="{{pw}}" onChange="{{setPw}}" aria-invalid="{{ariaInvalid}}" style="padding-right: 56px">
+              <span class="trail"><button class="btn btn-plain btn-icon" type="button" aria-label="{{eyeLabel}}" aria-pressed="{{eyePressed}}" onClick="{{toggleEye}}" style="color: var(--label-3)"><span class="ic {{eyeIcon}}" aria-hidden="true"></span></button></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack gap-3 rise" style="--d: 2">
+          <a class="btn btn-primary btn-lg btn-block" href="Dashboard.dc.html">Sign in</a>
+          <p class="row gap-2 t-footnote t-3" style="justify-content: center; text-align: center"><span class="ic ic-clock ic-sm" aria-hidden="true"></span>You'll be signed out after 30 minutes of inactivity.</p>
+        </div>
+
+        <div class="or t-caption t-3 rise" style="--d: 3">or</div>
+
+        <div class="stack gap-2 rise" style="--d: 4">
+          <a class="btn btn-gray btn-lg btn-block" href="SignUp.dc.html">Create an account</a>
+          <p class="t-footnote t-3" style="text-align: center">Invited by LexReg as a lawyer? Use the link in your invitation email.</p>
+        </div>
+      </div>
+      <nav class="auth-foot t-footnote" aria-label="Legal">
+        <a href="Legal.dc.html">Terms</a>
+        <a href="Legal.dc.html">Privacy Policy</a>
+        <span class="t-3 only-compact">© 2026 LexReg Africa</span>
+      </nav>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"state":{"editor":"enum","options":["default","error"],"default":"default"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const isError = (this.props.state ?? 'default') === 'error' && !(s.edited ?? false);
+const show = s.show ?? false;
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  isError: isError,
+  fieldCls: isError ? 'is-invalid' : '',
+  ariaInvalid: isError ? 'true' : 'false',
+  email: s.email ?? 'wanjiku@amanilogistics.co.ke',
+  setEmail: (e) => this.setState({ email: e.target.value, edited: true }),
+  pw: s.pw ?? 'Amani-2019',
+  setPw: (e) => this.setState({ pw: e.target.value, edited: true }),
+  pwType: show ? 'text' : 'password',
+  eyeIcon: show ? 'ic-eye-off' : 'ic-eye',
+  eyeLabel: show ? 'Hide password' : 'Show password',
+  eyePressed: show ? 'true' : 'false',
+  toggleEye: () => this.setState({ show: !show })
+};
+}
+}
+</script>
+</body>
+</html>

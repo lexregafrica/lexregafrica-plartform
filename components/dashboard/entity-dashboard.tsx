@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { IconPlus, IconArrowRight } from '@tabler/icons-react'
+import { IconPlus, IconArrowRight, IconBuilding, IconCircleCheck, IconClock, IconFiles, IconGavel, IconAlertTriangle } from '@tabler/icons-react'
 import { DashboardShell } from '@/components/dashboard/shell'
 import { DeleteEntityDialog } from '@/components/dashboard/delete-entity-dialog'
 
@@ -29,12 +29,12 @@ export type DashboardDeadline = {
   entityId: string
 }
 
-const STATUS_META: Record<DashboardEntity['status'], { label: string; bg: string; fg: string }> = {
-  draft: { label: 'Draft', bg: 'var(--system-fill-3)', fg: 'var(--system-label-2)' },
-  pending_registration: { label: 'Pending registration', bg: 'rgba(255,149,0,0.14)', fg: '#C77700' },
-  active: { label: 'Active', bg: 'rgba(52,199,89,0.14)', fg: '#1E9E45' },
-  suspended: { label: 'Suspended', bg: 'rgba(255,59,48,0.12)', fg: '#D70015' },
-  dissolved: { label: 'Dissolved', bg: 'var(--system-fill-3)', fg: 'var(--system-label-3)' },
+const STATUS_META: Record<DashboardEntity['status'], { label: string; pill: string }> = {
+  draft: { label: 'Draft', pill: '' },
+  pending_registration: { label: 'Awaiting BRS', pill: 'pill-warn' },
+  active: { label: 'Active', pill: 'pill-good' },
+  suspended: { label: 'Suspended', pill: 'pill-bad' },
+  dissolved: { label: 'Dissolved', pill: '' },
 }
 
 function resumeHref(entity: DashboardEntity): string {
@@ -47,39 +47,17 @@ function resumeHref(entity: DashboardEntity): string {
   return '/onboarding/informal'
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })
-}
-
 function daysUntil(iso: string) {
-  const diff = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)
-  if (diff < 0) return 'overdue'
-  if (diff === 0) return 'today'
-  return `${diff}d`
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)
 }
 
-function StatusBadge({ status }: { status: DashboardEntity['status'] }) {
-  const meta = STATUS_META[status]
-  return (
-    <span className="text-ios-caption1 whitespace-nowrap rounded-full px-2.5 py-1 font-semibold" style={{ background: meta.bg, color: meta.fg }}>
-      {meta.label}
-    </span>
-  )
+function whenLabel(days: number) {
+  if (days < 0) return `${-days} day${days === -1 ? '' : 's'} overdue`
+  if (days === 0) return 'Due today'
+  return `In ${days} day${days === 1 ? '' : 's'}`
 }
 
-function StatTile({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      className="rounded-2xl p-4"
-      style={{ background: 'var(--system-bg)', border: '1px solid var(--system-fill-3)' }}
-    >
-      <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-2)' }}>{label}</p>
-      <p className="mt-1 text-[28px] font-semibold leading-none" style={{ color: 'var(--system-label)', letterSpacing: '-0.02em' }}>{value}</p>
-    </div>
-  )
-}
-
-function EntityCard({ entity }: { entity: DashboardEntity }) {
+function EntityCard({ entity, index }: { entity: DashboardEntity; index: number }) {
   const router = useRouter()
   const isActive = entity.status === 'active'
   // Deletable only pre-activation — an active entity has a real BRS
@@ -87,91 +65,65 @@ function EntityCard({ entity }: { entity: DashboardEntity }) {
   // registered business from its own owner rather than dissolve it.
   const isDeletable = entity.status === 'draft' || entity.status === 'pending_registration'
   const [showDelete, setShowDelete] = useState(false)
+  const meta = STATUS_META[entity.status]
 
-  const card = (
-    <div className={`rounded-2xl p-5 ${isActive ? 'transition-opacity hover:opacity-80 active:opacity-60' : ''}`} style={{ background: 'var(--system-bg)' }}>
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <h3 className="text-ios-headline min-w-0 break-words" style={{ color: 'var(--system-label)' }}>
-          {entity.displayName}
-        </h3>
-        <div className="flex shrink-0 items-center gap-2">
-          <StatusBadge status={entity.status} />
-          {isActive && <span className="text-ios-subhead" style={{ color: 'var(--system-label-3)' }}>›</span>}
+  const head = (
+    <>
+      <div className="flex items-start gap-3">
+        <span className={`icon-tile ${isActive ? 'good' : 'gray'}`} aria-hidden="true">
+          <IconBuilding size={18} stroke={1.75} />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h3 className="t-headline clamp-2">{entity.displayName}</h3>
+          <p className="t-footnote t-3">
+            {entity.entityTypeLabel}
+            {entity.registrationNumber ? ` · ${entity.registrationNumber}` : ''}
+          </p>
         </div>
+        <span className={`pill ${meta.pill}`}><span className="dot" aria-hidden="true" />{meta.label}</span>
       </div>
-
-      <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-        {entity.entityTypeLabel}
-        {entity.registrationNumber ? ` · ${entity.registrationNumber}` : ''}
-        {` · ${entity.documentCount} document${entity.documentCount === 1 ? '' : 's'}`}
+      <p className="t-footnote t-3 t-num">
+        {entity.documentCount} document{entity.documentCount === 1 ? '' : 's'} on file
       </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        {entity.status === 'draft' && (
-          <Link
-            href={resumeHref(entity)}
-            className="rounded-full px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'var(--brand-navy)' }}
-          >
-            Continue setup
-          </Link>
-        )}
-
-        {entity.status === 'pending_registration' && (
-          <>
-            {entity.idpUrl && (
-              <a
-                href={entity.idpUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                style={{ background: 'var(--brand-navy)' }}
-              >
-                Download IDP
-              </a>
-            )}
-            <Link
-              href={resumeHref(entity)}
-              className="rounded-full border px-5 py-2 text-sm font-semibold"
-              style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
-            >
-              Upload certificate
-            </Link>
-            {entity.onboardingPath === 'new_entity' && (
-              <Link
-                href={`${resumeHref(entity)}&edit=1`}
-                className="rounded-full border px-5 py-2 text-sm font-semibold"
-                style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
-              >
-                Edit details
-              </Link>
-            )}
-          </>
-        )}
-
-        {isActive && (
-          <span className="text-ios-footnote inline-flex items-center gap-1 font-semibold" style={{ color: 'var(--brand-navy)' }}>
-            Open dashboard <IconArrowRight size={14} stroke={2.5} />
-          </span>
-        )}
-
-        {isDeletable && (
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDelete(true) }}
-            className="rounded-full px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-70"
-            style={{ color: '#D70015' }}
-          >
-            Delete
-          </button>
-        )}
-      </div>
-    </div>
+    </>
   )
 
   return (
-    <>
-      {isActive ? <Link href={`/dashboard/${entity.id}`}>{card}</Link> : card}
+    <div className="rise flex flex-col" style={{ '--d': Math.min(index + 1, 8) } as React.CSSProperties}>
+      {isActive ? (
+        <Link href={`/dashboard/${entity.id}`} className="card card-pad card-interactive flex flex-1 flex-col gap-4" style={{ color: 'var(--label)' }}>
+          {head}
+          <div className="mt-auto flex items-center justify-between gap-2 pt-3" style={{ borderTop: 'var(--hairline-soft)' }}>
+            <span className="t-footnote t-3">Compliance, people and documents</span>
+            <span className="t-subhead t-brand flex shrink-0 items-center gap-1">Open <IconArrowRight size={15} stroke={2} aria-hidden="true" /></span>
+          </div>
+        </Link>
+      ) : (
+        <div className="card card-pad flex flex-1 flex-col gap-4">
+          {head}
+          <div className="mt-auto flex flex-wrap items-center gap-2 pt-3" style={{ borderTop: 'var(--hairline-soft)' }}>
+            {entity.status === 'draft' && (
+              <Link href={resumeHref(entity)} className="btn btn-primary btn-sm">Continue setup</Link>
+            )}
+            {entity.status === 'pending_registration' && (
+              <>
+                <Link href={resumeHref(entity)} className="btn btn-primary btn-sm">Upload certificate</Link>
+                {entity.idpUrl && (
+                  <a href={entity.idpUrl} target="_blank" rel="noopener noreferrer" className="btn btn-tinted btn-sm">Download IDP</a>
+                )}
+                {entity.onboardingPath === 'new_entity' && (
+                  <Link href={`${resumeHref(entity)}&edit=1`} className="btn btn-secondary btn-sm">Edit details</Link>
+                )}
+              </>
+            )}
+            {isDeletable && (
+              <button type="button" onClick={() => setShowDelete(true)} className="btn btn-plain btn-sm btn-destructive-plain ml-auto">
+                Delete
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {showDelete && (
         <DeleteEntityDialog
           entityId={entity.id}
@@ -180,7 +132,7 @@ function EntityCard({ entity }: { entity: DashboardEntity }) {
           onDeleted={() => { setShowDelete(false); router.refresh() }}
         />
       )}
-    </>
+    </div>
   )
 }
 
@@ -188,6 +140,8 @@ export function EntityDashboard({
   userName,
   userEmail,
   organisationName,
+  greeting,
+  today,
   entities,
   deadlines,
   isSuperAdmin,
@@ -195,122 +149,141 @@ export function EntityDashboard({
   userName: string
   userEmail: string
   organisationName: string
+  greeting: string
+  today: string
   entities: DashboardEntity[]
   deadlines: DashboardDeadline[]
   isSuperAdmin?: boolean
 }) {
   const activeCount = entities.filter((e) => e.status === 'active').length
-  const pendingCount = entities.filter((e) => e.status === 'pending_registration').length
-  const documentCount = entities.reduce((sum, e) => sum + e.documentCount, 0)
   const pendingCert = entities.filter((e) => e.status === 'pending_registration')
+  const draftCount = entities.filter((e) => e.status === 'draft').length
+  const documentCount = entities.reduce((sum, e) => sum + e.documentCount, 0)
+  const overdue = deadlines.filter((d) => daysUntil(d.dueDate) < 0).length
+  const firstName = userName.split(/\s+/)[0]
 
   return (
-    <DashboardShell userName={userName} userEmail={userEmail} isSuperAdmin={isSuperAdmin}>
-      <main className="px-4 py-6 md:px-8 md:py-7">
-        {/* Stat tiles */}
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile label="Entities" value={entities.length} />
-          <StatTile label="Active" value={activeCount} />
-          <StatTile label="Pending" value={pendingCount} />
-          <StatTile label="Documents" value={documentCount} />
-        </div>
+    <DashboardShell userName={userName} userEmail={userEmail} isSuperAdmin={isSuperAdmin} title="Overview">
+      <main className="content">
+        <header className="page-head rise">
+          <div className="flex flex-col gap-1">
+            <p className="t-eyebrow t-num">{today}</p>
+            <h1 className="t-title1">{greeting}, {firstName}</h1>
+            <p className="t-callout t-2 t-pretty">{organisationName}</p>
+          </div>
+          <div className="page-actions">
+            <Link className="btn btn-primary" href="/onboarding"><IconPlus size={17} stroke={2} aria-hidden="true" />Add an entity</Link>
+          </div>
+        </header>
+
+        <section className="grid cols-4 keep-2 gap-4" aria-label="Summary">
+          <div className="stat rise" style={{ '--d': 1 } as React.CSSProperties}>
+            <p className="stat-label"><IconBuilding size={15} stroke={1.75} aria-hidden="true" />Entities</p>
+            <p className="t-stat">{entities.length}</p>
+            <p className="stat-sub">{activeCount} active · {entities.length - activeCount} in progress</p>
+          </div>
+          <div className="stat rise" style={{ '--d': 2 } as React.CSSProperties}>
+            <p className="stat-label"><IconClock size={15} stroke={1.75} aria-hidden="true" />Awaiting BRS</p>
+            <p className="t-stat">{pendingCert.length}</p>
+            <p className="stat-sub">{draftCount} draft{draftCount === 1 ? '' : 's'} in progress</p>
+          </div>
+          <div className="stat rise" style={{ '--d': 3 } as React.CSSProperties}>
+            <p className="stat-label"><IconCircleCheck size={15} stroke={1.75} aria-hidden="true" />Upcoming deadlines</p>
+            <p className="t-stat">{deadlines.length}</p>
+            <p className="stat-sub" style={overdue ? { color: 'var(--bad)' } : undefined}>{overdue ? `${overdue} overdue` : 'None overdue'}</p>
+          </div>
+          <div className="stat rise" style={{ '--d': 4 } as React.CSSProperties}>
+            <p className="stat-label"><IconFiles size={15} stroke={1.75} aria-hidden="true" />Documents</p>
+            <p className="t-stat">{documentCount}</p>
+            <p className="stat-sub">Across all entities</p>
+          </div>
+        </section>
 
         {pendingCert.length > 0 && (
-          <div
-            className="text-ios-footnote mb-6 rounded-2xl px-4 py-3 font-medium"
-            style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}
-          >
-            {pendingCert.length === 1
-              ? `${pendingCert[0].displayName} is awaiting BRS registration — upload the certificate once issued to activate it.`
-              : `${pendingCert.length} entities are awaiting BRS registration. Upload certificates once issued.`}
+          <div className="note note-warn rise" role="status">
+            <IconAlertTriangle size={18} stroke={1.75} aria-hidden="true" />
+            <p>
+              {pendingCert.length === 1
+                ? <><strong>{pendingCert[0].displayName}</strong> is awaiting BRS registration. Upload the certificate once it&rsquo;s issued to activate it.</>
+                : <><strong>{pendingCert.length} entities</strong> are awaiting BRS registration. Upload each certificate once issued.</>}
+            </p>
           </div>
         )}
 
-        {/* Missing-documents detail moved to each entity's own Overview
-            tab, 2026-08 — a "still missing: X, Y, Z" list per entity was
-            cluttering this page for every registered entity; it's
-            actionable on that entity's page, not here. */}
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main column — entities */}
-          <div className="lg:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-ios-title3" style={{ color: 'var(--system-label)' }}>Your entities</h2>
-              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{organisationName}</p>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {entities.map((entity) => (
-                <EntityCard key={entity.id} entity={entity} />
-              ))}
-
-              <Link
-                href="/onboarding"
-                className="text-ios-subhead flex items-center justify-center gap-2 rounded-2xl border border-dashed py-5 font-medium transition-opacity hover:opacity-70"
-                style={{ borderColor: 'var(--system-fill-2, #d1d1d6)', color: 'var(--brand-navy)' }}
-              >
-                <IconPlus size={17} stroke={2.5} /> Add another entity
-              </Link>
-            </div>
+        <section className="flex flex-col gap-3" aria-labelledby="ents-h">
+          <h2 id="ents-h" className="t-title3">Your entities</h2>
+          <div className="grid cols-3 gap-4">
+            {entities.map((entity, i) => (
+              <EntityCard key={entity.id} entity={entity} index={i} />
+            ))}
+            <Link
+              href="/onboarding"
+              className="card card-pad card-interactive rise flex flex-col justify-center gap-3"
+              style={{ '--d': Math.min(entities.length + 1, 8), color: 'var(--label)', boxShadow: 'none', border: '1.5px dashed var(--ink-300)', background: 'transparent' } as React.CSSProperties}
+            >
+              <span className="icon-tile icon-tile-lg" aria-hidden="true"><IconPlus size={22} stroke={1.75} /></span>
+              <span className="flex flex-col gap-1">
+                <span className="t-headline">Add an entity</span>
+                <span className="t-footnote t-2 t-pretty">Onboard a registered business, register a new one, or check an informal business&rsquo;s readiness.</span>
+              </span>
+            </Link>
           </div>
+        </section>
 
-          {/* Right column */}
-          <div className="flex flex-col gap-4">
-            {/* Upcoming deadlines */}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--system-bg)' }}>
-              <h2 className="text-ios-subhead mb-3 font-bold" style={{ color: 'var(--system-label)' }}>
-                Upcoming deadlines
-              </h2>
-              {deadlines.length === 0 ? (
-                <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>
-                  Nothing due yet. Deadlines appear once an entity is active.
-                </p>
-              ) : (
-                <div className="flex flex-col">
-                  {deadlines.map((d, i) => (
-                    <Link
-                      key={d.id}
-                      href={`/dashboard/${d.entityId}`}
-                      className="flex items-center justify-between gap-3 py-2.5 transition-opacity hover:opacity-70"
-                      style={i < deadlines.length - 1 ? { borderBottom: '1px solid var(--system-fill-3)' } : undefined}
-                    >
-                      <div className="min-w-0">
-                        <p className="text-ios-footnote truncate font-medium" style={{ color: 'var(--system-label)' }}>{d.title}</p>
-                        <p className="text-ios-caption1 truncate" style={{ color: 'var(--system-label-3)' }}>{d.entityName}</p>
-                      </div>
-                      <span
-                        className="text-ios-caption1 shrink-0 rounded-full px-2 py-0.5 font-semibold"
-                        style={daysUntil(d.dueDate) === 'overdue'
-                          ? { background: 'rgba(255,59,48,0.12)', color: '#D70015' }
-                          : { background: 'var(--system-fill-3)', color: 'var(--system-label-2)' }}
-                      >
-                        {formatDate(d.dueDate)} · {daysUntil(d.dueDate)}
+        <div className="grid cols-5 keep gap-4">
+          <section className="card span-3 rise" aria-labelledby="dl-h" style={{ '--d': 6 } as React.CSSProperties}>
+            <div className="card-head">
+              <h2 id="dl-h">Upcoming deadlines</h2>
+              <span className="t-footnote t-3">All entities</span>
+            </div>
+            {deadlines.length === 0 ? (
+              <p className="t-footnote t-3 px-5 pb-5">Nothing due yet. Deadlines appear once an entity is active.</p>
+            ) : (
+              <div className="flex flex-col pb-1.5">
+                {deadlines.map((d) => {
+                  const days = daysUntil(d.dueDate)
+                  const date = new Date(d.dueDate)
+                  return (
+                    <Link key={d.id} href={`/dashboard/${d.entityId}`} className="list-row is-link" style={{ color: 'var(--label)', paddingInline: 20 }}>
+                      <span className={`date-tile ${days < 0 ? 'is-urgent' : ''}`} aria-hidden="true">
+                        <span className="m">{date.toLocaleDateString('en-KE', { month: 'short' })}</span>
+                        <span className="d">{date.getDate()}</span>
                       </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="t-subhead t-pretty">{d.title}</span>
+                        <span className="t-footnote t-3 truncate">{d.entityName}</span>
+                      </span>
+                      <span className={`pill t-num ${days < 0 ? 'pill-bad' : days <= 14 ? 'pill-warn' : ''}`}>{whenLabel(days)}</span>
                     </Link>
-                  ))}
-                </div>
-              )}
+                  )
+                })}
+              </div>
+            )}
+            <div className="card-foot">
+              <span className="t-footnote t-3">You file on eCitizen or iTax; LexReg tracks the dates.</span>
             </div>
+          </section>
 
-            {/* Legal Audit promo — the "upgrade" card slot */}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--brand-navy)' }}>
-              <h2 className="text-ios-subhead font-bold text-white">Legal Audit &amp; Risk Review</h2>
-              <p className="text-ios-footnote mt-1.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                A full compliance health check across statutory, tax, employment, and data protection.
-              </p>
-              <p className="mt-4 text-[26px] font-bold leading-none text-white">KES 25,000</p>
-              <p className="text-ios-caption1 mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>one-time, per entity</p>
-              <a
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''}?text=${encodeURIComponent('Hello LexReg Africa, I would like to book a Legal Audit.')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 block w-full rounded-full bg-white py-2.5 text-center text-sm font-bold transition-opacity hover:opacity-90"
-                style={{ color: 'var(--brand-navy)' }}
-              >
-                Book an audit
-              </a>
+          <section className="card card-pad span-2 rise flex flex-col gap-4" aria-labelledby="promo-h" style={{ '--d': 7 } as React.CSSProperties}>
+            <span className="icon-tile icon-tile-lg" aria-hidden="true"><IconGavel size={22} stroke={1.75} /></span>
+            <div className="flex flex-col gap-1">
+              <p className="t-eyebrow">LexReg services</p>
+              <h2 id="promo-h" className="t-title3">Legal audit &amp; risk review</h2>
+              <p className="t-callout t-2 t-pretty">A full compliance health check across statutory, tax, employment and data protection.</p>
             </div>
-          </div>
+            <div className="flex flex-col gap-0.5">
+              <p className="t-stat">KES 25,000</p>
+              <p className="t-footnote t-3">One-time, per entity</p>
+            </div>
+            <a
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''}?text=${encodeURIComponent('Hello LexReg Africa, I would like to book a Legal Audit.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary mt-auto"
+            >
+              Book a legal audit<IconArrowRight size={16} stroke={2} aria-hidden="true" />
+            </a>
+          </section>
         </div>
       </main>
     </DashboardShell>

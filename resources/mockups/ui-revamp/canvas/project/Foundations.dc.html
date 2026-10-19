@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Foundations — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+  <header class="container" style="padding-top: 16px">
+    <nav class="nav-float glass" aria-label="Design system">
+      <a class="row gap-2" href="Main.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 28px; height: 28px"><span class="t-headline">LexReg</span></a>
+      <span class="pill pill-brand hide-compact">Design system v2</span>
+      <span class="grow"></span>
+      <a class="nav-link" href="Main.dc.html"><span class="ic ic-layout-dashboard ic-sm" aria-hidden="true" style="margin-right: 6px"></span>All boards</a>
+    </nav>
+  </header>
+
+  <main class="container stack gap-6" style="padding-top: 40px; padding-bottom: 96px">
+    <header class="stack gap-3 rise">
+      <p class="t-eyebrow">Foundations · v2 · October 2026</p>
+      <h1 class="t-hero t-balance">LexReg design system v2</h1>
+      <p class="t-body t-2 t-pretty" style="max-width: 680px">The tokens, type, materials and rules every LexReg screen is built from. Calm Apple-style neutrals from the Zeno console, LexReg burgundy as the only accent, and one idea that runs through everything: every value shows the evidence behind it.</p>
+    </header>
+
+    <nav class="tabs" aria-label="Design system boards">
+      <a class="is-on" href="Foundations.dc.html" aria-current="page">Foundations</a>
+      <a href="Components.dc.html">Components</a>
+      <a href="Motion.dc.html">Motion</a>
+    </nav>
+
+    <!-- 1. Principles -->
+    <section class="card card-lg rise" style="--d: 1" aria-labelledby="h-principles">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">01</p>
+          <h2 id="h-principles" class="t-title2">Principles</h2>
+          <p class="t-callout t-2">Six rules that decide every screen. When two conflict, the earlier one wins.</p>
+        </header>
+        <div class="grid cols-3">
+          <article class="well stack gap-3">
+            <span class="icon-tile"><span class="ic ic-file-search" aria-hidden="true"></span></span>
+            <h3 class="t-headline">Evidence before entry</h3>
+            <p class="t-callout t-2 t-pretty">Every pre-filled value shows which document it came from. Two documents agreeing is verified; one is extracted; a disagreement is a conflict the owner resolves.</p>
+          </article>
+          <article class="well stack gap-3">
+            <span class="icon-tile"><span class="ic ic-target" aria-hidden="true"></span></span>
+            <h3 class="t-headline">One primary action</h3>
+            <p class="t-callout t-2 t-pretty">Each view has one burgundy button: the next thing to do. Everything else is tinted, gray or plain, so the path forward is never in doubt.</p>
+          </article>
+          <article class="well stack gap-3">
+            <span class="icon-tile"><span class="ic ic-cloud-check" aria-hidden="true"></span></span>
+            <h3 class="t-headline">Drafts never lost</h3>
+            <p class="t-callout t-2 t-pretty">Every onboarding step saves to the entity draft as you go. Save &amp; exit is always one click away and you return to the exact field you left.</p>
+          </article>
+          <article class="well stack gap-3">
+            <span class="icon-tile"><span class="ic ic-sun" aria-hidden="true"></span></span>
+            <h3 class="t-headline">Calm by default</h3>
+            <p class="t-callout t-2 t-pretty">Neutrals carry the interface. Burgundy is an accent: it marks where you are and what to do next, never decoration or large washes.</p>
+          </article>
+          <article class="well stack gap-3">
+            <span class="icon-tile"><span class="ic ic-point" aria-hidden="true"></span></span>
+            <h3 class="t-headline">Respond on press</h3>
+            <p class="t-callout t-2 t-pretty">Controls react on pointer-down within 110ms. Transitions never block input; a new tap interrupts and redirects from the current value.</p>
+          </article>
+          <article class="well stack gap-3">
+            <span class="icon-tile"><span class="ic ic-gavel" aria-hidden="true"></span></span>
+            <h3 class="t-headline">Plain legal language</h3>
+            <p class="t-callout t-2 t-pretty">Say “Upload CR12” and “Confirm 3 directors”, not “Submit documents”. Cite the Companies Act 2015 in one sentence only when it changes what the owner does.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Colour -->
+    <section class="card card-lg rise" style="--d: 2" aria-labelledby="h-colour">
+      <div class="card-pad stack gap-6">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">02</p>
+          <h2 id="h-colour" class="t-title2">Colour</h2>
+          <p class="t-callout t-2 t-pretty">Swatches render the live tokens, so they follow the appearance toggle. Hex values are the light appearance.</p>
+        </header>
+
+        <div class="stack gap-3">
+          <div class="row between wrap gap-2"><h3 class="t-headline">Brand · burgundy</h3><span class="t-footnote t-3">Mixed from <span class="t-mono">--brand</span> #800020 with white / black</span></div>
+          <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))">
+            <div class="stack gap-2"><div style="height: 64px; border-radius: var(--r-md); background: var(--brand-50); box-shadow: inset 0 0 0 0.5px var(--sep)"></div><p class="t-subhead">brand-50 <span class="t-mono t-3">#F7F0F2</span></p><p class="t-footnote t-3">Tinted button, selected choice ground</p></div>
+            <div class="stack gap-2"><div style="height: 64px; border-radius: var(--r-md); background: var(--brand-100); box-shadow: inset 0 0 0 0.5px var(--sep)"></div><p class="t-subhead">brand-100 <span class="t-mono t-3">#F0E0E4</span></p><p class="t-footnote t-3">Avatar ground, tinted hover</p></div>
+            <div class="stack gap-2"><div style="height: 64px; border-radius: var(--r-md); background: var(--brand-200)"></div><p class="t-subhead">brand-200 <span class="t-mono t-3">#E0C2C9</span></p><p class="t-footnote t-3">Text selection</p></div>
+            <div class="stack gap-2"><div style="height: 64px; border-radius: var(--r-md); background: var(--brand-300)"></div><p class="t-subhead">brand-300 <span class="t-mono t-3">#C68C9B</span></p><p class="t-footnote t-3">Graphics only, never text</p></div>
+            <div class="stack gap-2"><div style="height: 64px; border-radius: var(--r-md); background: var(--brand)"></div><p class="t-subhead">brand / tint <span class="t-mono t-3">#800020</span></p><p class="t-footnote t-3">Primary button, current nav, links</p></div>
+            <div class="stack gap-2"><div style="height: 64px; border-radius: var(--r-md); background: var(--brand-600)"></div><p class="t-subhead">brand-600 <span class="t-mono t-3">#71001C</span></p><p class="t-footnote t-3">Primary hover</p></div>
+            <div class="stack gap-2"><div style="height: 64px; border-radius: var(--r-md); background: var(--brand-700)"></div><p class="t-subhead">brand-700 <span class="t-mono t-3">#5F0018</span></p><p class="t-footnote t-3">Pressed primary, deep accents</p></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stack gap-3">
+          <div class="row between wrap gap-2"><h3 class="t-headline">Ink · Zeno neutrals</h3><span class="t-footnote t-3">Apple web greys, unchanged in dark</span></div>
+          <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(104px, 1fr))">
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-50); box-shadow: inset 0 0 0 0.5px var(--sep)"></div><p class="t-subhead">ink-50</p><p class="t-mono t-footnote t-3">#F5F5F7</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-100); box-shadow: inset 0 0 0 0.5px var(--sep)"></div><p class="t-subhead">ink-100</p><p class="t-mono t-footnote t-3">#E8E8ED</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-200)"></div><p class="t-subhead">ink-200</p><p class="t-mono t-footnote t-3">#D2D2D7</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-300)"></div><p class="t-subhead">ink-300</p><p class="t-mono t-footnote t-3">#AEAEB2</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-400)"></div><p class="t-subhead">ink-400</p><p class="t-mono t-footnote t-3">#86868B</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-500)"></div><p class="t-subhead">ink-500</p><p class="t-mono t-footnote t-3">#6E6E73</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-600)"></div><p class="t-subhead">ink-600</p><p class="t-mono t-footnote t-3">#515154</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-700)"></div><p class="t-subhead">ink-700</p><p class="t-mono t-footnote t-3">#3A3A3C</p></div>
+            <div class="stack gap-2"><div style="height: 56px; border-radius: var(--r-md); background: var(--ink-900)"></div><p class="t-subhead">ink-900</p><p class="t-mono t-footnote t-3">#1D1D1F</p></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid cols-3">
+          <div class="stack gap-3">
+            <h3 class="t-headline">Labels</h3>
+            <div class="list">
+              <div class="list-row"><span class="t-title3" style="color: var(--label); width: 32px">Aa</span><div class="grow"><p class="list-title">label</p><p class="list-sub">Primary text · 16.8:1</p></div></div>
+              <div class="list-row"><span class="t-title3" style="color: var(--label-2); width: 32px">Aa</span><div class="grow"><p class="list-title">label-2</p><p class="list-sub">Secondary text · 7.9:1</p></div></div>
+              <div class="list-row"><span class="t-title3" style="color: var(--label-3); width: 32px">Aa</span><div class="grow"><p class="list-title">label-3</p><p class="list-sub">Smallest secondary text · 5.1:1</p></div></div>
+              <div class="list-row"><span class="t-title3" style="color: var(--label-4); width: 32px">Aa</span><div class="grow"><p class="list-title">label-4</p><p class="list-sub">Placeholder, disabled, 18px+ only · 3.6:1</p></div></div>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">Separators</h3>
+            <div class="list">
+              <div class="list-row"><span style="width: 32px; border-top: 0.5px solid var(--sep)"></span><div class="grow"><p class="list-title">sep</p><p class="list-sub">0.5px hairline · tables, inputs</p></div></div>
+              <div class="list-row"><span style="width: 32px; border-top: 0.5px solid var(--sep-soft)"></span><div class="grow"><p class="list-title">sep-soft</p><p class="list-sub">Card edges, list rows, chrome</p></div></div>
+            </div>
+            <h3 class="t-headline" style="padding-top: 8px">Grounds</h3>
+            <div class="list">
+              <div class="list-row"><span style="width: 32px; height: 22px; border-radius: 6px; background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)"></span><div class="grow"><p class="list-title">bg</p><p class="list-sub">Page behind cards</p></div></div>
+              <div class="list-row"><span style="width: 32px; height: 22px; border-radius: 6px; background: var(--surface); box-shadow: inset 0 0 0 0.5px var(--sep)"></span><div class="grow"><p class="list-title">surface</p><p class="list-sub">Cards, lists, inputs</p></div></div>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">Fills</h3>
+            <div class="list">
+              <div class="list-row"><span style="width: 32px; height: 22px; border-radius: 6px; background: var(--fill)"></span><div class="grow"><p class="list-title">fill</p><p class="list-sub">Toggle off, grabbers · 20%</p></div></div>
+              <div class="list-row"><span style="width: 32px; height: 22px; border-radius: 6px; background: var(--fill-2)"></span><div class="grow"><p class="list-title">fill-2</p><p class="list-sub">Gray button hover · 16%</p></div></div>
+              <div class="list-row"><span style="width: 32px; height: 22px; border-radius: 6px; background: var(--fill-3)"></span><div class="grow"><p class="list-title">fill-3</p><p class="list-sub">Gray button, track, pill · 12%</p></div></div>
+              <div class="list-row"><span style="width: 32px; height: 22px; border-radius: 6px; background: var(--fill-4)"></span><div class="grow"><p class="list-title">fill-4</p><p class="list-sub">Search field, inset, hover · 8%</p></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stack gap-3">
+          <div class="row between wrap gap-2"><h3 class="t-headline">Status</h3><span class="t-footnote t-3">Text colour measured on white · vivid sys-* colours are for graphics only</span></div>
+          <div class="grid cols-4">
+            <div class="well stack gap-3">
+              <div class="row between wrap gap-2"><span class="pill pill-good"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span><span class="t-mono t-footnote t-3">#1B7A43</span></div>
+              <p class="t-stat t-good">5.4:1</p>
+              <div class="row gap-2"><span style="width: 28px; height: 20px; border-radius: 6px; background: var(--good-bg); box-shadow: inset 0 0 0 1px var(--good-line)"></span><span class="t-footnote t-2">good · good-bg · good-line</span></div>
+            </div>
+            <div class="well stack gap-3">
+              <div class="row between wrap gap-2"><span class="pill pill-warn"><span class="ic ic-alert-triangle" aria-hidden="true"></span>Needs review</span><span class="t-mono t-footnote t-3">#8F6400</span></div>
+              <p class="t-stat t-warn">5.3:1</p>
+              <div class="row gap-2"><span style="width: 28px; height: 20px; border-radius: 6px; background: var(--warn-bg); box-shadow: inset 0 0 0 1px var(--warn-line)"></span><span class="t-footnote t-2">warn · warn-bg · warn-line</span></div>
+            </div>
+            <div class="well stack gap-3">
+              <div class="row between wrap gap-2"><span class="pill pill-bad"><span class="ic ic-alert-circle" aria-hidden="true"></span>Overdue</span><span class="t-mono t-footnote t-3">#C0392B</span></div>
+              <p class="t-stat t-bad">5.4:1</p>
+              <div class="row gap-2"><span style="width: 28px; height: 20px; border-radius: 6px; background: var(--bad-bg); box-shadow: inset 0 0 0 1px var(--bad-line)"></span><span class="t-footnote t-2">bad · bad-bg · bad-line</span></div>
+            </div>
+            <div class="well stack gap-3">
+              <div class="row between wrap gap-2"><span class="pill pill-info"><span class="ic ic-scan" aria-hidden="true"></span>From CR12</span><span class="t-mono t-footnote t-3">#0A63C9</span></div>
+              <p class="t-stat t-info">5.8:1</p>
+              <div class="row gap-2"><span style="width: 28px; height: 20px; border-radius: 6px; background: var(--info-bg); box-shadow: inset 0 0 0 1px var(--info-line)"></span><span class="t-footnote t-2">info · info-bg · info-line</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stack gap-3">
+          <div class="row between wrap gap-2"><h3 class="t-headline">Light and dark pairs</h3><span class="t-footnote t-3">Same role, resolved per appearance</span></div>
+          <div class="grid cols-2">
+            <div class="table-wrap card">
+              <table class="table">
+                <thead><tr><th>Role</th><th>Light</th><th>Dark</th></tr></thead>
+                <tbody>
+                  <tr><td>bg</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #F5F5F7; box-shadow: inset 0 0 0 0.5px var(--sep)"></span><span class="t-mono">#F5F5F7</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #000000; box-shadow: inset 0 0 0 0.5px var(--sep)"></span><span class="t-mono">#000000</span></span></td></tr>
+                  <tr><td>surface</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #FFFFFF; box-shadow: inset 0 0 0 0.5px var(--sep)"></span><span class="t-mono">#FFFFFF</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #1C1C1E"></span><span class="t-mono">#1C1C1E</span></span></td></tr>
+                  <tr><td>label</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #1D1D1F"></span><span class="t-mono">#1D1D1F</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #F5F5F7; box-shadow: inset 0 0 0 0.5px var(--sep)"></span><span class="t-mono">#F5F5F7</span></span></td></tr>
+                  <tr><td>tint</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #800020"></span><span class="t-mono">#800020</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #E8627A"></span><span class="t-mono">#E8627A</span></span></td></tr>
+                  <tr><td>tint-text</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #800020"></span><span class="t-mono">#800020</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #F08DA0"></span><span class="t-mono">#F08DA0</span></span></td></tr>
+                  <tr><td>good</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #1B7A43"></span><span class="t-mono">#1B7A43</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #4CD27B"></span><span class="t-mono">#4CD27B</span></span></td></tr>
+                  <tr><td>warn</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #8F6400"></span><span class="t-mono">#8F6400</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #FFB340"></span><span class="t-mono">#FFB340</span></span></td></tr>
+                  <tr><td>bad</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #C0392B"></span><span class="t-mono">#C0392B</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #FF6961"></span><span class="t-mono">#FF6961</span></span></td></tr>
+                  <tr><td>info</td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #0A63C9"></span><span class="t-mono">#0A63C9</span></span></td><td><span class="row gap-2"><span style="width: 22px; height: 22px; border-radius: 6px; background: #5AB0FF"></span><span class="t-mono">#5AB0FF</span></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="grid cols-2" style="align-content: start">
+              <div class="stack gap-2">
+                <p class="t-caption t-3">Light · default</p>
+                <div class="stack gap-3" style="--bg: #F5F5F7; --surface: #FFFFFF; --label: #1D1D1F; --label-2: #515154; --label-3: #6E6E73; --sep: #D2D2D7; --sep-soft: #E8E8ED; --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04); --tint: #800020; --tint-text: #800020; --brand-100: #F0E0E4; --good: #1B7A43; --good-bg: #E8F2EC; --info: #0A63C9; --info-bg: #E9F1FA; color-scheme: light; color: var(--label); padding: 14px; border-radius: var(--r-lg); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)">
+                  <div class="card stack gap-2" style="padding: 12px">
+                    <div class="row gap-2"><span class="avatar avatar-sm">WM</span><p class="t-subhead truncate grow">Amani Logistics</p></div>
+                    <div class="row gap-1 wrap"><span class="pill pill-good">Active</span><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>CR12</span></div>
+                    <p class="t-footnote t-3">Annual return · 13 Apr 2027</p>
+                    <span class="btn btn-primary btn-sm" style="color: #FFFFFF">Open</span>
+                  </div>
+                </div>
+              </div>
+              <div class="stack gap-2">
+                <p class="t-caption t-3">Dark · .lx-dark</p>
+                <div class="lx-dark stack gap-3" style="padding: 14px; border-radius: var(--r-lg); background: var(--bg); color: var(--label); box-shadow: inset 0 0 0 0.5px var(--sep)">
+                  <div class="card stack gap-2" style="padding: 12px">
+                    <div class="row gap-2"><span class="avatar avatar-sm">WM</span><p class="t-subhead truncate grow">Amani Logistics</p></div>
+                    <div class="row gap-1 wrap"><span class="pill pill-good">Active</span><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>CR12</span></div>
+                    <p class="t-footnote t-3">Annual return · 13 Apr 2027</p>
+                    <span class="btn btn-primary btn-sm">Open</span>
+                  </div>
+                </div>
+              </div>
+              <p class="note note-info" style="grid-column: 1 / -1"><span class="ic ic-info-circle" aria-hidden="true"></span><span>In dark, burgundy lifts to <strong>#E8627A</strong> so tint text stays above 4.5:1 on <span class="t-mono">#1C1C1E</span>. Shadows become 0.5px light edges.</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Typography -->
+    <section class="card card-lg rise" style="--d: 3" aria-labelledby="h-type">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">03</p>
+          <h2 id="h-type" class="t-title2">Typography</h2>
+          <p class="t-callout t-2 t-pretty">SF Pro through the system font stack (SF Pro Display at 20px and up, SF Pro Text below). Tracking tightens as size grows and leading shrinks, so large titles stay compact and small text stays open.</p>
+        </header>
+        <div class="stack">
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-display span-7" style="font-size: clamp(40px, 4.6cqi, 64px)">Business registration.</p><div class="span-5 stack gap-1"><p class="t-subhead">Display · .t-display</p><p class="t-mono t-footnote t-3">40–76 / 1.03 / −0.035em / 700</p><p class="t-footnote t-2">Marketing hero only. One per page.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-hero span-7">Finally simple.</p><div class="span-5 stack gap-1"><p class="t-subhead">Hero · .t-hero</p><p class="t-mono t-footnote t-3">32–52 / 1.06 / −0.03em / 700</p><p class="t-footnote t-2">Marketing section titles, sign-in.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-large span-7">Amani Logistics Limited</p><div class="span-5 stack gap-1"><p class="t-subhead">Large title · .t-large</p><p class="t-mono t-footnote t-3">30 / 36 / −0.026em / 700</p><p class="t-footnote t-2">The one page or wizard step title.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-title1 span-7">Good afternoon, Wanjiku</p><div class="span-5 stack gap-1"><p class="t-subhead">Title 1 · .t-title1</p><p class="t-mono t-footnote t-3">26 / 32 / −0.022em / 650</p><p class="t-footnote t-2">Dashboard greeting, sheet titles.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-title2 span-7">Compliance calendar</p><div class="span-5 stack gap-1"><p class="t-subhead">Title 2 · .t-title2</p><p class="t-mono t-footnote t-3">21 / 27 / −0.018em / 600</p><p class="t-footnote t-2">Section titles inside a page.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-title3 span-7">Annual return due 13 Apr 2027</p><div class="span-5 stack gap-1"><p class="t-subhead">Title 3 · .t-title3</p><p class="t-mono t-footnote t-3">17 / 23 / −0.012em / 600</p><p class="t-footnote t-2">Card titles, dialog titles.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-headline span-7">Brian Otieno · Director</p><div class="span-5 stack gap-1"><p class="t-subhead">Headline · .t-headline</p><p class="t-mono t-footnote t-3">15 / 21 / −0.008em / 600</p><p class="t-footnote t-2">Emphasis in rows, card heads.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-body span-7">We read your CR12 and pre-filled six fields. Check each one before you continue.</p><div class="span-5 stack gap-1"><p class="t-subhead">Body · .t-body</p><p class="t-mono t-footnote t-3">15 / 22 / −0.006em / 400 · 16 on phone</p><p class="t-footnote t-2">Default reading text.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-callout span-7">Your draft saves automatically at every step.</p><div class="span-5 stack gap-1"><p class="t-subhead">Callout · .t-callout</p><p class="t-mono t-footnote t-3">14 / 20 / −0.004em / 400</p><p class="t-footnote t-2">Descriptions under titles, notes.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-subhead span-7">Company secretary</p><div class="span-5 stack gap-1"><p class="t-subhead">Subhead · .t-subhead</p><p class="t-mono t-footnote t-3">13 / 18 / −0.002em / 500</p><p class="t-footnote t-2">Field labels, sidebar, dense tables.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-footnote t-2 span-7">Saved 2 days ago · Step 6 of 14</p><div class="span-5 stack gap-1"><p class="t-subhead">Footnote · .t-footnote</p><p class="t-mono t-footnote t-3">12.5 / 17 / 0 / 400</p><p class="t-footnote t-2">Help text, metadata, timestamps.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-caption t-3 span-7">From CR12 · page 2</p><div class="span-5 stack gap-1"><p class="t-subhead">Caption · .t-caption</p><p class="t-mono t-footnote t-3">11.5 / 15 / +0.006em / 500</p><p class="t-footnote t-2">Chips, chart labels. Never body copy.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-eyebrow span-7">Upcoming deadlines</p><div class="span-5 stack gap-1"><p class="t-subhead">Eyebrow · .t-eyebrow</p><p class="t-mono t-footnote t-3">11 / 14 / +0.07em / 600 / caps</p><p class="t-footnote t-2">Group labels (Zeno sidebar groups).</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-stat span-7">82% <span class="t-callout t-3">KES 1,000,000</span></p><div class="span-5 stack gap-1"><p class="t-subhead">Stat · .t-stat</p><p class="t-mono t-footnote t-3">28 / 32 / −0.025em / 600 / tabular</p><p class="t-footnote t-2">Health, counts, money. Always tabular.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-mono span-7">PVT-2LU7Q9XB · P051234567X</p><div class="span-5 stack gap-1"><p class="t-subhead">Mono · .t-mono</p><p class="t-mono t-footnote t-3">SF Mono / 0.92em / 0</p><p class="t-footnote t-2">Registration numbers, KRA PINs, IDs.</p></div></div>
+          <div class="grid cols-12" style="padding: 16px 0; border-top: var(--hairline-soft); align-items: center"><p class="t-serif t-title3 span-7">Minutes of a meeting of the board of directors of Amani Logistics Limited</p><div class="span-5 stack gap-1"><p class="t-subhead">Serif · .t-serif</p><p class="t-mono t-footnote t-3">New York / 0</p><p class="t-footnote t-2">Previews of generated legal documents only.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Spacing & radii -->
+    <section class="card card-lg rise" style="--d: 4" aria-labelledby="h-space">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">04</p>
+          <h2 id="h-space" class="t-title2">Spacing and radii</h2>
+          <p class="t-callout t-2 t-pretty">A 4pt grid. Page gutter is 32px at regular width and 16px on phones. Corners are concentric: an inner radius is the outer radius minus the padding between them.</p>
+        </header>
+        <div class="grid cols-2" style="gap: 32px">
+          <div class="stack gap-2">
+            <h3 class="t-headline">Spacing scale</h3>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-1</span><span style="height: 12px; width: var(--s-1); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">4 · icon to label</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-2</span><span style="height: 12px; width: var(--s-2); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">8 · chip gaps</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-3</span><span style="height: 12px; width: var(--s-3); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">12 · row content</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-4</span><span style="height: 12px; width: var(--s-4); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">16 · grid gap, phone gutter</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-5</span><span style="height: 12px; width: var(--s-5); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">20 · card padding</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-6</span><span style="height: 12px; width: var(--s-6); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">24 · between sections</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-8</span><span style="height: 12px; width: var(--s-8); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">32 · page gutter</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-10</span><span style="height: 12px; width: var(--s-10); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">40 · wizard rail gap</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-12</span><span style="height: 12px; width: var(--s-12); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">48 · large groups</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-16</span><span style="height: 12px; width: var(--s-16); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">64 · page bottom</span></div>
+            <div class="row gap-3"><span class="t-mono t-footnote t-3" style="width: 48px">s-24</span><span style="height: 12px; width: var(--s-24); border-radius: 3px; background: var(--tint)"></span><span class="t-footnote t-2">96 · marketing sections</span></div>
+          </div>
+          <div class="stack gap-4">
+            <h3 class="t-headline">Radius tokens</h3>
+            <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(92px, 1fr))">
+              <div class="stack gap-1"><div style="height: 56px; border-radius: var(--r-xs); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--sep)"></div><p class="t-subhead">r-xs · 6</p><p class="t-caption t-3">Chips</p></div>
+              <div class="stack gap-1"><div style="height: 56px; border-radius: var(--r-sm); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--sep)"></div><p class="t-subhead">r-sm · 8</p><p class="t-caption t-3">Menu items</p></div>
+              <div class="stack gap-1"><div style="height: 56px; border-radius: var(--r-md); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--sep)"></div><p class="t-subhead">r-md · 10</p><p class="t-caption t-3">Buttons, inputs</p></div>
+              <div class="stack gap-1"><div style="height: 56px; border-radius: var(--r-card); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--sep)"></div><p class="t-subhead">r-card · 12</p><p class="t-caption t-3">Cards</p></div>
+              <div class="stack gap-1"><div style="height: 56px; border-radius: var(--r-lg); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--sep)"></div><p class="t-subhead">r-lg · 16</p><p class="t-caption t-3">Panels</p></div>
+              <div class="stack gap-1"><div style="height: 56px; border-radius: var(--r-xl); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--sep)"></div><p class="t-subhead">r-xl · 22</p><p class="t-caption t-3">Sheets</p></div>
+              <div class="stack gap-1"><div style="height: 56px; border-radius: var(--r-full); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--sep)"></div><p class="t-subhead">r-full</p><p class="t-caption t-3">Pills, toasts</p></div>
+            </div>
+            <h3 class="t-headline" style="padding-top: 8px">Concentric corners</h3>
+            <div class="row gap-6 wrap">
+              <div style="padding: 4px; border-radius: 16px; background: var(--brand-100); box-shadow: inset 0 0 0 1px var(--brand-300)">
+                <div class="stack gap-1" style="width: 168px; padding: 14px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--sep)">
+                  <p class="t-subhead">Inner 12</p>
+                  <p class="t-caption t-3">Card inside a panel</p>
+                </div>
+              </div>
+              <div class="stack gap-1" style="min-width: 0">
+                <p class="t-title3 t-num">16 = 12 + 4</p>
+                <p class="t-footnote t-2">Outer radius = inner radius + padding.</p>
+                <p class="t-footnote t-2">Sheet 22 holds a card 12 with 10 padding.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Elevation & materials -->
+    <section class="card card-lg rise" style="--d: 5" aria-labelledby="h-elev">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">05</p>
+          <h2 id="h-elev" class="t-title2">Elevation and materials</h2>
+          <p class="t-callout t-2 t-pretty">Four shadow layers, soft and short, from the Zeno card shadow up to a sheet. Translucent glass is a material for the navigation layer only.</p>
+        </header>
+        <div class="grid cols-4" style="padding: 16px; border-radius: var(--r-lg); background: var(--bg)">
+          <div class="stack gap-2" style="padding: 18px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card)"><p class="t-headline">shadow-card</p><p class="t-footnote t-3">Cards, lists, stats</p></div>
+          <div class="stack gap-2" style="padding: 18px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-raise)"><p class="t-headline">shadow-raise</p><p class="t-footnote t-3">Hovered card, feature media</p></div>
+          <div class="stack gap-2" style="padding: 18px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-pop)"><p class="t-headline">shadow-pop</p><p class="t-footnote t-3">Popovers, menus, toasts</p></div>
+          <div class="stack gap-2" style="padding: 18px; border-radius: var(--r-xl); background: var(--surface); box-shadow: var(--shadow-sheet)"><p class="t-headline">shadow-sheet</p><p class="t-footnote t-3">Sheets and dialogs</p></div>
+        </div>
+
+        <h3 class="t-headline">Glass over a busy backdrop</h3>
+        <div style="position: relative; height: 340px; overflow: hidden; border-radius: var(--r-lg); background: repeating-linear-gradient(135deg, var(--brand-50) 0 14px, var(--surface) 14px 28px); box-shadow: inset 0 0 0 0.5px var(--sep)">
+          <div class="grid" aria-hidden="true" style="position: absolute; inset: 0; padding: 18px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; align-content: start">
+            <span class="pill pill-good">Active</span><span class="pill pill-warn">Due 13 Apr 2027</span><span class="pill pill-brand">Draft · step 6 of 14</span><span class="pill pill-info">From CR12</span>
+            <span class="btn btn-primary btn-sm">Upload CR12</span><span class="btn btn-secondary btn-sm">Confirm 3 directors</span><span class="pill pill-bad">Overdue</span><span class="pill">PVT-2LU7Q9XB</span>
+            <span class="row gap-2"><span class="avatar avatar-sm">WM</span><span class="avatar avatar-sm avatar-corp">SH</span><span class="avatar avatar-sm avatar-ink">CH</span></span><span class="t-stat">82%</span><span class="pill pill-solid">BOF-1</span><span class="pill pill-good">Verified</span>
+            <span class="btn btn-tinted btn-sm">Ask a lawyer</span><span class="pill pill-warn">Needs review</span><span class="t-title3">Amani Logistics</span><span class="pill pill-brand">CR12</span>
+            <span class="pill pill-info">KRA PIN</span><span class="btn btn-gray btn-sm">Save &amp; exit</span><span class="pill pill-good">Filed</span><span class="pill">Nairobi County</span>
+            <span class="t-stat t-brand">60%</span><span class="pill pill-bad">Conflict</span><span class="btn btn-primary btn-sm">Continue</span><span class="pill pill-brand">KES 25,000</span>
+          </div>
+          <div class="glass row gap-3" style="position: absolute; top: 14px; left: 14px; right: 14px; height: 52px; padding: 0 16px; border-radius: 26px">
+            <span class="ic ic-layout-sidebar" aria-hidden="true"></span><span class="t-headline truncate grow">Top bar · .glass</span><span class="t-footnote t-2 hide-compact">72% white · blur 24 · saturate 180%</span>
+          </div>
+          <div class="glass-chrome stack gap-1" style="position: absolute; top: 80px; left: 14px; bottom: 76px; width: 180px; padding: 12px; border-radius: 16px; box-shadow: 0 0 0 0.5px var(--sep-soft)">
+            <p class="t-eyebrow" style="padding: 0 6px 4px">.glass-chrome</p>
+            <span class="sb-item is-on"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</span>
+            <span class="sb-item"><span class="ic ic-building" aria-hidden="true"></span>Entities</span>
+            <span class="sb-item"><span class="ic ic-folder" aria-hidden="true"></span>Documents</span>
+          </div>
+          <div class="row gap-3" style="position: absolute; left: 14px; right: 14px; bottom: 14px; height: 50px; padding: 0 16px; border-radius: 25px; background: var(--surface); box-shadow: var(--shadow-pop)">
+            <span class="ic ic-eye-off" aria-hidden="true"></span><span class="t-headline truncate grow">Reduced transparency · solid surface</span>
+          </div>
+        </div>
+        <div class="grid cols-4">
+          <div class="note"><span class="ic ic-layout-sidebar" aria-hidden="true"></span><span><strong>Navigation layer only.</strong> Sidebar, top bar, tab bar, wizard action bar, sheets. Never cards or content.</span></div>
+          <div class="note"><span class="ic ic-stack-2" aria-hidden="true"></span><span><strong>Four layers at most.</strong> Content, chrome, sheet, popover. Glass never stacks on glass.</span></div>
+          <div class="note"><span class="ic ic-adjustments-horizontal" aria-hidden="true"></span><span><strong>Blur 24px or less.</strong> Chrome uses 20px; enough to read through, cheap to paint.</span></div>
+          <div class="note"><span class="ic ic-eye-off" aria-hidden="true"></span><span><strong>Fallback is solid.</strong> Reduced transparency and increased contrast swap glass for the surface colour.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Iconography -->
+    <section class="card card-lg rise" style="--d: 6" aria-labelledby="h-icons">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">06</p>
+          <h2 id="h-icons" class="t-title2">Iconography</h2>
+          <p class="t-callout t-2 t-pretty">Tabler outline at 1.75 stroke reads like SF Symbols regular. Icons are masks, so they take the text colour. 18px default, 15 small, 22 large, 28 extra large. Decorative icons are hidden from screen readers.</p>
+        </header>
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px">
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-home ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">home</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-layout-dashboard ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">layout-dashboard</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-building ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">building</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-building-bank ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">building-bank</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-building-community ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">building-community</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-users ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">users</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-user ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">user</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-user-plus ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">user-plus</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-file ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">file</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-file-text ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">file-text</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-files ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">files</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-folder ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">folder</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-upload ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">upload</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-download ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">download</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-cloud-upload ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">cloud-upload</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-calendar ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">calendar</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-calendar-due ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">calendar-due</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-clock ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">clock</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-check ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">check</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-circle-check ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">circle-check</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-alert-triangle ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">alert-triangle</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-info-circle ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">info-circle</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-search ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">search</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-bell ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">bell</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-settings ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">settings</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-shield-check ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">shield-check</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-shield-lock ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">shield-lock</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-scale ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">scale</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-briefcase ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">briefcase</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-sparkles ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">sparkles</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-scan ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">scan</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-eye ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">eye</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-pencil ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">pencil</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-trash ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">trash</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-mail ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">mail</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-phone ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">phone</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-map-pin ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">map-pin</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-id ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">id</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-key ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">key</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-lock ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">lock</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-link ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">link</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-hierarchy-2 ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">hierarchy-2</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-chart-pie ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">chart-pie</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-gavel ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">gavel</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-certificate ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">certificate</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-signature ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">signature</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-file-certificate ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">file-certificate</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-lifebuoy ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">lifebuoy</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-cash ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">cash</span></div>
+          <div class="stack gap-2" style="align-items: center; padding: 14px 6px 10px; border-radius: var(--r-md); background: var(--surface-2)"><span class="ic ic-history ic-lg" aria-hidden="true"></span><span class="t-caption t-3 truncate" style="max-width: 100%">history</span></div>
+        </div>
+        <div class="row gap-6 wrap">
+          <span class="row gap-2"><span class="ic ic-shield-check ic-sm" aria-hidden="true"></span><span class="t-footnote t-3">.ic-sm 15</span></span>
+          <span class="row gap-2"><span class="ic ic-shield-check" aria-hidden="true"></span><span class="t-footnote t-3">.ic 18</span></span>
+          <span class="row gap-2"><span class="ic ic-shield-check ic-lg" aria-hidden="true"></span><span class="t-footnote t-3">.ic-lg 22</span></span>
+          <span class="row gap-2"><span class="ic ic-shield-check ic-xl" aria-hidden="true"></span><span class="t-footnote t-3">.ic-xl 28</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Field provenance -->
+    <section class="card card-lg rise" style="--d: 7" aria-labelledby="h-prov">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">07</p>
+          <h2 id="h-prov" class="t-title2">Field provenance language</h2>
+          <p class="t-callout t-2 t-pretty">The core LexReg idea. Every value carries its evidence: where it came from and how sure we are. OCR results under 60% confidence are never pre-filled.</p>
+        </header>
+        <div class="stack">
+          <div class="grid cols-12" style="padding: 18px 0; border-top: var(--hairline-soft); align-items: start">
+            <div class="span-3 stack gap-2"><span class="src src-verified" style="align-self: flex-start"><span class="ic ic-shield-check" aria-hidden="true"></span>Verified · CR12 + CR1</span><p class="t-subhead">Verified</p></div>
+            <div class="span-5 field"><label class="label" for="pv-name">Company name</label><input class="input" id="pv-name" value="Amani Logistics Limited"><p class="help">Same value on CR12 and CR1</p></div>
+            <p class="span-4 t-callout t-2 t-pretty">Two or more documents agree. Shown green; no action needed.</p>
+          </div>
+          <div class="grid cols-12" style="padding: 18px 0; border-top: var(--hairline-soft); align-items: start">
+            <div class="span-3 stack gap-2"><span class="src src-extracted" style="align-self: flex-start"><span class="ic ic-scan" aria-hidden="true"></span>From CR12</span><p class="t-subhead">Extracted</p></div>
+            <div class="span-5 field is-extracted"><label class="label" for="pv-reg">Registration number</label><input class="input t-mono" id="pv-reg" value="PVT-2LU7Q9XB"><p class="help">Read from CR12, page 1 · 94% confidence</p></div>
+            <p class="span-4 t-callout t-2 t-pretty">Read from one document at 60% confidence or more. The owner glances and continues.</p>
+          </div>
+          <div class="grid cols-12" style="padding: 18px 0; border-top: var(--hairline-soft); align-items: start">
+            <div class="span-3 stack gap-2"><span class="src src-conflict" style="align-self: flex-start"><span class="ic ic-alert-triangle" aria-hidden="true"></span>2 documents disagree</span><p class="t-subhead">Conflict</p></div>
+            <div class="span-5 field is-conflict">
+              <label class="label" for="pv-pin">Brian Otieno · KRA PIN</label>
+              <input class="input t-mono" id="pv-pin" value="A019876543K">
+              <div class="candidate"><span class="ic ic-file-text" aria-hidden="true"></span><span class="grow t-subhead">CR12</span><span class="t-mono t-callout">A019876543K</span></div>
+              <div class="candidate"><span class="ic ic-file-certificate" aria-hidden="true"></span><span class="grow t-subhead">KRA certificate</span><span class="t-mono t-callout">A019876534K</span></div>
+            </div>
+            <p class="span-4 t-callout t-2 t-pretty">Documents disagree. Both values are shown with their source; the owner picks one. LexReg never chooses silently.</p>
+          </div>
+          <div class="grid cols-12" style="padding: 18px 0; border-top: var(--hairline-soft); align-items: start">
+            <div class="span-3 stack gap-2"><span class="src src-confirmed" style="align-self: flex-start"><span class="ic ic-user-check" aria-hidden="true"></span>Confirmed by you</span><p class="t-subhead">Confirmed</p></div>
+            <div class="span-5 field"><label class="label" for="pv-office">Registered office</label><input class="input" id="pv-office" value="Mombasa Road, Industrial Area, Nairobi"><p class="help">Confirmed by Wanjiku Mwangi · 16 Oct 2026</p></div>
+            <p class="span-4 t-callout t-2 t-pretty">Entered or confirmed by a person. Logged with who and when in the audit trail.</p>
+          </div>
+          <div class="grid cols-12" style="padding: 18px 0; border-top: var(--hairline-soft); align-items: start">
+            <div class="span-3 stack gap-2"><span class="src src-missing" style="align-self: flex-start"><span class="ic ic-circle-dashed" aria-hidden="true"></span>Not found</span><p class="t-subhead">Missing</p></div>
+            <div class="span-5 field is-missing"><label class="label" for="pv-cps">Halima Abdi · practising number</label><input class="input" id="pv-cps" placeholder="Enter manually or upload a certificate"><p class="help">Not found on CR12 or CR1</p></div>
+            <p class="span-4 t-callout t-2 t-pretty">No document had it, or confidence was under 60%. Enter it by hand or upload the document that holds it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="row between wrap gap-3" style="padding-top: 8px">
+      <p class="t-footnote t-3">LexReg Africa · design system v2 · tokens in base.css</p>
+      <a class="btn btn-primary" href="Components.dc.html">Components<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":7300}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+  theme: this.props.dark ? 'lx-dark' : ''
+};
+}
+}
+</script>
+</body>
+</html>

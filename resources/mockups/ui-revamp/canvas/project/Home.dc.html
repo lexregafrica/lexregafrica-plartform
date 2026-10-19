@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lx a.btn-primary{color:var(--brand-ink)}
+.lx-dark a.btn-primary{color:var(--bg)}
+.lx a.btn-gray,.lx a.btn-secondary{color:var(--label)}
+.lx a.nav-link{color:var(--label-2)}
+.lx a.nav-link:hover{color:var(--label)}
+.mk-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;padding:88px 0 56px}
+.mk-shot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px;padding:32px;background:var(--surface-2);text-align:left}
+.mk-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.mk-kv{display:flex;align-items:center;gap:10px;min-height:40px;border-top:var(--hairline-soft)}
+.mk-logos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+.mk-logo{white-space:nowrap;height:44px;border-radius:var(--r-md);background:var(--fill-4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;letter-spacing:0.07em;color:var(--label-3)}
+.mk-step{display:flex;gap:10px;align-items:flex-start}
+.mk-step .n{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;background:var(--fill-3);color:var(--label-2);font-variant-numeric:tabular-nums}
+.mk-tick{display:flex;gap:10px;align-items:flex-start}
+.mk-tick .ic{color:var(--good);margin-top:2px}
+.mk-quote{display:flex;flex-direction:column;justify-content:space-between;gap:28px;min-height:240px}
+.lx .faq-q{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:64px;padding:18px 22px;text-align:left}
+.faq-q .ic{color:var(--label-3);transition:transform var(--dur-spring) var(--ease-spring)}
+.faq-item.is-open .faq-q .ic{transform:rotate(45deg);color:var(--tint-text)}
+.faq-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur-spring) var(--ease-spring)}
+.faq-item.is-open .faq-a{grid-template-rows:1fr}
+.faq-a > div{overflow:hidden;min-height:0;opacity:0;transform:translateY(-4px);transition:opacity var(--dur-snappy) var(--ease-out),transform var(--dur-spring) var(--ease-spring),visibility 0s linear var(--dur-spring);visibility:hidden}
+.faq-item.is-open .faq-a > div{opacity:1;transform:none;visibility:visible;transition:opacity var(--dur-spring) var(--ease-out),transform var(--dur-spring) var(--ease-spring),visibility 0s}
+.faq-body{padding:0 22px 22px;max-width:640px}
+.faq-item + .faq-item{border-top:var(--hairline-soft)}
+.mk-cta{background:var(--brand);color:var(--brand-ink);border-radius:28px;padding:96px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px}
+.lx a.btn-onbrand{background:var(--brand-ink);color:var(--brand);box-shadow:0 1px 2px rgba(0,0,0,0.15)}
+.lx a.btn-onbrand:hover{background:color-mix(in srgb, var(--brand-ink) 90%, var(--brand))}
+.mk-foot{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:32px;padding:56px 0 32px}
+.mk-foot a{color:var(--label-2)}
+.mk-foot a:hover{color:var(--label)}
+@container lx (max-width: 720px){
+  .mk-hero{padding:48px 0 32px;gap:18px}
+  .mk-shot{grid-template-columns:minmax(0,1fr);padding:12px;gap:12px}
+  .mk-cta{padding:56px 20px;border-radius:22px}
+  .mk-foot{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 16px}
+  .mk-foot > :first-child{grid-column:1 / -1}
+  .lx .faq-q{padding:16px}
+  .faq-body{padding:0 16px 18px}
+  .mk-quote{min-height:0}
+  .mk-logos{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+}
+@container lx (max-width: 720px){.lx .container{padding-inline:16px}}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 5850px">
+
+  <header class="container" style="padding-top: 16px"><nav class="nav-float glass" aria-label="Primary">
+    <a class="row gap-2" href="Home.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 30px; height: 30px"><span class="t-headline">LexReg</span></a>
+    <span style="width: 16px" class="hide-compact"></span>
+    <a class="nav-link hide-compact" href="#how">How it works</a>
+    <a class="nav-link hide-compact" href="#services">Services</a>
+    <a class="nav-link hide-compact" href="#pricing">Pricing</a>
+    <a class="nav-link hide-compact" href="Insight.dc.html">Insights</a>
+    <a class="nav-link hide-compact" href="#faq">FAQ</a>
+    <span class="grow"></span>
+    <a class="nav-link" href="SignIn.dc.html">Sign in</a>
+    <a class="btn btn-primary btn-pill btn-sm" href="SignUp.dc.html">Get started</a>
+  </nav></header>
+
+  <main>
+    <!-- Hero -->
+    <section class="container" aria-labelledby="hero-title">
+      <div class="mk-hero">
+        <span class="pill pill-brand rise"><span class="ic ic-scale" aria-hidden="true"></span>Built for Kenyan businesses</span>
+        <h1 id="hero-title" class="t-display t-balance rise" style="--d: 1; max-width: 1100px">Governance and compliance.<br><span class="t-brand">Finally simple.</span></h1>
+        <p class="t-title3 t-2 t-pretty rise" style="--d: 2; max-width: 600px; font-weight: 400; font-size: 19px; line-height: 28px">Form your company, keep every register current and never miss a filing. One calm place for the businesses you run.</p>
+        <div class="row wrap gap-3 rise" style="--d: 3; justify-content: center">
+          <a class="btn btn-primary btn-lg btn-pill" href="SignUp.dc.html">Get started</a>
+          <a class="btn btn-gray btn-lg btn-pill" href="#how">See how it works</a>
+        </div>
+        <p class="t-footnote t-3 rise" style="--d: 4">Free to start. Pay only for the services you use.</p>
+      </div>
+
+      <figure class="feature-media rise" style="--d: 5">
+        <div class="mk-shot">
+          <div class="mk-col">
+            <div class="card card-pad">
+              <div class="row gap-4">
+                <div style="position: relative; width: 96px; height: 96px; flex: none">
+                  <svg class="ring" width="96" height="96" viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="52" stroke-width="12"></circle><circle class="bar" cx="60" cy="60" r="52" stroke-width="12" stroke-dasharray="326.7" stroke-dashoffset="58.8" style="--len: 326.7; stroke: var(--sys-green)"></circle></svg>
+                  <span class="stack" style="position: absolute; inset: 0; align-items: center; justify-content: center"><span class="t-stat" style="font-size: 24px">82%</span></span>
+                </div>
+                <div class="stack gap-1 grow">
+                  <p class="t-eyebrow">Compliance health</p>
+                  <p class="t-headline">Amani Logistics Limited</p>
+                  <p class="t-footnote t-3">Private limited company · <span class="t-num">PVT-2LU7Q9XB</span></p>
+                  <div class="row gap-2" style="margin-top: 4px"><span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Active</span></div>
+                </div>
+              </div>
+              <div class="stack" style="margin-top: 16px">
+                <div class="mk-kv"><span class="ic ic-circle-check t-good" aria-hidden="true"></span><span class="t-callout grow">Registers up to date</span><span class="t-footnote t-3 t-num">5 of 5</span></div>
+                <div class="mk-kv"><span class="ic ic-alert-triangle t-warn" aria-hidden="true"></span><span class="t-callout grow">Upload signed BOF-1</span><span class="pill pill-warn">To do</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3>Coming up</h3><span class="t-footnote t-3">Next 6 months</span></div>
+              <div class="stack" style="padding: 0 20px 16px; gap: 12px">
+                <div class="row gap-3">
+                  <div class="date-tile"><span class="m">Mar</span><span class="d">31</span></div>
+                  <div class="grow stack" style="min-width: 0"><p class="t-headline">Business permit renewal</p><p class="t-footnote t-3">Nairobi County · due 31 Mar 2027</p></div>
+                  <span class="t-footnote t-3 t-num hide-compact">166 days</span>
+                </div>
+                <div class="row gap-3">
+                  <div class="date-tile"><span class="m">Apr</span><span class="d">13</span></div>
+                  <div class="grow stack" style="min-width: 0"><p class="t-headline">Annual return</p><p class="t-footnote t-3">Due 13 Apr 2027 · filed on eCitizen</p></div>
+                  <span class="t-footnote t-3 t-num hide-compact">179 days</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="row gap-3" style="min-width: 0">
+                <span class="icon-tile info"><span class="ic ic-scan" aria-hidden="true"></span></span>
+                <div class="stack" style="min-width: 0"><h3 class="truncate">CR12_Amani_Logistics.pdf</h3><p class="t-footnote t-3">Read in 6 seconds · 2 pages</p></div>
+              </div>
+              <span class="pill pill-good hide-compact"><span class="ic ic-check" aria-hidden="true"></span>Done</span>
+            </div>
+            <div class="stack gap-3" style="padding: 4px 20px 20px">
+              <div class="field is-extracted">
+                <div class="row between gap-2"><span class="label">Director</span><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>Read from CR12</span></div>
+                <div class="input row" style="align-items: center">Wanjiku Mwangi</div>
+              </div>
+              <div class="field is-extracted">
+                <div class="row between gap-2"><span class="label">Director</span><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>Read from CR12</span></div>
+                <div class="input row" style="align-items: center">Brian Otieno</div>
+              </div>
+              <div class="field is-extracted">
+                <div class="row between gap-2"><span class="label">Shareholding</span><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>Read from CR12</span></div>
+                <div class="input row t-num" style="align-items: center; gap: 6px; overflow: hidden; white-space: nowrap">600 · 300 · 100 <span class="t-3">of 1,000 shares</span></div>
+              </div>
+              <div class="field">
+                <div class="row between gap-2"><span class="label">Company KRA PIN</span><span class="src src-verified"><span class="ic ic-shield-check" aria-hidden="true"></span>Verified · 2 documents</span></div>
+                <div class="input row t-num" style="align-items: center">P051234567X</div>
+              </div>
+              <div class="note note-warn">
+                <span class="ic ic-alert-triangle" aria-hidden="true"></span>
+                <span><strong>Check Brian Otieno's KRA PIN.</strong> CR12 reads A019876543K; the KRA certificate reads A019876534K.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </section>
+
+    <!-- Trust -->
+    <section class="section" aria-labelledby="trust-title" style="padding-bottom: 48px"><div class="container">
+      <h2 id="trust-title" class="t-eyebrow" style="text-align: center">Built on Kenyan law. Hosted with care.</h2>
+      <div class="mk-logos" style="margin-top: 24px" aria-label="Partners">
+        <div class="mk-logo">[PARTNER LOGO]</div>
+        <div class="mk-logo">[PARTNER LOGO]</div>
+        <div class="mk-logo">[PARTNER LOGO]</div>
+        <div class="mk-logo">[PARTNER LOGO]</div>
+        <div class="mk-logo hide-compact">[PARTNER LOGO]</div>
+      </div>
+      <div class="grid cols-4" style="margin-top: 48px; gap: 32px 24px">
+        <div class="stack gap-2">
+          <span class="icon-tile"><span class="ic ic-book" aria-hidden="true"></span></span>
+          <p class="t-headline">Companies Act 2015</p>
+          <p class="t-callout t-2 t-pretty">Registers, forms and filing dates follow the Act.</p>
+        </div>
+        <div class="stack gap-2">
+          <span class="icon-tile"><span class="ic ic-shield-lock" aria-hidden="true"></span></span>
+          <p class="t-headline">Data Protection Act 2019</p>
+          <p class="t-callout t-2 t-pretty">Your rights to access, correct and erase are built in.</p>
+        </div>
+        <div class="stack gap-2">
+          <span class="icon-tile"><span class="ic ic-world" aria-hidden="true"></span></span>
+          <p class="t-headline">Hosted in EU-Frankfurt</p>
+          <p class="t-callout t-2 t-pretty">Row-level security on every record. Every action logged.</p>
+        </div>
+        <div class="stack gap-2">
+          <span class="icon-tile"><span class="ic ic-gavel" aria-hidden="true"></span></span>
+          <p class="t-headline">Lawyer-reviewed</p>
+          <p class="t-callout t-2 t-pretty">Audits and key documents are signed off by an advocate.</p>
+        </div>
+      </div>
+    </div></section>
+
+    <!-- How it works -->
+    <section id="how" class="section" aria-labelledby="how-title"><div class="container">
+      <div class="section-head">
+        <p class="t-eyebrow">How it works</p>
+        <h2 id="how-title" class="t-hero t-balance">Three ways in.<br>One place to run it.</h2>
+        <p class="t-body t-2 t-pretty" style="font-size: 17px; line-height: 26px">Start where your business is today. Every step saves as a draft, so you can stop and pick up days later.</p>
+      </div>
+      <div class="grid cols-3" style="margin-top: 40px; gap: 20px">
+        <article class="card card-lg card-pad stack gap-5 rise" style="padding: 28px">
+          <span class="icon-tile icon-tile-lg"><span class="ic ic-file-upload" aria-hidden="true"></span></span>
+          <div class="stack gap-2">
+            <p class="t-eyebrow">Existing business</p>
+            <h3 class="t-title2">Upload. Confirm. Done.</h3>
+            <p class="t-callout t-2 t-pretty">Add your CR12, certificate and KRA PIN. We read them and you confirm what we found.</p>
+          </div>
+          <ol class="stack gap-3">
+            <li class="mk-step"><span class="n">1</span><span class="t-callout">Upload your company documents</span></li>
+            <li class="mk-step"><span class="n">2</span><span class="t-callout">Anything below 60% confidence is flagged for you to check</span></li>
+            <li class="mk-step"><span class="n">3</span><span class="t-callout">Your dashboard and calendar go live</span></li>
+          </ol>
+          <a class="btn btn-tinted" href="SignUp.dc.html" style="align-self: flex-start; margin-top: auto">Bring your company<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+        </article>
+        <article class="card card-lg card-pad stack gap-5 rise" style="--d: 1; padding: 28px">
+          <span class="icon-tile icon-tile-lg"><span class="ic ic-building" aria-hidden="true"></span></span>
+          <div class="stack gap-2">
+            <p class="t-eyebrow">Register something new</p>
+            <h3 class="t-title2">Answer once. File with confidence.</h3>
+            <p class="t-callout t-2 t-pretty">A guided questionnaire collects every name, director, shareholder and document up front.</p>
+          </div>
+          <ol class="stack gap-3">
+            <li class="mk-step"><span class="n">1</span><span class="t-callout">Questionnaire, saved as you go</span></li>
+            <li class="mk-step"><span class="n">2</span><span class="t-callout">We prepare your forms and resolutions</span></li>
+            <li class="mk-step"><span class="n">3</span><span class="t-callout">You file on eCitizen and upload the certificate</span></li>
+          </ol>
+          <a class="btn btn-tinted" href="SignUp.dc.html" style="align-self: flex-start; margin-top: auto">Start a registration<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+        </article>
+        <article class="card card-lg card-pad stack gap-5 rise" style="--d: 2; padding: 28px">
+          <span class="icon-tile icon-tile-lg"><span class="ic ic-target" aria-hidden="true"></span></span>
+          <div class="stack gap-2">
+            <p class="t-eyebrow">Running informally</p>
+            <h3 class="t-title2">Know where you stand.</h3>
+            <p class="t-callout t-2 t-pretty">Fifteen questions. A readiness score and a clear list of what to fix first. Free.</p>
+          </div>
+          <ol class="stack gap-3">
+            <li class="mk-step"><span class="n">1</span><span class="t-callout">15-question readiness assessment</span></li>
+            <li class="mk-step"><span class="n">2</span><span class="t-callout">Maturity score from 0 to 100</span></li>
+            <li class="mk-step"><span class="n">3</span><span class="t-callout">Gap analysis and your path to formal</span></li>
+          </ol>
+          <a class="btn btn-tinted" href="Readiness.dc.html" style="align-self: flex-start; margin-top: auto">Take the assessment<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+        </article>
+      </div>
+    </div></section>
+
+    <!-- Services -->
+    <section id="services" class="section" aria-labelledby="services-title" style="background: var(--surface)">
+      <div class="container">
+        <div class="section-head">
+          <p class="t-eyebrow">Services</p>
+          <h2 id="services-title" class="t-hero t-balance">Everything a company needs. Nothing it doesn't.</h2>
+        </div>
+        <div class="grid cols-3" style="margin-top: 40px; gap: 20px">
+          <article class="well stack gap-5" style="padding: 28px; border-radius: var(--r-lg)">
+            <span class="icon-tile icon-tile-lg"><span class="ic ic-file-certificate" aria-hidden="true"></span></span>
+            <div class="stack gap-2">
+              <h3 class="t-title2">Entity formation &amp; registration</h3>
+              <p class="t-callout t-2 t-pretty">Companies, partnerships and business names. Every form drafted and ready to sign.</p>
+            </div>
+            <ul class="stack gap-3">
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">CR1, CR2 and CR8 prepared for you</span></li>
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Beneficial ownership form BOF-1</span></li>
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Certificate kept in your vault</span></li>
+            </ul>
+          </article>
+          <article class="well stack gap-5" style="padding: 28px; border-radius: var(--r-lg)">
+            <span class="icon-tile icon-tile-lg"><span class="ic ic-writing" aria-hidden="true"></span></span>
+            <div class="stack gap-2">
+              <h3 class="t-title2">Corporate services</h3>
+              <p class="t-callout t-2 t-pretty">Minutes, notices and resolutions, generated from your own registers.</p>
+            </div>
+            <ul class="stack gap-3">
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Board and AGM notices</span></li>
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Minutes and written resolutions</span></li>
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Compliance calendar and reminders</span></li>
+            </ul>
+          </article>
+          <article class="well stack gap-5" style="padding: 28px; border-radius: var(--r-lg)">
+            <span class="icon-tile icon-tile-lg"><span class="ic ic-gavel" aria-hidden="true"></span></span>
+            <div class="stack gap-2">
+              <h3 class="t-title2">Legal audit</h3>
+              <p class="t-callout t-2 t-pretty">A lawyer-led health check that finds the gaps you didn't know you had.</p>
+            </div>
+            <ul class="stack gap-3">
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Statutory, KRA, employment, DPA 2019, IP and contracts</span></li>
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Reviewed and signed off by an advocate</span></li>
+              <li class="mk-tick"><span class="ic ic-check ic-sm" aria-hidden="true"></span><span class="t-callout">Written report in 5 working days</span></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="section" aria-labelledby="pricing-title"><div class="container">
+      <div class="section-head">
+        <p class="t-eyebrow">Pricing</p>
+        <h2 id="pricing-title" class="t-hero t-balance">Clear prices. Paid per service.</h2>
+        <p class="t-body t-2 t-pretty" style="font-size: 17px; line-height: 26px">Onboarding an existing business and the readiness assessment are free. Prices in KES.</p>
+      </div>
+      <div class="grid cols-3" style="margin-top: 40px; gap: 20px">
+        <article class="card card-lg stack gap-5" style="padding: 28px">
+          <div class="stack gap-1"><h3 class="t-title3">Entity formation</h3><p class="t-footnote t-3">Per entity registered</p></div>
+          <p class="price">[PRICE]</p>
+          <p class="t-callout t-2 t-pretty">Questionnaire, documents and every BRS form prepared for you to file.</p>
+          <a class="btn btn-gray btn-block" href="SignUp.dc.html" style="margin-top: auto">Register an entity</a>
+        </article>
+        <article class="card card-lg stack gap-5" style="padding: 28px">
+          <div class="stack gap-1"><h3 class="t-title3">Corporate services</h3><p class="t-footnote t-3">Subscription, billed monthly or yearly</p></div>
+          <p class="price">[PRICE]</p>
+          <p class="t-callout t-2 t-pretty">Notices, minutes, resolutions and your compliance calendar.</p>
+          <a class="btn btn-gray btn-block" href="SignUp.dc.html" style="margin-top: auto">Choose corporate services</a>
+        </article>
+        <article class="card card-lg stack gap-5" style="padding: 28px; box-shadow: var(--shadow-raise), 0 0 0 1.5px var(--tint)">
+          <div class="row between gap-2"><div class="stack gap-1"><h3 class="t-title3">Legal audit</h3><p class="t-footnote t-3">One-off, per entity</p></div><span class="pill pill-brand">Fixed price</span></div>
+          <p class="price">KES 25,000</p>
+          <p class="t-callout t-2 t-pretty">A full health check with a signed, written report in 5 working days.</p>
+          <a class="btn btn-tinted btn-block" href="SignUp.dc.html" style="margin-top: auto">Book a legal audit</a>
+        </article>
+      </div>
+      <div class="note note-info" style="margin-top: 20px">
+        <span class="ic ic-info-circle" aria-hidden="true"></span>
+        <span><strong>Government fees are separate.</strong> BRS charges for name reservation and registration are paid by you on eCitizen. Prices exclude applicable taxes.</span>
+      </div>
+    </div></section>
+
+    <!-- Testimonials -->
+    <section class="section" aria-labelledby="quotes-title" style="background: var(--surface)">
+      <div class="container">
+        <div class="section-head">
+          <p class="t-eyebrow">Customers</p>
+          <h2 id="quotes-title" class="t-hero t-balance">In their words.</h2>
+        </div>
+        <div class="grid cols-3" style="margin-top: 40px; gap: 20px">
+          <figure class="well mk-quote" style="padding: 28px; border-radius: var(--r-lg)">
+            <blockquote class="t-title3 t-2" style="margin: 0; font-weight: 500">“[CLIENT QUOTE]”</blockquote>
+            <figcaption class="row gap-3"><span class="avatar" aria-hidden="true"><span class="ic ic-user" aria-hidden="true"></span></span><span class="stack"><span class="t-headline">[NAME]</span><span class="t-footnote t-3">[COMPANY]</span></span></figcaption>
+          </figure>
+          <figure class="well mk-quote" style="padding: 28px; border-radius: var(--r-lg)">
+            <blockquote class="t-title3 t-2" style="margin: 0; font-weight: 500">“[CLIENT QUOTE]”</blockquote>
+            <figcaption class="row gap-3"><span class="avatar" aria-hidden="true"><span class="ic ic-user" aria-hidden="true"></span></span><span class="stack"><span class="t-headline">[NAME]</span><span class="t-footnote t-3">[COMPANY]</span></span></figcaption>
+          </figure>
+          <figure class="well mk-quote" style="padding: 28px; border-radius: var(--r-lg)">
+            <blockquote class="t-title3 t-2" style="margin: 0; font-weight: 500">“[CLIENT QUOTE]”</blockquote>
+            <figcaption class="row gap-3"><span class="avatar" aria-hidden="true"><span class="ic ic-user" aria-hidden="true"></span></span><span class="stack"><span class="t-headline">[NAME]</span><span class="t-footnote t-3">[COMPANY]</span></span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section" aria-labelledby="faq-title"><div class="container">
+      <div class="grid cols-12" style="gap: 32px">
+        <div class="span-4 section-head" style="align-self: start">
+          <p class="t-eyebrow">FAQ</p>
+          <h2 id="faq-title" class="t-hero t-balance">Straight answers.</h2>
+          <p class="t-body t-2 t-pretty">Something else? Write to <span class="t-strong" style="color: var(--label)">hello@lexreg.africa</span>.</p>
+        </div>
+        <div class="span-8 card card-lg" style="overflow: hidden">
+          <sc-for list="{{faqs}}" as="f" hint-placeholder-count="6">
+            <div class="faq-item {{f.cls}}">
+              <h3 style="margin: 0">
+                <button class="faq-q" id="faq-q-{{f.id}}" type="button" aria-expanded="{{f.expanded}}" aria-controls="faq-a-{{f.id}}" onClick="{{f.toggle}}">
+                  <span class="t-title3">{{f.q}}</span>
+                  <span class="ic ic-plus ic-lg" aria-hidden="true"></span>
+                </button>
+              </h3>
+              <div class="faq-a" id="faq-a-{{f.id}}" role="region" aria-labelledby="faq-q-{{f.id}}">
+                <div><p class="faq-body t-body t-2 t-pretty">{{f.a}}</p></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div></section>
+
+    <!-- CTA -->
+    <section class="container" aria-labelledby="cta-title" style="padding-bottom: 32px">
+      <div class="mk-cta">
+        <img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 44px; height: 44px; filter: invert(1)">
+        <h2 id="cta-title" class="t-hero t-balance">Make it official.</h2>
+        <p class="t-pretty" style="font-size: 19px; line-height: 28px; opacity: 0.86; max-width: 520px">Start free. Bring your existing company, register a new one, or find out how ready you are.</p>
+        <a class="btn btn-lg btn-pill btn-onbrand" href="SignUp.dc.html" style="margin-top: 8px">Get started<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="container" aria-label="Footer">
+    <div class="mk-foot">
+      <div class="stack gap-3">
+        <a class="row gap-2" href="Home.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 28px; height: 28px"><span class="sb-word">LexReg<small>Africa</small></span></a>
+        <p class="t-callout t-2 t-pretty" style="max-width: 320px">Governance, compliance and organisational readiness for Kenyan businesses.</p>
+      </div>
+      <nav class="stack gap-3" aria-label="Product">
+        <p class="t-eyebrow">Product</p>
+        <a class="t-callout" href="#how">How it works</a>
+        <a class="t-callout" href="#services">Services</a>
+        <a class="t-callout" href="#pricing">Pricing</a>
+        <a class="t-callout" href="#faq">FAQ</a>
+      </nav>
+      <nav class="stack gap-3" aria-label="Resources">
+        <p class="t-eyebrow">Resources</p>
+        <a class="t-callout" href="Insight.dc.html">Insights</a>
+        <a class="t-callout" href="Readiness.dc.html">Readiness assessment</a>
+        <a class="t-callout" href="Legal.dc.html">Terms and Conditions</a>
+        <a class="t-callout" href="Legal.dc.html">Privacy Policy</a>
+      </nav>
+      <div class="stack gap-3">
+        <p class="t-eyebrow">Contact</p>
+        <p class="t-callout t-2 row gap-2"><span class="ic ic-mail ic-sm" aria-hidden="true"></span>hello@lexreg.africa</p>
+        <p class="t-callout t-2 row gap-2"><span class="ic ic-map-pin ic-sm" aria-hidden="true"></span>Nairobi, Kenya</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="row wrap between gap-3" style="padding: 20px 0 40px">
+      <p class="t-footnote t-3">© 2026 LexReg Africa. All rights reserved.</p>
+      <p class="t-footnote t-3 t-pretty" style="max-width: 560px">LexReg prepares documents and tracks compliance. It does not give legal advice; that comes only from an advocate engaged through a Legal audit.</p>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":5850}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const open = s.open ?? 0;
+const rows = [
+  { q: 'Does LexReg file with BRS for me?', a: 'No, and we will never pretend to. BRS has no public API. We prepare every form and resolution, you file them on eCitizen, then upload the certificate. We track it from there.' },
+  { q: 'What happens if I stop halfway?', a: 'Nothing is lost. Every step saves as a draft to your entity, so you can close the browser and come back days later.' },
+  { q: 'Can a lawyer see my other businesses?', a: 'No. A lawyer sees only the one entity and the one service request they were invited to. Every view they make is written to the audit log.' },
+  { q: 'How accurate is the document reading?', a: 'Documents are read by OCR (Google Document AI, with Gemini as a fallback). Any field below 60% confidence is flagged for you to check, so a guess is never saved as fact.' },
+  { q: 'What does the Legal audit cover?', a: 'Statutory records, KRA tax, employment, data protection under the DPA 2019, intellectual property and contracts. It costs KES 25,000, with a written, lawyer-signed report in 5 working days.' },
+  { q: 'Where is my data stored?', a: 'In the EU-Frankfurt region, with row-level security on every record and an audit log of every action. Deleted records stay recoverable for 30 days before they are removed.' }
+];
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  faqs: rows.map((r, i) => ({
+    ...r,
+    id: String(i),
+    cls: open === i ? 'is-open' : '',
+    expanded: open === i ? 'true' : 'false',
+    toggle: () => this.setState({ open: open === i ? -1 : i })
+  }))
+};
+}
+}
+</script>
+</body>
+</html>

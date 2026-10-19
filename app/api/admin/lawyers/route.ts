@@ -32,7 +32,11 @@ export async function POST(request: Request) {
     const { data: entity } = await admin.from('entities').select('id, organisation_id').eq('id', entityId).maybeSingle()
     if (!entity) return NextResponse.json({ error: 'entity not found' }, { status: 404 })
 
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email.trim())
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email.trim(), {
+      // Lands on the set-password page, which reads the session from the
+      // link (must be in Supabase Auth → URL Configuration → Redirect URLs)
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin}/invite/set-password`,
+    })
     if (inviteError || !invited?.user) {
       return NextResponse.json({ error: inviteError?.message || 'failed to invite lawyer' }, { status: 500 })
     }

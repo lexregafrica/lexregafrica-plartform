@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.tk{flex:none;width:44px;height:44px;margin:-8px -4px -8px -10px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+.tk-box{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--ink-300);display:inline-flex;align-items:center;justify-content:center;color:var(--brand-ink);transition:background-color var(--dur-snappy) var(--ease-spring),box-shadow var(--dur-snappy) var(--ease-spring),transform var(--dur-bounce) var(--ease-bounce)}
+.tk:active .tk-box{transform:scale(0.82)}
+.tk.is-done .tk-box{background:var(--sys-green);box-shadow:none;animation:tk-pop var(--dur-bounce) var(--ease-bounce)}
+@keyframes tk-pop{0%{transform:scale(0.72)}100%{transform:scale(1)}}
+.tk-title{transition:color 200ms var(--ease-out)}
+.tk-row.is-done .tk-title{color:var(--label-3);text-decoration:line-through;text-decoration-color:var(--label-3)}
+.ring-wrap{position:relative;flex:none;width:56px;height:56px}
+.ring-wrap .v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--label)}
+.ent{display:flex;flex-direction:column;gap:14px;color:var(--label);text-decoration:none !important;min-height:204px}
+.ent-add{align-items:center;justify-content:center;text-align:center;background:transparent;box-shadow:none;border:1.5px dashed var(--ink-300)}
+.ent-add:hover{border-color:var(--tint);background:var(--brand-50)}
+.dl-list .list-row + .list-row::before{left:80px}
+.tk-list .list-row + .list-row::before{left:62px}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Main navigation">
+    <a class="sb-brand" href="Dashboard.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Africa</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item is-on" href="Dashboard.dc.html" aria-current="page"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">4</span></a>
+    <a class="sb-item" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance<span class="badge">2</span></a>
+    <a class="sb-item" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+    <a class="sb-item" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    <div class="sb-group">Support</div>
+    <a class="sb-item" href="Overlays.dc.html"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Get help</a>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-settings" aria-hidden="true"></span>Settings</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm">WM</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Business owner</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><span class="here">Overview</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Overview</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm">WM</span></div>
+    </div>
+    <main class="content">
+
+      <header class="page-head rise">
+        <div class="stack gap-1">
+          <p class="t-eyebrow t-num">Friday, 16 October 2026</p>
+          <h1 class="t-title1">Good afternoon, Wanjiku</h1>
+          <p class="t-callout t-2 t-pretty">Here is where your four entities stand today.</p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-primary" href="PathSelector.dc.html"><span class="ic ic-plus" aria-hidden="true"></span>Add an entity</a>
+        </div>
+      </header>
+
+      <section class="grid cols-4 keep-2" aria-label="Summary">
+        <div class="stat rise" style="--d: 1">
+          <p class="stat-label"><span class="ic ic-building ic-sm" aria-hidden="true"></span>Entities</p>
+          <p class="t-stat">4</p>
+          <p class="stat-sub">2 active · 2 in progress</p>
+        </div>
+        <div class="stat rise" style="--d: 2">
+          <p class="stat-label"><span class="ic ic-calendar-due ic-sm" aria-hidden="true"></span>Overdue filings</p>
+          <p class="t-stat">1</p>
+          <p class="stat-sub" style="color: var(--bad)">BOF-1 · 16 days overdue</p>
+        </div>
+        <div class="stat rise" style="--d: 3">
+          <p class="stat-label"><span class="ic ic-list-check ic-sm" aria-hidden="true"></span>Open tasks</p>
+          <p class="t-stat">{{openCount}}</p>
+          <p class="stat-sub">{{openSub}}</p>
+        </div>
+        <div class="stat rise" style="--d: 4">
+          <p class="stat-label"><span class="ic ic-shield-check ic-sm" aria-hidden="true"></span>Average compliance health</p>
+          <p class="t-stat">78%</p>
+          <p class="stat-sub">Across 2 active entities</p>
+        </div>
+      </section>
+
+      <section class="stack gap-3" aria-labelledby="ents-h">
+        <div class="row wrap between gap-3">
+          <div class="stack">
+            <h2 id="ents-h" class="t-title3">Your entities</h2>
+            <p class="t-footnote t-3">Showing {{filterNote}}</p>
+          </div>
+          <div class="seg" role="group" aria-label="Filter entities" style="--n:3; --i:{{segIndex}}">
+            <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+              <button class="{{f.cls}}" type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}">{{f.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div class="grid cols-3">
+          <sc-for list="{{entities}}" as="e" hint-placeholder-count="4">
+            <div class="stack rise" style="--d: {{e.d}}">
+            <a class="card card-pad card-interactive ent" href="{{e.href}}" style="flex: 1">
+              <div class="row gap-3" style="align-items: flex-start">
+                <span class="icon-tile {{e.tileCls}}" aria-hidden="true"><span class="ic {{e.icon}}"></span></span>
+                <div class="stack grow">
+                  <h3 class="t-headline clamp-2">{{e.name}}</h3>
+                  <p class="t-footnote t-3 t-pretty">{{e.meta}}</p>
+                </div>
+                <span class="pill {{e.pillCls}}"><span class="dot" aria-hidden="true"></span>{{e.pill}}</span>
+              </div>
+
+              <sc-if value="{{e.hasRing}}" hint-placeholder-val="{{true}}">
+                <div class="row gap-3">
+                  <div class="ring-wrap">
+                    <svg class="ring" width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle class="track" cx="28" cy="28" r="23" stroke-width="6"></circle><circle class="bar" cx="28" cy="28" r="23" stroke-width="6" stroke-dasharray="144.5" stroke-dashoffset="{{e.ringOff}}" style="--len: 144.5; stroke: var(--sys-green)"></circle></svg>
+                    <span class="v">{{e.ringPct}}</span>
+                  </div>
+                  <div class="stack grow">
+                    <p class="t-subhead">Compliance health</p>
+                    <p class="t-footnote t-3">{{e.ringNote}}</p>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{e.hasProgress}}" hint-placeholder-val="{{false}}">
+                <div class="stack gap-2">
+                  <div class="row between gap-2"><span class="t-subhead truncate">{{e.progressLabel}}</span><span class="t-footnote t-3 t-num">{{e.progressRight}}</span></div>
+                  <div class="progress {{e.progressCls}}"><span style="width: {{e.progress}}"></span></div>
+                </div>
+              </sc-if>
+
+              <div class="row between gap-2" style="margin-top: auto; padding-top: 12px; border-top: var(--hairline-soft)">
+                <span class="t-footnote {{e.footCls}} truncate">{{e.foot}}</span>
+                <span class="t-subhead t-brand row gap-1" style="flex: none">{{e.cta}}<span class="ic ic-arrow-right ic-sm" aria-hidden="true"></span></span>
+              </div>
+            </a>
+            </div>
+          </sc-for>
+
+          <a class="card card-pad ent ent-add rise" href="PathSelector.dc.html" style="--d: 6">
+            <span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-plus"></span></span>
+            <span class="stack gap-1">
+              <span class="t-headline">Add an entity</span>
+              <span class="t-footnote t-2 t-pretty">Onboard a registered business, register a new one, or check an informal business's readiness.</span>
+            </span>
+          </a>
+        </div>
+      </section>
+
+      <div class="grid cols-5 keep">
+        <section class="card span-3 rise" style="--d: 7" aria-labelledby="dl-h">
+          <div class="card-head">
+            <h2 id="dl-h">Deadlines</h2>
+            <span class="t-footnote t-3">All entities</span>
+          </div>
+          <div class="stack dl-list" style="padding-bottom: 6px">
+            <sc-for list="{{deadlines}}" as="dl" hint-placeholder-count="4">
+              <a class="list-row is-link" href="WsCompliance.dc.html" style="color: var(--label); text-decoration: none; padding-inline: 20px">
+                <span class="date-tile {{dl.tileCls}}" aria-hidden="true"><span class="m">{{dl.m}}</span><span class="d">{{dl.day}}</span></span>
+                <span class="stack grow">
+                  <span class="t-subhead t-pretty">{{dl.title}}</span>
+                  <span class="t-footnote t-3 t-pretty">{{dl.entity}}</span>
+                </span>
+                <span class="pill {{dl.pillCls}} t-num">{{dl.when}}</span>
+              </a>
+            </sc-for>
+          </div>
+          <div class="card-foot">
+            <span class="t-footnote t-3">You file on eCitizen or iTax; LexReg tracks the dates.</span>
+            <a class="btn btn-plain btn-sm" href="WsCompliance.dc.html">Calendar<span class="ic ic-chevron-right ic-sm" aria-hidden="true"></span></a>
+          </div>
+        </section>
+
+        <section class="card span-2 rise" style="--d: 8" aria-labelledby="tk-h">
+          <div class="card-head">
+            <h2 id="tk-h">Tasks</h2>
+            <span class="t-footnote t-3 t-num">{{openLabel}}</span>
+          </div>
+          <div class="stack tk-list" style="padding-bottom: 6px">
+            <sc-for list="{{tasks}}" as="t" hint-placeholder-count="4">
+              <div class="list-row tk-row {{t.rowCls}}" style="align-items: flex-start; padding-inline: 20px">
+                <button class="tk {{t.cls}}" type="button" role="checkbox" aria-checked="{{t.checked}}" aria-label="{{t.aria}}" onClick="{{t.toggle}}">
+                  <span class="tk-box">
+                    <sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><span class="ic ic-check ic-sm pop" aria-hidden="true"></span></sc-if>
+                  </span>
+                </button>
+                <div class="stack grow" style="gap: 2px">
+                  <div class="row gap-2 wrap"><p class="t-subhead tk-title">{{t.title}}</p><sc-if value="{{t.hasTag}}" hint-placeholder-val="{{true}}"><span class="pill {{t.tagCls}}">{{t.tag}}</span></sc-if></div>
+                  <p class="t-footnote t-3 t-pretty">{{t.sub}}</p>
+                  <p class="t-caption t-2 truncate">{{t.entity}}</p>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <section class="card card-pad rise" style="--d: 8" aria-labelledby="promo-h">
+        <div class="row wrap gap-5">
+          <span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-gavel"></span></span>
+          <div class="stack gap-1 grow" style="min-width: 220px">
+            <p class="t-eyebrow">LexReg services</p>
+            <h2 id="promo-h" class="t-title3">Legal audit &amp; risk review</h2>
+            <p class="t-callout t-2 t-pretty">A full compliance health check across statutory, tax, employment and data protection, with a written report from a LexReg lawyer.</p>
+          </div>
+          <div class="stack gap-1" style="flex: none">
+            <p class="t-stat">KES 25,000</p>
+            <p class="t-footnote t-3">One-time, per entity</p>
+          </div>
+          <a class="btn btn-secondary" href="Services.dc.html">Book a legal audit<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+        </div>
+      </section>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab is-on" href="Dashboard.dc.html" aria-current="page"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance</a>
+      <a class="m-tab" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+      <a class="m-tab" href="Services.dc.html"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    </nav>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const filter = s.filter ?? 'all';
+const done = s.done ?? {};
+
+const FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'active', label: 'Active' },
+  { id: 'progress', label: 'In progress' }
+];
+const segIndex = Math.max(0, FILTERS.findIndex((f) => f.id === filter));
+const filters = FILTERS.map((f) => ({
+  label: f.label,
+  cls: f.id === filter ? 'is-on' : '',
+  pressed: f.id === filter ? 'true' : 'false',
+  pick: () => this.setState({ filter: f.id })
+}));
+
+const base = { hasRing: false, ringOff: '0', ringPct: '', ringNote: '', hasProgress: false, progress: '0%', progressCls: '', progressLabel: '', progressRight: '', footCls: 't-3', tileCls: '' };
+const ALL = [
+  Object.assign({}, base, { id: 'amani', group: 'active', href: 'Workspace.dc.html', icon: 'ic-building', name: 'Amani Logistics Limited', meta: 'Private limited company · PVT-2LU7Q9XB', pill: 'Active', pillCls: 'pill-good', hasRing: true, ringOff: '26.0', ringPct: '82%', ringNote: '2 items outstanding', foot: 'Overdue: lodge BOF-1 with BRS', footCls: 't-bad', cta: 'Open' }),
+  Object.assign({}, base, { id: 'kilele', group: 'active', href: 'Workspace.dc.html', icon: 'ic-users', name: 'Kilele Partners', meta: 'General partnership · BN-8XK2Q4LM', pill: 'Active', pillCls: 'pill-good', hasRing: true, ringOff: '37.6', ringPct: '74%', ringNote: 'On track · 2 partners', foot: 'Next: business permit · 31 Mar', cta: 'Open' }),
+  Object.assign({}, base, { id: 'tumaini', group: 'progress', href: 'ExInstrument.dc.html', icon: 'ic-building-community', tileCls: 'info', name: 'Tumaini Welfare Society', meta: 'Society · onboarding an existing entity', pill: 'Onboarding', pillCls: 'pill-warn', hasProgress: true, progress: '60%', progressCls: 'warn', progressLabel: 'Step 5 of 7 · Constitution', progressRight: '60%', foot: 'Next: check constitution rules', cta: 'Resume' }),
+  Object.assign({}, base, { id: 'jua', group: 'progress', href: 'NewPeople.dc.html', icon: 'ic-file-text', tileCls: 'gray', name: 'Jua Kali Foods Ltd', meta: 'Private limited company · new registration', pill: 'Draft', pillCls: '', hasProgress: true, progress: '43%', progressLabel: 'Shareholders & members', progressRight: 'Step 6 of 14', foot: 'Draft saved 2 days ago', cta: 'Resume' })
+];
+const shown = ALL.filter((e) => filter === 'all' || e.group === filter);
+const entities = shown.map((e, i) => Object.assign({}, e, { d: i + 2 }));
+const filterNote = filter === 'all' ? '4 entities' : filter === 'active' ? '2 active' : '2 in progress';
+
+const TASKS = [
+  { id: 'kra', title: 'Confirm Brian Otieno’s KRA PIN', sub: 'CR12 shows A019876543K; his KRA certificate shows A019876534K.', entity: 'Amani Logistics Limited', tag: 'Conflict', tagCls: 'pill-warn' },
+  { id: 'bof', title: 'Upload signed BOF-1', sub: 'All directors sign, then upload it here before you lodge it on eCitizen.', entity: 'Amani Logistics Limited', tag: 'Overdue', tagCls: 'pill-bad' },
+  { id: 'con', title: 'Check your constitution rules', sub: 'We read membership, meetings and officers’ terms from your constitution.', entity: 'Tumaini Welfare Society', tag: '', tagCls: '' },
+  { id: 'sh', title: 'Add shareholders & members', sub: 'Step 6 of 14 in your registration draft.', entity: 'Jua Kali Foods Ltd', tag: '', tagCls: '' }
+];
+const tasks = TASKS.map((t) => {
+  const isDone = !!done[t.id];
+  return Object.assign({}, t, {
+    done: isDone,
+    hasTag: !!t.tag && !isDone,
+    cls: isDone ? 'is-done' : '',
+    rowCls: isDone ? 'is-done' : '',
+    checked: isDone ? 'true' : 'false',
+    aria: (isDone ? 'Mark as not done: ' : 'Mark as done: ') + t.title,
+    toggle: () => this.setState({ done: Object.assign({}, done, { [t.id]: !isDone }) })
+  });
+});
+const openCount = tasks.filter((t) => !t.done).length;
+const needsDecision = done.kra ? 0 : 1;
+const openEntities = new Set(tasks.filter((t) => !t.done).map((t) => t.entity)).size;
+const openSub = openCount === 0 ? 'All caught up' : (needsDecision ? '1 needs your decision' : 'Across ' + openEntities + (openEntities === 1 ? ' entity' : ' entities'));
+const openLabel = openCount === 0 ? 'All done' : openCount + ' open';
+
+const deadlines = [
+  { m: 'Sep', day: '30', title: 'Lodge BOF-1 with BRS', entity: 'Amani Logistics Limited', when: '16 days overdue', pillCls: 'pill-bad', tileCls: 'is-urgent' },
+  { m: 'Mar', day: '31', title: 'Renew county single business permit', entity: 'Amani Logistics Limited', when: 'In 5 months', pillCls: '', tileCls: '' },
+  { m: 'Mar', day: '31', title: 'Renew county single business permit', entity: 'Kilele Partners', when: 'In 5 months', pillCls: '', tileCls: '' },
+  { m: 'Apr', day: '13', title: 'File annual return with BRS', entity: 'Amani Logistics Limited', when: 'In 6 months', pillCls: '', tileCls: '' }
+];
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  filters,
+  segIndex,
+  entities,
+  filterNote,
+  tasks,
+  openCount,
+  openSub,
+  openLabel,
+  deadlines
+};
+}
+}
+</script>
+</body>
+</html>

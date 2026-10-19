@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Services — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.pillar{display:flex;flex-direction:column;gap:16px;height:100%}
+.pillar.is-featured{box-shadow:inset 0 0 0 1.5px var(--brand-200),var(--shadow-card)}
+.inc{display:flex;flex-direction:column;gap:8px}
+.inc li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:19px;color:var(--label-2)}
+.inc .ic{color:var(--good);margin-top:1px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dt{min-width:960px;font-size:13.5px}
+.dt-r{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(190px,1.5fr) 120px 150px 140px minmax(180px,1.4fr);align-items:center;border-bottom:var(--hairline-soft)}
+.dt-r > *{padding:12px 16px;min-width:0}
+.dt-h{font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--label-3)}
+.dt-h > *{padding-top:10px;padding-bottom:10px}
+.dt-b:last-child{border-bottom:0}
+.dt-b:hover{background:var(--surface-3)}
+.sh-layer{position:absolute;inset:0;z-index:20}
+.sh{position:absolute;top:12px;right:12px;width:min(460px, calc(100% - 24px));z-index:21;max-height:calc(100% - 24px);overflow:auto}
+.sh-body{display:flex;flex-direction:column;gap:20px;padding:20px}
+.sh-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:var(--hairline-soft)}
+.choice[disabled]{opacity:0.5;cursor:not-allowed}
+.toast-wrap{position:absolute;top:18px;left:0;right:0;z-index:30;display:flex;justify-content:center;pointer-events:none;padding:0 16px}
+@container lx (max-width: 720px){
+  .sh{top:8px;right:8px;width:calc(100% - 16px)}
+  .sh-body{padding:16px}
+  .sh-foot{padding:10px 16px}
+  .toast-wrap{top:72px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px; position: relative; overflow: clip">
+<div class="shell">
+  <aside class="sidebar glass-chrome" aria-label="Main navigation">
+    <a class="sb-brand" href="Dashboard.dc.html">
+      <img src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 30px; height: 30px">
+      <span class="sb-word">LexReg<small>Africa</small></span>
+    </a>
+    <button class="sb-search" type="button"><span class="ic ic-search ic-sm" aria-hidden="true"></span>Search<span class="kbd">⌘K</span></button>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+    <a class="sb-item" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities<span class="pill">4</span></a>
+    <a class="sb-item" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance<span class="badge">2</span></a>
+    <a class="sb-item" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+    <a class="sb-item is-on" href="Services.dc.html" aria-current="page"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    <div class="sb-group">Support</div>
+    <a class="sb-item" href="Overlays.dc.html"><span class="ic ic-lifebuoy" aria-hidden="true"></span>Get help</a>
+    <a class="sb-item" href="Dashboard.dc.html"><span class="ic ic-settings" aria-hidden="true"></span>Settings</a>
+    <div class="sb-foot">
+      <span class="avatar avatar-sm">WM</span>
+      <div class="grow"><p class="t-subhead truncate" style="color: var(--label)">Wanjiku Mwangi</p><p class="t-caption t-3 truncate">Business owner</p></div>
+      <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Log out"><span class="ic ic-logout" aria-hidden="true"></span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb"><span class="here">Services</span></nav>
+      <div class="grow"></div>
+      <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button>
+      <a class="btn btn-tinted btn-pill" href="Overlays.dc.html"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</a>
+    </header>
+    <div class="m-topbar glass">
+      <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 26px; height: 26px"><span class="t-headline">Services</span></a>
+      <div class="row gap-1"><button class="btn btn-plain btn-icon" type="button" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span></button><span class="avatar avatar-sm">WM</span></div>
+    </div>
+    <main class="content">
+
+      <header class="page-head rise">
+        <div class="stack gap-1">
+          <h1 class="t-title1">Services</h1>
+          <p class="t-callout t-2 t-pretty">Paid work from LexReg’s lawyers, for any of your entities. Pick a service, choose the entity, and a lawyer is assigned to that one matter.</p>
+        </div>
+      </header>
+
+      <section class="grid cols-3" style="align-items: stretch" aria-label="Services">
+        <article class="card card-pad pillar rise" style="--d: 1">
+          <div class="row between gap-3"><span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-file-certificate"></span></span><span class="t-eyebrow">Pillar 1</span></div>
+          <div class="stack gap-1">
+            <h2 class="t-title3">Entity formation &amp; registration</h2>
+            <p class="t-footnote t-2 t-pretty">A guided questionnaire for a new company, partnership or business name. Everything is collected once and packaged into a ready-to-file pack.</p>
+          </div>
+          <div class="stack">
+            <p class="t-title2 t-num">[PRICE]</p>
+            <p class="t-footnote t-3">BRS fees paid separately on eCitizen</p>
+          </div>
+          <ul class="inc">
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Step-by-step questionnaire, saved as you go</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>CR forms and IDP generated from your answers</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Lawyer review before you file</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Upload your certificate to activate the entity</li>
+          </ul>
+          <div class="note" style="font-size: 12.5px; line-height: 17px"><span class="ic ic-info-circle ic-sm" aria-hidden="true"></span><p>BRS has no public API, so names can’t be checked live. You file the pack on eCitizen, then upload your certificate here.</p></div>
+          <div class="facts">
+            <div class="inset"><p class="t-caption t-3">Duration</p><p class="t-subhead">[DURATION]</p></div>
+            <div class="inset"><p class="t-caption t-3">Deliverable</p><p class="t-subhead">Filing pack</p></div>
+          </div>
+          <button class="btn btn-tinted btn-block" type="button" style="margin-top: auto" aria-haspopup="dialog" onClick="{{openFormation}}">Request</button>
+        </article>
+
+        <article class="card card-pad pillar rise" style="--d: 2">
+          <div class="row between gap-3"><span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-writing"></span></span><span class="t-eyebrow">Pillar 2</span></div>
+          <div class="stack gap-1">
+            <h2 class="t-title3">Corporate services</h2>
+            <p class="t-footnote t-2 t-pretty">Board minutes, AGM notices and resolutions — drafted from your records and reviewed by a lawyer.</p>
+          </div>
+          <div class="stack">
+            <p class="t-title2 t-num">[PRICE]</p>
+            <p class="t-footnote t-3">Minutes, notices, resolutions</p>
+          </div>
+          <ul class="inc">
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Notices of AGM and general meetings</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Board and members’ minutes</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Written resolutions — registered office, bank signatories, share allotment</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Signed copies kept in your Documents</li>
+          </ul>
+          <div class="facts">
+            <div class="inset"><p class="t-caption t-3">Duration</p><p class="t-subhead">[DURATION]</p></div>
+            <div class="inset"><p class="t-caption t-3">Deliverable</p><p class="t-subhead">Signed documents</p></div>
+          </div>
+          <button class="btn btn-tinted btn-block" type="button" style="margin-top: auto" aria-haspopup="dialog" onClick="{{openCorporate}}">Request</button>
+        </article>
+
+        <article class="card card-pad pillar is-featured rise" style="--d: 3">
+          <div class="row between gap-3"><span class="icon-tile icon-tile-lg" aria-hidden="true"><span class="ic ic-file-search"></span></span><span class="t-eyebrow">Pillar 3</span></div>
+          <div class="stack gap-1">
+            <h2 class="t-title3">Legal audit</h2>
+            <p class="t-footnote t-2 t-pretty">A health check across statutory, tax (KRA), employment (ELRC), data protection (DPA 2019), IP and contracts.</p>
+          </div>
+          <div class="stack">
+            <p class="t-title2 t-num">KES 25,000</p>
+            <p class="t-footnote t-3">One-time, per entity</p>
+          </div>
+          <ul class="inc">
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Preliminary gap report drafted from your documents</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Review and sign-off by an assigned lawyer</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Gaps most SMEs miss, especially DPA 2019 exposure</li>
+            <li><span class="ic ic-check ic-sm" aria-hidden="true"></span>Every gap added to your compliance dashboard</li>
+          </ul>
+          <div class="facts">
+            <div class="inset"><p class="t-caption t-3">Duration</p><p class="t-subhead">5 working days</p></div>
+            <div class="inset"><p class="t-caption t-3">Deliverable</p><p class="t-subhead">Written audit report</p></div>
+          </div>
+          <button class="btn btn-primary btn-block" type="button" style="margin-top: auto" aria-haspopup="dialog" onClick="{{openAudit}}">Request a legal audit</button>
+        </article>
+      </section>
+
+      <section class="card rise" style="--d: 4; overflow: hidden" aria-labelledby="yr-h">
+        <div class="card-head">
+          <h2 id="yr-h">Your requests</h2>
+          <span class="t-caption t-3 t-num">{{reqCount}}</span>
+        </div>
+        <div class="table-wrap" style="border-top: var(--hairline-soft)">
+          <div class="dt" role="table" aria-labelledby="yr-h">
+            <div class="dt-r dt-h" role="row">
+              <span role="columnheader">Service</span>
+              <span role="columnheader">Entity</span>
+              <span role="columnheader">Requested</span>
+              <span role="columnheader">Payment</span>
+              <span role="columnheader">Status</span>
+              <span role="columnheader">Lawyer</span>
+            </div>
+            <sc-for list="{{requests}}" as="r" hint-placeholder-count="1">
+              <div class="dt-r dt-b {{r.rowCls}}" role="row">
+                <span role="cell" class="stack"><span class="t-strong truncate">{{r.service}}</span><span class="t-footnote t-3 t-num truncate">{{r.price}}</span></span>
+                <span role="cell" class="truncate">{{r.entity}}</span>
+                <span role="cell" class="t-2 t-num">{{r.date}}</span>
+                <span role="cell"><span class="pill {{r.payCls}}">{{r.pay}}</span></span>
+                <span role="cell"><span class="pill {{r.stCls}}"><span class="dot" aria-hidden="true"></span>{{r.status}}</span></span>
+                <span role="cell" class="row gap-2">
+                  <sc-if value="{{r.hasLawyer}}" hint-placeholder-val="{{true}}"><span class="avatar avatar-sm" aria-hidden="true">AO</span><span class="truncate">{{r.lawyer}}</span></sc-if>
+                  <sc-if value="{{r.noLawyer}}" hint-placeholder-val="{{false}}"><span class="t-3 truncate">Assigned after payment</span></sc-if>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div class="card-foot">
+          <span class="t-footnote t-3 t-pretty">Your lawyer sees only the entity and service you requested — nothing else in your account.</span>
+        </div>
+      </section>
+
+    </main>
+    <nav class="m-tabbar glass" aria-label="Tabs">
+      <a class="m-tab" href="Dashboard.dc.html"><span class="ic ic-layout-dashboard" aria-hidden="true"></span>Overview</a>
+      <a class="m-tab" href="Workspace.dc.html"><span class="ic ic-building" aria-hidden="true"></span>Entities</a>
+      <a class="m-tab" href="WsCompliance.dc.html"><span class="ic ic-calendar-due" aria-hidden="true"></span>Compliance</a>
+      <a class="m-tab" href="WsDocuments.dc.html"><span class="ic ic-folder" aria-hidden="true"></span>Documents</a>
+      <a class="m-tab is-on" href="Services.dc.html" aria-current="page"><span class="ic ic-briefcase" aria-hidden="true"></span>Services</a>
+    </nav>
+  </div>
+</div>
+
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{false}}">
+  <div class="sh-layer">
+    <div class="scrim" aria-hidden="true"></div>
+    <div class="sheet sheet-side sh" role="dialog" aria-modal="true" aria-labelledby="sh-t">
+      <div class="row between gap-3" style="padding: 16px 20px 0">
+        <div class="stack">
+          <p class="t-eyebrow">Request a service</p>
+          <h2 id="sh-t" class="t-title2">{{sheetTitle}}</h2>
+        </div>
+        <button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Close" onClick="{{closeSheet}}"><span class="ic ic-x" aria-hidden="true"></span></button>
+      </div>
+      <div class="sh-body">
+        <div class="inset row between gap-3">
+          <span class="t-subhead">{{sheetPriceLabel}}</span>
+          <span class="t-headline t-num">{{sheetPrice}}</span>
+        </div>
+
+        <div class="stack gap-2" role="group" aria-labelledby="sh-ent">
+          <p class="label" id="sh-ent">Which entity is this for?</p>
+          <sc-for list="{{entityOpts}}" as="e" hint-placeholder-count="3">
+            <button class="choice {{e.cls}}" type="button" aria-pressed="{{e.pressed}}" disabled="{{e.disabled}}" onClick="{{e.pick}}">
+              <span class="mark" aria-hidden="true"></span>
+              <span class="stack grow"><span class="t-subhead t-strong">{{e.name}}</span><span class="t-footnote t-3">{{e.sub}}</span></span>
+            </button>
+          </sc-for>
+          <sc-if value="{{showDupNote}}" hint-placeholder-val="{{false}}">
+            <div class="note note-info"><span class="ic ic-info-circle" aria-hidden="true"></span><p>Amani Logistics Limited already has a legal audit in progress with Adv. Achieng Odhiambo. A new request starts a fresh audit.</p></div>
+          </sc-if>
+        </div>
+
+        <div class="field">
+          <label class="label" for="sh-notes">Notes for the lawyer <span class="t-3">(optional)</span></label>
+          <textarea class="textarea" id="sh-notes" style="min-height: 80px" placeholder="{{notesHint}}" value="{{notes}}" onInput="{{setNotes}}"></textarea>
+        </div>
+
+        <div class="stack gap-2" role="group" aria-labelledby="sh-pay">
+          <p class="label" id="sh-pay">How would you like to pay?</p>
+          <sc-for list="{{payOpts}}" as="p" hint-placeholder-count="3">
+            <button class="choice {{p.cls}}" type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}">
+              <span class="mark" aria-hidden="true"></span>
+              <span class="stack grow"><span class="t-subhead t-strong">{{p.label}}</span><span class="t-footnote t-3">{{p.sub}}</span></span>
+              <span class="ic {{p.icon}} t-3" aria-hidden="true"></span>
+            </button>
+          </sc-for>
+          <p class="help"><span class="ic ic-shield-lock ic-sm" aria-hidden="true"></span> Payments are handled by Paystack. LexReg never sees your card details or M-Pesa PIN.</p>
+        </div>
+      </div>
+      <div class="sh-foot glass">
+        <button class="btn btn-gray" type="button" onClick="{{closeSheet}}">Cancel</button>
+        <span class="grow"></span>
+        <button class="btn btn-primary" type="button" onClick="{{submit}}">{{submitLabel}}<span class="ic ic-arrow-right" aria-hidden="true"></span></button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{showToast}}" hint-placeholder-val="{{false}}">
+  <div class="toast-wrap"><span class="toast" role="status"><span class="ic ic-circle-check" aria-hidden="true" style="color: var(--sys-green)"></span>{{toastText}}</span></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1280}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const sheet = s.sheet ?? '';
+const entity = s.entity ?? '';
+const notes = s.notes ?? '';
+const pay = s.pay ?? 'mpesa';
+const added = s.added ?? [];
+const toast = s.toast ?? '';
+
+const SVC = {
+  formation: { title: 'Entity formation & registration', short: 'Entity formation', price: '[PRICE]', priceLabel: 'Service fee · BRS fees separate', hint: 'e.g. We want two directors and 1,000 shares', def: 'jua' },
+  corporate: { title: 'Corporate services', short: 'Corporate services', price: '[PRICE]', priceLabel: 'Minutes, notices, resolutions', hint: 'e.g. Notice of our AGM and minutes of the last board meeting', def: 'amani' },
+  audit: { title: 'Legal audit', short: 'Legal audit', price: 'KES 25,000', priceLabel: 'One-time, per entity', hint: 'e.g. Please look closely at employment and data protection', def: 'kilele' }
+};
+const ENT_EXISTING = [
+  { id: 'amani', name: 'Amani Logistics Limited', sub: 'Private limited company · PVT-2LU7Q9XB', disabled: false },
+  { id: 'kilele', name: 'Kilele Partners', sub: 'General partnership · BN-8XK2Q4LM', disabled: false },
+  { id: 'tumaini', name: 'Tumaini Welfare Society', sub: 'Onboarding 60% · finish onboarding first', disabled: true }
+];
+const ENT_NEW = [
+  { id: 'jua', name: 'Jua Kali Foods Ltd', sub: 'Draft registration · step 6 of 14', disabled: false },
+  { id: 'new', name: 'A new entity', sub: 'Start the formation questionnaire', disabled: false }
+];
+const PAY = [
+  { id: 'mpesa', label: 'M-Pesa', sub: 'STK push to +254 712 345 678', icon: 'ic-device-mobile' },
+  { id: 'card', label: 'Card', sub: 'Visa or Mastercard', icon: 'ic-cash' },
+  { id: 'bank', label: 'Bank transfer', sub: 'Pay from your bank via Paystack', icon: 'ic-building-bank' }
+];
+
+const svc = SVC[sheet] || SVC.audit;
+const ents = sheet === 'formation' ? ENT_NEW : ENT_EXISTING;
+const curEntity = entity || svc.def;
+const entName = (ents.find((e) => e.id === curEntity) || ents[0]).name;
+
+const open = (k) => this.setState({ sheet: k, entity: SVC[k].def, notes: '', pay: 'mpesa' });
+
+const base = [{ service: 'Legal audit', price: 'KES 25,000', entity: 'Amani Logistics Limited', date: '14 Oct 2026', pay: 'Paid · M-Pesa', payCls: 'pill-good', status: 'In progress', stCls: 'pill-info', hasLawyer: true, noLawyer: false, lawyer: 'Adv. Achieng Odhiambo', rowCls: '' }];
+const requests = added.concat(base);
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  openFormation: () => open('formation'),
+  openCorporate: () => open('corporate'),
+  openAudit: () => open('audit'),
+  sheetOpen: !!sheet,
+  closeSheet: () => this.setState({ sheet: '' }),
+  sheetTitle: svc.title,
+  sheetPrice: svc.price,
+  sheetPriceLabel: svc.priceLabel,
+  entityOpts: ents.map((e) => ({
+    name: e.name,
+    sub: e.sub,
+    disabled: e.disabled,
+    cls: e.id === curEntity ? 'is-selected' : '',
+    pressed: e.id === curEntity ? 'true' : 'false',
+    pick: () => { if (!e.disabled) this.setState({ entity: e.id }); }
+  })),
+  showDupNote: sheet === 'audit' && curEntity === 'amani',
+  notes: notes,
+  notesHint: svc.hint,
+  setNotes: (ev) => this.setState({ notes: ev.target.value }),
+  payOpts: PAY.map((p) => ({
+    label: p.label,
+    sub: p.sub,
+    icon: p.icon,
+    cls: p.id === pay ? 'is-selected' : '',
+    pressed: p.id === pay ? 'true' : 'false',
+    pick: () => this.setState({ pay: p.id })
+  })),
+  submitLabel: 'Continue to Paystack',
+  submit: () => {
+    const method = (PAY.find((p) => p.id === pay) || PAY[0]).label;
+    const row = { service: svc.short, price: svc.price, entity: entName, date: '16 Oct 2026', pay: 'Awaiting ' + method, payCls: 'pill-warn', status: 'Requested', stCls: '', hasLawyer: false, noLawyer: true, lawyer: '', rowCls: 'rise' };
+    this.setState({ sheet: '', added: [row].concat(added), toast: 'Request sent · ' + svc.short + ' for ' + entName });
+    setTimeout(() => this.setState({ toast: '' }), 2800);
+  },
+  requests: requests,
+  reqCount: requests.length + (requests.length === 1 ? ' request' : ' requests'),
+  showToast: !!toast,
+  toastText: toast
+};
+}
+}
+</script>
+</body>
+</html>

@@ -7,14 +7,18 @@ import {
   IconCalendarTime,
   IconFiles,
   IconUsers,
-  IconChevronLeft,
   IconDownload,
   IconArrowUpRight,
   IconCheck,
   IconHierarchy2,
+  IconBuilding,
+  IconAlertTriangle,
+  IconChevronDown,
+  IconFileText,
 } from '@tabler/icons-react'
 import { REGISTRATION_STAGES, registrationStageIndex } from '@/lib/onboarding/registration-status'
 import { DocumentVaultTree } from '@/components/dashboard/document-vault-tree'
+import { DashboardShell } from '@/components/dashboard/shell'
 import { OwnershipStructure, type StructureHolder, type StructureOfficer } from '@/components/dashboard/ownership-structure'
 
 type WorkspaceEntity = {
@@ -84,9 +88,9 @@ type TabId = 'overview' | 'structure' | 'compliance' | 'documents' | 'people'
 const TABS: Array<{ id: TabId; label: string; icon: typeof IconLayoutDashboard }> = [
   { id: 'overview', label: 'Overview', icon: IconLayoutDashboard },
   { id: 'structure', label: 'Structure', icon: IconHierarchy2 },
-  { id: 'compliance', label: 'Compliance', icon: IconCalendarTime },
-  { id: 'documents', label: 'Document Vault', icon: IconFiles },
   { id: 'people', label: 'People', icon: IconUsers },
+  { id: 'compliance', label: 'Compliance', icon: IconCalendarTime },
+  { id: 'documents', label: 'Documents', icon: IconFiles },
 ]
 
 function formatDate(iso: string) {
@@ -102,23 +106,19 @@ function daysUntil(iso: string) {
   if (diff < 0) return `${Math.abs(diff)} days overdue`
   if (diff === 0) return 'Due today'
   if (diff === 1) return 'Due tomorrow'
-  return `in ${diff} days`
+  return `In ${diff} days`
 }
 
 function isOverdue(event: WorkspaceEvent) {
   return event.status === 'pending' && new Date(event.dueDate) < new Date()
 }
 
-function StatusPill({ active }: { active: boolean }) {
+function EmptyCard({ title, body }: { title: string; body: string }) {
   return (
-    <span
-      className="text-ios-caption1 shrink-0 rounded-full px-3 py-1.5 font-semibold"
-      style={active
-        ? { background: 'rgba(52,199,89,0.14)', color: '#1E9E45' }
-        : { background: 'rgba(255,149,0,0.14)', color: '#C77700' }}
-    >
-      {active ? 'Active' : 'Pending registration'}
-    </span>
+    <div className="card card-pad flex flex-col items-center gap-1 py-10 text-center">
+      <p className="t-headline">{title}</p>
+      <p className="t-footnote t-3 t-pretty">{body}</p>
+    </div>
   )
 }
 
@@ -157,82 +157,78 @@ export function StatusBoard({ entityId, registrationStatus, canManage }: {
   }
 
   return (
-    <div className={CARD}>
-      <h3 className="text-ios-subhead mb-4 font-bold" style={{ color: 'var(--system-label)' }}>Filing status</h3>
-      <div className="flex flex-col">
+    <section className="card" aria-labelledby="filing-h">
+      <div className="card-head"><h3 id="filing-h">Filing status</h3></div>
+      <ol className="flex flex-col px-5 pb-4">
         {REGISTRATION_STAGES.map((stage, i) => {
           const done = i < currentIndex
           const active = i === currentIndex
           return (
-            <div key={stage.value} className="flex items-start gap-3 py-1.5">
+            <li key={stage.value} className="flex items-start gap-3 py-1.5" aria-current={active ? 'step' : undefined}>
               <div className="flex flex-col items-center">
                 <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                  style={done || active
-                    ? { background: 'var(--brand-navy)' }
-                    : { background: 'var(--system-fill-4)' }}
+                  className="t-caption t-num flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-bold"
+                  style={done ? { background: 'var(--good)', color: '#fff' } : active ? { background: 'var(--tint)', color: '#fff' } : { boxShadow: 'inset 0 0 0 1.25px var(--ink-300)', color: 'var(--label-3)' }}
                 >
-                  {done ? (
-                    <IconCheck size={14} stroke={3} color="#fff" />
-                  ) : (
-                    <span className="text-[11px] font-bold" style={{ color: active ? '#fff' : 'var(--system-label-3)' }}>{i + 1}</span>
-                  )}
+                  {done ? <IconCheck size={13} stroke={3} aria-hidden="true" /> : i + 1}
                 </span>
                 {i < REGISTRATION_STAGES.length - 1 && (
-                  <span className="my-0.5 h-4 w-0.5" style={{ background: done ? 'var(--brand-navy)' : 'var(--system-fill-4)' }} />
+                  <span className="my-0.5 h-4 w-px" style={{ background: done ? 'var(--good)' : 'var(--sep)' }} />
                 )}
               </div>
-              <div className="min-w-0 flex-1 pb-1">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p
-                    className="text-ios-footnote font-semibold"
-                    style={{ color: active ? 'var(--system-label)' : done ? 'var(--system-label-2)' : 'var(--system-label-3)' }}
-                  >
+                  <p className={`t-subhead ${active ? '' : done ? 't-2' : 't-3'}`} style={active ? { color: 'var(--label)', fontWeight: 600 } : undefined}>
                     {stage.label}
                   </p>
                   {canManage && !done && !active && (
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => advance(stage.value)}
-                      className="text-ios-caption1 shrink-0 font-semibold disabled:opacity-50"
-                      style={{ color: 'var(--brand-navy)' }}
-                    >
+                    <button type="button" disabled={saving} onClick={() => advance(stage.value)} className="btn btn-plain btn-sm">
                       Mark reached
                     </button>
                   )}
                 </div>
-                {active && (
-                  <p className="text-ios-caption1 mt-0.5" style={{ color: 'var(--system-label-3)' }}>{stage.description}</p>
-                )}
+                {active && <p className="t-footnote t-3 mt-0.5">{stage.description}</p>}
               </div>
-            </div>
+            </li>
           )
         })}
-      </div>
-      {error && <p className="text-ios-caption1 mt-2" style={{ color: '#D70015' }}>{error}</p>}
-    </div>
+      </ol>
+      {error && <p className="error px-5 pb-4">{error}</p>}
+    </section>
   )
 }
 
-function EventBadge({ event }: { event: WorkspaceEvent }) {
-  const overdue = isOverdue(event)
-  const meta = overdue
-    ? { label: 'Overdue', bg: 'rgba(255,59,48,0.12)', fg: '#D70015' }
-    : event.status === 'complete'
-      ? { label: 'Done', bg: 'rgba(52,199,89,0.14)', fg: '#1E9E45' }
-      : { label: 'Upcoming', bg: 'var(--system-fill-4)', fg: 'var(--system-label-2)' }
-  return (
-    <span className="text-ios-caption1 shrink-0 rounded-full px-2.5 py-1 font-semibold" style={{ background: meta.bg, color: meta.fg }}>
-      {meta.label}
-    </span>
-  )
+function EventPill({ event }: { event: WorkspaceEvent }) {
+  if (isOverdue(event)) return <span className="pill pill-bad">Overdue</span>
+  if (event.status === 'complete') return <span className="pill pill-good">Done</span>
+  const days = daysLeft(event.dueDate)
+  return <span className={`pill t-num ${days <= 14 ? 'pill-warn' : ''}`}>{daysUntil(event.dueDate)}</span>
 }
 
-const CARD = 'rounded-[24px] bg-white p-5'
+function EventRow({ event, onClick }: { event: WorkspaceEvent; onClick?: () => void }) {
+  const date = new Date(event.dueDate)
+  const body = (
+    <>
+      <span className={`date-tile ${isOverdue(event) ? 'is-urgent' : ''}`} aria-hidden="true">
+        <span className="m">{date.toLocaleDateString('en-KE', { month: 'short' })}</span>
+        <span className="d">{date.getDate()}</span>
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="t-subhead t-pretty" style={{ color: 'var(--label)' }}>{event.title}</span>
+        <span className="t-footnote t-3 t-pretty">{event.description ?? formatDate(event.dueDate)}</span>
+      </span>
+      <EventPill event={event} />
+    </>
+  )
+  return onClick ? (
+    <button type="button" onClick={onClick} className="list-row is-link" style={{ paddingInline: 20 }}>{body}</button>
+  ) : (
+    <div className="list-row" style={{ paddingInline: 20 }}>{body}</div>
+  )
+}
 
 // ------------------------------------------------------------------
-// Overview — desktop mosaic, mobile stacked cards
+// Overview
 // ------------------------------------------------------------------
 function OverviewTab({ entity, events, documents, directors, shareholders, canManageStatus, onNavigate }: {
   entity: WorkspaceEntity
@@ -247,43 +243,68 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
   const overdueCount = events.filter(isOverdue).length
   const nextEvent = upcoming[0]
   const peopleCount = directors.length + shareholders.length
+  const unincorporated = entity.typeLabel === 'Sole Proprietorship' || entity.typeLabel === 'Partnership'
+
+  const facts = [
+    ['Registration no.', entity.registrationNumber],
+    ['KRA PIN', entity.kraPin],
+    [unincorporated || entity.typeLabel === 'LLP' ? 'Registered' : 'Incorporated', entity.dateIncorporated ? formatDate(entity.dateIncorporated) : null],
+    [unincorporated ? 'Place of business' : 'Registered office', entity.address],
+    ['Nature of business', entity.natureOfBusiness],
+  ].filter(([, v]) => v) as Array<[string, string]>
+
+  const peopleSub = entity.typeLabel === 'Sole Proprietorship'
+    ? 'Proprietor'
+    : entity.typeLabel === 'Partnership' || entity.typeLabel === 'LLP'
+    ? `${directors.length} partner${directors.length === 1 ? '' : 's'}${entity.typeLabel === 'LLP' ? ' & managers' : ''}`
+    : `${directors.length} director${directors.length === 1 ? '' : 's'} · ${shareholders.length} shareholder${shareholders.length === 1 ? '' : 's'}`
+
+  const onboardingDone = entity.onboarding?.statusKey === 'verified_onboarded'
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="flex flex-col gap-4">
       {entity.missingDocs.length > 0 && (
-        <div
-          className="text-ios-footnote rounded-2xl px-4 py-3 font-medium lg:col-span-3"
-          style={{ background: 'rgba(255,149,0,0.10)', color: '#C77700' }}
-        >
-          Still missing from the vault: {entity.missingDocs.join(', ')}.
+        <div className="note note-warn rise" role="status">
+          <IconAlertTriangle size={18} stroke={1.75} aria-hidden="true" />
+          <p><strong>Still missing from the vault:</strong> {entity.missingDocs.join(', ')}.</p>
         </div>
       )}
+
+      <section className="grid cols-3 keep-2 gap-4" aria-label="Summary">
+        <button type="button" onClick={() => onNavigate('documents')} className="stat card-interactive rise text-left" style={{ '--d': 1 } as React.CSSProperties}>
+          <span className="stat-label"><IconFiles size={15} stroke={1.75} aria-hidden="true" />Documents<IconArrowUpRight size={14} stroke={1.75} className="ml-auto" aria-hidden="true" /></span>
+          <span className="t-stat">{documents.length}</span>
+          <span className="stat-sub">On file in your vault</span>
+        </button>
+        <button type="button" onClick={() => onNavigate('people')} className="stat card-interactive rise text-left" style={{ '--d': 2 } as React.CSSProperties}>
+          <span className="stat-label"><IconUsers size={15} stroke={1.75} aria-hidden="true" />People<IconArrowUpRight size={14} stroke={1.75} className="ml-auto" aria-hidden="true" /></span>
+          <span className="t-stat">{peopleCount}</span>
+          <span className="stat-sub">{peopleSub}</span>
+        </button>
+        <button type="button" onClick={() => onNavigate('compliance')} className="stat card-interactive rise text-left" style={{ '--d': 3 } as React.CSSProperties}>
+          <span className="stat-label"><IconCalendarTime size={15} stroke={1.75} aria-hidden="true" />Open compliance items<IconArrowUpRight size={14} stroke={1.75} className="ml-auto" aria-hidden="true" /></span>
+          <span className="t-stat">{upcoming.length}</span>
+          <span className="stat-sub" style={overdueCount ? { color: 'var(--bad)' } : undefined}>{overdueCount ? `${overdueCount} overdue` : 'On track'}</span>
+        </button>
+      </section>
+
       {entity.onboarding && (
-        <div className={`${CARD} lg:col-span-3`}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-3)' }}>Onboarding status</p>
-              <p className="text-ios-headline font-semibold" style={{ color: entity.onboarding.statusKey === 'verified_onboarded' ? '#15803d' : 'var(--brand-navy)' }}>
-                {entity.onboarding.status}
-              </p>
-            </div>
-            {(entity.onboarding.gaps.length > 0 || entity.onboarding.fields.length > 0) && (
-              <button type="button" onClick={() => onNavigate('compliance')} className="text-ios-footnote font-semibold" style={{ color: 'var(--brand-navy)' }}>
-                See follow-up tasks →
-              </button>
-            )}
+        <section className="card rise" aria-labelledby="onb-h" style={{ '--d': 4 } as React.CSSProperties}>
+          <div className="card-head">
+            <h2 id="onb-h">Onboarding status</h2>
+            <span className={`pill ${onboardingDone ? 'pill-good' : 'pill-brand'}`}>{entity.onboarding.status}</span>
           </div>
           {entity.onboarding.gaps.length === 0 && entity.onboarding.fields.length === 0 ? (
-            <p className="text-ios-footnote mt-2" style={{ color: 'var(--system-label-2)' }}>Your core details are supported by your registry documents.</p>
+            <p className="t-footnote t-2 px-5 pb-5">Your core details are supported by your registry documents.</p>
           ) : (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="grid cols-2 gap-4 px-5 pb-5">
               {entity.onboarding.gaps.length > 0 && (
-                <div>
-                  <p className="text-ios-caption1 font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--system-label-3)' }}>Evidence outstanding</p>
-                  <ul className="space-y-1.5">
+                <div className="flex flex-col gap-2">
+                  <p className="t-eyebrow">Evidence outstanding</p>
+                  <ul className="flex flex-col gap-1.5">
                     {entity.onboarding.gaps.map((g) => (
-                      <li key={g.title} className="text-ios-footnote" style={{ color: 'var(--system-label)' }}>
-                        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: g.impact === 'high' || g.impact === 'critical' ? '#dc2626' : '#d97706' }} />
+                      <li key={g.title} className="t-footnote flex items-start gap-2">
+                        <span className="dot mt-1.5" style={{ color: g.impact === 'high' || g.impact === 'critical' ? 'var(--bad)' : 'var(--warn)' }} aria-hidden="true" />
                         {g.title}
                       </li>
                     ))}
@@ -291,194 +312,93 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
                 </div>
               )}
               {entity.onboarding.fields.length > 0 && (
-                <div>
-                  <p className="text-ios-caption1 font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--system-label-3)' }}>Not yet registry-verified</p>
-                  <ul className="space-y-1.5">
+                <div className="flex flex-col gap-2">
+                  <p className="t-eyebrow">Not yet registry-verified</p>
+                  <ul className="flex flex-col gap-1.5">
                     {entity.onboarding.fields.map((f) => (
-                      <li key={f.label} className="text-ios-footnote" style={{ color: 'var(--system-label)' }}>
-                        {f.label} <span className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>— {f.state}</span>
-                      </li>
+                      <li key={f.label} className="t-footnote">{f.label} <span className="t-3">— {f.state}</span></li>
                     ))}
                   </ul>
                 </div>
               )}
             </div>
           )}
-        </div>
+          {(entity.onboarding.gaps.length > 0 || entity.onboarding.fields.length > 0) && (
+            <div className="card-foot">
+              <span className="t-footnote t-3">Follow-up tasks are on your compliance calendar.</span>
+              <button type="button" onClick={() => onNavigate('compliance')} className="btn btn-plain btn-sm">See tasks</button>
+            </div>
+          )}
+        </section>
       )}
-      {/* Left mosaic (2 cols on desktop) */}
-      <div className="grid content-start gap-4 sm:grid-cols-2 lg:col-span-2">
-        {/* Identity card — spans both mosaic columns */}
-        <div className={`${CARD} sm:col-span-2`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-3)' }}>
-                {entity.typeLabel}
-              </p>
-              <h2 className="text-ios-title2 mt-1 break-words" style={{ color: 'var(--system-label)' }}>
-                {entity.name}
-              </h2>
+
+      <div className="grid cols-5 keep gap-4">
+        <div className="span-3 flex flex-col gap-4">
+          <section className="card rise" aria-labelledby="facts-h" style={{ '--d': 5 } as React.CSSProperties}>
+            <div className="card-head">
+              <h2 id="facts-h">Key facts</h2>
+              {entity.profileUrl && (
+                <a href={entity.profileUrl} target="_blank" rel="noopener noreferrer" className="btn btn-tinted btn-sm">
+                  <IconDownload size={15} stroke={1.75} aria-hidden="true" />Entity profile PDF
+                </a>
+              )}
             </div>
-            <StatusPill active={entity.status === 'active'} />
-          </div>
-          <div className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
-            {[
-              ['Registration no.', entity.registrationNumber],
-              ['KRA PIN', entity.kraPin],
-              [entity.typeLabel === 'Sole Proprietorship' || entity.typeLabel === 'Partnership' || entity.typeLabel === 'LLP' ? 'Registered' : 'Incorporated', entity.dateIncorporated ? formatDate(entity.dateIncorporated) : null],
-              [entity.typeLabel === 'Sole Proprietorship' || entity.typeLabel === 'Partnership' ? 'Place of business' : 'Registered office', entity.address],
-            ].filter(([, v]) => v).map(([label, value]) => (
-              <div key={label} className="flex items-baseline justify-between gap-3 sm:flex-col sm:items-start sm:gap-0.5">
-                <span className="text-ios-caption1 shrink-0" style={{ color: 'var(--system-label-3)' }}>{label}</span>
-                <span className="text-ios-footnote min-w-0 text-right font-semibold sm:text-left" style={{ color: 'var(--system-label)' }}>{value}</span>
-              </div>
-            ))}
-          </div>
-          {entity.profileUrl && (
-            <a
-              href={entity.profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ios-footnote mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 font-semibold"
-              style={{ background: 'var(--system-fill-4)', color: 'var(--brand-navy)' }}
-            >
-              <IconDownload size={15} stroke={2.25} /> Entity profile PDF
-            </a>
-          )}
-        </div>
-
-        {/* Documents stat card */}
-        <button type="button" onClick={() => onNavigate('documents')} className={`${CARD} text-left transition-opacity hover:opacity-85`}>
-          <div className="flex items-start justify-between">
-            <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label-2)' }}>Documents</p>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'var(--system-fill-4)' }}>
-              <IconArrowUpRight size={14} stroke={2.25} color="var(--system-label-2)" />
-            </span>
-          </div>
-          <p className="mt-2 text-[34px] font-bold leading-none" style={{ color: 'var(--system-label)' }}>
-            {documents.length}
-          </p>
-          <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>on file in your vault</p>
-        </button>
-
-        {/* People stat card */}
-        <button type="button" onClick={() => onNavigate('people')} className={`${CARD} text-left transition-opacity hover:opacity-85`}>
-          <div className="flex items-start justify-between">
-            <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label-2)' }}>People</p>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'var(--system-fill-4)' }}>
-              <IconArrowUpRight size={14} stroke={2.25} color="var(--system-label-2)" />
-            </span>
-          </div>
-          <p className="mt-2 text-[34px] font-bold leading-none" style={{ color: 'var(--system-label)' }}>
-            {peopleCount}
-          </p>
-          <p className="text-ios-caption1 mt-2" style={{ color: 'var(--system-label-3)' }}>
-            {entity.typeLabel === 'Sole Proprietorship'
-              ? 'Proprietor'
-              : entity.typeLabel === 'Partnership' || entity.typeLabel === 'LLP'
-              ? `${directors.length} partner${directors.length === 1 ? '' : 's'}${entity.typeLabel === 'LLP' ? ' & managers' : ''}`
-              : `${directors.length} director${directors.length === 1 ? '' : 's'} · ${shareholders.length} shareholder${shareholders.length === 1 ? '' : 's'}`}
-          </p>
-        </button>
-
-        {/* Compliance progress card — spans both */}
-        <button type="button" onClick={() => onNavigate('compliance')} className={`${CARD} text-left transition-opacity hover:opacity-85 sm:col-span-2`}>
-          <div className="flex items-start justify-between">
-            <p className="text-ios-footnote font-medium" style={{ color: 'var(--system-label-2)' }}>Compliance</p>
-            <span
-              className="text-ios-caption1 rounded-full px-2.5 py-1 font-semibold"
-              style={overdueCount > 0
-                ? { background: 'rgba(255,59,48,0.12)', color: '#D70015' }
-                : { background: 'rgba(52,199,89,0.14)', color: '#1E9E45' }}
-            >
-              {overdueCount > 0 ? `${overdueCount} overdue` : 'On track'}
-            </span>
-          </div>
-          <p className="mt-2 text-[34px] font-bold leading-none" style={{ color: 'var(--system-label)' }}>
-            {upcoming.length}
-            <span className="text-ios-subhead ml-1.5 font-medium" style={{ color: 'var(--system-label-3)' }}>open items</span>
-          </p>
-          {/* Simple timeline bars */}
-          {upcoming.length > 0 && (
-            <div className="mt-4 flex items-end gap-1.5">
-              {upcoming.slice(0, 12).map((e) => {
-                const d = Math.max(daysLeft(e.dueDate), -30)
-                const h = Math.max(10, Math.min(44, 44 - (d / 400) * 44))
-                return (
-                  <div
-                    key={e.id}
-                    className="w-3 rounded-full"
-                    style={{ height: h, background: isOverdue(e) ? '#D70015' : 'rgba(128,0,32,0.25)' }}
-                    title={`${e.title} · ${formatDate(e.dueDate)}`}
-                  />
-                )
-              })}
-            </div>
-          )}
-        </button>
-      </div>
-
-      {/* Right rail */}
-      <div className="grid content-start gap-4">
-        {entity.status !== 'active' && (
-          <StatusBoard entityId={entity.id} registrationStatus={entity.registrationStatus} canManage={canManageStatus} />
-        )}
-
-        {/* Deadline list */}
-        <div className={CARD}>
-          <h3 className="text-ios-subhead mb-3 font-bold" style={{ color: 'var(--system-label)' }}>Upcoming deadlines</h3>
-          {upcoming.length === 0 ? (
-            <p className="text-ios-footnote" style={{ color: 'var(--system-label-2)' }}>Nothing due. You&apos;re all caught up.</p>
-          ) : (
-            <div className="flex flex-col">
-              {upcoming.slice(0, 4).map((event, i) => (
-                <button
-                  key={event.id}
-                  type="button"
-                  onClick={() => onNavigate('compliance')}
-                  className="flex items-center justify-between gap-3 py-2.5 text-left transition-opacity hover:opacity-70"
-                  style={i < Math.min(upcoming.length, 4) - 1 ? { borderBottom: '1px solid var(--system-fill-4)' } : undefined}
-                >
-                  <div className="min-w-0">
-                    <p className="text-ios-footnote truncate font-medium" style={{ color: 'var(--system-label)' }}>{event.title}</p>
-                    <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{formatDate(event.dueDate)}</p>
+            {facts.length === 0 ? (
+              <p className="t-footnote t-3 px-5 pb-5">Details appear once your registration documents are on file.</p>
+            ) : (
+              <dl className="flex flex-col pb-1.5">
+                {facts.map(([label, value]) => (
+                  <div key={label} className="list-row" style={{ paddingInline: 20, minHeight: 44, alignItems: 'baseline' }}>
+                    <dt className="t-footnote t-3 w-40 shrink-0">{label}</dt>
+                    <dd className="t-subhead min-w-0 break-words" style={{ color: 'var(--label)' }}>{value}</dd>
                   </div>
-                  <EventBadge event={event} />
-                </button>
-              ))}
-            </div>
+                ))}
+              </dl>
+            )}
+          </section>
+
+          {entity.status !== 'active' && (
+            <StatusBoard entityId={entity.id} registrationStatus={entity.registrationStatus} canManage={canManageStatus} />
           )}
         </div>
 
-        {/* Dark feature card — next deadline countdown */}
-        <div className="rounded-[24px] p-5" style={{ background: 'var(--brand-navy)' }}>
-          {nextEvent ? (
-            <>
-              <p className="text-ios-caption1 font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>Next deadline</p>
-              <p className="mt-2 text-[40px] font-bold leading-none text-white">
-                {Math.max(daysLeft(nextEvent.dueDate), 0)}
-                <span className="text-ios-subhead ml-1.5 font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>days</span>
-              </p>
-              <p className="text-ios-footnote mt-3 font-medium text-white">{nextEvent.title}</p>
-              <p className="text-ios-caption1 mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>{formatDate(nextEvent.dueDate)}</p>
-              <button
-                type="button"
-                onClick={() => onNavigate('compliance')}
-                className="mt-4 w-full rounded-full bg-white py-2.5 text-sm font-bold transition-opacity hover:opacity-90"
-                style={{ color: 'var(--brand-navy)' }}
-              >
-                View calendar
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-ios-caption1 font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>Compliance</p>
-              <p className="mt-2 text-[28px] font-bold leading-tight text-white">All clear</p>
-              <p className="text-ios-footnote mt-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                No deadlines on the calendar yet.
-              </p>
-            </>
-          )}
+        <div className="span-2 flex flex-col gap-4">
+          <section className="card card-pad rise flex flex-col gap-2" aria-labelledby="next-h" style={{ '--d': 6 } as React.CSSProperties}>
+            <p id="next-h" className="t-eyebrow">Next deadline</p>
+            {nextEvent ? (
+              <>
+                <p className="t-stat" style={isOverdue(nextEvent) ? { color: 'var(--bad)' } : undefined}>
+                  {isOverdue(nextEvent) ? `${Math.abs(daysLeft(nextEvent.dueDate))} days late` : `${Math.max(daysLeft(nextEvent.dueDate), 0)} days`}
+                </p>
+                <p className="t-subhead" style={{ color: 'var(--label)' }}>{nextEvent.title}</p>
+                <p className="t-footnote t-3">{formatDate(nextEvent.dueDate)}</p>
+              </>
+            ) : (
+              <>
+                <p className="t-stat">All clear</p>
+                <p className="t-footnote t-3">No deadlines on the calendar yet.</p>
+              </>
+            )}
+          </section>
+
+          <section className="card rise" aria-labelledby="dl-h" style={{ '--d': 7 } as React.CSSProperties}>
+            <div className="card-head"><h2 id="dl-h">Upcoming</h2></div>
+            {upcoming.length === 0 ? (
+              <p className="t-footnote t-3 px-5 pb-5">Nothing due. You&rsquo;re all caught up.</p>
+            ) : (
+              <div className="flex flex-col pb-1.5">
+                {upcoming.slice(0, 4).map((event) => (
+                  <EventRow key={event.id} event={event} onClick={() => onNavigate('compliance')} />
+                ))}
+              </div>
+            )}
+            {upcoming.length > 4 && (
+              <div className="card-foot">
+                <span className="t-footnote t-3 t-num">{upcoming.length - 4} more</span>
+                <button type="button" onClick={() => onNavigate('compliance')} className="btn btn-plain btn-sm">View calendar</button>
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </div>
@@ -490,41 +410,34 @@ function OverviewTab({ entity, events, documents, directors, shareholders, canMa
 // ------------------------------------------------------------------
 function ComplianceTab({ events }: { events: WorkspaceEvent[] }) {
   if (events.length === 0) {
-    return (
-      <div className={`${CARD} py-10 text-center`}>
-        <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>No compliance events yet</p>
-        <p className="text-ios-footnote mt-1" style={{ color: 'var(--system-label-2)' }}>Deadlines appear here once your entity is active.</p>
-      </div>
-    )
+    return <EmptyCard title="No compliance events yet" body="Deadlines appear here once your entity is active." />
   }
+  const open = events.filter((e) => e.status !== 'complete')
+  const done = events.filter((e) => e.status === 'complete')
   return (
-    <div className="grid content-start gap-3 lg:grid-cols-2">
-      {events.map((event) => (
-        <div key={event.id} className={CARD}>
-          <div className="mb-1 flex items-start justify-between gap-3">
-            <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>{event.title}</p>
-            <EventBadge event={event} />
-          </div>
-          {event.description && (
-            <p className="text-ios-footnote mb-1.5" style={{ color: 'var(--system-label-2)' }}>{event.description}</p>
-          )}
-          <p className="text-ios-caption1 font-medium" style={{ color: isOverdue(event) ? '#D70015' : 'var(--system-label-3)' }}>
-            {formatDate(event.dueDate)} · {daysUntil(event.dueDate)}
-          </p>
+    <div className="flex flex-col gap-4">
+      <section className="card" aria-labelledby="open-h">
+        <div className="card-head">
+          <h2 id="open-h">Open</h2>
+          <span className="t-footnote t-3">You file on eCitizen or iTax; LexReg tracks the dates.</span>
         </div>
-      ))}
+        {open.length === 0
+          ? <p className="t-footnote t-3 px-5 pb-5">Nothing open.</p>
+          : <div className="flex flex-col pb-1.5">{open.map((e) => <EventRow key={e.id} event={e} />)}</div>}
+      </section>
+      {done.length > 0 && (
+        <section className="card" aria-labelledby="done-h">
+          <div className="card-head"><h2 id="done-h">Done</h2></div>
+          <div className="flex flex-col pb-1.5">{done.map((e) => <EventRow key={e.id} event={e} />)}</div>
+        </section>
+      )}
     </div>
   )
 }
 
 function DocumentsTab({ documents }: { documents: WorkspaceDocument[] }) {
   if (documents.length === 0) {
-    return (
-      <div className={`${CARD} py-10 text-center`}>
-        <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>No documents on file</p>
-        <p className="text-ios-footnote mt-1" style={{ color: 'var(--system-label-2)' }}>Documents you upload during onboarding and services live here.</p>
-      </div>
-    )
+    return <EmptyCard title="No documents on file" body="Documents you upload during onboarding and services live here." />
   }
   return (
     <DocumentVaultTree
@@ -578,55 +491,59 @@ function StructureTab({ entity, directors, shareholders, beneficialOwners }: {
   const holderNoun = partnerType ? 'Partners' : soleProp ? 'Proprietor' : clg ? 'Members (guarantee)' : 'Shareholders'
 
   if (holders.length === 0 && officers.length === 0) {
-    return (
-      <div className={`${CARD} py-10 text-center`}>
-        <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>No structure recorded yet</p>
-        <p className="text-ios-footnote mt-1" style={{ color: 'var(--system-label-2)' }}>It appears here once people and holdings are captured.</p>
-      </div>
-    )
+    return <EmptyCard title="No structure recorded yet" body="It appears here once people and holdings are captured." />
   }
 
   const total = shareholders.reduce((sum, s) => sum + s.shares, 0)
   return (
-    <div className="space-y-4">
-      <OwnershipStructure entityName={entity.name} typeLabel={entity.typeLabel} holders={holders} holderNoun={holderNoun} officers={officers} owners={owners} />
+    <div className="flex flex-col gap-4">
+      <section className="card card-pad">
+        <OwnershipStructure entityName={entity.name} typeLabel={entity.typeLabel} holders={holders} holderNoun={holderNoun} officers={officers} owners={owners} />
+      </section>
 
       {!partnerType && !soleProp && !clg && shareholders.length > 0 && (
-        <div className={CARD}>
-          <p className="text-ios-subhead font-semibold mb-2" style={{ color: 'var(--system-label)' }}>Share register</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-ios-footnote">
+        <section className="card" aria-labelledby="reg-h">
+          <div className="card-head"><h2 id="reg-h">Share register</h2></div>
+          <div className="table-wrap">
+            <table className="data-table">
               <thead>
-                <tr style={{ color: 'var(--system-label-3)' }}>
-                  <th className="py-1.5 pr-3 font-medium">Holder</th>
-                  <th className="py-1.5 pr-3 font-medium">Class</th>
-                  <th className="py-1.5 pr-3 font-medium text-right">Shares</th>
-                  <th className="py-1.5 font-medium text-right">%</th>
+                <tr>
+                  <th scope="col">Holder</th>
+                  <th scope="col">Class</th>
+                  <th scope="col" className="num">Shares</th>
+                  <th scope="col" className="num">%</th>
                 </tr>
               </thead>
               <tbody>
                 {shareholders.map((s) => (
-                  <tr key={s.id} className="border-t" style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label)' }}>
-                    <td className="py-2 pr-3">{s.name}{s.isCorporate && <span className="ml-1.5 text-ios-caption2" style={{ color: 'var(--system-label-3)' }}>corporate</span>}{s.isNominee && <span className="ml-1.5 text-ios-caption2" style={{ color: 'var(--system-label-3)' }}>nominee</span>}</td>
-                    <td className="py-2 pr-3">{s.shareClass ?? 'Ordinary'}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{s.shares.toLocaleString()}</td>
-                    <td className="py-2 text-right tabular-nums">{s.percentage != null ? `${s.percentage}%` : '—'}</td>
+                  <tr key={s.id}>
+                    <td>
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {s.name}
+                        {s.isCorporate && <span className="pill pill-info">Corporate</span>}
+                        {s.isNominee && <span className="pill">Nominee</span>}
+                      </span>
+                    </td>
+                    <td>{s.shareClass ?? 'Ordinary'}</td>
+                    <td className="num">{s.shares.toLocaleString()}</td>
+                    <td className="num">{s.percentage != null ? `${s.percentage}%` : '—'}</td>
                   </tr>
                 ))}
-                <tr className="border-t font-semibold" style={{ borderColor: 'var(--system-fill-3)', color: 'var(--system-label)' }}>
-                  <td className="py-2 pr-3" colSpan={2}>Total issued</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{total.toLocaleString()}</td>
-                  <td className="py-2 text-right tabular-nums">100%</td>
+                <tr>
+                  <td colSpan={2} className="t-strong">Total issued</td>
+                  <td className="num t-strong">{total.toLocaleString()}</td>
+                  <td className="num t-strong">100%</td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
       {beneficialOwners.length === 0 && !soleProp && t !== 'Partnership' && (
-        <p className="text-ios-caption1 px-1" style={{ color: 'var(--system-label-3)' }}>
-          No beneficial owners recorded. Shareholders aren’t automatically beneficial owners — add them from onboarding or ask us to review.
-        </p>
+        <div className="note note-info">
+          <IconAlertTriangle size={18} stroke={1.75} aria-hidden="true" />
+          <p>No beneficial owners recorded. Shareholders aren&rsquo;t automatically beneficial owners — add them from onboarding or ask us to review.</p>
+        </div>
       )}
     </div>
   )
@@ -731,6 +648,10 @@ function buildPeople(directors: WorkspacePerson[], shareholders: WorkspaceShareh
   return [...map.values()]
 }
 
+function initialsOf(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('')
+}
+
 function PeopleTab({ directors, shareholders, beneficialOwners, documents }: {
   directors: WorkspacePerson[]
   shareholders: WorkspaceShareholder[]
@@ -740,12 +661,7 @@ function PeopleTab({ directors, shareholders, beneficialOwners, documents }: {
   const [open, setOpen] = useState<string | null>(null)
   const people = buildPeople(directors, shareholders, beneficialOwners)
   if (people.length === 0) {
-    return (
-      <div className={`${CARD} py-10 text-center`}>
-        <p className="text-ios-subhead font-semibold" style={{ color: 'var(--system-label)' }}>No people recorded</p>
-        <p className="text-ios-footnote mt-1" style={{ color: 'var(--system-label-2)' }}>Directors and shareholders appear here after onboarding.</p>
-      </div>
-    )
+    return <EmptyCard title="No people recorded" body="Directors and shareholders appear here after onboarding." />
   }
   const current = people.filter((p) => !p.former)
   const former = people.filter((p) => p.former)
@@ -755,54 +671,60 @@ function PeopleTab({ directors, shareholders, beneficialOwners, documents }: {
     const docs = documents.filter((d) => d.tags?.some((t) => !!t.personId && p.ids.includes(t.personId)))
     const sources = [...new Map(p.sources.filter((x) => x.documentType).map((x) => [`${x.documentType}${x.documentDate}`, x])).values()]
     const missing = ['ID / passport', 'KRA PIN'].filter((l) => !p.isCorporate && !p.details.some(([k]) => k === l))
+    const panelId = `person-${p.key.replace(/[^a-z0-9]/g, '-')}`
     return (
-      <div key={p.key} className={CARD}>
-        <button type="button" className="w-full text-left" onClick={() => setOpen(expanded ? null : p.key)} aria-expanded={expanded}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-ios-subhead font-semibold break-words" style={{ color: 'var(--system-label)' }}>{p.name}</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {[...new Set(p.roles)].map((r) => (
-                  <span key={r} className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }}>{r}</span>
-                ))}
-                {p.isCorporate && <span className="text-ios-caption2 rounded-full px-2 py-0.5 font-semibold" style={{ background: 'rgba(37,99,235,0.10)', color: '#1d4ed8' }}>Corporate</span>}
-              </div>
-            </div>
-            <span className="text-ios-caption1 shrink-0 font-medium" style={{ color: 'var(--system-label-3)' }}>{expanded ? 'Hide' : 'Details'}</span>
-          </div>
-          {!expanded && (
-            <p className="text-ios-caption1 mt-1.5 truncate" style={{ color: 'var(--system-label-3)' }}>
-              {p.details.filter(([l]) => ['KRA PIN', 'Shares', 'Phone', 'Email', 'Profit share'].includes(l)).map(([, v]) => v).join(' · ') || '—'}
-            </p>
-          )}
+      <div key={p.key} className="card" style={p.former ? { opacity: 0.75 } : undefined}>
+        <button type="button" className="flex w-full items-start gap-3 p-4 text-left" onClick={() => setOpen(expanded ? null : p.key)} aria-expanded={expanded} aria-controls={panelId}>
+          <span className={`avatar ${p.isCorporate ? 'avatar-corp' : ''}`} aria-hidden="true">
+            {p.isCorporate ? <IconBuilding size={18} stroke={1.75} /> : initialsOf(p.name)}
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <span className="t-headline break-words">{p.name}</span>
+            <span className="flex flex-wrap gap-1">
+              {[...new Set(p.roles)].map((r) => <span key={r} className="pill pill-brand">{r}</span>)}
+              {p.isCorporate && <span className="pill pill-info">Corporate</span>}
+            </span>
+            {!expanded && (
+              <span className="t-footnote t-3 truncate">
+                {p.details.filter(([l]) => ['KRA PIN', 'Shares', 'Phone', 'Email', 'Profit share'].includes(l)).map(([, v]) => v).join(' · ') || '—'}
+              </span>
+            )}
+          </span>
+          <IconChevronDown size={18} stroke={1.75} aria-hidden="true" className="mt-1 shrink-0 transition-transform" style={{ color: 'var(--label-3)', transform: expanded ? 'rotate(180deg)' : undefined }} />
         </button>
         {expanded && (
-          <div className="mt-3 space-y-3">
-            <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+          <div id={panelId} className="fade flex flex-col gap-3 px-4 pb-4">
+            <dl className="grid cols-2 gap-x-4 gap-y-2">
               {p.details.map(([label, value]) => (
                 <div key={label} className="min-w-0">
-                  <dt className="text-ios-caption2" style={{ color: 'var(--system-label-3)' }}>{label}</dt>
-                  <dd className="text-ios-footnote break-words" style={{ color: 'var(--system-label)' }}>{value}</dd>
+                  <dt className="t-caption t-3">{label}</dt>
+                  <dd className="t-subhead break-words" style={{ color: 'var(--label)' }}>{value}</dd>
                 </div>
               ))}
             </dl>
             {missing.length > 0 && (
-              <p className="text-ios-caption1 rounded-lg px-2 py-1" style={{ background: 'rgba(217,119,6,0.12)', color: '#92400e' }}>
-                Not on file: {missing.join(', ')}
-              </p>
+              <div className="note note-warn">
+                <IconAlertTriangle size={16} stroke={1.75} aria-hidden="true" />
+                <p>Not on file: {missing.join(', ')}</p>
+              </div>
             )}
             {sources.length > 0 && (
-              <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>
-                From: {sources.map((x) => `${DOC_LABEL[x.documentType!] ?? x.documentType}${x.documentDate ? ` (${formatDate(x.documentDate)})` : ''}`).join(' · ')}
-              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="t-footnote t-3">From</span>
+                {sources.map((x) => (
+                  <span key={`${x.documentType}${x.documentDate}`} className="src src-extracted">
+                    {DOC_LABEL[x.documentType!] ?? x.documentType}{x.documentDate ? ` · ${formatDate(x.documentDate)}` : ''}
+                  </span>
+                ))}
+              </div>
             )}
             {docs.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2">
                 {docs.map((d) => (
-                  <a key={d.id} href={d.url ?? undefined} target="_blank" rel="noopener noreferrer"
-                    className="text-ios-caption1 inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 font-medium"
-                    style={{ borderColor: 'var(--system-fill-3)', color: 'var(--brand-navy)' }}>
-                    <IconDownload size={13} /> <span className="truncate">{(d.documentType ?? 'document').replace(/^(director|shareholder|beneficial_owner|corporate)_/, '').replace(/_/g, ' ')}</span>
+                  <a key={d.id} href={d.url ?? undefined} target="_blank" rel="noopener noreferrer" className="file-row" style={{ color: 'var(--label)' }}>
+                    <IconFileText size={18} stroke={1.75} aria-hidden="true" style={{ color: 'var(--label-3)' }} />
+                    <span className="name">{(d.documentType ?? 'document').replace(/^(director|shareholder|beneficial_owner|corporate)_/, '').replace(/_/g, ' ')}</span>
+                    <IconDownload size={16} stroke={1.75} aria-hidden="true" style={{ color: 'var(--tint-text)' }} />
                   </a>
                 ))}
               </div>
@@ -814,12 +736,12 @@ function PeopleTab({ directors, shareholders, beneficialOwners, documents }: {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid content-start gap-3 sm:grid-cols-2">{current.map(card)}</div>
+    <div className="flex flex-col gap-4">
+      <div className="grid cols-2 items-start gap-3">{current.map(card)}</div>
       {former.length > 0 && (
         <>
-          <p className="text-ios-caption1 font-semibold uppercase tracking-wide px-1" style={{ color: 'var(--system-label-3)' }}>Former</p>
-          <div className="grid content-start gap-3 sm:grid-cols-2">{former.map(card)}</div>
+          <p className="t-eyebrow px-1">Former</p>
+          <div className="grid cols-2 items-start gap-3">{former.map(card)}</div>
         </>
       )}
     </div>
@@ -827,9 +749,12 @@ function PeopleTab({ directors, shareholders, beneficialOwners, documents }: {
 }
 
 // ------------------------------------------------------------------
-// Shell — desktop: top pill nav; mobile: floating header + bottom tabs
+// Workspace — app shell, entity header, tabs
 // ------------------------------------------------------------------
 export function EntityWorkspace({
+  userName,
+  userEmail,
+  isSuperAdmin,
   entity,
   events,
   documents,
@@ -838,6 +763,9 @@ export function EntityWorkspace({
   beneficialOwners = [],
   canManageStatus,
 }: {
+  userName: string
+  userEmail: string
+  isSuperAdmin?: boolean
   entity: WorkspaceEntity
   events: WorkspaceEvent[]
   documents: WorkspaceDocument[]
@@ -848,6 +776,7 @@ export function EntityWorkspace({
 }) {
   const [tab, setTab] = useState<TabId>('overview')
   const isActive = entity.status === 'active'
+  const current = TABS.find((t) => t.id === tab)!
 
   const panel = {
     overview: (
@@ -868,88 +797,47 @@ export function EntityWorkspace({
   }[tab]
 
   return (
-    <div className="mx-auto w-full max-w-6xl pb-28 md:pb-10">
-      {/* ---- Desktop top bar: breadcrumb + pill nav ---- */}
-      <header className="hidden items-center justify-between gap-6 px-8 pt-7 md:flex">
-        <Link
-          href="/dashboard"
-          className="text-ios-footnote flex shrink-0 items-center gap-1 font-medium transition-opacity hover:opacity-70"
-          style={{ color: 'var(--system-label-2)' }}
-        >
-          <IconChevronLeft size={15} stroke={2.5} /> All entities
-        </Link>
+    <DashboardShell
+      userName={userName}
+      userEmail={userEmail}
+      isSuperAdmin={isSuperAdmin}
+      title={entity.name}
+      crumbs={
+        <>
+          <Link href="/dashboard">Overview</Link>
+          <span aria-hidden="true">/</span>
+          <span className="truncate">{entity.name}</span>
+          <span aria-hidden="true">/</span>
+          <span className="here">{current.label}</span>
+        </>
+      }
+    >
+      <main className="content">
+        <header className="page-head rise">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="icon-tile icon-tile-lg" aria-hidden="true"><IconBuilding size={22} stroke={1.75} /></span>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <h1 className="t-title1 break-words">{entity.name}</h1>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="pill">{entity.typeLabel}</span>
+                <span className={`pill ${isActive ? 'pill-good' : 'pill-warn'}`}><span className="dot" aria-hidden="true" />{isActive ? 'Active' : 'Pending registration'}</span>
+                {entity.registrationNumber && <span className="t-footnote t-3 t-num">{entity.registrationNumber}</span>}
+              </div>
+            </div>
+          </div>
+        </header>
 
-        <nav className="flex items-center gap-1 rounded-full bg-white p-1">
-          {TABS.map((t) => {
-            const selected = tab === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id)}
-                className="rounded-full px-4 py-2 text-[13px] font-semibold transition-colors"
-                style={selected
-                  ? { background: 'var(--brand-navy)', color: '#FFFFFF' }
-                  : { color: 'var(--system-label-2)' }}
-              >
-                {t.label}
-              </button>
-            )
-          })}
+        <nav className="tabs overflow-x-auto" aria-label="Entity sections">
+          {TABS.map((t) => (
+            <button key={t.id} type="button" onClick={() => setTab(t.id)} className={tab === t.id ? 'is-on' : ''} aria-current={tab === t.id ? 'page' : undefined}>
+              <t.icon size={17} stroke={1.75} aria-hidden="true" />
+              {t.label}
+            </button>
+          ))}
         </nav>
 
-        <StatusPill active={isActive} />
-      </header>
-
-      {/* Desktop greeting row */}
-      <div className="hidden px-8 pt-6 md:block">
-        <p className="text-ios-caption1 font-medium" style={{ color: 'var(--system-label-3)' }}>Entity workspace</p>
-        <h1 className="text-ios-title1 mt-0.5" style={{ color: 'var(--system-label)' }}>{entity.name}</h1>
-      </div>
-
-      {/* ---- Mobile floating header ---- */}
-      <header className="px-4 pt-4 md:hidden">
-        <div className="flex items-center gap-3 rounded-[24px] bg-white p-3">
-          <Link
-            href="/dashboard"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'var(--system-fill-4)', color: 'var(--system-label)' }}
-          >
-            <IconChevronLeft size={19} stroke={2.25} />
-          </Link>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-ios-subhead truncate font-bold" style={{ color: 'var(--system-label)' }}>{entity.name}</h1>
-            <p className="text-ios-caption1" style={{ color: 'var(--system-label-3)' }}>{entity.typeLabel}</p>
-          </div>
-          <StatusPill active={isActive} />
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="px-4 py-5 md:px-8 md:py-6">{panel}</main>
-
-      {/* ---- Mobile bottom tab bar ---- */}
-      <nav
-        className="fixed inset-x-4 bottom-4 z-20 grid grid-cols-5 rounded-[28px] bg-white px-2 py-1.5 shadow-[0_8px_30px_rgba(26,26,46,0.12)] md:hidden"
-      >
-        {TABS.map((t) => {
-          const selected = tab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className="flex flex-col items-center gap-0.5 rounded-[22px] py-2"
-              style={selected
-                ? { background: 'rgba(128,0,32,0.08)', color: 'var(--brand-navy)' }
-                : { color: 'var(--system-label-3)' }}
-            >
-              <t.icon size={22} stroke={selected ? 2.25 : 1.75} />
-              <span className="text-[10.5px] font-semibold">{t.label}</span>
-            </button>
-          )
-        })}
-      </nav>
-    </div>
+        <div key={tab} className="fade">{panel}</div>
+      </main>
+    </DashboardShell>
   )
 }

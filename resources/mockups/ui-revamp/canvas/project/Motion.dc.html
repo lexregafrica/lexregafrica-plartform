@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motion — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+@keyframes mo-run { from { transform: none; } to { transform: translateX(calc(100cqi - 14px)); } }
+@container lx (max-width: 720px) { .btn-icon.btn-sm { width: 44px; height: 44px; } }
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+  <header class="container" style="padding-top: 16px">
+    <nav class="nav-float glass" aria-label="Design system">
+      <a class="row gap-2" href="Main.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 28px; height: 28px"><span class="t-headline">LexReg</span></a>
+      <span class="pill pill-brand hide-compact">Design system v2</span>
+      <span class="grow"></span>
+      <a class="nav-link" href="Main.dc.html"><span class="ic ic-layout-dashboard ic-sm" aria-hidden="true" style="margin-right: 6px"></span>All boards</a>
+    </nav>
+  </header>
+
+  <main class="container stack gap-6" style="padding-top: 40px; padding-bottom: 96px">
+    <header class="stack gap-3 rise">
+      <p class="t-eyebrow">Motion · interaction spec</p>
+      <h1 class="t-hero t-balance">Motion and interaction</h1>
+      <p class="t-body t-2 t-pretty" style="max-width: 680px">Five timing tokens and eight rules. Motion in LexReg confirms what you did and shows where things went, then gets out of the way. Every demo below is live in Play and uses the same CSS variables as the product.</p>
+    </header>
+
+    <nav class="tabs" aria-label="Design system boards">
+      <a href="Foundations.dc.html">Foundations</a>
+      <a href="Components.dc.html">Components</a>
+      <a class="is-on" href="Motion.dc.html" aria-current="page">Motion</a>
+    </nav>
+
+    <!-- Spec table -->
+    <section class="card card-lg rise" style="--d: 1" aria-labelledby="h-spec">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">01</p>
+          <h2 id="h-spec" class="t-title2">Timing tokens</h2>
+          <p class="t-callout t-2 t-pretty">Springs are described the Apple way, by damping and response, then sampled into a CSS <span class="t-mono">linear()</span> curve. Each plot shows progress across that token’s own duration, so the three spring tokens share one shape; the dashed line is the end value. Only bounce crosses it.</p>
+        </header>
+        <div class="table-wrap well" style="padding: 0">
+          <table class="table">
+            <thead><tr><th>Token</th><th>Damping · response</th><th class="num">Duration</th><th>Curve</th><th>Use for</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><p class="t-headline">Spring</p><p class="t-mono t-caption t-3" style="white-space: nowrap">--ease-spring · --dur-spring</p></td>
+                <td class="t-num">1.0 · 0.35</td>
+                <td class="num"><span class="t-headline">470ms</span></td>
+                <td><div class="row" style="position: relative; align-items: flex-end; gap: 2px; width: 168px; height: 48px; border-bottom: 1px solid var(--sep)" aria-hidden="true"><span style="position: absolute; left: 0; right: 0; bottom: 90.9%; border-top: 1px dashed var(--sep)"></span><span style="flex: 1 1 0; height: 0.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 6.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 18.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 32.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 45.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 56.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 65.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 72.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 77.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 81.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 84.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 86.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 87.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 88.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 89.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 89.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.1%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.6%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span></div></td>
+                <td class="t-callout t-2" style="min-width: 220px">Cards, wizard steps, panels, sheets opening</td>
+              </tr>
+              <tr>
+                <td><p class="t-headline">Snappy</p><p class="t-mono t-caption t-3" style="white-space: nowrap">--ease-spring · --dur-snappy</p></td>
+                <td class="t-num">1.0 · 0.25</td>
+                <td class="num"><span class="t-headline">340ms</span></td>
+                <td><div class="row" style="position: relative; align-items: flex-end; gap: 2px; width: 168px; height: 48px; border-bottom: 1px solid var(--sep)" aria-hidden="true"><span style="position: absolute; left: 0; right: 0; bottom: 90.9%; border-top: 1px dashed var(--sep)"></span><span style="flex: 1 1 0; height: 0.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 6.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 18.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 32.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 45.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 56.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 65.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 72.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 77.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 81.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 84.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 86.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 87.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 88.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 89.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 89.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.1%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.6%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span></div></td>
+                <td class="t-callout t-2">Toggles, tabs, segmented thumb, chips, popovers, dialogs</td>
+              </tr>
+              <tr>
+                <td><p class="t-headline">Gentle</p><p class="t-mono t-caption t-3" style="white-space: nowrap">--ease-spring · --dur-gentle</p></td>
+                <td class="t-num">1.0 · 0.5</td>
+                <td class="num"><span class="t-headline">670ms</span></td>
+                <td><div class="row" style="position: relative; align-items: flex-end; gap: 2px; width: 168px; height: 48px; border-bottom: 1px solid var(--sep)" aria-hidden="true"><span style="position: absolute; left: 0; right: 0; bottom: 90.9%; border-top: 1px dashed var(--sep)"></span><span style="flex: 1 1 0; height: 0.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 6.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 18.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 32.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 45.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 56.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 65.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 72.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 77.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 81.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 84.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 86.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 87.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 88.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 89.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 89.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.1%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.6%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span></div></td>
+                <td class="t-callout t-2">Page-level changes, progress bars, rings, charts</td>
+              </tr>
+              <tr>
+                <td><p class="t-headline">Bounce</p><p class="t-mono t-caption t-3" style="white-space: nowrap">--ease-bounce · --dur-bounce</p></td>
+                <td class="t-num">0.8 · 0.3</td>
+                <td class="num"><span class="t-headline">380ms</span></td>
+                <td><div class="row" style="position: relative; align-items: flex-end; gap: 2px; width: 168px; height: 48px; border-bottom: 1px solid var(--sep)" aria-hidden="true"><span style="position: absolute; left: 0; right: 0; bottom: 90.9%; border-top: 1px dashed var(--sep)"></span><span style="flex: 1 1 0; height: 0.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 3.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 11.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 21.1%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 32.1%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 42.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 52.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 61.6%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 69.1%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 75.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 80.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 84.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 86.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 88.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 92.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 92.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 92.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 92.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 92.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 91.2%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span></div></td>
+                <td class="t-callout t-2">Only after momentum: a flicked sheet, a toast dropping in</td>
+              </tr>
+              <tr>
+                <td><p class="t-headline">Press</p><p class="t-mono t-caption t-3" style="white-space: nowrap">--ease-out · --dur-press</p></td>
+                <td class="t-num">ease-out</td>
+                <td class="num"><span class="t-headline">110ms</span></td>
+                <td><div class="row" style="position: relative; align-items: flex-end; gap: 2px; width: 168px; height: 48px; border-bottom: 1px solid var(--sep)" aria-hidden="true"><span style="position: absolute; left: 0; right: 0; bottom: 90.9%; border-top: 1px dashed var(--sep)"></span><span style="flex: 1 1 0; height: 0.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 19.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 36.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 50.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 61.3%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 69.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 75.6%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 80.1%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 83.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 85.7%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 87.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 88.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 89.5%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.0%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.4%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.6%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.8%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span><span style="flex: 1 1 0; height: 90.9%; border-top: 2px solid var(--tint); background: var(--brand-50); border-radius: 1px"></span></div></td>
+                <td class="t-callout t-2">Press feedback: scale to 0.97 on pointer-down</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid cols-2">
+          <div class="inset stack gap-1">
+            <p class="t-caption t-3">--ease-spring (critically damped)</p>
+            <p class="t-mono t-footnote t-2" style="word-break: break-all">linear(0, 0.068, 0.208, 0.362, 0.504, 0.624, 0.72, 0.795, 0.851, 0.893, 0.924, 0.946, 0.962, 0.973, 0.981, 0.987, 0.991, 0.994, 0.996, 0.997, 1)</p>
+          </div>
+          <div class="inset stack gap-1">
+            <p class="t-caption t-3">--ease-bounce (damping 0.8, peaks at 1.015)</p>
+            <p class="t-mono t-footnote t-2" style="word-break: break-all">linear(0, 0.035, 0.121, 0.232, 0.353, 0.471, 0.581, 0.678, 0.76, 0.828, 0.882, 0.924, 0.955, 0.978, 0.994, 1.004, 1.011, 1.014, 1.015, 1.015, 1.014, 1.012, 1.01, 1.009, 1.007, 1.005, 1.004, 1.003, 1)</p>
+          </div>
+        </div>
+        <div class="note note-info"><span class="ic ic-info-circle" aria-hidden="true"></span><span><strong>Transform and opacity only.</strong> Every token animates composited properties, so motion stays smooth while the page loads documents or runs OCR.</span></div>
+      </div>
+    </section>
+
+    <!-- Race -->
+    <section class="card card-lg rise" style="--d: 2" aria-labelledby="h-race">
+      <div class="card-pad stack gap-4">
+        <div class="row between wrap gap-3">
+          <header class="stack gap-1" style="min-width: 0">
+            <p class="t-eyebrow">02</p>
+            <h2 id="h-race" class="t-title2">Same distance, five tokens</h2>
+          </header>
+          <button class="btn btn-tinted btn-sm" type="button" onClick="{{replayRace}}"><span class="ic ic-rotate-clockwise" aria-hidden="true"></span>Run again</button>
+        </div>
+        <div class="stack gap-3">
+          <div class="row gap-3">
+            <span class="t-subhead" style="flex: none; width: 64px">Press</span>
+            <div style="position: relative; flex: 1 1 0; min-width: 0; height: 14px; border-radius: 999px; background: var(--fill-3); container-type: inline-size">
+              <sc-if value="{{raceOn}}" hint-placeholder-val="{{true}}"><span style="position: absolute; left: 1px; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--tint); animation: mo-run var(--dur-press) var(--ease-out) both"></span></sc-if>
+            </div>
+            <span class="t-caption t-3 t-num" style="flex: none; width: 44px; text-align: right">110ms</span>
+          </div>
+          <div class="row gap-3">
+            <span class="t-subhead" style="flex: none; width: 64px">Snappy</span>
+            <div style="position: relative; flex: 1 1 0; min-width: 0; height: 14px; border-radius: 999px; background: var(--fill-3); container-type: inline-size">
+              <sc-if value="{{raceOn}}" hint-placeholder-val="{{true}}"><span style="position: absolute; left: 1px; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--tint); animation: mo-run var(--dur-snappy) var(--ease-spring) both"></span></sc-if>
+            </div>
+            <span class="t-caption t-3 t-num" style="flex: none; width: 44px; text-align: right">340ms</span>
+          </div>
+          <div class="row gap-3">
+            <span class="t-subhead" style="flex: none; width: 64px">Bounce</span>
+            <div style="position: relative; flex: 1 1 0; min-width: 0; height: 14px; border-radius: 999px; background: var(--fill-3); container-type: inline-size">
+              <sc-if value="{{raceOn}}" hint-placeholder-val="{{true}}"><span style="position: absolute; left: 1px; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--tint); animation: mo-run var(--dur-bounce) var(--ease-bounce) both"></span></sc-if>
+            </div>
+            <span class="t-caption t-3 t-num" style="flex: none; width: 44px; text-align: right">380ms</span>
+          </div>
+          <div class="row gap-3">
+            <span class="t-subhead" style="flex: none; width: 64px">Spring</span>
+            <div style="position: relative; flex: 1 1 0; min-width: 0; height: 14px; border-radius: 999px; background: var(--fill-3); container-type: inline-size">
+              <sc-if value="{{raceOn}}" hint-placeholder-val="{{true}}"><span style="position: absolute; left: 1px; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--tint); animation: mo-run var(--dur-spring) var(--ease-spring) both"></span></sc-if>
+            </div>
+            <span class="t-caption t-3 t-num" style="flex: none; width: 44px; text-align: right">470ms</span>
+          </div>
+          <div class="row gap-3">
+            <span class="t-subhead" style="flex: none; width: 64px">Gentle</span>
+            <div style="position: relative; flex: 1 1 0; min-width: 0; height: 14px; border-radius: 999px; background: var(--fill-3); container-type: inline-size">
+              <sc-if value="{{raceOn}}" hint-placeholder-val="{{true}}"><span style="position: absolute; left: 1px; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--tint); animation: mo-run var(--dur-gentle) var(--ease-spring) both"></span></sc-if>
+            </div>
+            <span class="t-caption t-3 t-num" style="flex: none; width: 44px; text-align: right">670ms</span>
+          </div>
+        </div>
+        <p class="t-footnote t-3 t-pretty">Critically damped springs arrive without overshoot. Only bounce passes the end and settles back, which is why it is reserved for things that were thrown.</p>
+      </div>
+    </section>
+
+    <!-- Live demos -->
+    <div class="stack gap-2 rise" style="--d: 3">
+      <p class="t-eyebrow">03</p>
+      <h2 class="t-title2">Live demos</h2>
+    </div>
+    <div class="grid cols-2" style="gap: 20px; align-items: start">
+
+      <!-- Press -->
+      <section class="card card-lg" aria-labelledby="h-press">
+        <div class="card-pad stack gap-4">
+          <div class="row between wrap gap-2"><h3 id="h-press" class="t-title3">Press feedback</h3><span class="pill t-num">110ms · ease-out</span></div>
+          <p class="t-callout t-2 t-pretty">Hold the pointer down: buttons shrink to 0.97 and cards to 0.985 before you let go. The action itself fires on release.</p>
+          <div class="stack gap-3" style="padding: 18px; border-radius: var(--r-lg); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)">
+            <div class="row gap-2 wrap">
+              <button class="btn btn-secondary btn-lg" type="button" onClick="{{press}}"><span class="ic ic-upload" aria-hidden="true"></span>Upload CR12</button>
+              <button class="btn btn-gray btn-lg btn-icon" type="button" aria-label="More actions" onClick="{{press}}" style="width: auto; aspect-ratio: 1"><span class="ic ic-dots" aria-hidden="true"></span></button>
+            </div>
+            <button class="card card-interactive row gap-3" type="button" onClick="{{press}}" style="padding: 12px 14px; text-align: left; width: 100%">
+              <span class="icon-tile"><span class="ic ic-building" aria-hidden="true"></span></span>
+              <span class="stack grow" style="min-width: 0"><span class="t-headline truncate">Amani Logistics Limited</span><span class="t-footnote t-3 truncate">Private limited company · Health 82%</span></span>
+              <span class="ic ic-chevron-right" aria-hidden="true" style="color: var(--label-4)"></span>
+            </button>
+          </div>
+          <p class="t-footnote t-3 t-num" role="status">{{pressLabel}}</p>
+        </div>
+      </section>
+
+      <!-- Toggle + segmented -->
+      <section class="card card-lg" aria-labelledby="h-toggle">
+        <div class="card-pad stack gap-4">
+          <div class="row between wrap gap-2"><h3 id="h-toggle" class="t-title3">Toggle and segmented thumb</h3><span class="pill t-num">340ms · snappy</span></div>
+          <p class="t-callout t-2 t-pretty">Tap twice quickly: the knob reverses from where it is instead of finishing first. The segmented thumb slides on the same spring through <span class="t-mono">--i</span>.</p>
+          <div class="stack gap-4" style="padding: 18px; border-radius: var(--r-lg); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)">
+            <div class="list">
+              <button class="list-row is-link" type="button" role="switch" aria-checked="{{tgChecked}}" onClick="{{flipTg}}">
+                <span class="grow" style="min-width: 0"><span class="list-title" style="display: block">WhatsApp reminders</span><span class="list-sub truncate" style="display: block">+254 712 345 678 · {{tgLabel}}</span></span>
+                <span class="toggle {{tgCls}}" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="seg" style="--n: 3; --i: {{seg}}" role="tablist" aria-label="Compliance view">
+              <button class="{{segCls0}}" type="button" role="tab" aria-selected="{{segSel0}}" onClick="{{seg0}}">List</button>
+              <button class="{{segCls1}}" type="button" role="tab" aria-selected="{{segSel1}}" onClick="{{seg1}}">Calendar</button>
+              <button class="{{segCls2}}" type="button" role="tab" aria-selected="{{segSel2}}" onClick="{{seg2}}">Timeline</button>
+            </div>
+            <p class="t-footnote t-3">Showing compliance as a {{segLabel}}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sheet -->
+      <section class="card card-lg" aria-labelledby="h-sheet">
+        <div class="card-pad stack gap-4">
+          <div class="row between wrap gap-2"><h3 id="h-sheet" class="t-title3">Sheet from its trigger</h3><span class="pill t-num">470ms · spring</span></div>
+          <p class="t-callout t-2 t-pretty">The sheet materialises from the button that opened it and leaves along the same path, shrinking back toward it.</p>
+          <div style="position: relative; overflow: hidden; min-height: 330px; border-radius: var(--r-lg); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)">
+            <div class="stack gap-3" style="padding: 16px">
+              <div class="card row gap-3" style="padding: 12px 14px">
+                <span class="icon-tile"><span class="ic ic-gavel" aria-hidden="true"></span></span>
+                <div class="grow" style="min-width: 0"><p class="t-subhead truncate">Legal audit</p><p class="t-caption t-3 truncate">Amani Logistics Limited · KES 25,000</p></div>
+                <button class="btn btn-tinted btn-sm btn-pill" type="button" aria-expanded="{{sheetExpanded}}" onClick="{{openSheet}}"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</button>
+              </div>
+              <span class="skeleton" style="display: block; height: 52px; border-radius: var(--r-card)" aria-hidden="true"></span>
+              <span class="skeleton" style="display: block; height: 52px; border-radius: var(--r-card); width: 82%" aria-hidden="true"></span>
+            </div>
+            <sc-if value="{{sheetOpen}}" hint-placeholder-val="{{false}}">
+              <div class="scrim" aria-hidden="true"></div>
+              <div class="sheet" role="dialog" aria-labelledby="mo-sheet-t" style="position: absolute; left: 10px; right: 10px; bottom: 10px; --origin: 86% -40px">
+                <div class="sheet-grabber" aria-hidden="true"></div>
+                <div class="stack gap-3" style="padding: 10px 18px 18px">
+                  <div class="row between gap-2"><p id="mo-sheet-t" class="t-title3">Ask a lawyer</p><button class="btn btn-gray btn-icon btn-sm btn-pill" type="button" aria-label="Close" onClick="{{closeSheet}}"><span class="ic ic-x" aria-hidden="true"></span></button></div>
+                  <div class="field"><label class="label" for="mo-q">What do you need help with?</label><textarea class="textarea" id="mo-q" style="min-height: 72px" placeholder="e.g. Prepare notice of our annual general meeting"></textarea></div>
+                  <div class="row gap-2" style="justify-content: flex-end"><button class="btn btn-gray" type="button" onClick="{{closeSheet}}">Cancel</button><button class="btn btn-primary" type="button" onClick="{{closeSheet}}">Send request</button></div>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{sheetClosing}}" hint-placeholder-val="{{false}}">
+              <div class="scrim" aria-hidden="true" style="animation: fade-in var(--dur-snappy) var(--ease-out) reverse both"></div>
+              <div class="sheet" aria-hidden="true" style="position: absolute; left: 10px; right: 10px; bottom: 10px; --origin: 86% -40px; animation: materialize var(--dur-snappy) var(--ease-out) reverse both">
+                <div class="sheet-grabber"></div>
+                <div class="stack gap-3" style="padding: 10px 18px 18px">
+                  <div class="row between gap-2"><p class="t-title3">Ask a lawyer</p><span class="btn btn-gray btn-icon btn-sm btn-pill"><span class="ic ic-x"></span></span></div>
+                  <div class="field"><span class="label">What do you need help with?</span><span class="textarea" style="display: block; min-height: 72px"></span></div>
+                  <div class="row gap-2" style="justify-content: flex-end"><span class="btn btn-gray">Cancel</span><span class="btn btn-primary">Send request</span></div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <p class="t-footnote t-3">Open, then close with Cancel, Send or the close button. {{sheetLabel}}</p>
+        </div>
+      </section>
+
+      <!-- Wizard -->
+      <section class="card card-lg" aria-labelledby="h-wizard">
+        <div class="card-pad stack gap-4">
+          <div class="row between wrap gap-2"><h3 id="h-wizard" class="t-title3">Wizard step, forward and back</h3><span class="pill t-num">470ms · spring</span></div>
+          <p class="t-callout t-2 t-pretty">Spatial consistency: Continue brings the next step in from the right, Back brings the previous one in from the left. Step progress animates from its current value.</p>
+          <div class="stack gap-4" style="padding: 18px; overflow: hidden; border-radius: var(--r-lg); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)">
+            <div class="row between gap-2"><span class="t-caption t-3 t-num">Step {{step}} of 7</span><span class="t-caption t-3 truncate">{{dirLabel}}</span></div>
+            <div class="row gap-1" aria-hidden="true">
+              <sc-for list="{{stepDots}}" as="d" hint-placeholder-count="7"><span style="flex: 1 1 0; height: 4px; border-radius: 2px; background: {{d.bg}}; transition: background-color var(--dur-snappy) var(--ease-out)"></span></sc-for>
+            </div>
+            <div style="min-height: 150px">
+              <sc-if value="{{stepA}}" hint-placeholder-val="{{true}}">
+                <div class="card card-pad stack gap-2 {{stepCls}}">
+                  <p class="t-eyebrow">Onboard an existing entity</p>
+                  <p class="t-title2">{{stepTitle}}</p>
+                  <p class="t-callout t-2 t-pretty">{{stepSub}}</p>
+                </div>
+              </sc-if>
+              <sc-if value="{{stepB}}" hint-placeholder-val="{{false}}">
+                <div class="card card-pad stack gap-2 {{stepCls}}">
+                  <p class="t-eyebrow">Onboard an existing entity</p>
+                  <p class="t-title2">{{stepTitle}}</p>
+                  <p class="t-callout t-2 t-pretty">{{stepSub}}</p>
+                </div>
+              </sc-if>
+            </div>
+            <div class="row gap-2">
+              <button class="btn btn-gray {{backCls}}" type="button" aria-disabled="{{backDisabled}}" onClick="{{goBack}}"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</button>
+              <span class="grow"></span>
+              <button class="btn btn-primary {{nextCls}}" type="button" aria-disabled="{{nextDisabled}}" onClick="{{goNext}}">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- List stagger -->
+      <section class="card card-lg" aria-labelledby="h-list">
+        <div class="card-pad stack gap-4">
+          <div class="row between wrap gap-3">
+            <h3 id="h-list" class="t-title3">List stagger entrance</h3>
+            <button class="btn btn-tinted btn-sm" type="button" onClick="{{replayList}}"><span class="ic ic-rotate-clockwise" aria-hidden="true"></span>Replay</button>
+          </div>
+          <p class="t-callout t-2 t-pretty">Rows rise 10px and fade in, 40ms apart, at most eight steps. The list is usable the moment the first row lands.</p>
+          <div style="min-height: 330px">
+            <sc-if value="{{listOn}}" hint-placeholder-val="{{true}}">
+              <div class="list">
+                <div class="list-row has-icon rise" style="--d: 0"><span class="icon-tile warn"><span class="ic ic-file-upload" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Upload signed BOF-1</p><p class="list-sub truncate">Amani Logistics Limited · task</p></div><span class="pill pill-warn">To do</span></div>
+                <div class="list-row has-icon rise" style="--d: 1"><span class="icon-tile warn"><span class="ic ic-alert-triangle" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Confirm Brian Otieno’s KRA PIN</p><p class="list-sub truncate">CR12 and KRA certificate differ</p></div><span class="pill pill-warn">Review</span></div>
+                <div class="list-row has-icon rise" style="--d: 2"><span class="icon-tile"><span class="ic ic-license" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Nairobi County business permit</p><p class="list-sub truncate">Amani Logistics Limited</p></div><span class="pill t-num">31 Mar 2027</span></div>
+                <div class="list-row has-icon rise" style="--d: 3"><span class="icon-tile"><span class="ic ic-calendar-due" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Annual return</p><p class="list-sub truncate">File on eCitizen, then upload the receipt</p></div><span class="pill t-num">13 Apr 2027</span></div>
+                <div class="list-row has-icon rise" style="--d: 4"><span class="icon-tile info"><span class="ic ic-receipt" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">KRA corporate tax return</p><p class="list-sub truncate">Amani Logistics Limited · iTax</p></div><span class="pill">Upcoming</span></div>
+                <div class="list-row has-icon rise" style="--d: 5"><span class="icon-tile gray"><span class="ic ic-heart-handshake" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Tumaini Welfare Society</p><p class="list-sub truncate">Onboarding in progress</p></div><span class="pill pill-brand t-num">60%</span></div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </section>
+
+      <!-- Toast -->
+      <section class="card card-lg" aria-labelledby="h-toast">
+        <div class="card-pad stack gap-4">
+          <div class="row between wrap gap-2"><h3 id="h-toast" class="t-title3">Toast drop-in</h3><span class="pill t-num">380ms · bounce</span></div>
+          <p class="t-callout t-2 t-pretty">A toast is thrown in from the top, so it may use bounce. It holds for 2.6 seconds, never takes focus, and leaves the way it came.</p>
+          <div class="stack gap-4" style="align-items: center; padding: 20px 16px; border-radius: var(--r-lg); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)">
+            <div class="row" style="justify-content: center; height: 48px; max-width: 100%">
+              <sc-if value="{{toastIn}}" hint-placeholder-val="{{true}}">
+                <div class="toast" role="status"><span class="ic ic-cloud-check" aria-hidden="true" style="color: var(--sys-green)"></span>Draft saved · just now</div>
+              </sc-if>
+              <sc-if value="{{toastOut}}" hint-placeholder-val="{{false}}">
+                <div class="toast" aria-hidden="true" style="animation: drop-in var(--dur-snappy) var(--ease-out) reverse both"><span class="ic ic-cloud-check" style="color: var(--sys-green)"></span>Draft saved · just now</div>
+              </sc-if>
+            </div>
+            <div class="card stack gap-2" style="width: 100%; padding: 14px">
+              <p class="t-subhead">Jua Kali Foods Ltd · Shareholders and members</p>
+              <span class="skeleton" style="display: block; height: 10px; width: 70%" aria-hidden="true"></span>
+              <span class="skeleton" style="display: block; height: 10px; width: 50%" aria-hidden="true"></span>
+            </div>
+            <button class="btn btn-tinted" type="button" onClick="{{showToast}}"><span class="ic ic-cloud-check" aria-hidden="true"></span>Save draft</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reading -->
+      <section class="card card-lg span-2" aria-labelledby="h-scan">
+        <div class="card-pad stack gap-4">
+          <div class="row between wrap gap-3">
+            <div class="row gap-2 wrap"><h3 id="h-scan" class="t-title3">Reading a document</h3><span class="pill t-num">1.8s scan · real progress only</span></div>
+            <button class="btn btn-tinted btn-sm" type="button" onClick="{{startScan}}"><span class="ic ic-scan" aria-hidden="true"></span>{{scanBtn}}</button>
+          </div>
+          <p class="t-callout t-2 t-pretty" style="max-width: 760px">The scan line and shimmer are the only motion allowed to loop, because they stand for real work. They stop the moment the CR12 is read, and the extracted fields rise in with their source.</p>
+          <div class="row gap-6 wrap" style="align-items: flex-start; padding: 20px; border-radius: var(--r-lg); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--sep)">
+            <div class="{{docCls}} stack gap-2" style="flex: none; width: 120px; height: 156px; padding: 14px 12px; border-radius: 8px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--sep), var(--shadow-card)" aria-hidden="true">
+              <span class="skeleton" style="display: block; height: 8px; width: 64%"></span>
+              <span class="skeleton" style="display: block; height: 5px"></span>
+              <span class="skeleton" style="display: block; height: 5px; width: 86%"></span>
+              <span class="skeleton" style="display: block; height: 5px"></span>
+              <span class="skeleton" style="display: block; height: 5px; width: 58%"></span>
+              <span class="skeleton" style="display: block; height: 5px; width: 92%"></span>
+              <span class="skeleton" style="display: block; height: 5px; width: 74%"></span>
+              <span class="t-caption t-3" style="margin-top: auto">CR12</span>
+            </div>
+            <div class="stack gap-3" style="flex: 1 1 280px; min-width: 0">
+              <sc-if value="{{scanReading}}" hint-placeholder-val="{{false}}">
+                <div class="stack gap-3">
+                  <div class="row between gap-2"><p class="t-headline truncate">Reading CR12</p><span class="t-footnote t-3 t-num">Page {{scanPage}} of 3</span></div>
+                  <div class="progress"><span style="width: {{scanPct}}%; transition: width var(--dur-gentle) var(--ease-spring)"></span></div>
+                  <div class="shimmer skeleton" style="height: 48px; border-radius: var(--r-md)"></div>
+                  <div class="shimmer skeleton" style="height: 48px; border-radius: var(--r-md); width: 86%"></div>
+                  <div class="shimmer skeleton" style="height: 48px; border-radius: var(--r-md); width: 70%"></div>
+                  <p class="t-footnote t-3">You can keep working. Nothing on the page is locked while we read.</p>
+                </div>
+              </sc-if>
+              <sc-if value="{{scanDone}}" hint-placeholder-val="{{true}}">
+                <div class="stack gap-2">
+                  <div class="row between gap-2 rise" style="--d: 0; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface); box-shadow: inset 0 0 0 1px var(--info-line)"><div style="min-width: 0"><p class="t-caption t-3">Company name</p><p class="t-subhead truncate">Amani Logistics Limited</p></div><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>CR12</span></div>
+                  <div class="row between gap-2 rise" style="--d: 1; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface); box-shadow: inset 0 0 0 1px var(--info-line)"><div style="min-width: 0"><p class="t-caption t-3">Registration number</p><p class="t-subhead t-mono truncate">PVT-2LU7Q9XB</p></div><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>CR12</span></div>
+                  <div class="row between gap-2 rise" style="--d: 2; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface); box-shadow: inset 0 0 0 1px var(--info-line)"><div style="min-width: 0"><p class="t-caption t-3">Directors</p><p class="t-subhead truncate">Wanjiku Mwangi, Brian Otieno</p></div><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>CR12</span></div>
+                  <div class="note note-good rise" style="--d: 3"><span class="ic ic-circle-check" aria-hidden="true"></span><span><strong>CR12 read.</strong> Three fields pre-filled from the CR12 alone, so each is marked extracted. Check them before you continue.</span></div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Rules -->
+    <section class="card card-lg" aria-labelledby="h-rules">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <p class="t-eyebrow">04</p>
+          <h2 id="h-rules" class="t-title2">Rules</h2>
+          <p class="t-callout t-2">Every animation in LexReg passes all eight.</p>
+        </header>
+        <div class="grid cols-2" style="align-items: start">
+          <div class="list">
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile"><span class="ic ic-point" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">Respond on press</p><p class="list-sub t-pretty">Feedback starts on pointer-down within 110ms. The action commits on release.</p></div></div>
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile"><span class="ic ic-activity" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">Never block input during transitions</p><p class="list-sub t-pretty">No control is disabled while something moves. A tap mid-animation retargets it.</p></div></div>
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile"><span class="ic ic-timeline" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">Animate from the current value</p><p class="list-sub t-pretty">Interrupted motion continues from where it is. It never snaps back to the start.</p></div></div>
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile"><span class="ic ic-arrows-sort" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">Enter and exit on the same path</p><p class="list-sub t-pretty">A sheet leaves the way it came. Forward steps enter from the right, back from the left.</p></div></div>
+          </div>
+          <div class="list">
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile"><span class="ic ic-target" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">Origin at the trigger</p><p class="list-sub t-pretty">Sheets, popovers and menus grow from the control that opened them, set with <span class="t-mono">--origin</span>.</p></div></div>
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile gray"><span class="ic ic-adjustments-horizontal" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">Reduced motion becomes cross-fades</p><p class="list-sub t-pretty">With Reduce Motion on, entrances, steps, sheets and toasts become a 200ms fade. Nothing slides or scales.</p></div></div>
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile gray"><span class="ic ic-stack-2" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">Reduced transparency becomes solid</p><p class="list-sub t-pretty">Glass turns into the surface colour; the toast turns solid ink.</p></div></div>
+            <div class="list-row has-icon" style="align-items: flex-start"><span class="icon-tile gray"><span class="ic ic-progress-check" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title">No infinite loops except real progress</p><p class="list-sub t-pretty">Only the OCR scan and loading shimmer repeat, and only while work is happening.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="row between wrap gap-3" style="padding-top: 8px">
+      <a class="btn btn-gray" href="Components.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Components</a>
+      <a class="btn btn-plain" href="Main.dc.html">All boards<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":4000}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const presses = s.presses ?? 0;
+const tg = s.tg ?? true;
+const seg = s.seg ?? 0;
+const sheet = s.sheet ?? 'closed';
+const step = s.step ?? 3;
+const dir = s.dir ?? 'fwd';
+const listOn = s.listOn ?? true;
+const raceOn = s.raceOn ?? true;
+const toast = s.toast ?? 'in';
+const toastRun = s.toastRun ?? 0;
+const scan = s.scan ?? 'done';
+const scanPct = s.scanPct ?? 0;
+const scanRun = s.scanRun ?? 0;
+
+const steps = [
+  { title: 'Entity type', sub: 'Private limited company, registered under the Companies Act 2015.' },
+  { title: 'Upload documents', sub: 'CR12, CR1 and the certificate of incorporation. We read them for you.' },
+  { title: 'Entity details', sub: 'Amani Logistics Limited · PVT-2LU7Q9XB · incorporated 14 March 2019.' },
+  { title: 'People & roles', sub: 'Confirm 2 directors, 3 shareholders and the company secretary.' },
+  { title: 'Beneficial ownership', sub: 'Wanjiku 60% and Brian 30% direct; James Kariuki 10% through Savannah Holdings.' },
+  { title: 'Compliance baseline', sub: 'Annual return due 13 Apr 2027 · county business permit due 31 Mar 2027.' },
+  { title: 'Review & activate', sub: 'Check everything once, then open the Amani Logistics workspace.' }
+];
+const cur = steps[step - 1];
+const segLabels = ['list', 'calendar', 'timeline'];
+const replay = (key) => { this.setState({ [key]: false }); setTimeout(() => this.setState({ [key]: true }), 30); };
+const go = (n) => { if (n < 1 || n > 7) return; this.setState({ step: n, dir: n > step ? 'fwd' : 'back' }); };
+const latest = () => this.state || {};
+
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  segCls0: seg === 0 ? 'is-on' : '', segSel0: seg === 0 ? 'true' : 'false', seg0: () => this.setState({ seg: 0 }),
+  segCls1: seg === 1 ? 'is-on' : '', segSel1: seg === 1 ? 'true' : 'false', seg1: () => this.setState({ seg: 1 }),
+  segCls2: seg === 2 ? 'is-on' : '', segSel2: seg === 2 ? 'true' : 'false', seg2: () => this.setState({ seg: 2 }),
+  seg: seg,
+  segLabel: segLabels[seg],
+
+  press: () => this.setState({ presses: (latest().presses ?? 0) + 1 }),
+  pressLabel: presses === 0 ? 'Not pressed yet' : (presses === 1 ? 'Pressed once' : 'Pressed ' + presses + ' times'),
+
+  tgCls: tg ? 'is-on' : '',
+  tgChecked: tg ? 'true' : 'false',
+  tgLabel: tg ? 'on' : 'off',
+  flipTg: () => this.setState({ tg: !(latest().tg ?? true) }),
+
+  sheetOpen: sheet === 'open',
+  sheetClosing: sheet === 'closing',
+  sheetExpanded: sheet === 'open' ? 'true' : 'false',
+  sheetLabel: sheet === 'open' ? 'Sheet is open.' : (sheet === 'closing' ? 'Closing toward the trigger.' : 'Sheet is closed.'),
+  openSheet: () => this.setState({ sheet: 'open' }),
+  closeSheet: () => {
+    this.setState({ sheet: 'closing' });
+    setTimeout(() => { if (latest().sheet === 'closing') this.setState({ sheet: 'closed' }); }, 340);
+  },
+
+  step: step,
+  stepTitle: cur.title,
+  stepSub: cur.sub,
+  stepA: step % 2 === 1,
+  stepB: step % 2 === 0,
+  stepCls: dir === 'fwd' ? 'enter-forward' : 'enter-back',
+  dirLabel: dir === 'fwd' ? 'Entered from the right' : 'Entered from the left',
+  stepDots: steps.map((x, i) => ({ bg: i < step ? 'var(--tint)' : 'var(--fill-3)' })),
+  backCls: step === 1 ? 'is-disabled' : '',
+  backDisabled: step === 1 ? 'true' : 'false',
+  nextCls: step === 7 ? 'is-disabled' : '',
+  nextDisabled: step === 7 ? 'true' : 'false',
+  goBack: () => go(step - 1),
+  goNext: () => go(step + 1),
+
+  listOn: listOn,
+  replayList: () => replay('listOn'),
+  raceOn: raceOn,
+  replayRace: () => replay('raceOn'),
+
+  toastIn: toast === 'in',
+  toastOut: toast === 'out',
+  showToast: () => {
+    const run = (latest().toastRun ?? 0) + 1;
+    this.setState({ toast: 'none', toastRun: run });
+    setTimeout(() => { if (latest().toastRun === run) this.setState({ toast: 'in' }); }, 30);
+    setTimeout(() => { if (latest().toastRun === run) this.setState({ toast: 'out' }); }, 2630);
+    setTimeout(() => { if (latest().toastRun === run) this.setState({ toast: 'none' }); }, 2980);
+  },
+
+  scanReading: scan === 'reading',
+  scanDone: scan === 'done',
+  scanPct: scanPct,
+  scanPage: scanPct < 34 ? 1 : (scanPct < 67 ? 2 : 3),
+  docCls: scan === 'reading' ? 'scanline' : '',
+  scanBtn: scan === 'reading' ? 'Start over' : 'Read CR12 again',
+  startScan: () => {
+    const run = (latest().scanRun ?? 0) + 1;
+    this.setState({ scan: 'reading', scanPct: 8, scanRun: run });
+    [[500, 34], [1200, 67], [1900, 100]].forEach((p) => {
+      setTimeout(() => { if (latest().scanRun === run) this.setState({ scanPct: p[1] }); }, p[0]);
+    });
+    setTimeout(() => { if (latest().scanRun === run) this.setState({ scan: 'done' }); }, 2500);
+  }
+};
+}
+}
+</script>
+</body>
+</html>

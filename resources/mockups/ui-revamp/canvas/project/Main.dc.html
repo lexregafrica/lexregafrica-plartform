@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LexReg UI revamp — cover and index</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 1500px">
+  <div class="container" style="padding-top: 56px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 48px">
+
+    <header class="stack gap-6 rise">
+      <div class="row gap-3">
+        <img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 44px; height: 44px">
+        <span class="sb-word" style="font-size: 20px">LexReg<small>Africa</small></span>
+      </div>
+      <div class="stack gap-3" style="max-width: 860px">
+        <p class="t-eyebrow">UI revamp · vision v1 · October 2026</p>
+        <h1 class="t-hero t-balance">LexReg, redesigned — every screen on one calm system.</h1>
+        <p class="t-body t-2 t-pretty" style="font-size: 17px; line-height: 26px">From the home page through sign-in, both onboarding paths and the dashboards to the admin console. Built from the Zeno admin console’s tokens, LexReg’s burgundy on white, and Apple’s Human Interface Guidelines for hierarchy, materials and motion.</p>
+      </div>
+      <div class="row wrap gap-2">
+        <a class="btn btn-primary btn-pill" href="Home.dc.html">Start the walkthrough<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+        <a class="btn btn-tinted btn-pill" href="Foundations.dc.html">See the design system</a>
+        <a class="btn btn-gray btn-pill" href="Dashboard.dc.html">Jump to the dashboard</a>
+      </div>
+    </header>
+
+    <section class="grid cols-3" aria-label="Where the design comes from">
+      <div class="card card-pad stack gap-3 rise" style="--d: 1">
+        <span class="icon-tile gray"><span class="ic ic-layout-sidebar" aria-hidden="true"></span></span>
+        <h2 class="t-title3">Zeno admin tokens</h2>
+        <p class="t-callout t-2">Apple-web neutrals, 0.5px hairlines, 12px cards with a soft two-layer shadow, a translucent sidebar with uppercase group labels, dense type and large tabular numerals.</p>
+      </div>
+      <div class="card card-pad stack gap-3 rise" style="--d: 2">
+        <span class="icon-tile"><span class="ic ic-scale" aria-hidden="true"></span></span>
+        <h2 class="t-title3">LexReg colour</h2>
+        <p class="t-callout t-2">Burgundy #800020 on white stays the brand. It marks the one primary action, the current place and the entity itself — an accent, never a wash.</p>
+      </div>
+      <div class="card card-pad stack gap-3 rise" style="--d: 3">
+        <span class="icon-tile info"><span class="ic ic-device-mobile" aria-hidden="true"></span></span>
+        <h2 class="t-title3">Apple HIG</h2>
+        <p class="t-callout t-2">System type with size-specific tracking, glass only on navigation, critically damped springs that respond on press, 44pt touch targets, and reduced-motion and reduced-transparency fallbacks.</p>
+      </div>
+    </section>
+
+    <section class="stack gap-4" aria-label="How to review">
+      <div class="note note-brand">
+        <span class="ic ic-info-circle" aria-hidden="true"></span>
+        <p><strong>How to review.</strong> Press Play on any board to click through — links move between screens, so whole flows can be walked end to end. Every board has a Dark appearance tweak, and boards with states (uploading, reading, errors) have a state tweak. Phone boards show the same screens at 390 points wide.</p>
+      </div>
+      <div class="row wrap gap-2">
+        <span class="t-subhead t-3" style="margin-right: 4px">Suggested walkthroughs</span>
+        <a class="pill pill-outline" href="Home.dc.html" style="height: 30px; padding: 0 12px">New visitor → account → choose a path</a>
+        <a class="pill pill-outline" href="ExType.dc.html" style="height: 30px; padding: 0 12px">Onboard an existing company from its CR12</a>
+        <a class="pill pill-outline" href="NewType.dc.html" style="height: 30px; padding: 0 12px">Form a new company</a>
+        <a class="pill pill-outline" href="Admin.dc.html" style="height: 30px; padding: 0 12px">Charles assigns a lawyer</a>
+      </div>
+    </section>
+
+    <sc-for list="{{groups}}" as="group" hint-placeholder-count="8">
+      <section class="stack gap-4">
+        <div class="row between wrap gap-2">
+          <h2 class="t-title2">{{group.title}}</h2>
+          <span class="t-footnote t-3">{{group.count}}</span>
+        </div>
+        <div class="grid cols-4 keep-2">
+          <sc-for list="{{group.items}}" as="item" hint-placeholder-count="4">
+            <a class="card card-interactive" href="{{item.href}}" style="padding: 16px; display: flex; flex-direction: column; gap: 10px; color: var(--label); text-decoration: none">
+              <span class="icon-tile"><span class="ic {{item.icon}}" aria-hidden="true"></span></span>
+              <span class="stack gap-1">
+                <span class="t-headline">{{item.title}}</span>
+                <span class="t-footnote t-3 clamp-2">{{item.desc}}</span>
+              </span>
+            </a>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":3000}}'>
+class Component extends DCLogic {
+renderVals() {
+const g = (title, items) => ({ title, items, count: items.length + (items.length === 1 ? ' screen' : ' screens') });
+const i = (href, title, desc, icon) => ({ href: href + '.dc.html', title, desc, icon: 'ic-' + icon });
+const groups = [
+  g('Design system', [
+    i('Foundations', 'Foundations', 'Principles, colour roles, type ramp, spacing, radii, materials, icons.', 'stack-2'),
+    i('Components', 'Components', 'Every control with its states — buttons to sheets.', 'adjustments-horizontal'),
+    i('Motion', 'Motion and materials', 'Spring curves, press feedback, spatial transitions, live demos.', 'activity'),
+  ]),
+  g('Marketing site', [
+    i('Home', 'Home', 'Hero, how it works, services, pricing, FAQ.', 'home'),
+    i('Insight', 'Insights article', 'Reading layout for legal explainers.', 'book'),
+    i('Legal', 'Terms and privacy', 'Readable legal documents with contents.', 'license'),
+    i('Phone-Home', 'Home on a phone', 'The same page at 390 points.', 'device-mobile'),
+  ]),
+  g('Sign in and invites', [
+    i('SignIn', 'Sign in', 'Calm sign-in with inline errors.', 'lock'),
+    i('SignUp', 'Create account', 'Password strength and DPA consent.', 'user-plus'),
+    i('ResetPassword', 'Reset password', 'Request, check email, set new password.', 'key'),
+    i('LawyerInvite', 'Lawyer invitation', 'Magic-link landing scoped to one matter.', 'gavel'),
+  ]),
+  g('Getting started', [
+    i('PathSelector', 'Choose a path', 'Existing business, new entity or informal.', 'arrow-up-right'),
+    i('Readiness', 'Readiness assessment', 'Fifteen questions, one at a time.', 'list-check'),
+    i('ReadinessResult', 'Readiness results', 'Maturity score and gap analysis.', 'target'),
+  ]),
+  g('New entity formation', [
+    i('NewType', '1 · Entity type', 'Pick a structure, with guides.', 'building'),
+    i('NewApplicant', '2 · Applicant', 'Who is applying and how to reach them.', 'user'),
+    i('NewName', '3 · Name reservation', 'Three names, rule checks, honest BRS note.', 'writing'),
+    i('NewShares', '5 · Share structure', 'Classes and nominal capital.', 'coins'),
+    i('NewPeople', '6–7 · Shareholders and directors', 'Documents read by OCR fill the forms.', 'users'),
+    i('NewOwnership', '8 · Beneficial ownership', 'Direct and indirect owners, nature of control.', 'hierarchy-2'),
+    i('NewVault', '11 · Document vault', 'Everything collected up front.', 'folder'),
+    i('NewDeclaration', '13 · Declaration', 'Declarations, consent and signature.', 'signature'),
+    i('NewReview', '14 · Review and submit', 'Summary, checks and generated forms.', 'clipboard-check'),
+    i('NewFiling', 'After submitting', 'Guided BRS filing and certificate upload.', 'building-bank'),
+    i('Phone-NewPeople', 'People on a phone', 'Document capture at 390 points.', 'device-mobile'),
+  ]),
+  g('Existing entity onboarding', [
+    i('ExType', '1 · Entity type', 'What you have and what you’ll need.', 'building'),
+    i('ExUpload', '2 · Upload and read', 'CR12 and friends, read automatically.', 'scan'),
+    i('ExDetails', '3 · Check details', 'Every value shows its source document.', 'file-search'),
+    i('ExPeople', '4 · People', 'Directors and shareholders pre-filled.', 'users-group'),
+    i('ExInstrument', 'Society constitution', 'Rules read into plain English.', 'notes'),
+    i('ExBaseline', '6 · Compliance baseline', 'Answers become a calendar and tasks.', 'calendar-due'),
+    i('ExReview', '7 · Review and activate', 'Evidence, gaps and activation.', 'shield-check'),
+    i('Phone-ExUpload', 'Upload on a phone', 'Scanning documents at 390 points.', 'device-mobile'),
+  ]),
+  g('Dashboards and entity workspace', [
+    i('Dashboard', 'Owner dashboard', 'Every entity, deadline and task.', 'layout-dashboard'),
+    i('Workspace', 'Entity overview', 'Health rings, obligations, key facts.', 'building'),
+    i('WsStructure', 'Structure', 'Ownership chart and share register.', 'hierarchy-2'),
+    i('WsPeople', 'People', 'One card per person, all roles.', 'users'),
+    i('WsCompliance', 'Compliance', 'Obligations calendar and filing.', 'calendar-due'),
+    i('WsDocuments', 'Documents', 'Vault with folders and previews.', 'folder-open'),
+    i('Overlays', 'Sheets, alerts, search', 'Help, delete, command palette, toast.', 'command'),
+    i('Services', 'Services', 'Formation, corporate services, legal audit.', 'briefcase'),
+    i('Phone-Dashboard', 'Dashboard on a phone', 'Tab bar and floating top bar.', 'device-mobile'),
+    i('Phone-Workspace', 'Entity on a phone', 'Overview at 390 points.', 'device-mobile'),
+  ]),
+  g('Admin console and lawyer view', [
+    i('Admin', 'Admin overview', 'Charles’s platform view.', 'shield-lock'),
+    i('AdminEntities', 'All entities', 'Every client entity, filterable.', 'building-community'),
+    i('AdminEntity', 'Entity and lawyer', 'Assign a lawyer by magic link.', 'user-shield'),
+    i('Lawyer', 'Lawyer view', 'One entity, one matter, nothing else.', 'gavel'),
+  ]),
+];
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  groups
+};
+}
+}
+</script>
+</body>
+</html>

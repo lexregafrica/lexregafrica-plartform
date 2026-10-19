@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Upload documents — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.doc-body{display:flex;flex-direction:column;gap:10px;padding:0 20px 18px}
+.doc-head{align-items:flex-start}
+.drop-row{flex-direction:row;gap:10px;padding:14px 16px}
+.grp-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 4px 0}
+.xcheck td.is-off{color:var(--label-3)}
+.xcheck td.is-diff{color:var(--warn);font-weight:600}
+.xcheck td{white-space:nowrap}
+.xcheck .xrow-h{text-transform:none;letter-spacing:0;color:var(--label);font-size:13.5px;font-weight:500;padding:12px 16px;white-space:nowrap}
+.xcheck tr:last-child .xrow-h{border-bottom:0}
+.id-row{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:10px 12px;border-radius:var(--r-md);background:var(--surface);box-shadow:inset 0 0 0 1px var(--sep-soft)}
+.skel-lines{display:flex;flex-direction:column;gap:6px;padding:4px 12px 2px 42px}
+@container lx (max-width: 720px){
+  .doc-body{padding:0 16px 16px}
+  .drop-row{padding:14px 12px}
+  .skel-lines{padding-left:12px}
+}
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+<div class="wz">
+  <header class="wz-top glass">
+    <a class="row gap-2" href="Dashboard.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="" style="width: 28px; height: 28px"><span class="t-headline hide-compact">LexReg</span></a>
+    <span class="t-3 hide-compact" aria-hidden="true">/</span>
+    <span class="t-subhead truncate">Onboard an existing entity · Amani Logistics Limited</span>
+    <div class="grow"></div>
+    <span class="wz-saved"><span class="ic ic-cloud-check" aria-hidden="true"></span><span class="hide-compact">Draft saved · just now</span></span>
+    <a class="btn btn-gray btn-sm" href="Dashboard.dc.html">Save &amp; exit</a>
+  </header>
+  <div class="wz-body">
+    <nav class="wz-rail" aria-label="Steps">
+      <p class="t-eyebrow" style="padding: 0 10px 8px">Steps</p>
+      <a class="wz-step is-done" href="ExType.dc.html"><span class="n">1</span>Entity type</a>
+      <a class="wz-step is-on" aria-current="step" href="ExUpload.dc.html"><span class="n">2</span>Upload documents</a>
+      <span class="wz-step"><span class="n">3</span>Entity details</span>
+      <span class="wz-step"><span class="n">4</span>People &amp; roles</span>
+      <span class="wz-step"><span class="n">5</span>Beneficial ownership</span>
+      <span class="wz-step"><span class="n">6</span>Compliance baseline</span>
+      <span class="wz-step"><span class="n">7</span>Review &amp; activate</span>
+    </nav>
+    <section class="wz-main">
+      <div class="wz-progress">
+        <div class="row between"><span class="t-caption t-3">Step 2 of 7</span><span class="t-caption t-3 t-num">29%</span></div>
+        <div class="progress"><span style="width: 29%"></span></div>
+      </div>
+      <header class="wz-head rise">
+        <p class="t-eyebrow">Step 2 of 7 · Upload documents</p>
+        <h1 class="t-large t-balance">Upload your registry documents</h1>
+        <p class="t-body t-2 t-pretty">We read each one and propose your details — you confirm them next. Nothing is final until you do.</p>
+      </header>
+
+      <sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+        <div class="card card-pad stack gap-3 rise" style="--d: 1">
+          <label class="dropzone" for="up-pack">
+            <input class="sr-only" type="file" id="up-pack" accept=".pdf,.jpg,.jpeg,.png,.webp">
+            <span class="icon-tile icon-tile-lg"><span class="ic ic-cloud-upload" aria-hidden="true"></span></span>
+            <span class="t-headline" style="color: var(--label)">Drop your whole pack here</span>
+            <span class="t-footnote t-2 t-pretty" style="max-width: 420px">Start with the CR12 — it anchors today’s directors, shareholders and status. We read every file and put it in the right box below.</span>
+            <span class="t-caption t-3">PDF, JPG, PNG or WebP</span>
+          </label>
+          <div class="note note-info">
+            <span class="ic ic-info-circle" aria-hidden="true"></span>
+            <p>Missing something? Carry on: we’ll note the gap and add a follow-up task rather than block you.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isReading}}" hint-placeholder-val="{{false}}">
+        <div class="card card-pad stack gap-3 rise" style="--d: 1" role="status" aria-live="polite">
+          <div class="row gap-4">
+            <span class="icon-tile icon-tile-lg info"><span class="ic ic-scan" aria-hidden="true"></span></span>
+            <div class="stack gap-1 grow">
+              <h2 class="t-title3">Reading CR12… finding directors and shareholders</h2>
+              <p class="t-footnote t-2"><span class="t-num">1 of 2</span> documents · keep adding files while we read</p>
+            </div>
+          </div>
+          <div class="progress"><span style="width: 45%"></span></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isDone}}" hint-placeholder-val="{{true}}">
+        <div class="card card-pad rise" style="--d: 1">
+          <div class="row gap-4" style="align-items: flex-start">
+            <span class="icon-tile icon-tile-lg good"><span class="ic ic-sparkles" aria-hidden="true"></span></span>
+            <div class="stack gap-1 grow">
+              <h2 class="t-title3 t-balance">We read <span class="t-num">5</span> documents and pre-filled <span class="t-num">31</span> fields</h2>
+              <p class="t-footnote t-2 t-pretty">Every value keeps a link to the document it came from. Next you only check, correct and fill gaps.</p>
+              <div class="row gap-2 wrap t-subhead" style="margin-top: 8px">
+                <a href="ExDetails.dc.html" class="t-num">21 company details</a>
+                <span class="t-3" aria-hidden="true">·</span>
+                <a href="ExPeople.dc.html" class="t-num">4 people</a>
+                <span class="t-3" aria-hidden="true">·</span>
+                <a href="ExDetails.dc.html" class="t-num">1 conflict</a>
+                <sc-if value="{{showSetAside}}" hint-placeholder-val="{{true}}">
+                  <span class="t-3" aria-hidden="true">·</span>
+                  <span class="t-2 t-num">1 file set aside</span>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card rise" style="--d: 2">
+          <div class="card-head">
+            <div class="stack">
+              <h2>How your documents line up</h2>
+              <p class="t-footnote t-3">Where two documents agree, the value is verified.</p>
+            </div>
+            <a class="btn btn-plain btn-sm hide-compact" href="ExDetails.dc.html">Review all<span class="ic ic-chevron-right" aria-hidden="true"></span></a>
+          </div>
+          <div class="table-wrap">
+            <table class="table xcheck">
+              <thead>
+                <tr><th scope="col">Detail</th><th scope="col">CR12 · 2 Sep 2026</th><th scope="col">Certificate · 14 Mar 2019</th><th scope="col">KRA PIN cert. · 20 Mar 2019</th><th scope="col">Result</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" class="xrow-h">Registered name</th>
+                  <td>Amani Logistics Limited</td>
+                  <td>Amani Logistics Ltd</td>
+                  <td>Amani Logistics Limited</td>
+                  <td><span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" class="xrow-h">Registration no.</th>
+                  <td class="t-num">PVT-2LU7Q9XB</td>
+                  <td class="t-num">PVT-2LU7Q9XB</td>
+                  <td class="is-off">—</td>
+                  <td><span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" class="xrow-h">Incorporated</th>
+                  <td class="t-num is-diff">4 Mar 2019</td>
+                  <td class="t-num is-diff">14 Mar 2019</td>
+                  <td class="is-off">—</td>
+                  <td><span class="src src-conflict"><span class="ic ic-alert-triangle" aria-hidden="true"></span>Conflict</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" class="xrow-h">Company KRA PIN</th>
+                  <td class="is-off">—</td>
+                  <td class="t-num">P051234567X</td>
+                  <td class="t-num">P051234567X</td>
+                  <td><span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" class="xrow-h">Registered office</th>
+                  <td>Mombasa Road, Industrial Area</td>
+                  <td class="is-off">—</td>
+                  <td>Mombasa Road, Industrial Area</td>
+                  <td><span class="src src-verified"><span class="ic ic-circle-check" aria-hidden="true"></span>Verified</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" class="xrow-h">Directors</th>
+                  <td>2 · W. Mwangi, B. Otieno</td>
+                  <td class="is-off">—</td>
+                  <td class="is-off">—</td>
+                  <td><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>One source</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot" style="justify-content: flex-start">
+            <span class="ic ic-info-circle t-3" aria-hidden="true"></span>
+            <p class="t-footnote t-2 t-pretty">“Ltd” and “Limited”, punctuation and spacing aren’t conflicts. A real difference waits for you to choose.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <section class="stack gap-3" aria-labelledby="grp-{{g.key}}">
+          <div class="grp-head">
+            <h2 id="grp-{{g.key}}" class="t-title3">{{g.title}} <span class="t-3 t-num" style="font-weight: 500">{{g.count}}</span></h2>
+            <p class="t-footnote t-3">{{g.sub}}</p>
+          </div>
+          <sc-for list="{{g.docs}}" as="d" hint-placeholder-count="4">
+            <article class="card rise" style="--d: {{d.delay}}" aria-labelledby="h-{{d.id}}">
+              <div class="card-head doc-head">
+                <div class="row gap-3 grow" style="align-items: flex-start">
+                  <span class="icon-tile {{d.tileCls}}"><span class="ic {{d.icon}}" aria-hidden="true"></span></span>
+                  <div class="stack gap-1 grow">
+                    <h3 id="h-{{d.id}}" class="t-pretty">{{d.title}}</h3>
+                    <p class="t-footnote t-2 t-pretty">{{d.why}}</p>
+                    <p class="t-caption t-3">{{d.formats}}</p>
+                  </div>
+                </div>
+                <span class="pill {{d.pillCls}}">{{d.pill}}</span>
+              </div>
+              <div class="doc-body">
+                <sc-for list="{{d.files}}" as="f" hint-placeholder-count="1">
+                  <div class="file-row {{f.scanCls}}">
+                    <span class="ic {{f.icon}}" aria-hidden="true" style="color: var(--label-3)"></span>
+                    <div class="stack gap-1 grow">
+                      <p class="name">{{f.name}}</p>
+                      <div class="row gap-2 wrap">
+                        <span class="meta t-num" style="white-space: normal">{{f.meta}}</span>
+                        <sc-if value="{{f.hasPill}}" hint-placeholder-val="{{false}}"><span class="pill {{f.pillCls}} t-num">{{f.pill}}</span></sc-if>
+                      </div>
+                    </div>
+                    <sc-if value="{{f.canReplace}}" hint-placeholder-val="{{false}}">
+                      <button class="btn btn-plain btn-icon" type="button" aria-label="Replace {{f.name}}"><span class="ic ic-refresh" aria-hidden="true"></span></button>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{f.skeleton}}" hint-placeholder-val="{{false}}">
+                    <div class="skel-lines" aria-hidden="true">
+                      <span class="skeleton shimmer" style="height: 10px; width: 72%"></span>
+                      <span class="skeleton shimmer" style="height: 10px; width: 54%"></span>
+                      <span class="skeleton shimmer" style="height: 10px; width: 63%"></span>
+                    </div>
+                  </sc-if>
+                </sc-for>
+                <sc-for list="{{d.notes}}" as="n" hint-placeholder-count="1">
+                  <div class="note {{n.cls}}">
+                    <span class="ic {{n.icon}}" aria-hidden="true"></span>
+                    <div class="stack gap-2 grow">
+                      <p class="t-pretty"><strong>{{n.title}}</strong> {{n.text}}</p>
+                      <sc-if value="{{n.hasActions}}" hint-placeholder-val="{{false}}">
+                        <div class="row gap-2 wrap">
+                          <sc-for list="{{n.actions}}" as="a" hint-placeholder-count="2">
+                            <button class="btn btn-sm {{a.cls}}" type="button" onClick="{{a.on}}">{{a.label}}</button>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{d.showDrop}}" hint-placeholder-val="{{true}}">
+                  <label class="dropzone drop-row" for="up-{{d.id}}">
+                    <input class="sr-only" type="file" id="up-{{d.id}}" accept=".pdf,.jpg,.jpeg,.png,.webp">
+                    <span class="ic ic-cloud-upload" aria-hidden="true"></span>
+                    <span class="t-subhead">{{d.dropLabel}}</span>
+                  </label>
+                </sc-if>
+                <sc-if value="{{d.showUnavail}}" hint-placeholder-val="{{false}}">
+                  <button class="row gap-3 t-callout t-2" type="button" role="switch" aria-checked="{{d.unavailAria}}" onClick="{{d.toggleUnavail}}" style="min-height: 44px; text-align: left; align-self: flex-start">
+                    <span class="toggle {{d.toggleCls}}" aria-hidden="true"></span>
+                    <span>I don’t have this right now</span>
+                  </button>
+                </sc-if>
+                <sc-if value="{{d.unavail}}" hint-placeholder-val="{{false}}">
+                  <div class="note note-warn fade">
+                    <span class="ic ic-flag" aria-hidden="true"></span>
+                    <p class="t-pretty">{{d.behaviour}}</p>
+                  </div>
+                </sc-if>
+              </div>
+            </article>
+          </sc-for>
+
+          <sc-if value="{{g.showIdentity}}" hint-placeholder-val="{{false}}">
+            <article class="card rise" style="--d: 5" aria-labelledby="h-ids">
+              <div class="card-head doc-head">
+                <div class="row gap-3 grow" style="align-items: flex-start">
+                  <span class="icon-tile {{g.idTile}}"><span class="ic ic-id" aria-hidden="true"></span></span>
+                  <div class="stack gap-1 grow">
+                    <h3 id="h-ids">Identity documents — everyone</h3>
+                    <p class="t-footnote t-2 t-pretty">IDs, passports and KRA PIN certificates. Each one is matched to the right person and fills in their ID, KRA PIN and date of birth.</p>
+                    <p class="t-caption t-3">PDF, JPG, PNG or WebP · several files at once</p>
+                  </div>
+                </div>
+                <span class="pill {{g.idPillCls}} t-num">{{g.idPill}}</span>
+              </div>
+              <div class="doc-body">
+                <sc-for list="{{g.idFiles}}" as="p" hint-placeholder-count="4">
+                  <div class="id-row">
+                    <sc-if value="{{p.matched}}" hint-placeholder-val="{{true}}"><span class="avatar avatar-sm">{{p.initials}}</span></sc-if>
+                    <sc-if value="{{p.unmatched}}" hint-placeholder-val="{{false}}"><span class="avatar avatar-sm" style="background: var(--fill-3); color: var(--label-3)"><span class="ic ic-user ic-sm" aria-hidden="true"></span></span></sc-if>
+                    <div class="stack gap-1 grow" style="min-width: 0">
+                      <p class="t-subhead truncate" style="color: var(--label)">{{p.name}}</p>
+                      <p class="t-footnote {{p.textCls}} t-pretty">{{p.text}}</p>
+                    </div>
+                    <span class="ic {{p.stateIcon}}" aria-hidden="true" style="color: {{p.stateColor}}; margin-top: 2px"></span>
+                  </div>
+                </sc-for>
+                <label class="dropzone drop-row" for="up-ids">
+                  <input class="sr-only" type="file" id="up-ids" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple="multiple">
+                  <span class="ic ic-cloud-upload" aria-hidden="true"></span>
+                  <span class="t-subhead">{{g.idDrop}}</span>
+                </label>
+                <p class="help t-pretty">Matched by ID or passport number first, then KRA PIN — never by a similar name alone.</p>
+              </div>
+            </article>
+          </sc-if>
+        </section>
+      </sc-for>
+
+      <div class="wz-actions glass">
+        <a class="btn btn-gray" href="ExType.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</a>
+        <span class="spacer"></span>
+        <span class="t-footnote t-3 hide-compact">{{footNote}}</span>
+        <a class="btn btn-primary" href="ExDetails.dc.html">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"state":{"editor":"enum","options":["empty","reading","done"],"default":"done"},"$preview":{"width":1440,"height":4700}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const st = this.props.state ?? 'done';
+const done = st === 'done';
+const reading = st === 'reading';
+const empty = st === 'empty';
+const removed = s.removed ?? false;
+const otherChoice = s.otherChoice ?? 'ask';
+const unavail = s.unavail ?? {};
+const FMT = 'PDF, JPG, PNG or WebP';
+const FMT_MULTI = 'PDF, JPG, PNG or WebP · several files allowed';
+
+const file = (o) => Object.assign({ scanCls: '', icon: 'ic-file-text', meta: '', hasPill: false, pill: '', pillCls: '', canReplace: false, skeleton: false }, o);
+const note = (o) => Object.assign({ cls: 'note-info', icon: 'ic-info-circle', title: '', text: '', hasActions: false, actions: [] }, o);
+
+const SPECS = [
+  { id: 'cr12', group: 'req', icon: 'ic-file-search', title: 'Official Search / CR12 (company status report)', why: 'The BRS status report — our anchor for the company’s current directors, shareholders and status.', behaviour: 'Onboarding continues provisionally — current officers and status aren’t anchored to a current registry search.' },
+  { id: 'coi', group: 'req', icon: 'ic-file-certificate', title: 'Certificate of Incorporation', why: 'Primary evidence of the company’s identity — registered name, number and incorporation date.', behaviour: 'Company identity can’t be marked registry-verified. Upload the certificate or a certified registry record.' },
+  { id: 'snc', group: 'req', icon: 'ic-coins', title: 'Statement of Nominal Capital', why: 'Original share classes, number of shares and nominal value.', behaviour: 'Share capital can’t be reconstructed from evidence — we won’t infer it. Upload capital or share records.' },
+  { id: 'bof1', group: 'req', icon: 'ic-users-group', title: 'BOF-1 — Beneficial ownership filing', why: 'The natural persons who ultimately own or control the company, as at that filing.', behaviour: 'A beneficial-ownership completion task is opened. Shareholders are never assumed to be beneficial owners.' },
+  { id: 'kra', group: 'rec', icon: 'ic-receipt', title: 'Company KRA PIN certificate', why: 'The company’s own tax PIN.', behaviour: 'The company PIN is marked outstanding — we never invent a PIN.' },
+  { id: 'cr1', group: 'rec', icon: 'ic-file-text', title: 'CR1 — Application to register the company', why: 'Formation particulars as filed. Kept as history; later records take priority.', behaviour: 'Doesn’t block onboarding. The historical formation record stays flagged as a gap.' },
+  { id: 'cr2', group: 'rec', icon: 'ic-file-text', title: 'CR2 — Memorandum (subscribers)', why: 'The founding subscribers — not treated as today’s shareholders without current evidence.', behaviour: 'Doesn’t block onboarding. Founding membership stays flagged as a historical gap.' },
+  { id: 'cr8', group: 'rec', icon: 'ic-map-pin', title: 'CR8 — Directors’ residential addresses', why: 'Director addresses at the date of filing. Older addresses are kept as history.', behaviour: 'Doesn’t block onboarding. Director address history stays flagged as a gap.' },
+  { id: 'cr29', group: 'rec', icon: 'ic-calendar-event', title: 'Latest annual return (CR29)', why: 'Helps us establish your compliance baseline.', behaviour: 'We’ll ask when the last annual return was filed instead.' },
+  { id: 'changes', group: 'opt', icon: 'ic-history', title: 'Later change filings', why: 'Director, allotment, address or beneficial-ownership changes filed after incorporation.', multiple: true, conditional: true, behaviour: '' },
+  { id: 'other', group: 'opt', icon: 'ic-folder', title: 'Other documents', why: 'Articles, resolutions, permits or anything else you’d like on file.', multiple: true, conditional: true, behaviour: '' }
+];
+
+const build = (spec, i) => {
+  const files = [];
+  const notes = [];
+  let status = 'none';
+  if (done) {
+    if (spec.id === 'cr12') {
+      status = 'read';
+      files.push(file({ name: 'Official_Search_CR12_Amani_Logistics_Limited_Sept2026.pdf', meta: 'Read · dated 2 Sep 2026 · 3 pages', hasPill: true, pill: '4 people found', pillCls: 'pill-good', canReplace: true }));
+      if (otherChoice === 'move') files.push(file({ name: 'Amani_search_2023.pdf', icon: 'ic-history', meta: 'Earlier search · dated 11 Jul 2023 · kept as history' }));
+      notes.push(note({ cls: 'note-warn', icon: 'ic-alert-triangle', title: 'Differs from the Certificate of Incorporation on: date of incorporation.', text: 'You’ll choose in the next step.' }));
+    }
+    if (spec.id === 'coi') {
+      status = 'read';
+      files.push(file({ name: 'Certificate_of_Incorporation_PVT-2LU7Q9XB.pdf', meta: 'Read · dated 14 Mar 2019 · 1 page', canReplace: true }));
+    }
+    if (spec.id === 'snc') {
+      status = 'read';
+      files.push(file({ name: 'Statement_of_Nominal_Capital.pdf', meta: 'Read · dated 14 Mar 2019 · 1 page', canReplace: true }));
+    }
+    if (spec.id === 'kra') {
+      status = 'read';
+      files.push(file({ name: 'KRA_PIN_Certificate_P051234567X.pdf', meta: 'Read · dated 20 Mar 2019 · 1 page', canReplace: true }));
+    }
+    if (spec.id === 'bof1') {
+      if (!removed) {
+        status = 'flag';
+        files.push(file({ name: 'BOF-1_signed_scan_final_v2.pdf', icon: 'ic-file-alert', meta: 'Not used' }));
+        notes.push(note({ cls: 'note-warn', icon: 'ic-alert-triangle', title: 'This looks like a document for another company (PVT-77ABQ2C1) — not merged.', text: 'It doesn’t show PVT-2LU7Q9XB, so nothing from it was used. Remove it if it was uploaded by mistake.', hasActions: true, actions: [
+          { label: 'Remove', cls: 'btn-gray btn-destructive-plain', on: () => this.setState({ removed: true }) }
+        ] }));
+      } else {
+        notes.push(note({ cls: 'note-good', icon: 'ic-circle-check', title: 'Removed.', text: 'Nothing from it was used. Upload the company’s own BOF-1 when you have it.' }));
+      }
+    }
+    if (spec.id === 'other' && otherChoice !== 'move') {
+      status = 'read';
+      files.push(file({ name: 'Amani_search_2023.pdf', meta: otherChoice === 'keep' ? 'Read · dated 11 Jul 2023 · kept in Other' : 'Read · dated 11 Jul 2023' }));
+      if (otherChoice === 'ask') {
+        notes.push(note({ cls: 'note-info', icon: 'ic-file-search', title: 'Looks like a CR12 — keep it in Other?', text: 'It’s an earlier search. Filed with the CR12 it’s kept as history; your 2026 search stays the anchor.', hasActions: true, actions: [
+          { label: 'Keep in Other', cls: 'btn-secondary', on: () => this.setState({ otherChoice: 'keep' }) },
+          { label: 'Move to CR12', cls: 'btn-tinted', on: () => this.setState({ otherChoice: 'move' }) }
+        ] }));
+      }
+    }
+  }
+  if (reading) {
+    if (spec.id === 'cr12') {
+      status = 'reading';
+      files.push(file({ name: 'Official_Search_CR12_Amani_Logistics_Limited_Sept2026.pdf', icon: 'ic-scan', scanCls: 'scanline', meta: 'Reading… page 2 of 3', skeleton: true }));
+    }
+    if (spec.id === 'coi') {
+      status = 'queued';
+      files.push(file({ name: 'Certificate_of_Incorporation_PVT-2LU7Q9XB.pdf', icon: 'ic-clock', meta: 'Uploaded · waiting to read' }));
+    }
+  }
+  const isUnavail = !spec.conditional && status !== 'read' && !!unavail[spec.id];
+  const hasGood = status === 'read' || status === 'reading' || status === 'queued';
+  let pill = spec.conditional ? 'If applicable' : 'Not uploaded';
+  let pillCls = 'pill-outline';
+  let tileCls = 'gray';
+  if (status === 'read') { pill = 'Read'; pillCls = 'pill-good'; tileCls = 'good'; }
+  if (status === 'reading') { pill = 'Reading…'; pillCls = 'pill-info'; tileCls = 'info'; }
+  if (status === 'queued') { pill = 'Queued'; pillCls = ''; tileCls = 'info'; }
+  if (status === 'flag') { pill = 'Not used'; pillCls = 'pill-warn'; tileCls = 'warn'; }
+  if (isUnavail) { pill = 'Not available'; pillCls = 'pill-warn'; tileCls = 'warn'; }
+  const dropLabel = spec.multiple
+    ? (files.length ? 'Add another file' : 'Choose files or drop them here')
+    : (spec.id === 'bof1' ? 'Upload the company’s own BOF-1' : 'Choose file or drop it here');
+  return {
+    ...spec,
+    delay: Math.min(i + 2, 8),
+    formats: spec.multiple ? FMT_MULTI : FMT,
+    files: files,
+    notes: notes,
+    pill: pill,
+    pillCls: pillCls,
+    tileCls: tileCls,
+    showDrop: !isUnavail && (spec.multiple || !hasGood),
+    dropLabel: dropLabel,
+    showUnavail: !spec.conditional && !hasGood,
+    unavail: isUnavail,
+    unavailAria: isUnavail ? 'true' : 'false',
+    toggleCls: isUnavail ? 'is-on' : '',
+    toggleUnavail: () => this.setState({ unavail: { ...unavail, [spec.id]: !unavail[spec.id] } })
+  };
+};
+
+const docs = SPECS.map(build);
+const idFiles = done ? [
+  { matched: true, unmatched: false, initials: 'WM', name: 'ID_Wanjiku_Mwangi.jpg', text: 'Wanjiku Mwangi’s ID — filled into ID number, date of birth.', textCls: 't-2', stateIcon: 'ic-circle-check', stateColor: 'var(--good)' },
+  { matched: true, unmatched: false, initials: 'WM', name: 'KRA_PIN_A012345678Z.pdf', text: 'Wanjiku Mwangi’s KRA PIN certificate — filled into KRA PIN.', textCls: 't-2', stateIcon: 'ic-circle-check', stateColor: 'var(--good)' },
+  { matched: true, unmatched: false, initials: 'BO', name: 'Brian_Otieno_KRA_PIN_certificate_scan_2024_final.pdf', text: 'Brian Otieno’s KRA PIN certificate — filled into KRA PIN. It differs from the CR12; you’ll choose on the people screen.', textCls: 't-2', stateIcon: 'ic-alert-triangle', stateColor: 'var(--warn)' },
+  { matched: false, unmatched: true, initials: '', name: 'IMG_20260912_104455_james_kariuki_national_id_front.jpg', text: 'James Kariuki’s ID — no matching person yet. We’ll match it when they appear.', textCls: 't-3', stateIcon: 'ic-circle-dashed', stateColor: 'var(--label-3)' }
+] : [];
+const counts = { req: 0, rec: 0, opt: 0 };
+docs.forEach((d) => { counts[d.group] += 1; });
+const groups = [
+  { key: 'req', title: 'Required', count: counts.req, sub: 'Without these, details can’t be marked registry-verified.', docs: docs.filter((d) => d.group === 'req'), showIdentity: false },
+  { key: 'rec', title: 'Recommended', count: counts.rec + 1, sub: 'Missing ones don’t block you — we note the gap and add a follow-up task.', docs: docs.filter((d) => d.group === 'rec'), showIdentity: true },
+  { key: 'opt', title: 'Optional', count: counts.opt, sub: 'Only if something has changed, or you want it on file.', docs: docs.filter((d) => d.group === 'opt'), showIdentity: false }
+].map((g) => ({
+  ...g,
+  idFiles: idFiles,
+  idPill: done ? '3 of 4 matched' : 'None yet',
+  idPillCls: done ? 'pill-info' : 'pill-outline',
+  idTile: done ? 'info' : 'gray',
+  idDrop: done ? 'Add more IDs or KRA PIN certificates' : 'Drop IDs, passports and KRA PIN certificates for everyone'
+}));
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  isEmpty: empty,
+  isReading: reading,
+  isDone: done,
+  showSetAside: !removed,
+  groups: groups,
+  footNote: done ? 'Next: check 21 company details and 1 conflict' : (reading ? 'You can continue — reading carries on' : 'Your draft saves as you go')
+};
+}
+}
+</script>
+</body>
+</html>

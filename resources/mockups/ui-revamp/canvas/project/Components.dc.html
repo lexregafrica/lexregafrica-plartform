@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Components — LexReg</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f3cded53e7fed4f078920ca82a469759">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+@container lx (max-width: 720px) { .menu-item { height: 44px; } .btn-icon.btn-sm { width: 44px; height: 44px; } }
+</style>
+</helmet>
+<div class="lx {{theme}}" style="min-height: 900px">
+  <header class="container" style="padding-top: 16px">
+    <nav class="nav-float glass" aria-label="Design system">
+      <a class="row gap-2" href="Main.dc.html" style="color: var(--label); text-decoration: none"><img class="brand-logo" src="/_blob/a2c8945f1f7196abaa7009dd14de1c46" alt="LexReg Africa" style="width: 28px; height: 28px"><span class="t-headline">LexReg</span></a>
+      <span class="pill pill-brand hide-compact">Design system v2</span>
+      <span class="grow"></span>
+      <a class="nav-link" href="Main.dc.html"><span class="ic ic-layout-dashboard ic-sm" aria-hidden="true" style="margin-right: 6px"></span>All boards</a>
+    </nav>
+  </header>
+
+  <main class="container stack gap-6" style="padding-top: 40px; padding-bottom: 96px">
+    <header class="stack gap-3 rise">
+      <p class="t-eyebrow">Components · specimen sheet</p>
+      <h1 class="t-hero t-balance">Every component, every state</h1>
+      <p class="t-body t-2 t-pretty" style="max-width: 680px">Built only from base.css classes. Choice cards, toggles, the segmented control, tabs, the KRA PIN field, the dropzone, the menu and the toast are live: try them in Play.</p>
+    </header>
+
+    <nav class="tabs" aria-label="Design system boards">
+      <a href="Foundations.dc.html">Foundations</a>
+      <a class="is-on" href="Components.dc.html" aria-current="page">Components</a>
+      <a href="Motion.dc.html">Motion</a>
+    </nav>
+
+    <!-- Buttons -->
+    <section class="card card-lg rise" style="--d: 1" aria-labelledby="h-buttons">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-buttons" class="t-title2">Buttons</h2>
+          <p class="t-callout t-2 t-pretty">One primary per view. Buttons scale to 0.97 on press in 110ms. Height 36 regular, 30 small, 48 large. On phones regular grows to 44, small to 34, and icon buttons to a 44 square.</p>
+        </header>
+        <div class="table-wrap well" style="padding: 0">
+          <table class="table">
+            <thead><tr><th>Variant</th><th>Small</th><th>Regular</th><th>Large</th><th>Disabled</th></tr></thead>
+            <tbody>
+              <tr><td><p class="t-subhead">Primary</p><p class="t-mono t-caption t-3">.btn-primary</p></td><td><button class="btn btn-primary btn-sm" type="button">Continue</button></td><td><button class="btn btn-primary" type="button">Continue<span class="ic ic-arrow-right" aria-hidden="true"></span></button></td><td><button class="btn btn-primary btn-lg" type="button">Start registration</button></td><td><button class="btn btn-primary is-disabled" type="button" aria-disabled="true">Continue</button></td></tr>
+              <tr><td><p class="t-subhead">Tinted</p><p class="t-mono t-caption t-3">.btn-tinted</p></td><td><button class="btn btn-tinted btn-sm" type="button">Ask a lawyer</button></td><td><button class="btn btn-tinted" type="button"><span class="ic ic-message-circle" aria-hidden="true"></span>Ask a lawyer</button></td><td><button class="btn btn-tinted btn-lg" type="button">Ask a lawyer</button></td><td><button class="btn btn-tinted is-disabled" type="button" aria-disabled="true">Ask a lawyer</button></td></tr>
+              <tr><td><p class="t-subhead">Secondary</p><p class="t-mono t-caption t-3">.btn-secondary</p></td><td><button class="btn btn-secondary btn-sm" type="button">Upload CR12</button></td><td><button class="btn btn-secondary" type="button"><span class="ic ic-upload" aria-hidden="true"></span>Upload CR12</button></td><td><button class="btn btn-secondary btn-lg" type="button">Upload CR12</button></td><td><button class="btn btn-secondary is-disabled" type="button" aria-disabled="true">Upload CR12</button></td></tr>
+              <tr><td><p class="t-subhead">Gray</p><p class="t-mono t-caption t-3">.btn-gray</p></td><td><button class="btn btn-gray btn-sm" type="button">Save &amp; exit</button></td><td><button class="btn btn-gray" type="button"><span class="ic ic-arrow-left" aria-hidden="true"></span>Back</button></td><td><button class="btn btn-gray btn-lg" type="button">Save &amp; exit</button></td><td><button class="btn btn-gray is-disabled" type="button" aria-disabled="true">Back</button></td></tr>
+              <tr><td><p class="t-subhead">Plain</p><p class="t-mono t-caption t-3">.btn-plain</p></td><td><button class="btn btn-plain btn-sm" type="button">View all</button></td><td><button class="btn btn-plain" type="button">View all<span class="ic ic-chevron-right" aria-hidden="true"></span></button></td><td><button class="btn btn-plain btn-lg" type="button">Learn more</button></td><td><button class="btn btn-plain is-disabled" type="button" aria-disabled="true">View all</button></td></tr>
+              <tr><td><p class="t-subhead">Destructive</p><p class="t-mono t-caption t-3">.btn-destructive</p></td><td><button class="btn btn-destructive btn-sm" type="button">Remove</button></td><td><button class="btn btn-destructive" type="button"><span class="ic ic-trash" aria-hidden="true"></span>Remove document</button></td><td><button class="btn btn-destructive btn-lg" type="button">Remove</button></td><td><button class="btn btn-destructive is-disabled" type="button" aria-disabled="true">Remove</button></td></tr>
+              <tr><td><p class="t-subhead">Destructive plain</p><p class="t-mono t-caption t-3">.btn-destructive-plain</p></td><td><button class="btn btn-destructive-plain btn-sm" type="button">Remove</button></td><td><button class="btn btn-destructive-plain" type="button">Remove director</button></td><td><button class="btn btn-destructive-plain btn-lg" type="button">Remove</button></td><td><button class="btn btn-destructive-plain is-disabled" type="button" aria-disabled="true">Remove</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid cols-2">
+          <div class="stack gap-3">
+            <h3 class="t-headline">Primary states</h3>
+            <div class="row gap-4 wrap">
+              <div class="stack gap-2"><span class="btn btn-primary">Continue</span><p class="t-caption t-3">Default</p></div>
+              <div class="stack gap-2"><span class="btn btn-primary" style="background: color-mix(in srgb, var(--tint) 88%, black)">Continue</span><p class="t-caption t-3">Hover · brand-600</p></div>
+              <div class="stack gap-2"><span class="btn btn-primary" style="transform: scale(0.97); background: color-mix(in srgb, var(--tint) 74%, black)">Continue</span><p class="t-caption t-3">Pressed · 0.97</p></div>
+              <div class="stack gap-2"><span class="btn btn-primary" style="outline: 3px solid var(--focus); outline-offset: 2px">Continue</span><p class="t-caption t-3">Focus ring</p></div>
+              <div class="stack gap-2"><span class="btn btn-primary is-disabled">Continue</span><p class="t-caption t-3">Disabled · 40%</p></div>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">Shapes</h3>
+            <div class="row gap-4 wrap">
+              <div class="stack gap-2"><button class="btn btn-gray btn-icon btn-pill" type="button" aria-label="Notifications"><span class="ic ic-bell" aria-hidden="true"></span></button><p class="t-caption t-3">Icon pill</p></div>
+              <div class="stack gap-2"><button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="More actions"><span class="ic ic-dots" aria-hidden="true"></span></button><p class="t-caption t-3">Icon small</p></div>
+              <div class="stack gap-2"><button class="btn btn-primary btn-pill btn-sm" type="button">Get started</button><p class="t-caption t-3">Pill</p></div>
+              <div class="stack gap-2" style="flex: 1 1 200px"><button class="btn btn-primary btn-block" type="button">Confirm 3 directors</button><p class="t-caption t-3">Block · phone sheets</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pills, badges, avatars -->
+    <section class="card card-lg rise" style="--d: 2" aria-labelledby="h-pills">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-pills" class="t-title2">Pills, badges and avatars</h2>
+          <p class="t-callout t-2">Status is always word plus colour, never colour alone.</p>
+        </header>
+        <div class="grid cols-3">
+          <div class="stack gap-3">
+            <h3 class="t-headline">Pills</h3>
+            <div class="row gap-2 wrap">
+              <span class="pill">Private limited company</span>
+              <span class="pill pill-good"><span class="dot" aria-hidden="true"></span>Active</span>
+              <span class="pill pill-warn"><span class="ic ic-clock" aria-hidden="true"></span>Due 13 Apr 2027</span>
+              <span class="pill pill-bad"><span class="ic ic-alert-circle" aria-hidden="true"></span>Overdue</span>
+              <span class="pill pill-info">In review</span>
+              <span class="pill pill-brand">Draft · step 6 of 14</span>
+              <span class="pill pill-solid">New</span>
+              <span class="pill pill-outline">Society</span>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">Badges, dots, keys</h3>
+            <div class="row gap-4 wrap">
+              <span class="row gap-2"><span class="t-subhead">Compliance</span><span class="badge">2</span></span>
+              <span class="row gap-2"><span class="t-subhead">Requests</span><span class="badge">12</span></span>
+              <span class="row gap-2"><span class="dot" style="color: var(--sys-green)" aria-hidden="true"></span><span class="t-subhead">Online</span></span>
+              <span class="row gap-2"><span class="dot" style="color: var(--sys-orange)" aria-hidden="true"></span><span class="t-subhead">Pending</span></span>
+              <span class="row gap-2"><span class="t-subhead">Search</span><span class="kbd">⌘K</span></span>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">Avatars</h3>
+            <div class="row gap-3 wrap" style="align-items: flex-end">
+              <div class="stack gap-1" style="align-items: center"><span class="avatar avatar-sm">WM</span><span class="t-caption t-3">sm 28</span></div>
+              <div class="stack gap-1" style="align-items: center"><span class="avatar">BO</span><span class="t-caption t-3">36</span></div>
+              <div class="stack gap-1" style="align-items: center"><span class="avatar avatar-lg">AO</span><span class="t-caption t-3">lg 48</span></div>
+              <div class="stack gap-1" style="align-items: center"><span class="avatar avatar-corp" role="img" aria-label="Savannah Holdings Limited">SH</span><span class="t-caption t-3">Corporate</span></div>
+              <div class="stack gap-1" style="align-items: center"><span class="avatar avatar-lg avatar-corp">SH</span><span class="t-caption t-3">Corp lg</span></div>
+              <div class="stack gap-1" style="align-items: center"><span class="avatar avatar-ink">CH</span><span class="t-caption t-3">Admin</span></div>
+            </div>
+            <p class="t-footnote t-3">People are round; companies are rounded squares in info blue, so a corporate shareholder never reads as a person.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inputs -->
+    <section class="card card-lg rise" style="--d: 3" aria-labelledby="h-inputs">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-inputs" class="t-title2">Inputs</h2>
+          <p class="t-callout t-2 t-pretty">Labels sit above, help or errors below. Validation is inline and appears as the value changes. The KRA PIN field below validates live.</p>
+        </header>
+        <div class="form-grid">
+          <div class="field"><label class="label" for="c-name">Entity name <span class="req" aria-hidden="true">*</span></label><input class="input" id="c-name" placeholder="e.g. Jua Kali Foods Ltd"><p class="help">Default · placeholder in label-4</p></div>
+          <div class="field"><label class="label" for="c-email">Email address</label><input class="input is-focus" id="c-email" value="wanjiku@amanilogistics.co.ke"><p class="help">Focused · 1.5px tint ring + 4px halo</p></div>
+          <div class="field {{pinFieldCls}}">
+            <label class="label" for="c-pin">Company KRA PIN <span class="req" aria-hidden="true">*</span></label>
+            <input class="input t-mono" id="c-pin" value="{{pin}}" onChange="{{setPin}}" aria-invalid="{{pinInvalidAttr}}" aria-describedby="c-pin-msg">
+            <sc-if value="{{pinInvalid}}" hint-placeholder-val="{{true}}">
+              <p class="error" id="c-pin-msg"><span class="ic ic-alert-circle ic-sm" aria-hidden="true"></span>{{pinError}}</p>
+            </sc-if>
+            <sc-if value="{{pinTyping}}" hint-placeholder-val="{{false}}">
+              <p class="help t-num" id="c-pin-msg">{{pinCount}} of 11 characters · P, 9 digits, then a letter</p>
+            </sc-if>
+            <sc-if value="{{pinValid}}" hint-placeholder-val="{{false}}">
+              <p class="help t-good row gap-1" id="c-pin-msg"><span class="ic ic-circle-check ic-sm" aria-hidden="true"></span>Valid company PIN format</p>
+            </sc-if>
+          </div>
+          <div class="field"><label class="label" for="c-search">Search with leading icon</label><div class="input-wrap"><span class="ic ic-search" aria-hidden="true"></span><input class="input" id="c-search" placeholder="Search entities, people, documents" style="padding-right: 52px"><span class="trail"><span class="kbd">⌘K</span></span></div></div>
+          <div class="field is-extracted">
+            <div class="row between gap-2"><label class="label" for="c-reg">Registration number</label><span class="src src-extracted"><span class="ic ic-scan" aria-hidden="true"></span>From CR12</span></div>
+            <input class="input t-mono" id="c-reg" value="PVT-2LU7Q9XB"><p class="help">Extracted · read from CR12, page 1</p>
+          </div>
+          <div class="field is-conflict">
+            <div class="row between gap-2"><label class="label" for="c-bpin">Brian Otieno · KRA PIN</label><span class="src src-conflict"><span class="ic ic-alert-triangle" aria-hidden="true"></span>Conflict</span></div>
+            <input class="input t-mono" id="c-bpin" value="A019876543K"><p class="help">CR12 says A019876543K · KRA certificate says A019876534K</p>
+          </div>
+          <div class="field is-missing">
+            <div class="row between gap-2"><label class="label" for="c-cps">Secretary practising number</label><span class="src src-missing"><span class="ic ic-circle-dashed" aria-hidden="true"></span>Not found</span></div>
+            <input class="input" id="c-cps" placeholder="Enter manually"><p class="help">Missing · no document contained it</p>
+          </div>
+          <div class="field"><label class="label" for="c-type">Entity type</label><div class="input-wrap"><span class="ic ic-lock" aria-hidden="true"></span><input class="input" id="c-type" value="Private limited company" disabled="disabled" aria-disabled="true" style="background: var(--fill-4); color: var(--label-3); box-shadow: inset 0 0 0 1px var(--sep-soft); cursor: not-allowed"></div><p class="help">Disabled · set in step 1, change it there</p></div>
+          <div class="field"><label class="label" for="c-county">County</label><select class="select" id="c-county"><option>Nairobi County</option><option>Mombasa County</option><option>Kiambu County</option><option>Nakuru County</option></select><p class="help">Select · native menu</p></div>
+          <div class="field"><label class="label" for="c-purpose">Principal business activity</label><textarea class="textarea" id="c-purpose" placeholder="Describe what Jua Kali Foods Ltd will do"></textarea><p class="help">Textarea · grows vertically</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Choice, toggles, segmented, tabs -->
+    <section class="card card-lg rise" style="--d: 4" aria-labelledby="h-choice">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-choice" class="t-title2">Selection</h2>
+          <p class="t-callout t-2 t-pretty">Large targets for decisions that matter. All four controls below are live.</p>
+        </header>
+        <div class="grid cols-2" style="gap: 28px">
+          <div class="stack gap-3">
+            <div class="row between wrap gap-2"><h3 class="t-headline">Choice cards · single</h3><span class="t-footnote t-3">{{singleLabel}}</span></div>
+            <div class="stack gap-2" role="radiogroup" aria-label="Entity type">
+              <sc-for list="{{singles}}" as="c" hint-placeholder-count="4">
+                <button class="choice {{c.cls}}" type="button" role="radio" aria-checked="{{c.checked}}" onClick="{{c.pick}}">
+                  <span class="mark" aria-hidden="true"></span>
+                  <span class="stack gap-1 grow"><span class="t-headline">{{c.title}}</span><span class="t-footnote t-3">{{c.sub}}</span></span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <div class="row between wrap gap-2"><h3 class="t-headline">Choice cards · multiple</h3><span class="t-footnote t-3 t-num">{{multiCount}} selected</span></div>
+            <div class="stack gap-2" role="group" aria-label="Services">
+              <sc-for list="{{multis}}" as="m" hint-placeholder-count="3">
+                <button class="choice {{m.cls}}" type="button" role="checkbox" aria-checked="{{m.checked}}" onClick="{{m.pick}}">
+                  <span class="mark square" aria-hidden="true"></span>
+                  <span class="stack gap-1 grow"><span class="t-headline">{{m.title}}</span><span class="t-footnote t-3">{{m.sub}}</span></span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">Toggles</h3>
+            <div class="list">
+              <sc-for list="{{toggles}}" as="t" hint-placeholder-count="3">
+                <button class="list-row is-link" type="button" role="switch" aria-checked="{{t.checked}}" onClick="{{t.flip}}">
+                  <span class="grow" style="min-width: 0"><span class="list-title" style="display: block">{{t.title}}</span><span class="list-sub truncate" style="display: block">{{t.sub}}</span></span>
+                  <span class="toggle {{t.cls}}" aria-hidden="true"></span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">Segmented control</h3>
+            <div class="seg" style="--n: 3; --i: {{seg}}" role="tablist" aria-label="Filter deadlines">
+              <button class="{{segCls0}}" type="button" role="tab" aria-selected="{{segSel0}}" onClick="{{seg0}}">Upcoming</button>
+              <button class="{{segCls1}}" type="button" role="tab" aria-selected="{{segSel1}}" onClick="{{seg1}}">Due soon</button>
+              <button class="{{segCls2}}" type="button" role="tab" aria-selected="{{segSel2}}" onClick="{{seg2}}">Done</button>
+            </div>
+            <p class="t-footnote t-3">Thumb slides on the snappy spring via <span class="t-mono">--i</span>. Showing: {{segLabel}}</p>
+            <h3 class="t-headline" style="padding-top: 8px">Tabs</h3>
+            <div class="tabs" role="tablist" aria-label="Workspace">
+              <button class="{{tabCls0}}" type="button" role="tab" aria-selected="{{tabSel0}}" onClick="{{tab0}}">Overview</button>
+              <button class="{{tabCls1}}" type="button" role="tab" aria-selected="{{tabSel1}}" onClick="{{tab1}}">People</button>
+              <button class="{{tabCls2}}" type="button" role="tab" aria-selected="{{tabSel2}}" onClick="{{tab2}}">Compliance</button>
+              <button class="{{tabCls3}}" type="button" role="tab" aria-selected="{{tabSel3}}" onClick="{{tab3}}">Documents</button>
+            </div>
+            <div class="well" role="tabpanel" style="min-height: 92px">
+              <sc-if value="{{tabOn0}}" hint-placeholder-val="{{true}}">
+                <div class="row gap-3 fade"><span class="icon-tile good"><span class="ic ic-shield-check" aria-hidden="true"></span></span><div class="grow"><p class="t-headline">Health 82% · Active</p><p class="t-footnote t-3">2 tasks open: upload signed BOF-1, confirm Brian Otieno’s KRA PIN</p></div></div>
+              </sc-if>
+              <sc-if value="{{tabOn1}}" hint-placeholder-val="{{false}}">
+                <div class="row gap-2 wrap fade"><span class="avatar avatar-sm">WM</span><span class="avatar avatar-sm">BO</span><span class="avatar avatar-sm avatar-corp">SH</span><span class="avatar avatar-sm">HA</span><p class="t-footnote t-2" style="flex: 1 1 160px">2 directors, 3 shareholders, 1 company secretary</p></div>
+              </sc-if>
+              <sc-if value="{{tabOn2}}" hint-placeholder-val="{{false}}">
+                <div class="row gap-3 fade"><div class="date-tile"><span class="m">Apr</span><span class="d">13</span></div><div class="grow"><p class="t-headline">Annual return</p><p class="t-footnote t-3">Due 13 Apr 2027 · file on eCitizen</p></div></div>
+              </sc-if>
+              <sc-if value="{{tabOn3}}" hint-placeholder-val="{{false}}">
+                <div class="row gap-3 fade"><span class="icon-tile info"><span class="ic ic-folder" aria-hidden="true"></span></span><div class="grow"><p class="t-headline">8 documents</p><p class="t-footnote t-3">CR12, CR1, certificate of incorporation, KRA PIN certificate…</p></div></div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lists & tables -->
+    <section class="card card-lg rise" style="--d: 5" aria-labelledby="h-lists">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-lists" class="t-title2">Lists and tables</h2>
+          <p class="t-callout t-2">Inset grouped lists for navigation; tables for records with numbers.</p>
+        </header>
+        <div class="grid cols-2" style="gap: 28px; align-items: start">
+          <div class="stack gap-2">
+            <p class="t-eyebrow list-head">Your entities</p>
+            <div class="list">
+              <a class="list-row has-icon is-link" href="Workspace.dc.html" style="color: var(--label); text-decoration: none"><span class="icon-tile"><span class="ic ic-building" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Amani Logistics Limited</p><p class="list-sub truncate">Private limited company · PVT-2LU7Q9XB</p></div><span class="pill pill-good hide-compact">Active</span><span class="ic ic-chevron-right chev" aria-hidden="true"></span></a>
+              <div class="list-row has-icon"><span class="icon-tile info"><span class="ic ic-users-group" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Kilele Partners</p><p class="list-sub truncate">General partnership · BN-8XK2Q4LM</p></div><span class="pill pill-good hide-compact">Active</span></div>
+              <a class="list-row has-icon is-link" href="ExInstrument.dc.html" style="color: var(--label); text-decoration: none"><span class="icon-tile warn"><span class="ic ic-heart-handshake" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Tumaini Welfare Society</p><p class="list-sub truncate">Society · onboarding 60%</p></div><span class="pill pill-warn hide-compact">Onboarding</span><span class="ic ic-chevron-right chev" aria-hidden="true"></span></a>
+              <a class="list-row has-icon is-link" href="NewPeople.dc.html" style="color: var(--label); text-decoration: none"><span class="icon-tile gray"><span class="ic ic-pencil" aria-hidden="true"></span></span><div class="grow" style="min-width: 0"><p class="list-title truncate">Jua Kali Foods Ltd</p><p class="list-sub truncate">Draft · step 6 of 14 · saved 2 days ago</p></div><span class="pill pill-brand hide-compact">Draft</span><span class="ic ic-chevron-right chev" aria-hidden="true"></span></a>
+            </div>
+          </div>
+          <div class="stack gap-2">
+            <p class="t-eyebrow list-head">Shareholders · Amani Logistics Limited</p>
+            <div class="card table-wrap">
+              <table class="table">
+                <thead><tr><th>Shareholder</th><th class="num">Shares</th><th class="num">Holding</th><th>ID / Reg. no.</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="row gap-2"><span class="avatar avatar-sm">WM</span><span>Wanjiku Mwangi</span></span></td><td class="num">600</td><td class="num">60%</td><td class="t-mono">23456789</td></tr>
+                  <tr><td><span class="row gap-2"><span class="avatar avatar-sm">BO</span><span>Brian Otieno</span></span></td><td class="num">300</td><td class="num">30%</td><td class="t-mono">29876543</td></tr>
+                  <tr><td><span class="row gap-2"><span class="avatar avatar-sm avatar-corp">SH</span><span>Savannah Holdings Limited</span></span></td><td class="num">100</td><td class="num">10%</td><td class="t-mono">PVT-9QK3LM2A</td></tr>
+                  <tr><td class="t-strong">Total</td><td class="num t-strong">1,000</td><td class="num t-strong">100%</td><td class="t-3">KES 1,000 each</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data display -->
+    <section class="card card-lg rise" style="--d: 6" aria-labelledby="h-data">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-data" class="t-title2">Stats, progress and dates</h2>
+          <p class="t-callout t-2">Large tabular numerals from the Zeno console; rings in vivid system colours, labels in text-safe colours.</p>
+        </header>
+        <div class="grid cols-4">
+          <div class="stat"><p class="stat-label"><span class="ic ic-shield-check ic-sm" aria-hidden="true"></span>Entity health</p><p class="t-stat">82%</p><div class="progress good"><span style="width: 82%"></span></div><p class="stat-sub">Amani Logistics Limited</p></div>
+          <div class="stat"><p class="stat-label"><span class="ic ic-building ic-sm" aria-hidden="true"></span>Entities</p><p class="t-stat">4</p><p class="stat-sub">2 active · 1 onboarding · 1 draft</p></div>
+          <div class="stat"><p class="stat-label"><span class="ic ic-list-check ic-sm" aria-hidden="true"></span>Open tasks</p><p class="t-stat">2</p><p class="stat-sub">Upload signed BOF-1 · confirm a PIN</p></div>
+          <div class="stat"><p class="stat-label"><span class="ic ic-calendar-due ic-sm" aria-hidden="true"></span>Next deadline</p><p class="t-stat">31 Mar</p><p class="stat-sub">Nairobi County business permit</p></div>
+        </div>
+        <div class="grid cols-3">
+          <div class="well stack gap-4">
+            <h3 class="t-headline">Progress bars</h3>
+            <div class="stack gap-2"><div class="row between"><span class="t-subhead">Jua Kali Foods Ltd</span><span class="t-footnote t-3 t-num">Step 6 of 14 · 43%</span></div><div class="progress"><span style="width: 43%"></span></div></div>
+            <div class="stack gap-2"><div class="row between"><span class="t-subhead">Tumaini Welfare Society</span><span class="t-footnote t-3 t-num">60%</span></div><div class="progress warn"><span style="width: 60%"></span></div></div>
+            <div class="stack gap-2"><div class="row between"><span class="t-subhead">Amani Logistics health</span><span class="t-footnote t-3 t-num">82%</span></div><div class="progress good"><span style="width: 82%"></span></div></div>
+          </div>
+          <div class="well stack gap-3">
+            <h3 class="t-headline">Rings</h3>
+            <div class="row gap-4 wrap">
+              <div style="position: relative; width: 120px; height: 120px">
+                <svg class="ring" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="52" stroke-width="12"></circle><circle class="bar" cx="60" cy="60" r="52" stroke-width="12" stroke-dasharray="326.7" stroke-dashoffset="58.8" style="--len: 326.7; stroke: var(--sys-green)"></circle></svg>
+                <div class="stack" style="position: absolute; inset: 0; align-items: center; justify-content: center"><span class="t-title2 t-num">82%</span><span class="t-caption t-3">Health</span></div>
+              </div>
+              <div class="stack gap-3">
+                <div class="row gap-2">
+                  <svg class="ring" width="44" height="44" viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="52" stroke-width="16"></circle><circle class="bar" cx="60" cy="60" r="52" stroke-width="16" stroke-dasharray="326.7" stroke-dashoffset="130.7" style="--len: 326.7; stroke: var(--sys-orange)"></circle></svg>
+                  <div><p class="t-subhead t-num">60%</p><p class="t-caption t-3">Onboarding</p></div>
+                </div>
+                <div class="row gap-2">
+                  <svg class="ring" width="44" height="44" viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="52" stroke-width="16"></circle><circle class="bar" cx="60" cy="60" r="52" stroke-width="16" stroke-dasharray="326.7" stroke-dashoffset="186.2" style="--len: 326.7"></circle></svg>
+                  <div><p class="t-subhead t-num">43%</p><p class="t-caption t-3">Draft</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="well stack gap-3">
+            <h3 class="t-headline">Date tiles</h3>
+            <div class="row gap-3"><div class="date-tile is-urgent"><span class="m">Oct</span><span class="d">16</span></div><div class="grow" style="min-width: 0"><p class="t-subhead truncate">Upload signed BOF-1</p><p class="t-footnote t-bad">Due today · .is-urgent</p></div></div>
+            <div class="row gap-3"><div class="date-tile"><span class="m">Mar</span><span class="d">31</span></div><div class="grow" style="min-width: 0"><p class="t-subhead truncate">County business permit</p><p class="t-footnote t-3">31 Mar 2027</p></div></div>
+            <div class="row gap-3"><div class="date-tile"><span class="m">Apr</span><span class="d">13</span></div><div class="grow" style="min-width: 0"><p class="t-subhead truncate">Annual return</p><p class="t-footnote t-3">13 Apr 2027</p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload & OCR -->
+    <section class="card card-lg rise" style="--d: 7" aria-labelledby="h-upload">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-upload" class="t-title2">Upload and reading</h2>
+          <p class="t-callout t-2 t-pretty">Files keep their place while they are read. Long names end in an ellipsis and never wrap or push the size and status off the row. Click the dropzone to see the drag-over state.</p>
+        </header>
+        <div class="grid cols-2" style="gap: 28px; align-items: start">
+          <div class="stack gap-3">
+            <h3 class="t-headline">Dropzone and file rows</h3>
+            <button class="dropzone {{overCls}}" type="button" onClick="{{toggleOver}}" aria-label="Upload CR12">
+              <span class="icon-tile icon-tile-lg"><span class="ic ic-cloud-upload" aria-hidden="true"></span></span>
+              <span class="t-headline" style="color: var(--label)">{{dropTitle}}</span>
+              <span class="t-footnote t-3">PDF, JPG or PNG · scans and phone photos work</span>
+            </button>
+            <div class="file-row">
+              <span class="icon-tile good"><span class="ic ic-file-text" aria-hidden="true"></span></span>
+              <span class="name">CR12 — Amani Logistics Limited.pdf</span>
+              <span class="meta hide-compact">412 KB</span>
+              <span class="pill pill-good"><span class="ic ic-circle-check" aria-hidden="true"></span>Read</span>
+            </div>
+            <div class="file-row">
+              <span class="icon-tile info"><span class="ic ic-file-certificate" aria-hidden="true"></span></span>
+              <span class="name">Certificate_of_Incorporation_Amani_Logistics_Limited_PVT-2LU7Q9XB_certified_true_copy_2019-03-14_scan_final_v3.pdf</span>
+              <span class="meta hide-compact">2.1 MB</span>
+              <button class="btn btn-plain btn-icon btn-sm" type="button" aria-label="Remove file"><span class="ic ic-x" aria-hidden="true"></span></button>
+            </div>
+            <div class="file-row">
+              <span class="icon-tile bad"><span class="ic ic-file-alert" aria-hidden="true"></span></span>
+              <span class="name">KRA PIN certificate.pdf</span>
+              <span class="pill pill-bad">Password-protected</span>
+            </div>
+          </div>
+          <div class="stack gap-3">
+            <h3 class="t-headline">OCR reading state</h3>
+            <div class="card stack gap-4" style="padding: 16px">
+              <div class="row gap-4">
+                <div class="scanline stack gap-2" style="flex: none; width: 76px; height: 98px; padding: 10px 8px; border-radius: 6px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--sep), var(--shadow-card)" aria-hidden="true">
+                  <span class="skeleton" style="height: 6px; width: 70%"></span><span class="skeleton" style="height: 4px"></span><span class="skeleton" style="height: 4px; width: 85%"></span><span class="skeleton" style="height: 4px"></span><span class="skeleton" style="height: 4px; width: 60%"></span><span class="skeleton" style="height: 4px; width: 90%"></span>
+                </div>
+                <div class="stack gap-2 grow" style="min-width: 0">
+                  <p class="t-headline truncate">Reading CR12</p>
+                  <p class="t-footnote t-3">Page 2 of 3 · finding directors and shareholders</p>
+                  <div class="progress"><span style="width: 66%"></span></div>
+                  <p class="t-footnote t-3">You can keep working. We will tell you when it is done.</p>
+                </div>
+              </div>
+              <div class="stack gap-2">
+                <div class="shimmer skeleton" style="height: 40px; border-radius: var(--r-md)"></div>
+                <div class="shimmer skeleton" style="height: 40px; border-radius: var(--r-md); width: 80%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <section class="card card-lg rise" style="--d: 8" aria-labelledby="h-notes">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-notes" class="t-title2">Notes</h2>
+          <p class="t-callout t-2">Icon plus text on a tinted ground. No left-border stripes.</p>
+        </header>
+        <div class="grid cols-2">
+          <div class="note note-info"><span class="ic ic-info-circle" aria-hidden="true"></span><span><strong>BRS has no API.</strong> We prepare the documents; you file on eCitizen and upload the certificate back here.</span></div>
+          <div class="note note-good"><span class="ic ic-circle-check" aria-hidden="true"></span><span><strong>CR12 read.</strong> Six fields were pre-filled. Check each one before you continue.</span></div>
+          <div class="note note-warn"><span class="ic ic-alert-triangle" aria-hidden="true"></span><span><strong>Brian Otieno’s KRA PIN differs</strong> between the CR12 and the KRA certificate. Choose the correct one.</span></div>
+          <div class="note note-bad"><span class="ic ic-alert-circle" aria-hidden="true"></span><span><strong>We could not open this file.</strong> It is password-protected. Remove the password and upload it again.</span></div>
+          <div class="note note-brand"><span class="ic ic-gavel" aria-hidden="true"></span><span><strong>Legal audit · KES 25,000.</strong> A lawyer reviews your statutory records and sends a written report.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Overlays -->
+    <section class="card card-lg rise" style="--d: 8" aria-labelledby="h-over">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-over" class="t-title2">Overlays</h2>
+          <p class="t-callout t-2 t-pretty">Every overlay grows from the control that opened it. The menu and the toast are live.</p>
+        </header>
+        <div class="grid cols-2" style="gap: 28px">
+          <div class="stack gap-2">
+            <h3 class="t-headline">Dialog</h3>
+            <div class="row" style="justify-content: center; padding: 28px 16px; border-radius: var(--r-lg); background: var(--fill-3)">
+              <div class="dialog" role="dialog" aria-labelledby="dlg-t" style="max-width: 100%">
+                <div class="dialog-body">
+                  <p id="dlg-t" class="t-headline">Remove this document?</p>
+                  <p class="t-footnote t-2">CR12 moves to Recently deleted and can be restored for 30 days.</p>
+                </div>
+                <div class="dialog-actions"><button type="button">Cancel</button><button type="button" style="color: var(--bad); font-weight: 600">Remove</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="stack gap-2">
+            <h3 class="t-headline">Popover menu</h3>
+            <div style="position: relative; min-height: 280px; padding: 20px; border-radius: var(--r-lg); background: var(--fill-4)">
+              <div class="row between gap-2">
+                <p class="t-subhead truncate">Amani Logistics Limited</p>
+                <button class="btn btn-gray btn-icon btn-sm" type="button" aria-label="Entity actions" aria-expanded="{{menuExpanded}}" onClick="{{toggleMenu}}"><span class="ic ic-dots" aria-hidden="true"></span></button>
+              </div>
+              <sc-if value="{{menu}}" hint-placeholder-val="{{true}}">
+                <div class="popover" role="menu" style="position: absolute; top: 58px; right: 20px; width: 228px; max-width: calc(100% - 40px); --origin: top right">
+                  <button class="menu-item" type="button" role="menuitem" onClick="{{closeMenu}}"><span class="ic ic-building" aria-hidden="true"></span>Open workspace</button>
+                  <button class="menu-item" type="button" role="menuitem" onClick="{{closeMenu}}"><span class="ic ic-download" aria-hidden="true"></span>Download CR12</button>
+                  <button class="menu-item" type="button" role="menuitem" onClick="{{closeMenu}}"><span class="ic ic-share" aria-hidden="true"></span>Share with a lawyer</button>
+                  <div class="divider" style="margin: 4px 6px"></div>
+                  <button class="menu-item t-bad" type="button" role="menuitem" onClick="{{closeMenu}}"><span class="ic ic-trash" aria-hidden="true"></span>Archive entity</button>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+          <div class="stack gap-2">
+            <div class="row between wrap gap-2"><h3 class="t-headline">Toast</h3><button class="btn btn-tinted btn-sm" type="button" onClick="{{replayToast}}"><span class="ic ic-refresh" aria-hidden="true"></span>Show again</button></div>
+            <div class="row" style="justify-content: center; align-items: flex-start; min-height: 96px; padding: 20px; border-radius: var(--r-lg); background: var(--fill-4)">
+              <sc-if value="{{toast}}" hint-placeholder-val="{{true}}">
+                <div class="toast" role="status"><span class="ic ic-cloud-check" aria-hidden="true" style="color: var(--sys-green)"></span>Draft saved</div>
+              </sc-if>
+            </div>
+          </div>
+          <div class="stack gap-2">
+            <h3 class="t-headline">Tooltip</h3>
+            <div style="position: relative; min-height: 150px; padding: 20px; border-radius: var(--r-lg); background: var(--fill-4)">
+              <span class="label">Company KRA PIN <span class="ic ic-help-circle ic-sm" aria-hidden="true" style="color: var(--tint-text)"></span></span>
+              <div class="tooltip" role="tooltip" style="top: 50px; left: 20px; right: 20px">Find it on the KRA PIN certificate. Company PINs start with P, individual PINs with A.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty & loading -->
+    <section class="card card-lg rise" style="--d: 8" aria-labelledby="h-empty">
+      <div class="card-pad stack gap-5">
+        <header class="stack gap-1">
+          <h2 id="h-empty" class="t-title2">Empty and loading</h2>
+          <p class="t-callout t-2">Empty states say what will appear and offer the one action that fills them.</p>
+        </header>
+        <div class="grid cols-2">
+          <div class="well stack gap-3" style="align-items: center; text-align: center; padding: 32px 20px">
+            <span class="icon-tile icon-tile-lg gray"><span class="ic ic-briefcase" aria-hidden="true"></span></span>
+            <p class="t-title3">No service requests yet</p>
+            <p class="t-callout t-2 t-pretty" style="max-width: 340px">When you ask for minutes, notices or a legal audit, the request and the lawyer’s progress appear here.</p>
+            <button class="btn btn-tinted" type="button"><span class="ic ic-plus" aria-hidden="true"></span>Request a service</button>
+          </div>
+          <div class="well stack gap-3" role="status" aria-label="Loading entities">
+            <div class="row gap-3"><span class="skeleton shimmer" style="width: 32px; height: 32px; border-radius: 8px"></span><div class="stack gap-2 grow"><span class="skeleton shimmer" style="height: 12px; width: 60%"></span><span class="skeleton shimmer" style="height: 10px; width: 40%"></span></div></div>
+            <div class="row gap-3"><span class="skeleton shimmer" style="width: 32px; height: 32px; border-radius: 8px"></span><div class="stack gap-2 grow"><span class="skeleton shimmer" style="height: 12px; width: 72%"></span><span class="skeleton shimmer" style="height: 10px; width: 36%"></span></div></div>
+            <div class="row gap-3"><span class="skeleton shimmer" style="width: 32px; height: 32px; border-radius: 8px"></span><div class="stack gap-2 grow"><span class="skeleton shimmer" style="height: 12px; width: 50%"></span><span class="skeleton shimmer" style="height: 10px; width: 44%"></span></div></div>
+            <p class="t-footnote t-3">Skeleton mirrors the final layout; shimmer stops when data arrives.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="row between wrap gap-3" style="padding-top: 8px">
+      <a class="btn btn-gray" href="Foundations.dc.html"><span class="ic ic-arrow-left" aria-hidden="true"></span>Foundations</a>
+      <a class="btn btn-primary" href="Motion.dc.html">Motion<span class="ic ic-arrow-right" aria-hidden="true"></span></a>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":6000}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const single = s.single ?? 'ltd';
+const multi = s.multi ?? { annual: true, audit: false, minutes: true };
+const tg = s.tg ?? { email: true, whatsapp: false, digest: true };
+const seg = s.seg ?? 1;
+const tab = s.tab ?? 0;
+const pin = s.pin ?? 'P0512345678';
+const over = s.over ?? false;
+const menu = s.menu ?? true;
+const toast = s.toast ?? true;
+const pinValid = /^P[0-9]{9}[A-Z]$/.test(pin);
+
+const singleDefs = [
+  { id: 'ltd', title: 'Private limited company', sub: 'Companies Act 2015 · CR12, CR1 and certificate of incorporation' },
+  { id: 'clg', title: 'Company limited by guarantee', sub: 'Members guarantee an amount instead of holding shares' },
+  { id: 'gp', title: 'General partnership', sub: 'Registered business name · BN2 certificate' },
+  { id: 'soc', title: 'Society', sub: 'Registered under the Societies Act · constitution and officers' }
+];
+const multiDefs = [
+  { id: 'annual', title: 'Annual return filing', sub: 'We prepare it; you file on eCitizen' },
+  { id: 'audit', title: 'Legal audit · KES 25,000', sub: 'A lawyer reviews your statutory records' },
+  { id: 'minutes', title: 'Minutes and notices', sub: 'Board and general meeting documents' }
+];
+const toggleDefs = [
+  { id: 'email', title: 'Email reminders', sub: 'wanjiku@amanilogistics.co.ke' },
+  { id: 'whatsapp', title: 'WhatsApp reminders', sub: '+254 712 345 678' },
+  { id: 'digest', title: 'Weekly compliance digest', sub: 'Every Monday morning' }
+];
+const segLabels = ['Upcoming', 'Due soon', 'Done'];
+const pinChars = pin.split('');
+const pinShapeOk = pinChars.every((ch, i) => (i === 0 ? /P/.test(ch) : (i < 10 ? /[0-9]/.test(ch) : /[A-Z]/.test(ch))));
+const pinTyping = pinShapeOk && pin.length > 0 && pin.length < 11;
+const pinInvalid = !pinValid && !pinTyping;
+const pinError = pin.length === 0
+  ? 'Enter the company KRA PIN. It is on the KRA PIN certificate.'
+  : (pin[0] === 'A' ? 'This looks like an individual PIN. Company KRA PINs start with P.' : 'A company KRA PIN is 11 characters: P, 9 digits, then a letter. For example P051234567X.');
+const multiCount = multiDefs.filter((m) => multi[m.id]).length;
+
+return {
+  theme: this.props.dark ? 'lx-dark' : '',
+  tabCls0: tab === 0 ? 'is-on' : '', tabSel0: tab === 0 ? 'true' : 'false', tabOn0: tab === 0, tab0: () => this.setState({ tab: 0 }),
+  tabCls1: tab === 1 ? 'is-on' : '', tabSel1: tab === 1 ? 'true' : 'false', tabOn1: tab === 1, tab1: () => this.setState({ tab: 1 }),
+  tabCls2: tab === 2 ? 'is-on' : '', tabSel2: tab === 2 ? 'true' : 'false', tabOn2: tab === 2, tab2: () => this.setState({ tab: 2 }),
+  tabCls3: tab === 3 ? 'is-on' : '', tabSel3: tab === 3 ? 'true' : 'false', tabOn3: tab === 3, tab3: () => this.setState({ tab: 3 }),
+  segCls0: seg === 0 ? 'is-on' : '', segSel0: seg === 0 ? 'true' : 'false', seg0: () => this.setState({ seg: 0 }),
+  segCls1: seg === 1 ? 'is-on' : '', segSel1: seg === 1 ? 'true' : 'false', seg1: () => this.setState({ seg: 1 }),
+  segCls2: seg === 2 ? 'is-on' : '', segSel2: seg === 2 ? 'true' : 'false', seg2: () => this.setState({ seg: 2 }),
+  seg: seg,
+  segLabel: segLabels[seg],
+  singles: singleDefs.map((c) => ({ ...c, cls: single === c.id ? 'is-selected' : '', checked: single === c.id ? 'true' : 'false', pick: () => this.setState({ single: c.id }) })),
+  singleLabel: (singleDefs.find((c) => c.id === single) || singleDefs[0]).title,
+  multis: multiDefs.map((m) => ({ ...m, cls: multi[m.id] ? 'is-selected' : '', checked: multi[m.id] ? 'true' : 'false', pick: () => this.setState({ multi: { ...multi, [m.id]: !multi[m.id] } }) })),
+  multiCount: multiCount,
+  toggles: toggleDefs.map((t) => ({ ...t, cls: tg[t.id] ? 'is-on' : '', checked: tg[t.id] ? 'true' : 'false', flip: () => this.setState({ tg: { ...tg, [t.id]: !tg[t.id] } }) })),
+  pin: pin,
+  setPin: (e) => this.setState({ pin: String(e.target.value || '').toUpperCase().replace(/\s/g, '').slice(0, 11) }),
+  pinValid: pinValid,
+  pinInvalid: pinInvalid,
+  pinTyping: pinTyping,
+  pinCount: pin.length,
+  pinError: pinError,
+  pinInvalidAttr: pinInvalid ? 'true' : 'false',
+  pinFieldCls: pinInvalid ? 'is-invalid' : '',
+  overCls: over ? 'is-over' : '',
+  dropTitle: over ? 'Release to upload CR12' : 'Drop your CR12 here or browse',
+  toggleOver: () => this.setState({ over: !over }),
+  menu: menu,
+  menuExpanded: menu ? 'true' : 'false',
+  toggleMenu: () => this.setState({ menu: !menu }),
+  closeMenu: () => this.setState({ menu: false }),
+  toast: toast,
+  replayToast: () => { this.setState({ toast: false }); setTimeout(() => this.setState({ toast: true }), 30); }
+};
+}
+}
+</script>
+</body>
+</html>
