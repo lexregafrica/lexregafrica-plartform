@@ -275,14 +275,9 @@ export function EntityDashboard({
               <p className="t-stat">KES 25,000</p>
               <p className="t-footnote t-3">One-time, per entity</p>
             </div>
-            <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''}?text=${encodeURIComponent('Hello LexReg Africa, I would like to book a Legal Audit.')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary mt-auto"
-            >
+            <Link href="/dashboard/services" className="btn btn-secondary mt-auto">
               Book a legal audit<IconArrowRight size={16} stroke={2} aria-hidden="true" />
-            </a>
+            </Link>
           </section>
         </div>
       </main>

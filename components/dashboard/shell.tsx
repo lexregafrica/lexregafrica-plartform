@@ -24,7 +24,7 @@ const NAV: ShellNavItem[] = [
   { label: 'Overview', href: '/dashboard', icon: IconLayoutDashboard, soon: false },
   { label: 'Documents', href: '/dashboard/documents', icon: IconFiles, soon: true },
   { label: 'Compliance', href: '/dashboard/compliance', icon: IconCalendarTime, soon: true },
-  { label: 'Services', href: '/dashboard/services', icon: IconBriefcase, soon: true },
+  { label: 'Services', href: '/dashboard/services', icon: IconBriefcase, soon: false },
   { label: 'Settings', href: '/dashboard/settings', icon: IconSettings, soon: true },
 ]
 
@@ -74,7 +74,10 @@ export function DashboardShell({
   // Entity workspaces live under /dashboard/<id>, so Overview stays lit there
   const isActive = (href: string) => {
     const item = nav.find((n) => n.href === href)
-    return item?.exact ? pathname === href : pathname.startsWith(href)
+    if (item?.exact) return pathname === href
+    // A more specific live item (e.g. /dashboard/services) wins over its parent
+    const deeper = nav.some((n) => !n.soon && n.href !== href && n.href.startsWith(href) && pathname.startsWith(n.href))
+    return pathname.startsWith(href) && !deeper
   }
 
   return (

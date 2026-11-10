@@ -16,7 +16,9 @@ const ADMIN_NAV: ShellNavItem[] = [
 export function AdminShell({ userName, userEmail, children }: { userName: string; userEmail: string; children: React.ReactNode }) {
   const pathname = usePathname()
   const onEntity = /^\/admin\/entities\/[^/]+/.test(pathname)
-  const crumbs = pathname === '/admin'
+  const crumbs = pathname.startsWith('/mockups')
+    ? <><Link href="/mockups/ai">AI mockups</Link></>
+    : pathname === '/admin'
     ? <span className="here">Overview</span>
     : onEntity
       ? <><Link href="/admin/entities">Entities</Link><span aria-hidden="true">/</span><span className="here">Entity</span></>

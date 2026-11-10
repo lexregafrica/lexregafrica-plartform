@@ -25,6 +25,7 @@
     "@forgeui": "https://forgeui.in/r/{name}.json",
     "@magicui": "https://magicui.design/r/{name}",
     "@aceternity": "https://ui.aceternity.com/registry/{name}.json",
-    "@tailark-pro": "https://tailark.com/r/{name}.json"
+    "@tailark-pro": "https://tailark.com/r/{name}.json",
+    "@spectrumui": "https://ui.spectrumhq.in/r/{name}.json"
   }
 }
