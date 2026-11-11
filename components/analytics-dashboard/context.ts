@@ -21,6 +21,15 @@ export type AnalyticsDashboardUser = {
   role?: string;
 };
 
+/** LexReg: settings the Settings page saves through `onSaveSettings`. */
+export type AnalyticsSettings = {
+  name: string;
+  notify: Record<"requests" | "mentions" | "merged" | "digest", boolean>;
+  style: "concise" | "balanced" | "detailed";
+  includeDiff: boolean;
+  accent: AnalyticsDashboardAccent;
+};
+
 export type AnswerHandler = (question: string, pullRequest: AnalyticsPullRequest) => string | Promise<string>;
 
 type DashboardState = {
@@ -36,6 +45,10 @@ type DashboardState = {
   navigate: (page: AnalyticsDashboardPage) => void;
   accent: AnalyticsDashboardAccent;
   setAccent: (accent: AnalyticsDashboardAccent) => void;
+  initialSettings?: Partial<AnalyticsSettings>;
+  saveSettings?: (settings: AnalyticsSettings) => Promise<void>;
+  /** The sign-in email is shown but not editable. */
+  emailLocked?: boolean;
 };
 
 export const DashboardContext = createContext<DashboardState | null>(null);

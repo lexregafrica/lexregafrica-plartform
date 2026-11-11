@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { IconBuilding, IconFileText, IconGavel, IconArrowRight, IconCheck, IconMessageCircle, IconInfoCircle } from '@tabler/icons-react'
-import { DashboardShell } from '@/components/dashboard/shell'
 import { HelpRequestSheet } from '@/components/onboarding/help-request-sheet'
 
 export type ServiceEntity = { id: string; name: string }
@@ -41,10 +40,9 @@ const SERVICES = [
   },
 ] as const
 
-export function ServicesPage({ userName, userEmail, isSuperAdmin, entities }: {
+export function ServicesPage({ userName, userEmail, entities }: {
   userName: string
   userEmail: string
-  isSuperAdmin?: boolean
   entities: ServiceEntity[]
 }) {
   const [entityId, setEntityId] = useState(entities[0]?.id ?? '')
@@ -52,7 +50,8 @@ export function ServicesPage({ userName, userEmail, isSuperAdmin, entities }: {
   const entityName = entities.find((e) => e.id === entityId)?.name ?? null
 
   return (
-    <DashboardShell userName={userName} userEmail={userEmail} isSuperAdmin={isSuperAdmin} title="Services">
+    // Frame (navigation, account) comes from the (dashboard) layout
+    <div className="lx">
       <main className="content">
         <header className="page-head rise">
           <div className="flex flex-col gap-1">
@@ -116,6 +115,6 @@ export function ServicesPage({ userName, userEmail, isSuperAdmin, entities }: {
           onClose={() => setRequesting(null)}
         />
       )}
-    </DashboardShell>
+    </div>
   )
 }

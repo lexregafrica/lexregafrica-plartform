@@ -19,7 +19,7 @@ export default async function EntityWorkspacePage({
   // unknown id simply returns no row
   const { data: entity } = await supabase
     .from('entities')
-    .select('id, organisation_id, legal_name, trading_name, proposed_names, entity_type, status, registration_status, registration_number, kra_pin, date_incorporated, nature_of_business, registered_address, onboarding_path, onboarding_data')
+    .select('id, organisation_id, legal_name, trading_name, proposed_names, entity_type, status, registration_status, registration_number, kra_pin, date_incorporated, nature_of_business, registered_address, onboarding_path, onboarding_step, onboarding_data')
     .eq('id', entityId)
     .is('deleted_at', null)
     .maybeSingle()
@@ -66,6 +66,13 @@ export default async function EntityWorkspacePage({
       return { id: d.id, name: d.name, documentType: d.document_type, fileSize: d.file_size, createdAt: d.created_at, url, tags: d.tags as Array<{ person?: string; personId?: string; role?: string }> | null }
     })
   )
+
+  let idpUrl: string | null = null
+  const idpForm = (forms ?? []).find((f) => f.form_type === 'information_document_package' && f.file_url)
+  if (idpForm?.file_url) {
+    const { data: signed } = await supabase.storage.from('documents').createSignedUrl(idpForm.file_url, 3600)
+    idpUrl = signed?.signedUrl ?? null
+  }
 
   let profileUrl: string | null = null
   const latestForm = (forms ?? []).find((f) => f.file_url)
@@ -115,9 +122,6 @@ export default async function EntityWorkspacePage({
 
   return (
     <EntityWorkspace
-      userName={(user.user_metadata?.full_name as string | undefined) ?? user.email?.split('@')[0] ?? 'Account'}
-      userEmail={user.email ?? ''}
-      isSuperAdmin={isSuperAdmin === true}
       entity={{
         id: entity.id,
         name: entity.legal_name ?? entity.trading_name ?? proposed ?? 'Unnamed entity',
@@ -132,6 +136,9 @@ export default async function EntityWorkspacePage({
         profileUrl,
         missingDocs,
         onboarding,
+        onboardingPath: entity.onboarding_path,
+        onboardingStep: entity.onboarding_step,
+        idpUrl,
       }}
       canManageStatus={canManageStatus}
       events={(events ?? []).map((e) => ({

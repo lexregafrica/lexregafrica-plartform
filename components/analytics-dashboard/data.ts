@@ -45,6 +45,8 @@ export type AnalyticsRepository = {
   updatedMinutes: number;
   /** Commits per day, oldest first. */
   activity: number[];
+  /** LexReg: link to the entity workspace. */
+  href?: string;
 };
 
 export type AnalyticsPrStatus = { kind: "merged" | "review" | "open"; label: string };

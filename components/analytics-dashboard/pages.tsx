@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
-import { ACCENTS, useDashboard, type AnalyticsDashboardAccent } from "./context";
+import { ACCENTS, useDashboard, type AnalyticsDashboardAccent, type AnalyticsSettings } from "./context";
 import type { AnalyticsActivity, AnalyticsKpi, AnalyticsKpiIcon, AnalyticsPerson, AnalyticsPrStatus, AnalyticsPullRequest, AnalyticsRepository } from "./data";
 import {
   ArrowRightIcon,
@@ -89,7 +89,7 @@ export function OverviewPage() {
       <section className="block enter" style={{ "--i": 4.5 } as CSSProperties} aria-labelledby={`${id}-prs`}>
         <div className="block-head">
           <h2 id={`${id}-prs`} className="block-title">
-            Today&rsquo;s matters
+            Needs attention
           </h2>
           <button type="button" className="link-more" onClick={() => navigate("reviews")}>
             View all
@@ -101,6 +101,7 @@ export function OverviewPage() {
             <PrRow key={pr.number} pr={pr} selected={selected === pr.number} onOpen={openPr} />
           ))}
         </ul>
+        {today.length === 0 && <p className="empty-sub">Nothing due in the next two weeks.</p>}
       </section>
     </div>
   );
@@ -117,12 +118,15 @@ function KpiCard({ kpi, range, index }: { kpi: AnalyticsKpi; range: string; inde
       </span>
       <div className="stat-row">
         <Digits value={kpi.value} delay={420 + index * 70} className="stat-value" />
-        <span className="delta" data-good={good}>
-          <TrendIcon size={13} strokeWidth={2} down={kpi.delta < 0} />
-          <Digits value={`${kpi.delta < 0 ? "\u2212" : "+"}${Math.abs(kpi.delta)}%`} delay={500 + index * 70} />
-        </span>
+        {/* LexReg: no chip when there is nothing to compare against */}
+        {kpi.delta !== 0 && (
+          <span className="delta" data-good={good}>
+            <TrendIcon size={13} strokeWidth={2} down={kpi.delta < 0} />
+            <Digits value={`${kpi.delta < 0 ? "\u2212" : "+"}${Math.abs(kpi.delta)}%`} delay={500 + index * 70} />
+          </span>
+        )}
       </div>
-      <Sparkline key={range} data={kpi.spark} tone={good ? "good" : "bad"} />
+      <Sparkline key={range} data={kpi.spark} tone={good || kpi.delta === 0 ? "good" : "bad"} />
     </li>
   );
 }
@@ -194,7 +198,7 @@ function Leaderboard({ data, people }: { data: AnalyticsActivity; people: Analyt
                 <Digits value={`${formatCount(r.lines.added)} docs`} delay={620 + i * 80} />
               </span>
               <span className="badge badge-del">
-                <Digits value={`${formatCount(r.lines.removed)} flagged`} delay={660 + i * 80} />
+                <Digits value={`${formatCount(r.lines.removed)} filings`} delay={660 + i * 80} />
               </span>
               <span className="leader-pct">
                 <Digits value={Math.round((r.commits / total) * 100)} delay={700 + i * 80} />% of actions
@@ -303,7 +307,13 @@ function RepoCard({ repo, index, starred, onStar }: { repo: AnalyticsRepository;
         <VisIcon size={15} strokeWidth={1.8} className="repo-vis-icon" />
         <h2 className="repo-name">
           {org && <span className="repo-org">{org}</span>}
-          {name}
+          {repo.href ? (
+            <a href={repo.href} className="repo-link">
+              {name}
+            </a>
+          ) : (
+            name
+          )}
         </h2>
         <span className="tag">{repo.visibility}</span>
         <button
@@ -374,7 +384,7 @@ export function ReviewsPage() {
         <div className="page-head-text">
           <h1 className="page-title">Matters</h1>
           <p className="page-sub">
-            {waiting} {waiting === 1 ? "matter is" : "matters are"} waiting for lawyer sign-off
+            {count("open")} open · {waiting} with a lawyer · {count("merged")} done
           </p>
         </div>
       </header>
@@ -384,6 +394,7 @@ export function ReviewsPage() {
       </div>
 
       <ul key={filter} className="review-list" aria-label={`${FILTER_LABELS[filter]} matters`}>
+        {list.length === 0 && <li className="empty-sub">No matters here yet.</li>}
         {list.map((pr, i) => (
           <ReviewRow key={pr.number} pr={pr} index={i} selected={selected === pr.number} onOpen={openPr} />
         ))}
@@ -469,18 +480,19 @@ const STYLES = [
   { id: "detailed", label: "Detailed" },
 ] as const satisfies readonly { id: Style; label: string }[];
 
-type SaveState = "idle" | "saving" | "saved";
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 export function SettingsPage() {
-  const { accent, setAccent, user, assistantName } = useDashboard();
+  const { accent, setAccent, user, assistantName, initialSettings, saveSettings, emailLocked } = useDashboard();
   const id = useId();
   const [initial] = useState<Form>(() => ({
-    name: user.name,
+    name: initialSettings?.name ?? user.name,
     email: user.email,
-    notify: { requests: true, mentions: true, merged: false, digest: true },
-    style: "balanced",
-    includeDiff: true,
+    notify: initialSettings?.notify ?? { requests: true, mentions: true, merged: false, digest: true },
+    style: initialSettings?.style ?? "balanced",
+    includeDiff: initialSettings?.includeDiff ?? true,
   }));
+  const toSettings = (f: Form, a: AnalyticsDashboardAccent): AnalyticsSettings => ({ name: f.name, notify: f.notify, style: f.style, includeDiff: f.includeDiff, accent: a });
   const [saved, setSaved] = useState<Form>(initial);
   const [form, setForm] = useState<Form>(initial);
   const [save, setSave] = useState<SaveState>("idle");
@@ -495,19 +507,21 @@ export function SettingsPage() {
 
   function update<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (save === "saved") setSave("idle");
+    if (save === "saved" || save === "error") setSave("idle");
   }
 
-  function onSave() {
+  async function onSave() {
     if (!dirty || !emailValid || save === "saving") return;
     setSave("saving");
-    timers.current.push(
-      window.setTimeout(() => {
-        setSaved(form);
-        setSave("saved");
-        timers.current.push(window.setTimeout(() => setSave("idle"), 1800));
-      }, 700),
-    );
+    try {
+      if (saveSettings) await saveSettings(toSettings(form, accent));
+      else await new Promise((resolve) => timers.current.push(window.setTimeout(resolve, 700)));
+      setSaved(form);
+      setSave("saved");
+      timers.current.push(window.setTimeout(() => setSave("idle"), 1800));
+    } catch {
+      setSave("error");
+    }
   }
 
   return (
@@ -549,11 +563,12 @@ export function SettingsPage() {
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
                 autoComplete="email"
+                readOnly={emailLocked}
                 aria-invalid={!emailValid}
                 aria-describedby={`${id}-email-hint`}
               />
               <span id={`${id}-email-hint`} className="field-hint" data-error={!emailValid}>
-                {emailValid ? "Used for document requests, deadlines and the weekly digest." : "Enter a valid email address."}
+                {emailLocked ? "Your sign-in email. Ask LexReg to change it." : emailValid ? "Used for document requests, deadlines and the weekly digest." : "Enter a valid email address."}
               </span>
             </label>
           </div>
@@ -633,7 +648,10 @@ export function SettingsPage() {
                   className="swatch press has-tip tip-top"
                   data-tip={ACCENTS[accentId].label}
                   style={{ "--swatch": ACCENTS[accentId].ui } as CSSProperties}
-                  onClick={() => setAccent(accentId)}
+                  onClick={() => {
+                    setAccent(accentId);
+                    saveSettings?.(toSettings(saved, accentId)).catch(() => {});
+                  }}
                 >
                   <CheckIcon size={13} strokeWidth={2.6} />
                 </button>
@@ -645,7 +663,7 @@ export function SettingsPage() {
         <div className="save-bar enter" style={{ "--i": 4 } as CSSProperties}>
           <p className="save-note" aria-live="polite">
             <span key={`${dirty}-${save}`} className="swap-in">
-              {save === "saved" ? "All changes saved" : dirty ? "You have unsaved changes" : "Everything is up to date"}
+              {save === "error" ? "Couldn\u2019t save. Try again." : save === "saved" ? "All changes saved" : dirty ? "You have unsaved changes" : "Everything is up to date"}
             </span>
           </p>
           <button

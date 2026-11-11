@@ -40,7 +40,6 @@ export default async function DashboardServicesPage() {
     <ServicesPage
       userName={(user.user_metadata?.full_name as string | undefined) ?? user.email?.split('@')[0] ?? 'Account'}
       userEmail={user.email ?? ''}
-      isSuperAdmin={membership.role === 'super_admin'}
       entities={list}
     />
   )

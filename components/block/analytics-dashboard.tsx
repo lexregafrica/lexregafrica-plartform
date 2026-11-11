@@ -19,6 +19,7 @@ import {
   type AnalyticsDashboardAccent,
   type AnalyticsDashboardPage,
   type AnalyticsDashboardUser,
+  type AnalyticsSettings,
   type AnswerHandler,
 } from "@/components/analytics-dashboard/context";
 import { analyticsDashboardDemoData, type AnalyticsDashboardData } from "@/components/analytics-dashboard/data";
@@ -40,7 +41,7 @@ export type {
   AnalyticsRange,
   AnalyticsRepository,
 } from "@/components/analytics-dashboard/data";
-export type { AnalyticsDashboardAccent, AnalyticsDashboardPage, AnalyticsDashboardUser } from "@/components/analytics-dashboard/context";
+export type { AnalyticsDashboardAccent, AnalyticsDashboardPage, AnalyticsDashboardUser, AnalyticsSettings } from "@/components/analytics-dashboard/context";
 
 /** Keep in sync with the `analytics-dashboard` container queries in analytics-dashboard.css. */
 const OVERLAY_WIDTH = 1180;
@@ -96,6 +97,10 @@ export interface AnalyticsDashboardProps {
   variant?: "floating" | "fill";
   /** LexReg: hides the dashboard's own rail when an outer shell supplies the navigation. */
   embedded?: boolean;
+  /** LexReg: saved settings, the save handler, and whether the email is read-only. */
+  initialSettings?: Partial<AnalyticsSettings>;
+  onSaveSettings?: (settings: AnalyticsSettings) => Promise<void>;
+  emailLocked?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -128,6 +133,9 @@ export function AnalyticsDashboard({
   background,
   variant = "floating",
   embedded = false,
+  initialSettings,
+  onSaveSettings,
+  emailLocked,
   className,
   style,
 }: AnalyticsDashboardProps) {
@@ -246,8 +254,11 @@ export function AnalyticsDashboard({
       navigate,
       accent,
       setAccent,
+      initialSettings,
+      saveSettings: onSaveSettings,
+      emailLocked,
     };
-  }, [data, people, user, assistantName, onAsk, uid, selected, shown, navigate, accent, setAccent]);
+  }, [data, people, user, assistantName, onAsk, uid, selected, shown, navigate, accent, setAccent, initialSettings, onSaveSettings, emailLocked]);
 
   const activeIndex = NAV.findIndex((item) => item.page === page);
   const title = NAV[activeIndex]?.label ?? "";

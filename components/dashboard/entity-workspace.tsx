@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { DeleteEntityDialog } from '@/components/dashboard/delete-entity-dialog'
 import {
   IconLayoutDashboard,
   IconCalendarTime,
@@ -18,7 +20,6 @@ import {
 } from '@tabler/icons-react'
 import { REGISTRATION_STAGES, registrationStageIndex } from '@/lib/onboarding/registration-status'
 import { DocumentVaultTree } from '@/components/dashboard/document-vault-tree'
-import { DashboardShell } from '@/components/dashboard/shell'
 import { OwnershipStructure, type StructureHolder, type StructureOfficer } from '@/components/dashboard/ownership-structure'
 
 type WorkspaceEntity = {
@@ -38,6 +39,10 @@ type WorkspaceEntity = {
   // for every registered entity — it belongs on that entity's own page,
   // where there's room and it's actually actionable.
   missingDocs: string[]
+  // Setup actions (moved here from the old overview cards)
+  onboardingPath: string | null
+  onboardingStep: number | null
+  idpUrl: string | null
   // Existing-entity onboarding status + evidence still outstanding
   onboarding?: { status: string; statusKey: string; gaps: Array<{ title: string; impact: string; behaviour: string }>; fields: Array<{ label: string; state: string }> } | null
 }
@@ -752,9 +757,6 @@ function PeopleTab({ directors, shareholders, beneficialOwners, documents }: {
 // Workspace — app shell, entity header, tabs
 // ------------------------------------------------------------------
 export function EntityWorkspace({
-  userName,
-  userEmail,
-  isSuperAdmin,
   entity,
   events,
   documents,
@@ -763,9 +765,6 @@ export function EntityWorkspace({
   beneficialOwners = [],
   canManageStatus,
 }: {
-  userName: string
-  userEmail: string
-  isSuperAdmin?: boolean
   entity: WorkspaceEntity
   events: WorkspaceEvent[]
   documents: WorkspaceDocument[]
@@ -776,7 +775,6 @@ export function EntityWorkspace({
 }) {
   const [tab, setTab] = useState<TabId>('overview')
   const isActive = entity.status === 'active'
-  const current = TABS.find((t) => t.id === tab)!
 
   const panel = {
     overview: (
@@ -797,21 +795,8 @@ export function EntityWorkspace({
   }[tab]
 
   return (
-    <DashboardShell
-      userName={userName}
-      userEmail={userEmail}
-      isSuperAdmin={isSuperAdmin}
-      title={entity.name}
-      crumbs={
-        <>
-          <Link href="/dashboard">Overview</Link>
-          <span aria-hidden="true">/</span>
-          <span className="truncate">{entity.name}</span>
-          <span aria-hidden="true">/</span>
-          <span className="here">{current.label}</span>
-        </>
-      }
-    >
+    // Frame (navigation, account) comes from the (dashboard) layout
+    <div className="lx">
       <main className="content">
         <header className="page-head rise">
           <div className="flex min-w-0 items-center gap-4">
@@ -827,6 +812,8 @@ export function EntityWorkspace({
           </div>
         </header>
 
+        <SetupActions entity={entity} />
+
         <nav className="tabs overflow-x-auto" aria-label="Entity sections">
           {TABS.map((t) => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)} className={tab === t.id ? 'is-on' : ''} aria-current={tab === t.id ? 'page' : undefined}>
@@ -838,6 +825,43 @@ export function EntityWorkspace({
 
         <div key={tab} className="fade">{panel}</div>
       </main>
-    </DashboardShell>
+    </div>
+  )
+}
+
+// Draft / pending entities: finish setup, upload the certificate, get the
+// IDP, edit, or delete (pre-activation only — an active entity is a real
+// registered business and is never deleted from here).
+function resumeHref(entity: WorkspaceEntity) {
+  if (entity.onboardingPath === 'existing_entity') return `/onboarding/existing/${entity.onboardingStep || 1}?entity=${entity.id}`
+  if (entity.onboardingPath === 'new_entity') return `/onboarding/new/${entity.onboardingStep || 1}?entity=${entity.id}`
+  return '/onboarding/informal'
+}
+
+function SetupActions({ entity }: { entity: WorkspaceEntity }) {
+  const router = useRouter()
+  const [showDelete, setShowDelete] = useState(false)
+  if (entity.status !== 'draft' && entity.status !== 'pending_registration') return null
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {entity.status === 'draft' ? (
+        <Link href={resumeHref(entity)} className="btn btn-primary btn-sm">Continue setup</Link>
+      ) : (
+        <>
+          <Link href={resumeHref(entity)} className="btn btn-primary btn-sm">Upload certificate</Link>
+          {entity.idpUrl && <a href={entity.idpUrl} target="_blank" rel="noopener noreferrer" className="btn btn-tinted btn-sm">Download IDP</a>}
+          {entity.onboardingPath === 'new_entity' && <Link href={`${resumeHref(entity)}&edit=1`} className="btn btn-secondary btn-sm">Edit details</Link>}
+        </>
+      )}
+      <button type="button" onClick={() => setShowDelete(true)} className="btn btn-plain btn-sm btn-destructive-plain ml-auto">Delete</button>
+      {showDelete && (
+        <DeleteEntityDialog
+          entityId={entity.id}
+          entityName={entity.name}
+          onClose={() => setShowDelete(false)}
+          onDeleted={() => { setShowDelete(false); router.push('/dashboard/entities'); router.refresh() }}
+        />
+      )}
+    </div>
   )
 }
