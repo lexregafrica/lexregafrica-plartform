@@ -32,6 +32,8 @@ export default async function EntityWorkspacePage({
   // org would wrongly fail an org-scoped check here.
   const { data: isSuperAdmin } = await supabase.rpc('is_super_admin')
   const canManageStatus = isSuperAdmin === true
+  const { data: myAssignment } = await supabase
+    .from('lawyer_assignments').select('id').eq('entity_id', entityId).eq('lawyer_user_id', user.id).eq('status', 'active').maybeSingle()
 
   const [{ data: events }, { data: docs }, { data: directors }, { data: shareholders }, { data: forms }, { data: bos }] =
     await Promise.all([
@@ -142,6 +144,7 @@ export default async function EntityWorkspacePage({
         idpUrl,
       }}
       canManageStatus={canManageStatus}
+      showCopilot={!!myAssignment || isSuperAdmin === true}
       reports={(await listReports(supabase, { statuses: ['released'], entityId })).map((r) => ({ id: r.id, title: r.title, signedAt: r.signedAt }))}
       events={(events ?? []).map((e) => ({
         id: e.id,

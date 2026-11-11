@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DeleteEntityDialog } from '@/components/dashboard/delete-entity-dialog'
+import { CopilotBriefing } from '@/components/ai/copilot-briefing'
 import {
   IconLayoutDashboard,
   IconCalendarTime,
@@ -765,6 +766,7 @@ export function EntityWorkspace({
   beneficialOwners = [],
   canManageStatus,
   reports = [],
+  showCopilot = false,
 }: {
   entity: WorkspaceEntity
   events: WorkspaceEvent[]
@@ -775,6 +777,8 @@ export function EntityWorkspace({
   canManageStatus: boolean
   /** Signed LexAudit reports released to the client */
   reports?: Array<{ id: string; title: string; signedAt: string | null }>
+  /** Assigned lawyer (or Charles): show the Co-Pilot briefing */
+  showCopilot?: boolean
 }) {
   const [tab, setTab] = useState<TabId>('overview')
   const isActive = entity.status === 'active'
@@ -816,6 +820,8 @@ export function EntityWorkspace({
         </header>
 
         <SetupActions entity={entity} />
+
+        {showCopilot && <CopilotBriefing entityId={entity.id} />}
 
         {reports.length > 0 && (
           <div className="note note-brand">
