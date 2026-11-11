@@ -55,3 +55,15 @@
   .h2-faq-q { padding: 16px; }
 }
 }
+
+/* Hero banner entrance + reduced motion */
+@keyframes hero-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.hero-banner { min-height: 100dvh; background: #1a0008 url('/videos/auth-bg-poster.jpg') center / cover no-repeat; }
+.hero-in-1, .hero-in-2, .hero-in-3, .hero-in-4 { animation: hero-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.hero-in-2 { animation-delay: 80ms; }
+.hero-in-3 { animation-delay: 160ms; }
+.hero-in-4 { animation-delay: 240ms; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-video { display: none; }
+  .hero-in-1, .hero-in-2, .hero-in-3, .hero-in-4 { animation: none; }
+}

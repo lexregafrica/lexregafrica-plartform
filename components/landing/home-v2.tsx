@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import {
-  IconShieldCheck, IconFileUpload, IconBuilding, IconTarget, IconBook, IconGavel, IconWriting,
+  IconFileUpload, IconBuilding, IconTarget, IconBook, IconGavel, IconWriting,
   IconCheck, IconShieldLock, IconFileCertificate, IconWorld,
 } from '@tabler/icons-react'
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 import { LandingFaq } from '@/components/landing/landing-faq'
+import { HeroBanner } from '@/components/landing/hero-banner'
 
 // Landing page — built from "Home v2" on the LexReg UI Revamp design canvas.
 // Design system v2 (.lx), burgundy on white. No invented logos, stats or
@@ -15,41 +16,11 @@ const ICON = { size: 22, stroke: 1.75 } as const
 export function HomeV2() {
   return (
     <div className="lx" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
-      <header className="container" style={{ paddingTop: 16, position: 'sticky', top: 0, zIndex: 20 }}>
-        <nav className="nav-float glass" aria-label="Primary">
-          <Link className="row gap-2" href="/" style={{ color: 'var(--label)' }}>
-            <LexRegLogoMark size={30} />
-            <span className="t-headline">LexReg</span>
-          </Link>
-          <span style={{ width: 16 }} className="hide-compact" />
-          <a className="nav-link hide-compact" href="#paths">How it works</a>
-          <a className="nav-link hide-compact" href="#ai">LexReg AI</a>
-          <a className="nav-link hide-compact" href="#pricing">Pricing</a>
-          <a className="nav-link hide-compact" href="#trust">Security</a>
-          <a className="nav-link hide-compact" href="#faq">FAQ</a>
-          <span className="grow" />
-          <Link className="nav-link" href="/login">Sign in</Link>
-          <Link className="btn btn-primary btn-pill btn-sm" href="/signup">Get started</Link>
-        </nav>
-      </header>
 
       <main>
-        <section className="container" aria-labelledby="hero-title">
-          <div className="h2-hero">
-            <span className="pill pill-brand rise"><IconShieldCheck size={14} stroke={2} aria-hidden="true" />New: LexReg AI, checked by a lawyer</span>
-            <h1 id="hero-title" className="t-display t-balance rise" style={{ '--d': 1, maxWidth: 1100, margin: 0 } as React.CSSProperties}>
-              Your company&rsquo;s records, filings and lawyer.<br /><span className="t-brand">In one calm place.</span>
-            </h1>
-            <p className="t-pretty t-2 rise" style={{ '--d': 2, maxWidth: 620, fontSize: 19, lineHeight: '28px', margin: 0 } as React.CSSProperties}>
-              Form or bring in your company, keep every register current, never miss a filing, and ask questions about your own records. Anything legal is signed by an advocate before it reaches you.
-            </p>
-            <div className="row wrap gap-3 rise" style={{ '--d': 3, justifyContent: 'center' } as React.CSSProperties}>
-              <Link className="btn btn-primary btn-lg btn-pill" href="/signup">Get started free</Link>
-              <a className="btn btn-gray btn-lg btn-pill" href="#ai">See LexReg AI</a>
-            </div>
-            <p className="t-footnote t-3 rise" style={{ '--d': 4, margin: 0 } as React.CSSProperties}>Free to start. Pay only for the services you use.</p>
-          </div>
+        <HeroBanner />
 
+        <section className="container" aria-label="Product preview" style={{ paddingTop: 56 }}>
           <figure className="rise" style={{ '--d': 5, margin: '0 0 24px' } as React.CSSProperties} aria-label="The LexReg dashboard with the LexReg AI panel open (illustration)">
             <div className="h2-shot" aria-hidden="true">
               <div className="h2-side">
