@@ -5,11 +5,24 @@ import { createClient } from '@/lib/supabase/server'
 export default async function AdminOverviewPage() {
   const supabase = await createClient()
 
-  const [{ data: orgs }, { data: entities }, { data: members }] = await Promise.all([
+  const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi' }).format(new Date())
+  const [{ data: orgs }, { data: entities }, { data: members }, { data: overdue }, { data: assignments }] = await Promise.all([
     supabase.from('organisations').select('id, name, slug, created_at').is('deleted_at', null).order('created_at', { ascending: false }),
-    supabase.from('entities').select('id, organisation_id, status').is('deleted_at', null),
+    supabase.from('entities').select('id, organisation_id, status, legal_name, trading_name, proposed_names, updated_at').is('deleted_at', null),
     supabase.from('organisation_members').select('organisation_id, role'),
+    supabase.from('compliance_events').select('id, title, due_date, entity_id').neq('status', 'complete').lt('due_date', todayIso).order('due_date').limit(50),
+    supabase.from('lawyer_assignments').select('id, entity_id, service_type, assigned_at').eq('status', 'active'),
   ])
+
+  // Operations queue: what needs Charles's hand today
+  const nameOf = new Map((entities ?? []).map((e) => [e.id, e.legal_name || e.trading_name || (e.proposed_names as string[] | null)?.find((n) => n?.trim()) || 'Unnamed entity']))
+  const awaitingBrs = (entities ?? []).filter((e) => e.status === 'pending_registration')
+    .sort((a, b) => Date.parse(a.updated_at) - Date.parse(b.updated_at))
+  const queue = [
+    ...awaitingBrs.slice(0, 4).map((e) => ({ key: `brs-${e.id}`, href: `/admin/entities/${e.id}`, title: nameOf.get(e.id) ?? '', what: 'Awaiting BRS certificate', tone: 'warn' })),
+    ...(overdue ?? []).slice(0, 4).map((c) => ({ key: `od-${c.id}`, href: `/admin/entities/${c.entity_id}`, title: nameOf.get(c.entity_id) ?? '', what: `Overdue: ${c.title}`, tone: 'bad' })),
+    ...(assignments ?? []).slice(0, 4).map((a) => ({ key: `la-${a.id}`, href: `/admin/entities/${a.entity_id}`, title: nameOf.get(a.entity_id) ?? '', what: `With lawyer: ${a.service_type === 'legal_audit' ? 'Legal audit' : 'Corporate services'}`, tone: 'info' })),
+  ]
 
   const entityCountByOrg = new Map<string, number>()
   const activeCountByOrg = new Map<string, number>()
@@ -57,7 +70,29 @@ export default async function AdminOverviewPage() {
         ))}
       </section>
 
-      <section className="card rise" aria-labelledby="orgs-h" style={{ '--d': 5 } as React.CSSProperties}>
+      <section className="card rise" aria-labelledby="queue-h" style={{ '--d': 5 } as React.CSSProperties}>
+        <div className="card-head">
+          <h2 id="queue-h">Needs action</h2>
+          <span className="t-footnote t-3 t-num">{awaitingBrs.length} awaiting BRS · {overdue?.length ?? 0} overdue · {assignments?.length ?? 0} with lawyers</span>
+        </div>
+        {queue.length === 0 ? (
+          <p className="t-footnote t-3 px-5 pb-5">Nothing waiting. Every entity is up to date.</p>
+        ) : (
+          <ul className="flex flex-col px-2 pb-2">
+            {queue.map((q) => (
+              <li key={q.key}>
+                <Link href={q.href} className="list-row is-link" style={{ color: 'var(--label)' }}>
+                  <span className={`pill pill-${q.tone}`}>{q.what}</span>
+                  <span className="t-subhead min-w-0 flex-1 truncate">{q.title}</span>
+                  <IconArrowRight size={15} stroke={2} aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="card rise" aria-labelledby="orgs-h" style={{ '--d': 6 } as React.CSSProperties}>
         <div className="card-head">
           <h2 id="orgs-h">Organisations</h2>
           <span className="t-footnote t-3 t-num">{orgs?.length ?? 0} total</span>
