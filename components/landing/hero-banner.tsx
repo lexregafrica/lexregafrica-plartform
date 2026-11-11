@@ -6,7 +6,7 @@ import { Instrument_Serif } from 'next/font/google'
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 
 // Landing header + hero, adapted from the ResponsiveHeroBanner layout:
-// full-bleed brand video (same as sign-in), glass pill navigation, badge,
+// its full-bleed background image, glass pill navigation, badge,
 // serif headline, two calls to action, and a row of what LexReg is built
 // around. No partner logos: LexReg has no partnerships to claim.
 
@@ -33,12 +33,13 @@ export function HeroBanner() {
 
   return (
     <section className="hero-banner relative isolate w-full overflow-hidden" aria-labelledby="hero-title">
-      <video className="hero-video absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline preload="auto" poster="/videos/auth-bg-poster.jpg" aria-hidden="true">
-        <source src="/videos/auth-bg.webm" type="video/webm" />
-        <source src="/videos/auth-bg.mp4" type="video/mp4" />
-      </video>
-      {/* Scrim keeps white text readable over every frame of the video */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/70" />
+      {/* eslint-disable-next-line @next/next/no-img-element -- background image from the hero snippet */}
+      <img
+        src="https://cdn.21st.dev/assets/mirror/a8/a8cf38f65f7315f95eba8c803c4a80a9d78cb2ea36fbfee49828396e4a0b9737.jpg"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="pointer-events-none absolute inset-0 ring-1 ring-black/30" />
 
       <header className="relative z-10 xl:top-4">
         <div className="mx-4 sm:mx-6">
