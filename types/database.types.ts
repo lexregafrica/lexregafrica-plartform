@@ -857,6 +857,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      owner_entity_lawyers: {
+        Args: never
+        Returns: {
+          assigned_at: string
+          assignment_id: string
+          completed_at: string
+          entity_id: string
+          lawyer_name: string
+          service_type: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       applicant_relationship:
