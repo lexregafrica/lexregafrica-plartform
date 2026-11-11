@@ -2,15 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Instrument_Serif } from 'next/font/google'
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
+import { serif } from '@/components/landing/fonts'
 
 // Landing header + hero, adapted from the ResponsiveHeroBanner layout:
 // its full-bleed background image, glass pill navigation, badge,
 // serif headline, two calls to action, and a row of what LexReg is built
 // around. No partner logos: LexReg has no partnerships to claim.
-
-const serif = Instrument_Serif({ subsets: ['latin'], weight: '400', display: 'swap' })
 
 const NAV = [
   { label: 'How it works', href: '#paths' },

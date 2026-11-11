@@ -21,25 +21,9 @@ html:has(.lx) { scroll-behavior: smooth; }
 .h2-q { align-self: flex-end; background: var(--brand); color: var(--brand-ink); max-width: 85%; }
 .h2-a { background: var(--surface); box-shadow: 0 0 0 1px var(--sep); }
 .h2-cite { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--fill-3); color: var(--label-2); }
-.h2-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; margin-top: 32px; }
 .h2-flow { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
 .h2-flow .st { border-radius: 16px; background: var(--fill-4); padding: 16px; display: flex; flex-direction: column; gap: 6px; }
 .h2-flow .st.sign { background: var(--brand); color: var(--brand-ink); }
-.h2-tick { display: flex; gap: 10px; align-items: flex-start; margin: 0; }
-.h2-tick svg { color: var(--good); margin-top: 2px; flex: none; }
-.h2-faq-q { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 64px; padding: 18px 22px; text-align: left; }
-.h2-faq-q svg { color: var(--label-3); transition: transform var(--dur-spring) var(--ease-spring); flex: none; }
-.h2-faq.is-open .h2-faq-q svg { transform: rotate(45deg); color: var(--tint-text); }
-.h2-faq + .h2-faq { border-top: var(--hairline-soft); }
-.h2-faq-a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-spring) var(--ease-spring); }
-.h2-faq.is-open .h2-faq-a { grid-template-rows: 1fr; }
-.h2-faq-a > div { overflow: hidden; min-height: 0; visibility: hidden; }
-.h2-faq.is-open .h2-faq-a > div { visibility: visible; }
-.h2-cta { background: var(--brand); color: var(--brand-ink); border-radius: 28px; padding: 88px 32px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 18px; }
-.lx a.btn-onbrand { background: var(--brand-ink); color: var(--brand); }
-.h2-foot { display: grid; grid-template-columns: minmax(0,1.6fr) repeat(3, minmax(0,1fr)); gap: 32px; padding: 56px 0 32px; }
-.h2-foot a { color: var(--label-2); }
-.h2-foot a:hover { color: var(--label); }
 @container lx (max-width: 1100px) {
   .h2-shot { grid-template-columns: minmax(0,1fr) 280px; }
   .h2-side { display: none; }
@@ -49,12 +33,7 @@ html:has(.lx) { scroll-behavior: smooth; }
   .h2-shot { grid-template-columns: minmax(0,1fr); min-height: 0; }
   .h2-ai { border-left: 0; border-top: var(--hairline-soft); }
   .h2-kpis { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .h2-grid3 { grid-template-columns: minmax(0,1fr); }
   .h2-flow { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .h2-cta { padding: 56px 20px; border-radius: 22px; }
-  .h2-foot { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 28px 16px; }
-  .h2-foot > :first-child { grid-column: 1 / -1; }
-  .h2-faq-q { padding: 16px; }
 }
 }
 
