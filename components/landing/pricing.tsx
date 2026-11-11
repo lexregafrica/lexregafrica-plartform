@@ -1,8 +1,7 @@
 import Link from 'next/link'
-import { serif } from '@/components/landing/fonts'
 
 // Pricing — editorial price list: one row per service, hairline rules,
-// serif names and figures. No subscriptions, so no tiers or toggles.
+// plain type. No subscriptions, so no tiers or toggles.
 
 const SERVICES = [
   // TODO(Charles): formation price.
@@ -16,7 +15,7 @@ export function Pricing() {
     <section id="pricing" aria-labelledby="price-title">
       <div className="mx-auto w-full max-w-7xl px-4 py-16 lg:px-8 lg:py-24 xl:px-16">
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-end">
-          <h2 id="price-title" className={`${serif.className} m-0 text-5xl font-normal leading-[1.02] tracking-[-0.02em] text-neutral-950 lg:text-7xl`}>
+          <h2 id="price-title" className={`m-0 text-3xl font-medium leading-tight tracking-tight text-neutral-950 xl:text-4xl`}>
             Free to run.<br />Pay for the work.
           </h2>
           <p className="m-0 max-w-[42ch] text-[17px] leading-relaxed text-neutral-600 md:justify-self-end">
@@ -27,10 +26,10 @@ export function Pricing() {
         <ul className="m-0 mt-14 list-none border-t border-neutral-900 p-0">
           {SERVICES.map((s) => (
             <li key={s.name} className="grid gap-4 border-b border-neutral-200 py-8 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(0,0.8fr)] md:gap-10">
-              <h3 className={`${serif.className} m-0 text-3xl font-normal leading-tight text-neutral-950`}>{s.name}</h3>
+              <h3 className={`m-0 text-2xl font-medium leading-tight tracking-tight text-neutral-950`}>{s.name}</h3>
               <p className="m-0 max-w-[52ch] text-[15px] leading-relaxed text-neutral-600">{s.body}</p>
               <div className="flex flex-col gap-1 md:items-end md:text-right">
-                <p className={`${serif.className} m-0 text-3xl leading-none tabular-nums text-neutral-950`}>{s.price}</p>
+                <p className={`m-0 text-2xl font-medium leading-none tracking-tight tabular-nums text-neutral-950`}>{s.price}</p>
                 <p className="m-0 text-sm text-neutral-500">{s.note}</p>
                 <Link
                   href="/signup"

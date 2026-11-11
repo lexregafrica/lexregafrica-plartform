@@ -1,4 +1,3 @@
-import { serif } from '@/components/landing/fonts'
 
 // Security and privacy — two columns: a statement on the left, a numbered
 // list of plain commitments on the right. No icon cards.
@@ -18,7 +17,7 @@ export function Trust() {
       <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20 lg:px-8 lg:py-24 xl:px-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <p className="m-0 text-sm font-medium text-[#800020]">Security and privacy</p>
-          <h2 id="trust-title" className={`${serif.className} m-0 mt-4 text-5xl font-normal leading-[1.02] tracking-[-0.02em] text-neutral-950 lg:text-6xl`}>
+          <h2 id="trust-title" className={`m-0 mt-4 text-3xl font-medium leading-tight tracking-tight text-neutral-950 xl:text-4xl`}>
             Kept the way a lawyer would keep them.
           </h2>
           <p className="m-0 mt-6 max-w-[40ch] text-[17px] leading-relaxed text-neutral-600">
