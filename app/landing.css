@@ -1,3 +1,5 @@
+html:has(.lx) { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html:has(.lx) { scroll-behavior: auto; } }
 /* Landing page (Home v2 mockup, design canvas). Same layer as the design
    system so Tailwind utilities still override. */
 @layer components {
@@ -69,4 +71,3 @@
 
 /* Live dashboard preview: real components, sample data */
 .h2-live { overflow: hidden; border-block: 1px solid var(--sep); background: #fff; }
-@container lx (max-width: 760px) { .h2-live > div { height: 640px !important; } }

@@ -7,7 +7,7 @@ import { LandingFaq } from '@/components/landing/landing-faq'
 import { HeroBanner } from '@/components/landing/hero-banner'
 import { AiCapabilities } from '@/components/landing/ai-capabilities'
 import { ThreeWays } from '@/components/landing/three-ways'
-import { CombinedMock } from '@/components/dashboard-mockups/lexreg-dashboards'
+import Image from 'next/image'
 
 // Landing page — built from "Home v2" on the LexReg UI Revamp design canvas.
 // Design system v2 (.lx), burgundy on white. No invented logos, stats or
@@ -23,13 +23,12 @@ export function HomeV2() {
         <HeroBanner />
 
         <section aria-label="Product preview" style={{ paddingTop: 56 }}>
-          <figure className="rise" style={{ '--d': 5, margin: '0 0 24px' } as React.CSSProperties} aria-label="The LexReg dashboard, with sample data. Try it: click the sidebar or a matter.">
-            {/* The real dashboard components with sample data, not a screenshot:
-                always matches the app, and no client data on a public page. */}
+          <figure className="rise" style={{ '--d': 5, margin: '0 0 24px' } as React.CSSProperties} >
+            {/* Snapshot of the real dashboard with sample data (no client data). */}
             <div className="h2-live">
-              <CombinedMock className="h-[760px]" docked />
+              <Image src="/landing/dashboard.jpg" alt="The LexReg dashboard with sample data: filings, open matters, filing activity and the LexReg AI panel." width={2880} height={1524} sizes="100vw" priority className="block h-auto w-full" />
             </div>
-            <figcaption className="t-footnote t-3" style={{ textAlign: 'center', marginTop: 12 }}>The real LexReg dashboard with sample data. Click around.</figcaption>
+            <figcaption className="t-footnote t-3" style={{ textAlign: 'center', marginTop: 12 }}>The LexReg dashboard, shown with sample data.</figcaption>
           </figure>
         </section>
 

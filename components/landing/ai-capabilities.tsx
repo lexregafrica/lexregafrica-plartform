@@ -35,7 +35,7 @@ const row3: Tag[] = [
 ]
 
 const TagChip = ({ icon: Icon, label }: Tag) => (
-  <div className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-white/20 bg-black/10 px-4 backdrop-blur-sm">
+  <div className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-white/20 bg-black/25 px-4">
     <Icon className="size-4 text-white" aria-hidden="true" />
     <span className="whitespace-nowrap text-sm font-medium text-white">{label}</span>
   </div>
