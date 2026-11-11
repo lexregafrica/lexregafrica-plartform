@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import {
-  IconFileUpload, IconBuilding, IconTarget,
   IconCheck, IconShieldLock, IconFileCertificate, IconWorld,
 } from '@tabler/icons-react'
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 import { LandingFaq } from '@/components/landing/landing-faq'
 import { HeroBanner } from '@/components/landing/hero-banner'
 import { AiCapabilities } from '@/components/landing/ai-capabilities'
+import { ThreeWays } from '@/components/landing/three-ways'
 import { CombinedMock } from '@/components/dashboard-mockups/lexreg-dashboards'
 
 // Landing page — built from "Home v2" on the LexReg UI Revamp design canvas.
@@ -33,25 +33,7 @@ export function HomeV2() {
           </figure>
         </section>
 
-        <section id="paths" className="section container" aria-labelledby="paths-title">
-          <div className="section-head" style={{ textAlign: 'center', alignItems: 'center', marginInline: 'auto' }}>
-            <p className="t-eyebrow">Three ways in</p>
-            <h2 id="paths-title" className="t-hero t-balance" style={{ margin: 0 }}>Wherever your business is today</h2>
-          </div>
-          <div className="h2-grid3">
-            {[
-              { Icon: IconFileUpload, title: 'Already registered', body: 'Upload your CR12, certificate and IDs. We read them, you confirm anything we’re unsure of, and your registers and compliance calendar are ready.' },
-              { Icon: IconBuilding, title: 'Starting a company', body: 'Answer a guided questionnaire. We prepare every form; you file on BRS eCitizen and upload the certificate. We take it from there.' },
-              { Icon: IconTarget, title: 'Not registered yet', body: 'Take a 15-question readiness check. Get a score out of 100 and a plain list of what to fix before you formalise.' },
-            ].map(({ Icon, title, body }) => (
-              <article key={title} className="card card-pad stack gap-3">
-                <span className="icon-tile icon-tile-lg" aria-hidden="true"><Icon {...ICON} /></span>
-                <h3 className="t-title3" style={{ margin: 0 }}>{title}</h3>
-                <p className="t-callout t-2" style={{ margin: 0 }}>{body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+        <ThreeWays />
 
         <AiCapabilities />
 
