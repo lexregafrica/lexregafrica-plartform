@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeftRight, Building2, FileSignature, LayoutDashboard, LogOut, Sparkles } from 'lucide-react'
+import { ArrowLeftRight, Bot, Building2, FileSignature, LayoutDashboard, LogOut, Sparkles } from 'lucide-react'
 import {
   DashboardMenu,
   DashboardMenuContent,
@@ -28,6 +28,7 @@ const NAV: DashboardShellNavSection[] = [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/admin' },
       { id: 'entities', label: 'Entities', icon: Building2, href: '/admin/entities' },
       { id: 'reviews', label: 'Review queue', icon: FileSignature, href: '/admin/reviews' },
+      { id: 'ai', label: 'AI activity', icon: Bot, href: '/admin/ai' },
     ],
   },
   {
@@ -49,6 +50,8 @@ export function AdminShell({ userName, userEmail, children }: { userName: string
     ? 'mockups'
     : pathname.startsWith('/admin/reviews')
       ? 'reviews'
+      : pathname.startsWith('/admin/ai')
+      ? 'ai'
       : pathname.startsWith('/admin/entities')
       ? 'entities'
       : 'overview'
@@ -56,6 +59,8 @@ export function AdminShell({ userName, userEmail, children }: { userName: string
     ? 'Entity'
     : activeItemId === 'reviews'
       ? 'Review queue'
+      : activeItemId === 'ai'
+      ? 'AI activity'
       : activeItemId === 'entities'
       ? 'Entities'
       : activeItemId === 'mockups'
