@@ -764,6 +764,7 @@ export function EntityWorkspace({
   shareholders,
   beneficialOwners = [],
   canManageStatus,
+  reports = [],
 }: {
   entity: WorkspaceEntity
   events: WorkspaceEvent[]
@@ -772,6 +773,8 @@ export function EntityWorkspace({
   shareholders: WorkspaceShareholder[]
   beneficialOwners?: WorkspaceBeneficialOwner[]
   canManageStatus: boolean
+  /** Signed LexAudit reports released to the client */
+  reports?: Array<{ id: string; title: string; signedAt: string | null }>
 }) {
   const [tab, setTab] = useState<TabId>('overview')
   const isActive = entity.status === 'active'
@@ -813,6 +816,16 @@ export function EntityWorkspace({
         </header>
 
         <SetupActions entity={entity} />
+
+        {reports.length > 0 && (
+          <div className="note note-brand">
+            <IconFileText size={18} stroke={1.75} aria-hidden="true" />
+            <p className="flex flex-wrap gap-x-3 gap-y-1">
+              <span>Lawyer-signed reports:</span>
+              {reports.map((r) => <Link key={r.id} href={`/dashboard/reports/${r.id}`} className="t-brand">{r.title}</Link>)}
+            </p>
+          </div>
+        )}
 
         <nav className="tabs overflow-x-auto" aria-label="Entity sections">
           {TABS.map((t) => (

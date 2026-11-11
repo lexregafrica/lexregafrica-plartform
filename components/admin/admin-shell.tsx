@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeftRight, Building2, LayoutDashboard, LogOut, Sparkles } from 'lucide-react'
+import { ArrowLeftRight, Building2, FileSignature, LayoutDashboard, LogOut, Sparkles } from 'lucide-react'
 import {
   DashboardMenu,
   DashboardMenuContent,
@@ -27,6 +27,7 @@ const NAV: DashboardShellNavSection[] = [
     items: [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/admin' },
       { id: 'entities', label: 'Entities', icon: Building2, href: '/admin/entities' },
+      { id: 'reviews', label: 'Review queue', icon: FileSignature, href: '/admin/reviews' },
     ],
   },
   {
@@ -46,12 +47,16 @@ export function AdminShell({ userName, userEmail, children }: { userName: string
 
   const activeItemId = pathname.startsWith('/mockups')
     ? 'mockups'
-    : pathname.startsWith('/admin/entities')
+    : pathname.startsWith('/admin/reviews')
+      ? 'reviews'
+      : pathname.startsWith('/admin/entities')
       ? 'entities'
       : 'overview'
   const title = /^\/admin\/entities\/[^/]+/.test(pathname)
     ? 'Entity'
-    : activeItemId === 'entities'
+    : activeItemId === 'reviews'
+      ? 'Review queue'
+      : activeItemId === 'entities'
       ? 'Entities'
       : activeItemId === 'mockups'
         ? 'Mockups'

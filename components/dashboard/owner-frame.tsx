@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Briefcase, Building2, LayoutDashboard, LogOut, Plus, Scale, Settings, ShieldCheck } from 'lucide-react'
+import { Briefcase, Building2, FileSignature, LayoutDashboard, LogOut, Plus, Scale, Settings, ShieldCheck } from 'lucide-react'
 import {
   dashboardButtonVariants,
   DashboardMenu,
@@ -45,6 +45,7 @@ export function OwnerFrame({ role, userName, userEmail, entities, openMatters, c
   const workspace: DashboardShellNavItem[] = isLawyer
     ? [
         { id: 'matters', label: 'My matters', icon: Scale, href: '/dashboard/matters', count: openMatters || undefined },
+        { id: 'reviews', label: 'Reviews', icon: FileSignature, href: '/dashboard/reviews' },
         { id: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
       ]
     : [

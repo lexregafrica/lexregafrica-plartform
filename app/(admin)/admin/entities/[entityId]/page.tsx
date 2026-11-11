@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { ENTITY_TYPES } from '@/lib/onboarding/new-entity'
 import { StatusBoard } from '@/components/dashboard/entity-workspace'
 import { LawyerAssignmentPanel, type LawyerAssignment } from '@/components/admin/lawyer-assignment-panel'
+import { StartAuditButton } from '@/components/ai/report-editor'
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('')
@@ -139,6 +140,11 @@ export default async function AdminEntityDetailPage({
         <div className="span-2 flex flex-col gap-4">
           <StatusBoard entityId={entity.id} registrationStatus={entity.registration_status} canManage />
           <LawyerAssignmentPanel entityId={entity.id} assignments={lawyerAssignments} />
+          <section className="card card-pad flex flex-col gap-3" aria-label="LexAudit">
+            <h2 className="t-title3">Legal audit</h2>
+            <p className="t-footnote t-3">LexReg AI drafts each checklist finding from this entity&rsquo;s records. You review and sign before the client sees anything.</p>
+            <StartAuditButton entityId={entity.id} reviewBase="/admin/reviews" />
+          </section>
         </div>
       </div>
     </main>

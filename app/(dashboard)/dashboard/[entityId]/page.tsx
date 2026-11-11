@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { listReports } from '@/lib/ai/drafts'
 import { EntityWorkspace } from '@/components/dashboard/entity-workspace'
 import { EXISTING_DOC_PACKS, LIMITED_COMPANY_PACK, entityFieldsFor, rankFor, type ExistingWizardData } from '@/lib/onboarding/existing-entity'
 import { documentGaps, fieldState, withLiveEvidence, ONBOARDING_STATUS_LABEL, FIELD_STATE_LABEL, type OnboardingStatus } from '@/lib/onboarding/existing-engine'
@@ -141,6 +142,7 @@ export default async function EntityWorkspacePage({
         idpUrl,
       }}
       canManageStatus={canManageStatus}
+      reports={(await listReports(supabase, { statuses: ['released'], entityId })).map((r) => ({ id: r.id, title: r.title, signedAt: r.signedAt }))}
       events={(events ?? []).map((e) => ({
         id: e.id,
         title: e.title,
