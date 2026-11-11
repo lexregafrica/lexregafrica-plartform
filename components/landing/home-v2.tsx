@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import {
-  IconFileUpload, IconBuilding, IconTarget, IconBook, IconGavel, IconWriting,
+  IconFileUpload, IconBuilding, IconTarget,
   IconCheck, IconShieldLock, IconFileCertificate, IconWorld,
 } from '@tabler/icons-react'
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 import { LandingFaq } from '@/components/landing/landing-faq'
 import { HeroBanner } from '@/components/landing/hero-banner'
+import { AiCapabilities } from '@/components/landing/ai-capabilities'
 import { CombinedMock } from '@/components/dashboard-mockups/lexreg-dashboards'
 
 // Landing page — built from "Home v2" on the LexReg UI Revamp design canvas.
@@ -52,32 +53,7 @@ export function HomeV2() {
           </div>
         </section>
 
-        <section id="ai" className="section container" aria-labelledby="ai-title">
-          <div className="section-head" style={{ textAlign: 'center', alignItems: 'center', marginInline: 'auto' }}>
-            <p className="t-eyebrow">LexReg AI</p>
-            <h2 id="ai-title" className="t-hero t-balance" style={{ margin: 0 }}>AI drafts. Advocates sign.</h2>
-            <p className="t-callout t-2 t-pretty" style={{ maxWidth: 640, margin: 0 }}>It reads only your own records, names its source for every fact, and says &ldquo;not on file&rdquo; instead of guessing. Legal work never reaches you without a lawyer&rsquo;s signature.</p>
-          </div>
-          <div className="h2-grid3">
-            {[
-              { Icon: IconBook, title: 'Ask your filings', body: '“When is our annual return due?” “Who holds more than 10%?” Answers from your registers and documents, with sources.' },
-              { Icon: IconGavel, title: 'Legal audit', body: 'Every checklist item drafted from your records, then checked, edited and signed by an advocate. KES 25,000.' },
-              { Icon: IconWriting, title: 'A better-prepared lawyer', body: 'Your assigned advocate starts with a briefing on gaps to raise, not a cold read of your files, so their time goes on judgement.' },
-            ].map(({ Icon, title, body }) => (
-              <article key={title} className="card card-pad stack gap-3">
-                <Icon {...ICON} className="t-brand" aria-hidden="true" />
-                <h3 className="t-title3" style={{ margin: 0 }}>{title}</h3>
-                <p className="t-callout t-2" style={{ margin: 0 }}>{body}</p>
-              </article>
-            ))}
-          </div>
-          <ol className="h2-flow" aria-label="How a legal audit is produced">
-            <li className="st"><span className="t-footnote t-3">1</span><strong>Your records</strong><span className="t-footnote t-3">Registers, documents, deadlines</span></li>
-            <li className="st"><span className="t-footnote t-3">2</span><strong>AI draft</strong><span className="t-footnote t-3">Each finding with its sources</span></li>
-            <li className="st"><span className="t-footnote t-3">3</span><strong>Advocate review</strong><span className="t-footnote t-3">Checked and edited line by line</span></li>
-            <li className="st sign"><span className="t-footnote">4</span><strong>Signed report</strong><span className="t-footnote">Only now released to you</span></li>
-          </ol>
-        </section>
+        <AiCapabilities />
 
         <section id="pricing" className="section container" aria-labelledby="price-title">
           <div className="section-head" style={{ textAlign: 'center', alignItems: 'center', marginInline: 'auto' }}>

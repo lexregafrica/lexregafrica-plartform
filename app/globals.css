@@ -248,3 +248,7 @@
   border-color: var(--system-sep);
   border-width: 0.5px;
 }
+/* Marquee (components/ui/marquee.tsx) */
+@keyframes lx-marquee { from { transform: translateX(0); } to { transform: translateX(calc(-100% - var(--gap))); } }
+.lx-marquee-track { animation: lx-marquee var(--duration) linear infinite; }
+@media (prefers-reduced-motion: reduce) { .lx-marquee-track { animation: none; } }
