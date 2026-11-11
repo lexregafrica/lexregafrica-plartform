@@ -6,6 +6,7 @@ import {
   AnalyticsDashboard,
   type AnalyticsDashboardData,
   type AnalyticsDashboardPage,
+  type AnalyticsPullRequest,
   type AnalyticsSettings,
 } from '@/components/block/analytics-dashboard'
 
@@ -19,9 +20,17 @@ const HREF: Record<AnalyticsDashboardPage, string> = {
   settings: '/dashboard/settings',
 }
 
-// Phase C wires LexReg AI here. Until then the panel says so plainly.
-const askNotReady = async () =>
-  'LexReg AI is not switched on yet. For help with this matter, contact the LexReg team from Services.'
+// LexReg AI in the matter panel: answers from that entity's records only.
+const askLexReg = async (question: string, matter: AnalyticsPullRequest) => {
+  if (!matter.entityId) return 'This matter is not linked to an entity, so LexReg AI cannot look it up.'
+  const res = await fetch('/api/ai/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entityId: matter.entityId, question, matter: matter.title }),
+  })
+  const body = (await res.json().catch(() => ({}))) as { answer?: string; error?: string }
+  return body.answer ?? body.error ?? 'LexReg AI could not answer right now.'
+}
 
 export function OwnerHome({
   page,
@@ -61,7 +70,7 @@ export function OwnerHome({
       initialSettings={settings}
       onSaveSettings={saveSettings}
       emailLocked
-      onAsk={askNotReady}
+      onAsk={askLexReg}
     />
   )
 }

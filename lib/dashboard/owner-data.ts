@@ -288,7 +288,7 @@ export async function loadOwnerDashboard(supabase: SupabaseClient, user: User, o
   }
 
   drafts.sort((a, b) => a.sort - b.sort)
-  const pullRequests: AnalyticsPullRequest[] = drafts.map((d, i) => ({ number: i + 1, ...d.matter }))
+  const pullRequests: AnalyticsPullRequest[] = drafts.map((d, i) => ({ number: i + 1, ...d.matter, entityId: d.entityId }))
   const openByEntity = new Map<string, number>()
   for (const d of drafts) if (d.open) openByEntity.set(d.entityId, (openByEntity.get(d.entityId) ?? 0) + 1)
 

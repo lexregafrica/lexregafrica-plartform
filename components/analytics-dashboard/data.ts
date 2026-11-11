@@ -69,6 +69,8 @@ export type AnalyticsPullRequest = {
   /** Paragraphs; text wrapped in backticks renders as inline code. */
   problem: string[];
   approach: string[];
+  /** LexReg: the entity this matter belongs to (used by LexReg AI). */
+  entityId?: string;
 };
 
 export type AnalyticsDashboardData = {
