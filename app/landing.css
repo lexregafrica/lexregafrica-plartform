@@ -66,3 +66,7 @@
 @media (prefers-reduced-motion: reduce) {
   .hero-in-1, .hero-in-2, .hero-in-3, .hero-in-4 { animation: none; }
 }
+
+/* Live dashboard preview: real components, sample data */
+.h2-live { border-radius: 24px; overflow: hidden; box-shadow: 0 0 0 1px var(--sep), 0 30px 80px -30px rgba(0,0,0,.35); background: #fff; }
+@container lx (max-width: 760px) { .h2-live > div { height: 640px !important; } }

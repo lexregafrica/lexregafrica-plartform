@@ -6,6 +6,7 @@ import {
 import { LexRegLogoMark } from '@/components/ui/lexreg-logo'
 import { LandingFaq } from '@/components/landing/landing-faq'
 import { HeroBanner } from '@/components/landing/hero-banner'
+import { CombinedMock } from '@/components/dashboard-mockups/lexreg-dashboards'
 
 // Landing page — built from "Home v2" on the LexReg UI Revamp design canvas.
 // Design system v2 (.lx), burgundy on white. No invented logos, stats or
@@ -21,46 +22,13 @@ export function HomeV2() {
         <HeroBanner />
 
         <section className="container" aria-label="Product preview" style={{ paddingTop: 56 }}>
-          <figure className="rise" style={{ '--d': 5, margin: '0 0 24px' } as React.CSSProperties} aria-label="The LexReg dashboard with the LexReg AI panel open (illustration)">
-            <div className="h2-shot" aria-hidden="true">
-              <div className="h2-side">
-                <div className="row gap-2" style={{ padding: '4px 8px 12px' }}><LexRegLogoMark size={22} /><span className="t-subhead" style={{ fontWeight: 600 }}>LexReg</span></div>
-                <div className="it on">Dashboard</div>
-                <div className="it">Entities<span className="grow" /><span className="t-footnote t-3">3</span></div>
-                <div className="it">Matters<span className="grow" /><span className="t-footnote t-3">4</span></div>
-                <div className="it">Services</div>
-                <div className="it">Settings</div>
-                <p className="t-3" style={{ margin: '14px 10px 4px', textTransform: 'uppercase', letterSpacing: '.06em', fontSize: 10.5 }}>Your entities</p>
-                <div className="it"><span className="dot" style={{ background: '#800020' }} />Amani Logistics</div>
-                <div className="it"><span className="dot" style={{ background: '#C9A227' }} />Kilele Partners</div>
-                <div className="it"><span className="dot" style={{ background: '#1A1A2E' }} />Tumaini Society</div>
-              </div>
-              <div className="h2-main">
-                <div className="row between gap-3"><p className="t-title3" style={{ margin: 0 }}>Overview</p><span className="pill">This week</span></div>
-                <div className="h2-kpis">
-                  <div className="h2-kpi"><span className="t-footnote t-3">Filings done</span><b>3</b></div>
-                  <div className="h2-kpi"><span className="t-footnote t-3">Documents added</span><b>12</b></div>
-                  <div className="h2-kpi"><span className="t-footnote t-3">Open matters</span><b>4</b></div>
-                  <div className="h2-kpi"><span className="t-footnote t-3">Next deadline</span><b style={{ fontSize: 18 }}>15 Nov</b></div>
-                </div>
-                <p className="t-subhead" style={{ margin: '6px 0 0', fontWeight: 600 }}>Needs attention</p>
-                <div>
-                  <div className="h2-row"><span className="pill pill-warn">Due in 4d</span><span className="grow truncate">Annual return 2026 — Amani Logistics Limited</span><span className="t-footnote t-3">Details</span></div>
-                  <div className="h2-row"><span className="pill pill-brand">With lawyer</span><span className="grow truncate">Legal audit — Amani Logistics Limited</span><span className="t-footnote t-3">Details</span></div>
-                  <div className="h2-row"><span className="pill">Open</span><span className="grow truncate">Beneficial ownership — BOF-1 lodgement</span><span className="t-footnote t-3">Details</span></div>
-                </div>
-              </div>
-              <div className="h2-ai">
-                <p className="t-footnote t-3" style={{ margin: 0 }}>Matter · Annual return 2026</p>
-                <div className="h2-bubble h2-q">Who are our directors, and is anything missing before we file?</div>
-                <div className="h2-bubble h2-a">
-                  Your register lists <strong>Wanjiku Mwangi</strong> and <strong>Brian Otieno</strong>. Brian&rsquo;s KRA PIN differs between the CR12 and his KRA certificate, so confirm it before filing.
-                  <span className="row wrap gap-1" style={{ marginTop: 8 }}><span className="h2-cite">Register</span><span className="h2-cite">CR12</span><span className="h2-cite">KRA certificate</span></span>
-                </div>
-                <span className="grow" />
-                <div className="input" style={{ display: 'flex', alignItems: 'center', color: 'var(--label-4)' }}>Ask anything about this matter</div>
-              </div>
+          <figure className="rise" style={{ '--d': 5, margin: '0 0 24px' } as React.CSSProperties} aria-label="The LexReg dashboard, with sample data. Try it: click the sidebar or a matter.">
+            {/* The real dashboard components with sample data, not a screenshot:
+                always matches the app, and no client data on a public page. */}
+            <div className="h2-live">
+              <CombinedMock className="h-[720px]" />
             </div>
+            <figcaption className="t-footnote t-3" style={{ textAlign: 'center', marginTop: 12 }}>The real LexReg dashboard with sample data. Click around.</figcaption>
           </figure>
         </section>
 

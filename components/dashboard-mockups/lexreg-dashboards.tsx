@@ -180,12 +180,14 @@ const COMBINED_NAV: DashboardShellNavSection[] = [
   { id: 'your-entities', title: 'Your entities', items: ENTITY_DOTS },
 ]
 
-export function CombinedMock() {
+/** The combined dashboard with sample data. `className` sets the frame
+ *  (full screen in /mockups; a fixed-height window on the landing page). */
+export function CombinedMock({ className = 'h-[100dvh]' }: { className?: string } = {}) {
   const [page, setPage] = useState<AnalyticsDashboardPage>('overview')
   const activeId = Object.keys(PAGE_FOR).find((k) => PAGE_FOR[k] === page) ?? 'dashboard'
 
   return (
-    <div className="h-[100dvh]">
+    <div className={className}>
       <DashboardShell
         brand={BRAND}
         navigation={COMBINED_NAV}
