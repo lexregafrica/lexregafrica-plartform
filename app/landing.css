@@ -68,5 +68,5 @@
 }
 
 /* Live dashboard preview: real components, sample data */
-.h2-live { border-radius: 24px; overflow: hidden; box-shadow: 0 0 0 1px var(--sep), 0 30px 80px -30px rgba(0,0,0,.35); background: #fff; }
+.h2-live { overflow: hidden; border-block: 1px solid var(--sep); background: #fff; }
 @container lx (max-width: 760px) { .h2-live > div { height: 640px !important; } }

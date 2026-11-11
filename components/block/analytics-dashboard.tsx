@@ -97,6 +97,8 @@ export interface AnalyticsDashboardProps {
   variant?: "floating" | "fill";
   /** LexReg: hides the dashboard's own rail when an outer shell supplies the navigation. */
   embedded?: boolean;
+  /** LexReg: keep the details panel docked open down to tablet width (landing preview). */
+  docked?: boolean;
   /** LexReg: saved settings, the save handler, and whether the email is read-only. */
   initialSettings?: Partial<AnalyticsSettings>;
   onSaveSettings?: (settings: AnalyticsSettings) => Promise<void>;
@@ -133,6 +135,7 @@ export function AnalyticsDashboard({
   background,
   variant = "floating",
   embedded = false,
+  docked = false,
   initialSettings,
   onSaveSettings,
   emailLocked,
@@ -159,7 +162,7 @@ export function AnalyticsDashboard({
   const hideRef = useRef<HTMLButtonElement>(null);
 
   // Layout follows the dashboard's own width, so it also works inside a panel or a preview.
-  const overlay = width !== null && width <= OVERLAY_WIDTH;
+  const overlay = width !== null && width <= (docked ? COMPACT_WIDTH : OVERLAY_WIDTH);
   const compact = width !== null && width <= COMPACT_WIDTH;
   const layout = useRef({ overlay, compact });
   useEffect(() => {
@@ -275,6 +278,7 @@ export function AnalyticsDashboard({
         data-compact={compact}
         data-variant={variant}
         data-embedded={embedded}
+        data-docked={docked}
         style={{ "--accent": ACCENTS[accent].ui, ...(background ? { "--obsidian-analytics-dashboard-background": background } : null), ...style } as CSSProperties}
         onKeyDown={onKeyDown}
       >

@@ -182,7 +182,7 @@ const COMBINED_NAV: DashboardShellNavSection[] = [
 
 /** The combined dashboard with sample data. `className` sets the frame
  *  (full screen in /mockups; a fixed-height window on the landing page). */
-export function CombinedMock({ className = 'h-[100dvh]' }: { className?: string } = {}) {
+export function CombinedMock({ className = 'h-[100dvh]', docked = false }: { className?: string; docked?: boolean } = {}) {
   const [page, setPage] = useState<AnalyticsDashboardPage>('overview')
   const activeId = Object.keys(PAGE_FOR).find((k) => PAGE_FOR[k] === page) ?? 'dashboard'
 
@@ -198,7 +198,7 @@ export function CombinedMock({ className = 'h-[100dvh]' }: { className?: string 
         title={TITLE_FOR[page]}
         headerActions={<HeaderActions />}
       >
-        <AnalyticsDashboard embedded variant="fill" page={page} onPageChange={setPage} />
+        <AnalyticsDashboard embedded docked={docked} variant="fill" page={page} onPageChange={setPage} />
       </DashboardShell>
     </div>
   )

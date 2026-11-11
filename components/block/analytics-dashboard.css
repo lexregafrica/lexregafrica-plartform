@@ -2913,3 +2913,42 @@
   color: var(--text-2);
   background: var(--fill-1);
 }
+
+/* LexReg: docked panel between tablet and desktop widths (landing preview). */
+@container analytics-dashboard (max-width: 1180px) and (min-width: 761px) {
+  .obsidian-analytics-dashboard[data-docked="true"] .window {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--details-w);
+  }
+  .obsidian-analytics-dashboard[data-docked="true"] .window[data-collapsed="true"] {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr) 0px;
+  }
+  .obsidian-analytics-dashboard[data-docked="true"] .main {
+    margin-right: 0;
+  }
+  .obsidian-analytics-dashboard[data-docked="true"] .window[data-collapsed="true"] .main {
+    margin-right: 7px;
+  }
+  .obsidian-analytics-dashboard[data-docked="true"] .details,
+  .obsidian-analytics-dashboard[data-docked="true"] .window .details {
+    grid-column: 3;
+    position: relative;
+    inset: auto;
+    width: var(--details-w);
+    border-radius: 0;
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .obsidian-analytics-dashboard[data-docked="true"] .window[data-collapsed="true"] .details {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .obsidian-analytics-dashboard[data-docked="true"] .scrim {
+    display: none;
+  }
+}

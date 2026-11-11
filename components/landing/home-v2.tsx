@@ -21,12 +21,12 @@ export function HomeV2() {
       <main>
         <HeroBanner />
 
-        <section className="container" aria-label="Product preview" style={{ paddingTop: 56 }}>
+        <section aria-label="Product preview" style={{ paddingTop: 56 }}>
           <figure className="rise" style={{ '--d': 5, margin: '0 0 24px' } as React.CSSProperties} aria-label="The LexReg dashboard, with sample data. Try it: click the sidebar or a matter.">
             {/* The real dashboard components with sample data, not a screenshot:
                 always matches the app, and no client data on a public page. */}
             <div className="h2-live">
-              <CombinedMock className="h-[720px]" />
+              <CombinedMock className="h-[760px]" docked />
             </div>
             <figcaption className="t-footnote t-3" style={{ textAlign: 'center', marginTop: 12 }}>The real LexReg dashboard with sample data. Click around.</figcaption>
           </figure>
