@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { indexDocument } from '@/lib/ai/index-document'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
@@ -778,6 +780,7 @@ export async function POST(request: Request) {
       .from('documents')
       .update({ ocr_status: 'complete', ocr_data: fields as unknown as Json })
       .eq('id', doc.id)
+    await indexDocument(supabase as unknown as SupabaseClient, doc.id)
 
     // ---- merge extraction into the application -----------------
     const merged = await mergeExtraction(supabase, {

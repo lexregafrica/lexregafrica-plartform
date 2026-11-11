@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { indexDocument } from '@/lib/ai/index-document'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { Database, Json } from '@/types/database.types'
 import { extractFromDocument, type ExtractedFields } from '@/lib/ocr/gemini'
@@ -262,6 +264,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: false, ocrStatus: 'failed', reason: g.reason })
       }
       await supabase.from('documents').update({ ocr_status: 'complete', ocr_data: { document_kind: doc.document_type, document_date: g.datedAs, governance: g.rules, parties_named: g.partiesNamed } as unknown as Json }).eq('id', doc.id)
+      await indexDocument(supabase as unknown as SupabaseClient, doc.id)
       const { data: freshP } = await supabase.from('onboarding_progress').select('data').eq('id', progress.id).single()
       const pd = (freshP?.data ?? {}) as ProgressData
       const governance = { ...(pd.wizard?.governance ?? {}) }
@@ -319,6 +322,7 @@ export async function POST(request: Request) {
       .from('documents')
       .update({ ocr_status: 'complete', ocr_data: fields as unknown as Json, document_type: documentType })
       .eq('id', doc.id)
+    await indexDocument(supabase as unknown as SupabaseClient, doc.id)
 
     // Bulk identity documents: matched to the person they belong to and
     // filed under that person, so the people screens arrive pre-filled.
