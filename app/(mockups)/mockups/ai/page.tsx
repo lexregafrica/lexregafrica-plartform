@@ -24,6 +24,11 @@ export default function AiMockupsIndex() {
             <h1 className="t-large t-balance">What the AI layer looks like</h1>
             <p className="t-body t-2 t-pretty">Sample data only. Every AI output is checked and signed by a lawyer before a client sees it, and agents only read the records the user can already see.</p>
           </div>
+          <nav className="flex flex-wrap gap-2" aria-label="Dashboard revamp mockups">
+            <Link href="/mockups/dashboard" className="btn btn-primary btn-sm">Dashboard revamp — combined</Link>
+            <Link href="/mockups/dashboard/shell" className="btn btn-secondary btn-sm">Dashboard shell</Link>
+            <Link href="/mockups/dashboard/analytics" className="btn btn-secondary btn-sm">Analytics dashboard</Link>
+          </nav>
         </header>
         <div className="grid cols-3 gap-4">
           {SCREENS.map((s, i) => (
