@@ -5,6 +5,7 @@ import type { SupabaseClient, User } from '@supabase/supabase-js'
 import { AUDIT_CHECKLIST, type AuditCheck } from './audit-checklist'
 import { AI_MODELS, DAILY_RUN_CAP, aiEnabled } from './provider'
 import { callModel } from './run'
+import { LEXAUDIT_SYSTEM } from './prompts'
 import { entityTools } from './tools'
 
 // LexAudit: one model call per checklist item, run in parallel, each
@@ -26,13 +27,6 @@ export type Finding = z.infer<typeof Finding>
 export type ReportFinding = Finding & { checkId: string; area: string; question: string; aiGenerated: boolean }
 export type AuditReport = { checklist: 'placeholder' | 'final'; findings: ReportFinding[]; generatedWith: string }
 
-const SYSTEM = `You are LexAudit, preparing ONE finding of a draft legal audit of a Kenyan business for a LexReg lawyer to review. Look the facts up with the tools first. Then call submit_finding exactly once with:
-status: "in_order" | "gap" | "unclear" ("unclear" when the records cannot answer the question);
-summary: one or two sentences; detail: what the records show, with specifics;
-recommendation: what should be done, or empty if in order;
-sources: e.g. "register: directors", "vault: CR12 (uploaded 3 Oct 2026)".
-This is a draft for a lawyer, not advice to the client.
-Jurisdiction is Kenya: Companies Act 2015, the Registrar of Companies via the Business Registration Service (BRS), KRA, and the Office of the Data Protection Commissioner. Never refer to other countries' bodies or forms (e.g. Companies House, PSC).`
 
 function parseFinding(text: string): Finding | null {
   const match = text.match(/\{[\s\S]*\}/)
@@ -56,7 +50,7 @@ async function checkOne(supabase: SupabaseClient, entityId: string, entityName: 
       return { saved: true }
     },
   })
-  const result = await callModel({ system: SYSTEM, prompt, tools: { ...entityTools(supabase, entityId), submit_finding }, maxSteps: 8, stopOnTool: 'submit_finding' })
+  const result = await callModel({ system: LEXAUDIT_SYSTEM, prompt, tools: { ...entityTools(supabase, entityId), submit_finding }, maxSteps: 8, stopOnTool: 'submit_finding' })
   const finding = submitted ?? parseFinding(result.text) ?? {
     status: 'unclear' as const,
     summary: 'LexAudit could not produce a finding for this item. The reviewer should complete it.',

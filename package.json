@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "report": "node scripts/weekly-report.mjs",
-    "db:types": "supabase gen types typescript --linked > types/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > types/database.types.ts",
+    "ai:eval": "node --env-file=.env.local scripts/ai-eval.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.78",
