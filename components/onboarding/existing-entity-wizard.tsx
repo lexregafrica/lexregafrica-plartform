@@ -937,7 +937,7 @@ export function ExistingEntityWizard() {
               </button>
             )}
           </div>
-          <button type="button" onClick={() => setShowHelp(true)} className="btn btn-plain btn-sm only-compact self-center">
+          <button type="button" onClick={() => setShowHelp(true)} className="btn btn-plain btn-sm wz-help-compact self-center">
             <IconLifebuoy size={16} stroke={1.75} aria-hidden="true" />Stuck? Ask our team
           </button>
         </section>

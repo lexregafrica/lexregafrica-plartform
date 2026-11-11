@@ -527,6 +527,7 @@
 .wz-actions { position: sticky; bottom: 16px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 16px; margin-top: 8px; }
 .wz-actions .spacer { flex: 1; }
 .wz-progress { display: none; }
+.wz-help-compact { display: none; }
 
 /* ---------- Overlays ---------- */
 .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.28); animation: fade-in var(--dur-spring) var(--ease-calm) both; }
@@ -633,6 +634,44 @@
   .cols-4.keep-2:not(.keep), .cols-5.keep-2:not(.keep) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+
+/* ---------- Responsive: content-aware grids & tablet chrome ----------
+   Grids respond to the width of the region they sit in (.content /
+   .wz-main), not the window — a sidebar plus a medium window would
+   otherwise keep desktop columns squeezed into half the space. */
+.content, .wz-main { container: region / inline-size; }
+/* Hover previews and popovers must never create sideways page scroll */
+.main, .wz-body { overflow-x: clip; }
+@container region (max-width: 860px) {
+  .cols-5, .cols-5.keep { grid-template-columns: minmax(0, 1fr); }
+  .cols-4:not(.keep-2) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols-3:not(.keep-2) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols-5 > .span-2, .cols-5 > .span-3, .cols-5 > .span-4 { grid-column: 1 / -1; }
+}
+@container region (max-width: 560px) {
+  .cols-2, .cols-3:not(.keep-2), .cols-4:not(.keep-2) { grid-template-columns: minmax(0, 1fr); }
+  .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .span-2, .span-3, .span-4, .span-5 { grid-column: 1 / -1; }
+  /* Tables keep readable columns and scroll inside their card */
+  .data-table { min-width: 600px; }
+  .table-wrap { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+}
+/* Tablet portrait and below: phone-style chrome instead of a sidebar
+   that would take a third of the screen. */
+@container lx (max-width: 900px) {
+  .sidebar { display: none; }
+  .topbar { display: none; }
+  .content { padding: 12px var(--gutter) 112px; gap: 20px; }
+  .m-topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: 8px; z-index: 10; margin: 8px 8px 0; height: 52px; padding: 0 6px 0 14px; border-radius: 26px; }
+  .m-tabbar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: sticky; bottom: 10px; z-index: 10; margin: 0 10px 10px; height: 62px; padding: 6px; border-radius: 31px; }
+  .m-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 24px; font-size: 10.5px; font-weight: 600; color: var(--label-3); text-decoration: none !important; }
+  .m-tab.is-on { color: var(--tint-text); background: var(--fill-4); }
+  .wz-body { flex-direction: column; padding: 16px 20px 120px; gap: 16px; }
+  .wz-rail { display: none !important; }
+  .wz-progress { display: flex; flex-direction: column; gap: 8px; }
+  .wz-main { max-width: none; width: 100%; }
+  .wz-help-compact { display: inline-flex; }
+}
 
 /* ---------- Auth screens (sign in, sign up, reset, invite) ---------- */
 .auth { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); min-height: 100dvh; }
